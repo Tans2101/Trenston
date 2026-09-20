@@ -3,6 +3,16 @@
   "entries": [
     {
       "date": "2026-09-20",
+      "title": "Solo founders: handoffs become Flag for later",
+      "description": "Company setup asks whether you have people you can actually delegate to (separate from headcount). Solo workspaces get a Flag for later column instead of What to hand off, Onboarding drops Invite your finance team, and insights skip assign-to-teammate drafts."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Founder credit in the marketing footer",
+      "description": "Every marketing page footer now shows Tansher Dhawan, Founder with a LinkedIn link next to the Manila line."
+    },
+    {
+      "date": "2026-09-20",
       "title": "Cockpit redesign: shell, Briefing hero, and Ask Trenston",
       "description": "The signed-in app gets a clearer command surface. Sidebar Ask Trenston CTA, upgrade/connect promo, and a desktop top bar with search, plan badge, and profile. Briefing opens on a cockpit hero — metric switcher, large figure, period comparison chart, and Assistant / Spending / Decisions columns, with chips that deep-link into Ask. Ask itself is a two-column chat plus context rail (For you / Get started / Get inspired) on large screens."
     },
