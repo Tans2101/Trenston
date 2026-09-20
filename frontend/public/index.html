@@ -17,11 +17,12 @@
         <meta name="description" content="Briefing, decisions, financials, and department lanes in one cockpit. Built for founders and owners running real operations — however lean the team." />
         <meta name="google-site-verification" content="%REACT_APP_GOOGLE_SITE_VERIFICATION%" />
         <link rel="canonical" href="https://www.trenston.com/" />
-        <!-- Opaque PNG/ICO first — Google SERP ignores transparent marks on dark chrome -->
+        <!-- Transparent SVG/PNG first so dark browser tabs stay clean (no navy tile).
+             Opaque apple-touch kept below for iOS home screen / SERP tiles. -->
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" type="image/png" sizes="32x32" href="/helm-favicon-32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/helm-favicon-16.png" />
         <link rel="icon" href="/helm-favicon.ico" sizes="any" />
-        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" sizes="180x180" href="/helm-apple-touch.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta property="og:type" content="website" />

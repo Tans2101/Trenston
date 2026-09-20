@@ -62,7 +62,7 @@ export function DecisionScreen() {
     <Chrome title="Decision Center">
       <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">Needs you today</p>
       <p className="text-sm text-helm-cream leading-snug">Approve $40K infrastructure reservation</p>
-      <p className="mt-1.5 text-xs text-helm-slate leading-relaxed">
+      <p className="mt-1.5 text-xs text-helm-cream/70 leading-relaxed">
         Pays back in four months. Cloud spend −18%. Owner: Ops.
       </p>
       <div className="mt-4 flex gap-2">
