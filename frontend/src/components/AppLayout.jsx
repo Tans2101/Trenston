@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
   FileText, Calendar, Contact, MessageSquareText,
@@ -144,7 +144,9 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
   );
 }
 
-function SidebarContent({ onNavigate, billingEnforced, onOpenSearch }) {
+const QUICK_ACTION_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
+
+function SidebarContent({ onNavigate, billingEnforced }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -161,8 +163,6 @@ function SidebarContent({ onNavigate, billingEnforced, onOpenSearch }) {
     ? null
     : (mainNav.find((item) => pathMatches(item.to, location.pathname, item.end))?.id || null);
 
-  const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
-
   const navBtn = ({ isActive }) =>
     cn(
       "group relative flex w-full items-center gap-2.5 rounded-full px-4 py-2.5 text-sm transition-colors duration-200",
@@ -174,21 +174,6 @@ function SidebarContent({ onNavigate, billingEnforced, onOpenSearch }) {
   return (
     <div className="flex flex-col h-full">
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
-
-      <div className="px-1 pt-3">
-        <button
-          type="button"
-          data-testid="nav-search-btn"
-          onClick={() => onOpenSearch?.()}
-          className="inline-flex w-full max-w-full items-center gap-2.5 rounded-full border border-helm-line bg-helm-fg/[0.03] px-4 py-2.5 text-sm text-helm-muted transition-colors hover:text-helm-fg hover:bg-helm-fg/[0.06] hover:border-helm-fg/15"
-        >
-          <Search className="w-[18px] h-[18px] shrink-0" />
-          <span className="flex-1 text-left truncate">Search</span>
-          <kbd className="hidden sm:inline font-mono text-[10px] text-helm-muted border border-helm-line rounded-full px-1.5 py-0.5 shrink-0">
-            {isMac ? "⌘K" : "Ctrl+K"}
-          </kbd>
-        </button>
-      </div>
 
       <nav className="flex-1 overflow-y-auto px-1 py-3" aria-label="App">
         <SmoothTab
@@ -258,15 +243,14 @@ function SidebarContent({ onNavigate, billingEnforced, onOpenSearch }) {
   );
 }
 
-function QuickNavPalette({ open, onOpenChange }) {
+function useQuickNavActions() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { data: deptData } = useDepartmentsQuery();
   const isOwner = user?.role === "owner" || user?.pack === "owner";
   const canBilling = canManageBilling(user);
   const canExportActivity = isOwner || (user?.perms || []).includes("members:manage");
 
-  const actions = useMemo(() => {
+  return useMemo(() => {
     const navActions = NAV.filter((item) => navItemVisible(item, user)).map((item) => {
       const Icon = item.icon;
       return {
@@ -405,14 +389,31 @@ function QuickNavPalette({ open, onOpenChange }) {
       };
     });
 
-    return [...navActions, ...deptActions, ...settingsActions, ...siteActions];
+    const byId = new Map(navActions.map((a) => [a.id, a]));
+    const quickActions = QUICK_ACTION_IDS.map((id) => byId.get(id)).filter(Boolean);
+
+    return {
+      actions: [...navActions, ...deptActions, ...settingsActions, ...siteActions],
+      quickActions,
+      departmentActions: deptActions,
+    };
   }, [user, deptData, isOwner, canBilling, canExportActivity]);
+}
+
+function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, enableShortcut = true }) {
+  const navigate = useNavigate();
+  const { actions, quickActions, departmentActions } = useQuickNavActions();
 
   return (
     <ActionSearchBar
+      ref={searchRef}
+      variant={variant}
       open={open}
       onOpenChange={onOpenChange}
       actions={actions}
+      quickActions={quickActions}
+      departmentActions={departmentActions}
+      enableShortcut={enableShortcut}
       onSelect={(action) => {
         if (!action?.to) return;
         if (action.to.startsWith("mailto:")) {
@@ -435,6 +436,7 @@ function QuickNavPalette({ open, onOpenChange }) {
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const desktopSearchRef = useRef(null);
   const location = useLocation();
   const { user } = useAuth();
   const { data: billing } = useFetch("/billing/plans");
@@ -446,6 +448,23 @@ export default function AppLayout() {
   const canBilling = canManageBilling(user);
   const needsCompanySetup = company?.role === "owner" && company?.company_setup_done === false;
 
+  const openSearch = () => setSearchOpen(true);
+
+  // ⌘K: desktop focuses the top-bar pill; mobile opens the dialog.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== "k") return;
+      e.preventDefault();
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        desktopSearchRef.current?.focus();
+      } else {
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   if (companyLoading && !company) {
     return <LoadingScreen label="Loading Trenston" />;
   }
@@ -453,8 +472,6 @@ export default function AppLayout() {
   if (needsCompanySetup) {
     return <CompanySetup company={company} />;
   }
-
-  const openSearch = () => setSearchOpen(true);
 
   return (
     <div className="app-shell min-h-screen">
@@ -465,7 +482,7 @@ export default function AppLayout() {
       )}
       {/* Desktop nav rail — same surface as the page, no enclosed panel */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[220px] flex-col z-40 px-2">
-        <SidebarContent billingEnforced={billingEnforced} onOpenSearch={openSearch} />
+        <SidebarContent billingEnforced={billingEnforced} />
       </aside>
 
       {/* Mobile top bar */}
@@ -500,15 +517,33 @@ export default function AppLayout() {
             <SidebarContent
               onNavigate={() => setMobileOpen(false)}
               billingEnforced={billingEnforced}
-              onOpenSearch={() => { setMobileOpen(false); openSearch(); }}
             />
           </div>
         </div>
       )}
 
-      <QuickNavPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      {/* Mobile search dialog */}
+      <div className="lg:hidden">
+        <QuickNavPalette
+          open={searchOpen}
+          onOpenChange={setSearchOpen}
+          variant="dialog"
+          enableShortcut={false}
+        />
+      </div>
 
       <main className="lg:pl-[220px] relative z-10">
+        {/* Desktop persistent top bar — search only */}
+        <div
+          className="hidden lg:flex sticky top-0 z-40 h-14 items-center px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"
+          data-testid="desktop-top-bar"
+        >
+          <QuickNavPalette
+            variant="inline"
+            searchRef={desktopSearchRef}
+            enableShortcut={false}
+          />
+        </div>
         <div className="w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">
           {onBilling ? (
             <Outlet />
