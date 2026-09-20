@@ -1,10 +1,40 @@
 {
-  "intro": "What actually shipped \u2014 not a roadmap. Entries are written by hand in plain language. Older notes may still say Helm; the product is now Trenston.",
+  "intro": "What actually shipped — not a roadmap. Entries are written by hand in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
+    {
+      "date": "2026-09-20",
+      "title": "Cockpit redesign: shell, Briefing hero, and Ask Trenston",
+      "description": "The signed-in app gets a clearer command surface. Sidebar Ask Trenston CTA, upgrade/connect promo, and a desktop top bar with search, plan badge, and profile. Briefing opens on a cockpit hero — metric switcher, large figure, period comparison chart, and Assistant / Spending / Decisions columns, with chips that deep-link into Ask. Ask itself is a two-column chat plus context rail (For you / Get started / Get inspired) on large screens."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Light and dark theme reliability",
+      "description": "Light remaps are scoped to data-theme so dark mode works again after the cream marketing refresh. App chrome uses pure white / near-black contrast in light mode, side-by-side KPIs, clearer cards, and a light-blue nav pill. Theme toggle no longer leaves the cockpit stuck in the wrong palette."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Briefing readable in dark mode",
+      "description": "Revenue period charts, gold spend meters, and KPI figures keep contrast on dark Briefing backgrounds. Section separators, Telemetry-style cards, Features filter tabs, and marketing URL/search routing for Briefing deep-links were tightened so the page stays usable after the redesign."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Marketing site: navy home, cream auth, Outway footer",
+      "description": "Home and showcase dividers move to a navy palette with a Contact Us CTA; marketing and auth pages sit on light cream. FAQ type on Pricing and Landing is enlarged to match. Footer is rebuilt in an Outway-style layout with ember accent pop, Instagram, and contact card — plus transparent Trenston favicons for the browser tab."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Sales order book, maintenance ops, and procurement settings APIs",
+      "description": "Sales order-book routes are wired end-to-end with tests. Maintenance ops panels get API indexes and coverage. Procurement settings (monthly budget set/clear) is covered so department ops panels hit real backend contracts instead of silent gaps."
+    },
+    {
+      "date": "2026-09-20",
+      "title": "Cockpit polish and bugfixes",
+      "description": "People roster remove works again after Team & Access revoke. Error toasts no longer blank Maintenance and Order book pages. QuickBooks OAuth errors no longer mislabel as Google. ⌘K search lists About and other missing public pages. Ask Trenston sidebar duplicate CTA is gone. Broader audit pass on rate limits, briefing, sync, billing, and UI stability."
+    },
     {
       "date": "2026-09-19",
       "title": "Helm Control is now Trenston",
-      "description": "The product formerly called Helm Control is now Trenston at trenston.com. Same cockpit, new name and domain \u2014 bookmarks to helmcontrol.online redirect here."
+      "description": "The product formerly called Helm Control is now Trenston at trenston.com. Same cockpit, new name and domain — bookmarks to helmcontrol.online redirect here."
     },
     {
       "date": "2026-09-19",
@@ -14,7 +44,7 @@
     {
       "date": "2026-09-19",
       "title": "Google Calendar and Gmail are personal connections",
-      "description": "Each teammate connects their own Google account. Meetings and Gmail threads stay on that person\u2019s connection \u2014 not a shared workspace mailbox."
+      "description": "Each teammate connects their own Google account. Meetings and Gmail threads stay on that person’s connection — not a shared workspace mailbox."
     },
     {
       "date": "2026-09-19",
@@ -24,7 +54,7 @@
     {
       "date": "2026-09-19",
       "title": "Public integrations page",
-      "description": "A marketing page that lists what each connection actually does today \u2014 Google, QuickBooks, Xero, SAP Business One, HubSpot, and Slack webhook alerts."
+      "description": "A marketing page that lists what each connection actually does today — Google, QuickBooks, Xero, SAP Business One, HubSpot, and Slack webhook alerts."
     },
     {
       "date": "2026-09-18",
@@ -34,7 +64,7 @@
     {
       "date": "2026-09-18",
       "title": "Honest financial zeros vs missing data",
-      "description": "Burn, MRR, and runway distinguish \u201cnot entered\u201d from a confirmed zero, and future-dated ledger rows no longer inflate current metrics."
+      "description": "Burn, MRR, and runway distinguish “not entered” from a confirmed zero, and future-dated ledger rows no longer inflate current metrics."
     },
     {
       "date": "2026-09-18",
@@ -44,7 +74,7 @@
     {
       "date": "2026-09-18",
       "title": "Ask Trenston stays inside your access lanes",
-      "description": "Ask Trenston and department context respect membership and finance:write \u2014 no cross-lane leakage of Sales, HR, or financial figures you cannot open in the UI."
+      "description": "Ask Trenston and department context respect membership and finance:write — no cross-lane leakage of Sales, HR, or financial figures you cannot open in the UI."
     },
     {
       "date": "2026-09-18",
@@ -54,7 +84,7 @@
     {
       "date": "2026-09-17",
       "title": "Secure document library",
-      "description": "Private Cloudflare R2 storage with signed downloads for bills, receipts, and legal files \u2014 plus tighter controls on legal document access."
+      "description": "Private Cloudflare R2 storage with signed downloads for bills, receipts, and legal files — plus tighter controls on legal document access."
     },
     {
       "date": "2026-09-17",
@@ -73,7 +103,7 @@
     },
     {
       "date": "2026-09-16",
-      "title": "\u2318K search across settings and site pages",
+      "title": "⌘K search across settings and site pages",
       "description": "Quick search reaches settings sections and public marketing pages from inside the signed-in app."
     }
   ]
