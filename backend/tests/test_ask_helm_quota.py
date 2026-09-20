@@ -13,11 +13,11 @@ import plans
 
 def test_paid_plans_have_ask_helm_caps():
     assert plans.ask_helm_monthly_limit("free") == 10
-    assert plans.ask_helm_monthly_limit("starter") == 50
+    assert plans.ask_helm_monthly_limit("starter") == 100
     assert plans.ask_helm_monthly_limit("growth") == 200
     assert plans.ask_helm_monthly_limit("business") == 500
     # Separate from extract quotas
-    assert plans.ai_extracts_limit("starter") == 30
+    assert plans.ai_extracts_limit("starter") == 65
     assert plans.ai_extracts_limit("growth") == 150
     assert plans.ai_extracts_limit("business") == 500
 

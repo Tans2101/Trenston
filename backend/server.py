@@ -1253,6 +1253,59 @@ def workspace_allows(ws_or_plan, feature: str) -> bool:
     return True
 
 
+def workspace_allows_provider(ws_or_plan, provider: str) -> bool:
+    """Per-provider integration gate (QuickBooks/Xero/SAP/HubSpot/Slack). Google always allowed."""
+    if not helm_plans.plan_allows_provider(
+        workspace_plan_id(ws_or_plan), provider, billing_enforced=BILLING_ENFORCED,
+    ):
+        return False
+    if not BILLING_ENFORCED:
+        return True
+    if isinstance(ws_or_plan, dict):
+        status = (ws_or_plan.get("subscription_status") or ws_or_plan.get("billing_status") or "").lower()
+        if status in ("past_due", "paused", "canceled", "cancelled"):
+            return False
+    return True
+
+
+_PROVIDER_UPGRADE_LABELS = {
+    "quickbooks": "QuickBooks",
+    "xero": "Xero",
+    "sap_b1": "SAP Business One",
+    "hubspot": "HubSpot",
+    "slack": "Slack",
+}
+
+
+def _plan_provider_denied_detail(provider: str) -> dict:
+    label = _PROVIDER_UPGRADE_LABELS.get((provider or "").strip().lower(), "this integration")
+    return {
+        "reason": "plan",
+        "message": f"Upgrade your plan to use {label}",
+        "feature": helm_plans.FEATURE_INTEGRATIONS,
+        "provider": (provider or "").strip().lower(),
+    }
+
+
+def require_integration_provider(provider: str):
+    """Pack integrations:manage + plan allows this specific provider."""
+    async def dep(principal=Depends(get_principal)):
+        if "integrations:manage" not in perms_for(principal["pack"]):
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "reason": "permission",
+                    "message": "You do not have permission for this action",
+                },
+            )
+        if BILLING_ENFORCED:
+            c = await get_ws(principal["workspace_id"])
+            if not workspace_allows_provider(c, provider):
+                raise HTTPException(status_code=403, detail=_plan_provider_denied_detail(provider))
+        return principal
+    return dep
+
+
 def _valid_fin_month(month: str, *, allow_future: bool = False) -> bool:
     """Syntactically valid YYYY-MM. Future months rejected unless allow_future."""
     import finance_recurrence as fin_recur
@@ -12800,7 +12853,7 @@ class SlackWebhookInput(BaseModel):
 
 
 @api_router.put("/integrations/slack-webhook")
-async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(require_pro_perm("integrations:manage"))):
+async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(require_integration_provider("slack"))):
     url = (payload.webhook_url or "").strip()
     if url and not url.startswith("https://hooks.slack.com/"):
         raise HTTPException(status_code=400, detail="Webhook URL must start with https://hooks.slack.com/")
@@ -12816,10 +12869,23 @@ async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(req
 
 
 @api_router.post("/integrations/{integration_id}/toggle")
-async def toggle_integration(integration_id: str, principal=Depends(require_pro_perm("integrations:manage"))):
+async def toggle_integration(integration_id: str, principal=Depends(get_principal)):
+    if "integrations:manage" not in perms_for(principal["pack"]):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "reason": "permission",
+                "message": "You do not have permission for this action",
+            },
+        )
     spec = next((i for i in integ_catalog.INTEGRATION_CATALOG if i["id"] == integration_id), None)
     if not spec:
         raise HTTPException(status_code=404, detail="Unknown integration")
+    provider = (integration_id or "").strip().lower()
+    if provider and provider != "google" and BILLING_ENFORCED:
+        c = await get_ws(principal["workspace_id"])
+        if not workspace_allows_provider(c, provider):
+            raise HTTPException(status_code=403, detail=_plan_provider_denied_detail(provider))
     if spec.get("kind") in ("oauth", "coming_soon"):
         raise HTTPException(
             status_code=400,
@@ -12830,9 +12896,13 @@ async def toggle_integration(integration_id: str, principal=Depends(require_pro_
 
 @api_router.get("/integrations/{provider}/connect")
 async def integration_connect(provider: str, request: Request, principal=Depends(get_principal)):
-    """Start OAuth. Google is per-user (any member); company ledgers require integrations:manage."""
+    """Start OAuth. Google is per-user (any member); company ledgers require integrations:manage + plan."""
     if provider != "google" and "integrations:manage" not in perms_for(principal["pack"]):
         raise HTTPException(status_code=403, detail="Only workspace owners can connect this integration")
+    if provider != "google" and BILLING_ENFORCED:
+        c = await get_ws(principal["workspace_id"])
+        if not workspace_allows_provider(c, provider):
+            raise HTTPException(status_code=403, detail=_plan_provider_denied_detail(provider))
     cfg = _provider_config(provider)
     if not cfg:
         raise HTTPException(status_code=404, detail="Unknown provider")
@@ -13105,7 +13175,7 @@ class SapB1ConnectInput(BaseModel):
 
 
 @api_router.post("/integrations/sap_b1/connect")
-async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_pro_perm("integrations:manage"))):
+async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_integration_provider("sap_b1"))):
     """Validate Service Layer login and store sealed credentials on the workspace."""
     ws_id = principal["workspace_id"]
     try:
@@ -13157,7 +13227,7 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
 
 
 @api_router.post("/integrations/sap_b1/sync")
-async def sap_b1_sync_endpoint(principal=Depends(require_pro_perm("integrations:manage"))):
+async def sap_b1_sync_endpoint(principal=Depends(require_integration_provider("sap_b1"))):
     ws_id = principal["workspace_id"]
     c = await get_ws(ws_id)
     _require_integration_token_use(principal, c, "sap_b1_credentials")
@@ -13183,7 +13253,7 @@ async def sap_b1_sync_endpoint(principal=Depends(require_pro_perm("integrations:
 
 
 @api_router.post("/integrations/xero/select-tenant")
-async def xero_select_tenant(payload: XeroTenantInput, principal=Depends(require_pro_perm("integrations:manage"))):
+async def xero_select_tenant(payload: XeroTenantInput, principal=Depends(require_integration_provider("xero"))):
     """Pick which Xero organisation to sync when the user has access to more than one."""
     ws_id = principal["workspace_id"]
     c = await get_ws(ws_id)
@@ -13335,7 +13405,7 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
 
 
 @api_router.post("/integrations/quickbooks/sync")
-async def quickbooks_sync(principal=Depends(require_pro_perm("integrations:manage"))):
+async def quickbooks_sync(principal=Depends(require_integration_provider("quickbooks"))):
     ws_id = principal["workspace_id"]
     c = await get_ws(ws_id)
     _require_integration_token_use(principal, c, "quickbooks_tokens")
@@ -13362,7 +13432,7 @@ async def quickbooks_sync(principal=Depends(require_pro_perm("integrations:manag
 
 
 @api_router.post("/integrations/xero/sync")
-async def xero_sync_endpoint(principal=Depends(require_pro_perm("integrations:manage"))):
+async def xero_sync_endpoint(principal=Depends(require_integration_provider("xero"))):
     ws_id = principal["workspace_id"]
     c = await get_ws(ws_id)
     _require_integration_token_use(principal, c, "xero_tokens")
@@ -13494,7 +13564,7 @@ async def run_accounting_auto_sync() -> dict:
 
 
 @api_router.post("/integrations/hubspot/sync")
-async def hubspot_sync_endpoint(principal=Depends(require_pro_perm("integrations:manage"))):
+async def hubspot_sync_endpoint(principal=Depends(require_integration_provider("hubspot"))):
     ws_id = principal["workspace_id"]
     c = await get_ws(ws_id)
     tokens = _require_integration_token_use(principal, c, "hubspot_tokens")

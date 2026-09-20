@@ -32,6 +32,26 @@ FEATURE_ADVANCED_REPORTS = "advanced_reports"
 FEATURE_TEAM = "team"
 FEATURE_PRIORITY_SUPPORT = "priority_support"
 
+# Company-ledger / CRM / alerts providers gated by plan. Google is per-user on every plan
+# and is never listed here — see plan_allows_provider / connect endpoint.
+PROVIDER_QUICKBOOKS = "quickbooks"
+PROVIDER_XERO = "xero"
+PROVIDER_SAP_B1 = "sap_b1"
+PROVIDER_HUBSPOT = "hubspot"
+PROVIDER_SLACK = "slack"
+PROVIDER_GOOGLE = "google"
+
+STARTER_INTEGRATION_PROVIDERS = (
+    PROVIDER_QUICKBOOKS,
+    PROVIDER_XERO,
+    PROVIDER_SAP_B1,
+)
+GROWTH_INTEGRATION_PROVIDERS = (
+    *STARTER_INTEGRATION_PROVIDERS,
+    PROVIDER_HUBSPOT,
+    PROVIDER_SLACK,
+)
+
 PLANS: dict[str, dict[str, Any]] = {
     PLAN_FREE: {
         "id": PLAN_FREE,
@@ -44,6 +64,7 @@ PLANS: dict[str, dict[str, Any]] = {
         "ask_helm_mo": 10,
         "trial_days": 0,
         "paddle_price_env": None,
+        "integration_providers": [],
         "features": {
             FEATURE_AI_EXTRACT: True,
             FEATURE_ASK_HELM: True,
@@ -59,6 +80,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Ask Trenston (10 messages/month)",
             "AI briefing",
             "Dashboard & decisions",
+            "Google integration (Gmail & Calendar)",
         ],
     },
     PLAN_STARTER: {
@@ -66,38 +88,12 @@ PLANS: dict[str, dict[str, Any]] = {
         "label": "Starter",
         "price": 15,
         "for": "Small businesses",
-        "seats": 10,
-        "ai_extracts_mo": 30,
-        "ask_helm_mo": 50,
+        "seats": 7,
+        "ai_extracts_mo": 65,
+        "ask_helm_mo": 100,
         "trial_days": TRIAL_DAYS,
         "paddle_price_env": "PADDLE_PRICE_ID_STARTER",
-        "features": {
-            FEATURE_AI_EXTRACT: True,
-            FEATURE_ASK_HELM: True,
-            FEATURE_AI_BRIEFING: True,
-            FEATURE_INTEGRATIONS: True,
-            FEATURE_ADVANCED_REPORTS: False,
-            FEATURE_TEAM: True,
-            FEATURE_PRIORITY_SUPPORT: False,
-        },
-        "includes": [
-            "Up to 10 Trenston seats",
-            "AI document extracts (30/month)",
-            "Ask Trenston (50 messages/month)",
-            "Integrations: Google, QuickBooks, Xero, SAP Business One, HubSpot, Slack",
-            "7-day free trial",
-        ],
-    },
-    PLAN_GROWTH: {
-        "id": PLAN_GROWTH,
-        "label": "Growth",
-        "price": 39,
-        "for": "Growing businesses",
-        "seats": 25,
-        "ai_extracts_mo": 150,
-        "ask_helm_mo": 200,
-        "trial_days": TRIAL_DAYS,
-        "paddle_price_env": "PADDLE_PRICE_ID_GROWTH",
+        "integration_providers": list(STARTER_INTEGRATION_PROVIDERS),
         "features": {
             FEATURE_AI_EXTRACT: True,
             FEATURE_ASK_HELM: True,
@@ -108,11 +104,41 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: False,
         },
         "includes": [
-            "Up to 25 Trenston seats",
+            "Up to 7 Trenston seats",
+            "AI document extracts (65/month)",
+            "Ask Trenston (100 messages/month)",
+            "Integrations: Google, QuickBooks, Xero, SAP Business One",
+            "CEO Pack (shareable leadership summary)",
+            "7-day free trial",
+        ],
+    },
+    PLAN_GROWTH: {
+        "id": PLAN_GROWTH,
+        "label": "Growth",
+        "price": 39,
+        "for": "Growing businesses",
+        "seats": 20,
+        "ai_extracts_mo": 150,
+        "ask_helm_mo": 200,
+        "trial_days": TRIAL_DAYS,
+        "paddle_price_env": "PADDLE_PRICE_ID_GROWTH",
+        "integration_providers": list(GROWTH_INTEGRATION_PROVIDERS),
+        "features": {
+            FEATURE_AI_EXTRACT: True,
+            FEATURE_ASK_HELM: True,
+            FEATURE_AI_BRIEFING: True,
+            FEATURE_INTEGRATIONS: True,
+            FEATURE_ADVANCED_REPORTS: True,
+            FEATURE_TEAM: True,
+            FEATURE_PRIORITY_SUPPORT: False,
+        },
+        "includes": [
+            "Up to 20 Trenston seats",
             "AI document extracts (150/month)",
             "Ask Trenston (200 messages/month)",
             "Everything in Starter",
-            "Advanced reports & CEO Pack (shareable leadership summary)",
+            "Integrations: HubSpot, Slack",
+            "Deeper reporting across a bigger team",
             "7-day free trial",
         ],
     },
@@ -121,11 +147,12 @@ PLANS: dict[str, dict[str, Any]] = {
         "label": "Business",
         "price": 99,
         "for": "Larger companies",
-        "seats": 50,
+        "seats": 35,
         "ai_extracts_mo": 500,
         "ask_helm_mo": 500,
         "trial_days": TRIAL_DAYS,
         "paddle_price_env": "PADDLE_PRICE_ID_BUSINESS",
+        "integration_providers": list(GROWTH_INTEGRATION_PROVIDERS),
         "features": {
             FEATURE_AI_EXTRACT: True,
             FEATURE_ASK_HELM: True,
@@ -136,7 +163,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: True,
         },
         "includes": [
-            "Up to 50 Trenston seats",
+            "Up to 35 Trenston seats",
             "AI document extracts (500/month)",
             "Ask Trenston (500 messages/month)",
             "Everything in Growth",
@@ -205,6 +232,24 @@ def plan_allows(plan: str | None, feature: str, *, billing_enforced: bool = True
     return bool(plan_def(plan)["features"].get(feature))
 
 
+def plan_allows_provider(plan: str | None, provider: str | None, *, billing_enforced: bool = True) -> bool:
+    """Whether the plan may connect/sync a given integration provider.
+
+    Google is always allowed (per-user on every plan). Other providers must appear
+    in the plan's ``integration_providers`` list. When billing is off, all providers
+    are allowed.
+    """
+    if not billing_enforced:
+        return True
+    p = (provider or "").strip().lower()
+    if not p:
+        return False
+    if p == PROVIDER_GOOGLE:
+        return True
+    allowed = plan_def(plan).get("integration_providers") or []
+    return p in allowed
+
+
 def seats_limit(plan: str | None) -> Optional[int]:
     """None would mean unlimited; all current tiers set an integer cap."""
     return plan_def(plan)["seats"]
@@ -265,6 +310,7 @@ def public_plan_list() -> list[dict[str, Any]]:
             "trial_days": p["trial_days"],
             "includes": list(p["includes"]),
             "features": dict(p["features"]),
+            "integration_providers": list(p.get("integration_providers") or []),
             "checkout_available": bool(price_id) if pid != PLAN_FREE else False,
         })
     return out

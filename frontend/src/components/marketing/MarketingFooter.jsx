@@ -57,7 +57,7 @@ export default function MarketingFooter() {
           <div className="flex flex-col gap-2">
             <MarketingLogo size="sm" showTagline dark />
             <p className="text-xs text-helm-slate max-w-xs leading-relaxed mt-1">
-              The {CATEGORY.toLowerCase()} for founders and owners running companies with up to 50 employees. One cockpit. Clear decisions. Quiet control.
+              The {CATEGORY.toLowerCase()} for founders and owners running real operations — however lean the team. One cockpit. Clear decisions. Quiet control.
             </p>
             <a
               href={PUBLIC_INSTAGRAM_URL}

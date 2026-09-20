@@ -2,7 +2,7 @@
 
 export const TAGLINE = "Run the business. Don't chase it.";
 export const CATEGORY = "CEO Operating System";
-export const AUDIENCE = "Built for founders and owners running companies with up to 50 employees.";
+export const AUDIENCE = "Built for founders and owners running real operations — however lean the team.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
 export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
@@ -54,7 +54,7 @@ export const VALUES = [
 
 export const WHO_HELM_IS_FOR = [
   {
-    title: "Founders and owners of companies with up to 50 employees",
+    title: "Founders and owners running real operations",
     body: "You are still close to the work, but you should not drown in status chasing. Trenston gives you a clear view to share with leadership without hiring a chief of staff.",
   },
   {
@@ -63,7 +63,7 @@ export const WHO_HELM_IS_FOR = [
   },
   {
     title: "Leadership teams",
-    body: "From a handful of people to fifty employees. Finance, sales, ops, and production keep their lanes. You get one synthesized view.",
+    body: "From a handful of people to a full leadership bench. Finance, sales, ops, and production keep their lanes. You get one synthesized view.",
   },
 ];
 
@@ -75,15 +75,15 @@ export const CEO_DAY = [
 ];
 
 export const PRICING_FAQ = [
-  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston seats, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more seats, and integrations." },
+  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston seats, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), Google (Gmail & Calendar), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more seats, and accounting integrations." },
   { q: "Is there a free trial?", a: "Yes. Starter, Growth, and Business include a 7-day free trial. Cancel before it ends and you will not be charged." },
   {
     q: "Can my leadership team use Trenston?",
-    a: "Yes. Free supports up to 3 Trenston seats, Starter up to 10, Growth up to 25, and Business up to 50, with role-based access packs. Trenston seats are logins to the product — separate from your company's total employee headcount. A 50-employee company might only need a handful of seats.",
+    a: "Yes. Free supports up to 3 Trenston seats, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston seats are logins to the product — separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of seats.",
   },
   {
     q: "What integrations are included?",
-    a: "Paid plans can connect Google, QuickBooks or Xero, SAP Business One, HubSpot, and Slack webhook alerts. Free stays manual-only.",
+    a: "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts.",
     link: { to: "/integrations", label: "See what each integration does" },
   },
   { q: "Can I cancel anytime?", a: "Yes. Manage billing through Paddle. Cancellation takes effect at the end of the current billing period. No refunds after payment. Use the trial to evaluate." },
@@ -243,6 +243,7 @@ export const PLANS = [
       "Ask Trenston (10 messages/month)",
       "AI briefing",
       "Dashboard & decisions",
+      "Google integration (Gmail & Calendar)",
     ],
   },
   {
@@ -250,14 +251,15 @@ export const PLANS = [
     label: "Starter",
     price: 15,
     for: "Small businesses",
-    seats: 10,
+    seats: 7,
     trialDays: 7,
     highlighted: true,
     includes: [
-      "Up to 10 Trenston seats",
-      "AI document extracts (30/month)",
-      "Ask Trenston (50 messages/month)",
-      "Integrations: Google, QuickBooks, Xero, SAP Business One, HubSpot, Slack",
+      "Up to 7 Trenston seats",
+      "AI document extracts (65/month)",
+      "Ask Trenston (100 messages/month)",
+      "Integrations: Google, QuickBooks, Xero, SAP Business One",
+      "CEO Pack (shareable leadership summary)",
       "7-day free trial",
     ],
   },
@@ -266,15 +268,16 @@ export const PLANS = [
     label: "Growth",
     price: 39,
     for: "Growing businesses",
-    seats: 25,
+    seats: 20,
     trialDays: 7,
     highlighted: false,
     includes: [
-      "Up to 25 Trenston seats",
+      "Up to 20 Trenston seats",
       "AI document extracts (150/month)",
       "Ask Trenston (200 messages/month)",
       "Everything in Starter",
-      "Advanced reports & CEO Pack (shareable leadership summary)",
+      "Integrations: HubSpot, Slack",
+      "Deeper reporting across a bigger team",
       "7-day free trial",
     ],
   },
@@ -283,11 +286,11 @@ export const PLANS = [
     label: "Business",
     price: 99,
     for: "Larger companies",
-    seats: 50,
+    seats: 35,
     trialDays: 7,
     highlighted: false,
     includes: [
-      "Up to 50 Trenston seats",
+      "Up to 35 Trenston seats",
       "AI document extracts (500/month)",
       "Ask Trenston (500 messages/month)",
       "Everything in Growth",

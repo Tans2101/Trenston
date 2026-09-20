@@ -2,7 +2,7 @@
 
 > CEO Operating System. Run the business. Don't chase it.
 
-Built for founders and owners running companies with up to 50 employees.
+Built for founders and owners running real operations — however lean the team.
 
 Trenston is a CEO operating system: one cockpit for money, pipeline, people,
 department work, and decisions — Briefing, Decision Center, Financials,
@@ -25,9 +25,9 @@ Source of truth in the product repo: frontend/src/lib/marketingCopy.js (PLANS).
 Do not use older docs (e.g. memory/PRD.md) or guessed figures.
 
 - Free: $0 (3 seats) — Small teams trying Trenston
-- Starter: $15/mo (10 seats) — Small businesses
-- Growth: $39/mo (25 seats) — Growing businesses
-- Business: $99/mo (50 seats) — Larger companies
+- Starter: $15/mo (7 seats) — Small businesses
+- Growth: $39/mo (20 seats) — Growing businesses
+- Business: $99/mo (35 seats) — Larger companies
 
 Paid plans (Starter, Growth, Business) include a 7-day free trial.
 Billing is via Paddle. Cancel anytime from Billing.

@@ -21,9 +21,9 @@ def test_normalize_legacy_pro_to_starter():
 
 def test_member_caps_per_plan():
     assert plans.seats_limit("free") == 3
-    assert plans.seats_limit("starter") == 10
-    assert plans.seats_limit("growth") == 25
-    assert plans.seats_limit("business") == 50
+    assert plans.seats_limit("starter") == 7
+    assert plans.seats_limit("growth") == 20
+    assert plans.seats_limit("business") == 35
 
 
 def test_document_caps_per_plan():
@@ -31,10 +31,10 @@ def test_document_caps_per_plan():
     assert plans.ai_extracts_lifetime_limit("free") == 5
     assert plans.ai_extracts_lifetime_limit("starter") == 0
     assert plans.ask_helm_monthly_limit("free") == 10
-    assert plans.ask_helm_monthly_limit("starter") == 50
+    assert plans.ask_helm_monthly_limit("starter") == 100
     assert plans.ask_helm_monthly_limit("growth") == 200
     assert plans.ask_helm_monthly_limit("business") == 500
-    assert plans.ai_extracts_limit("starter") == 30
+    assert plans.ai_extracts_limit("starter") == 65
     assert plans.ai_extracts_limit("growth") == 150
     assert plans.ai_extracts_limit("business") == 500
 
@@ -48,6 +48,7 @@ def test_free_includes_trial_ai_features():
     assert plans.plan_allows("free", plans.FEATURE_ADVANCED_REPORTS, billing_enforced=True) is False
     includes = " ".join(plans.PLANS["free"]["includes"])
     assert "5 AI document extracts" in includes
+    assert "Google integration" in includes
     assert "No QuickBooks" not in includes
     assert "No AI document upload" not in includes
 
@@ -56,12 +57,26 @@ def test_starter_allows_core_paid_features():
     assert plans.plan_allows("starter", plans.FEATURE_AI_EXTRACT, billing_enforced=True) is True
     assert plans.plan_allows("starter", plans.FEATURE_ASK_HELM, billing_enforced=True) is True
     assert plans.plan_allows("starter", plans.FEATURE_INTEGRATIONS, billing_enforced=True) is True
-    assert plans.plan_allows("starter", plans.FEATURE_ADVANCED_REPORTS, billing_enforced=True) is False
+    assert plans.plan_allows("starter", plans.FEATURE_ADVANCED_REPORTS, billing_enforced=True) is True
 
 
 def test_growth_and_business_features():
     assert plans.plan_allows("growth", plans.FEATURE_ADVANCED_REPORTS, billing_enforced=True) is True
     assert plans.plan_allows("business", plans.FEATURE_PRIORITY_SUPPORT, billing_enforced=True) is True
+
+
+def test_plan_allows_provider_matrix():
+    assert plans.plan_allows_provider("free", "google", billing_enforced=True) is True
+    assert plans.plan_allows_provider("free", "quickbooks", billing_enforced=True) is False
+    assert plans.plan_allows_provider("starter", "quickbooks", billing_enforced=True) is True
+    assert plans.plan_allows_provider("starter", "xero", billing_enforced=True) is True
+    assert plans.plan_allows_provider("starter", "sap_b1", billing_enforced=True) is True
+    assert plans.plan_allows_provider("starter", "hubspot", billing_enforced=True) is False
+    assert plans.plan_allows_provider("starter", "slack", billing_enforced=True) is False
+    assert plans.plan_allows_provider("growth", "hubspot", billing_enforced=True) is True
+    assert plans.plan_allows_provider("growth", "slack", billing_enforced=True) is True
+    assert plans.plan_allows_provider("business", "hubspot", billing_enforced=True) is True
+    assert plans.plan_allows_provider("free", "hubspot", billing_enforced=False) is True
 
 
 def test_prices_and_trial():
@@ -125,18 +140,24 @@ def test_public_plan_list_shape():
     free = next(r for r in rows if r["id"] == "free")
     assert free["checkout_available"] is False
     assert free["seats"] == 3
+    assert free["integration_providers"] == []
     starter = next(r for r in rows if r["id"] == "starter")
     growth = next(r for r in rows if r["id"] == "growth")
-    assert starter["seats"] == 10
-    assert growth["seats"] == 25
-    assert any("Up to 10 Trenston seats" in line for line in starter["includes"])
-    assert any("Up to 25 Trenston seats" in line for line in growth["includes"])
-    assert any("QuickBooks" in line and "Xero" in line and "HubSpot" in line for line in starter["includes"])
-    assert any("CEO Pack" in line and "shareable" in line for line in growth["includes"])
+    assert starter["seats"] == 7
+    assert growth["seats"] == 20
+    assert starter["integration_providers"] == ["quickbooks", "xero", "sap_b1"]
+    assert "hubspot" in growth["integration_providers"]
+    assert any("Up to 7 Trenston seats" in line for line in starter["includes"])
+    assert any("Up to 20 Trenston seats" in line for line in growth["includes"])
+    assert any("QuickBooks" in line and "Xero" in line and "SAP" in line for line in starter["includes"])
+    assert any("HubSpot" in line for line in starter["includes"]) is False
+    assert any("CEO Pack" in line for line in starter["includes"])
+    assert any("HubSpot" in line for line in growth["includes"])
     assert free["ai_extracts_lifetime"] == 5
     assert free["ask_helm_mo"] == 10
     assert any("5 AI document extracts" in line for line in free["includes"])
     biz = next(r for r in rows if r["id"] == "business")
+    assert biz["seats"] == 35
 
 
 def test_lifetime_extract_count_reads_workspace_field():
@@ -145,47 +166,47 @@ def test_lifetime_extract_count_reads_workspace_field():
 
 
 @pytest.mark.asyncio
-async def test_starter_seat_enforcement_allows_10th_blocks_11th():
-    """Invite-time cap reads plans.seats_limit(), not a hardcoded 3 for Starter."""
+async def test_starter_seat_enforcement_allows_7th_blocks_8th():
+    """Invite-time cap reads plans.seats_limit(), not a hardcoded figure for Starter."""
     os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
     os.environ.setdefault("DB_NAME", "test_starter_seats")
     import server
     from fastapi import HTTPException
 
     with patch.object(server, "BILLING_ENFORCED", True), \
-         patch.object(server, "_seat_count", new=AsyncMock(return_value=9)), \
+         patch.object(server, "_seat_count", new=AsyncMock(return_value=6)), \
          patch.object(server.plan_usage, "acquire_seat_slot", new=AsyncMock(return_value=True)) as acquire:
         await server._enforce_seat_available("ws_test", "starter")
         acquire.assert_awaited_once()
-        assert acquire.await_args.kwargs["membership_count"] == 9
-        assert acquire.await_args.args[2] == 10
+        assert acquire.await_args.kwargs["membership_count"] == 6
+        assert acquire.await_args.args[2] == 7
 
     with patch.object(server, "BILLING_ENFORCED", True), \
-         patch.object(server, "_seat_count", new=AsyncMock(return_value=10)), \
+         patch.object(server, "_seat_count", new=AsyncMock(return_value=7)), \
          patch.object(server.plan_usage, "acquire_seat_slot", new=AsyncMock(return_value=False)):
         with pytest.raises(HTTPException) as ei:
             await server._enforce_seat_available("ws_test", "starter")
         assert ei.value.status_code == 403
-        assert "10/10" in ei.value.detail
+        assert "7/7" in ei.value.detail
 
 
 @pytest.mark.asyncio
-async def test_growth_seat_enforcement_allows_25th_blocks_26th():
-    """Invite-time cap reads plans.seats_limit() for Growth (25), not a leftover 10."""
+async def test_growth_seat_enforcement_allows_20th_blocks_21st():
+    """Invite-time cap reads plans.seats_limit() for Growth (20)."""
     os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
     os.environ.setdefault("DB_NAME", "test_growth_seats")
     import server
     from fastapi import HTTPException
 
     with patch.object(server, "BILLING_ENFORCED", True), \
-         patch.object(server, "_seat_count", new=AsyncMock(return_value=24)), \
+         patch.object(server, "_seat_count", new=AsyncMock(return_value=19)), \
          patch.object(server.plan_usage, "acquire_seat_slot", new=AsyncMock(return_value=True)):
         await server._enforce_seat_available("ws_test", "growth")
 
     with patch.object(server, "BILLING_ENFORCED", True), \
-         patch.object(server, "_seat_count", new=AsyncMock(return_value=25)), \
+         patch.object(server, "_seat_count", new=AsyncMock(return_value=20)), \
          patch.object(server.plan_usage, "acquire_seat_slot", new=AsyncMock(return_value=False)):
         with pytest.raises(HTTPException) as ei:
             await server._enforce_seat_available("ws_test", "growth")
         assert ei.value.status_code == 403
-        assert "25/25" in ei.value.detail
+        assert "20/20" in ei.value.detail
