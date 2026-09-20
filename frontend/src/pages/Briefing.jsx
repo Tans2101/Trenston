@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, X } from "lucide-react";
+import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { hasPerm } from "@/lib/access";
 import { GlassCard, ErrorScreen, PageHeaderSkeleton, SkeletonKPIRow, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import Onboarding from "@/pages/Onboarding";
@@ -23,12 +25,20 @@ function BriefLabel({ children, className }) {
 }
 
 export default function Briefing() {
+  const { user } = useAuth();
+  const canManageIntegrations = hasPerm(user, "integrations:manage");
   const { data, loading: briefingLoading, error: briefingError, reload: reloadBriefing, setData } = useFetch("/briefing");
   const { data: company, loading: companyLoading, error: companyError, reload: reloadCompany } = useCompanyQuery();
   const { data: checklist, reload: reloadChecklist, setData: setChecklist } = useFetch("/onboarding/checklist");
+  const {
+    data: integPrompt,
+    reload: reloadIntegPrompt,
+    setData: setIntegPrompt,
+  } = useFetch(canManageIntegrations ? "/onboarding/integrations-prompt" : null);
   const [genLoading, setGenLoading] = useState(false);
   const [delegateBusy, setDelegateBusy] = useState(null);
   const [dismissBusy, setDismissBusy] = useState(false);
+  const [integDismissBusy, setIntegDismissBusy] = useState(false);
   const navigate = useNavigate();
 
   const loading = briefingLoading || companyLoading;
@@ -119,11 +129,32 @@ export default function Briefing() {
     }
   };
 
+  const dismissIntegrationsPrompt = async () => {
+    if (integDismissBusy) return;
+    setIntegDismissBusy(true);
+    try {
+      await api.post("/onboarding/integrations-prompt/dismiss");
+      setIntegPrompt((prev) => (prev ? { ...prev, dismissed: true } : prev));
+      toast.success("Integrations prompt hidden");
+      reloadIntegPrompt();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not hide prompt");
+    } finally {
+      setIntegDismissBusy(false);
+    }
+  };
+
   const { greeting: timeGreet, briefingLabel } = dayPartGreeting();
   const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "CEO"}`;
   const doneCount = checklist?.steps?.filter((s) => s.done).length ?? 0;
   const stepCount = checklist?.steps?.length ?? 0;
   const showChecklist = Boolean(checklist && !checklist.complete && !checklist.dismissed);
+  const showIntegrationsPrompt = Boolean(
+    canManageIntegrations
+    && integPrompt
+    && integPrompt.connected_count === 0
+    && !integPrompt.dismissed,
+  );
   const metrics = data.metrics || [];
   const whatChanged = data.what_changed || [];
   const whatToDecide = data.what_to_decide || [];
@@ -198,6 +229,49 @@ export default function Briefing() {
             </button>
             {" "}anytime.
           </p>
+        </section>
+      )}
+
+      {showIntegrationsPrompt && (
+        <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5" data-testid="integrations-prompt">
+          <div className="flex items-center gap-3 mb-3">
+            <BriefLabel>Connect your tools</BriefLabel>
+            <button
+              type="button"
+              data-testid="dismiss-integrations-prompt"
+              onClick={dismissIntegrationsPrompt}
+              disabled={integDismissBusy}
+              className="ml-auto text-helm-muted hover:text-helm-fg transition-colors disabled:opacity-50 p-0.5"
+              aria-label="Hide integrations prompt"
+              title="Hide"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <p className="text-sm text-helm-muted leading-relaxed mb-4">
+            Link Google, QuickBooks, Xero, SAP Business One, HubSpot, or Slack so Briefing and Financials stay current.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              data-testid="integrations-prompt-cta"
+              onClick={() => navigate("/app/integrations")}
+              className="inline-flex items-center gap-2 rounded-lg border border-helm-line bg-helm-fg/[0.02] px-3 py-2.5 text-sm text-helm-fg hover:border-helm-fg/20 transition-colors"
+            >
+              <Plug className="w-4 h-4 text-helm-muted shrink-0" />
+              Open Integrations
+              <ArrowUpRight className="w-3.5 h-3.5 text-helm-muted shrink-0" />
+            </button>
+            <button
+              type="button"
+              data-testid="dismiss-integrations-prompt-text"
+              onClick={dismissIntegrationsPrompt}
+              disabled={integDismissBusy}
+              className="text-xs text-helm-muted underline underline-offset-2 hover:text-helm-fg transition-colors disabled:opacity-50"
+            >
+              not now
+            </button>
+          </div>
         </section>
       )}
 

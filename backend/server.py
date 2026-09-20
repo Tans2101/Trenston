@@ -4525,6 +4525,64 @@ async def dismiss_onboarding_checklist(principal=Depends(get_principal)):
     return {"ok": True, "dismissed": True}
 
 
+def _connected_integrations_count(workspace: dict, user_google_tokens) -> int:
+    """Count connectable integrations the same way the Integrations page does."""
+    ints = integ_catalog.merge_integrations(
+        workspace,
+        google_configured=bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET),
+        qb_configured=bool(QB_CLIENT_ID and QB_CLIENT_SECRET),
+        xero_configured=bool(XERO_CLIENT_ID and XERO_CLIENT_SECRET),
+        hubspot_configured=bool(HUBSPOT_CLIENT_ID and HUBSPOT_CLIENT_SECRET),
+        user_google_tokens=user_google_tokens,
+    )
+    return sum(
+        1
+        for i in ints
+        if (i.get("kind") in ("oauth", "credentials"))
+        and not i.get("coming_soon")
+        and i.get("connected")
+    )
+
+
+@api_router.get("/onboarding/integrations-prompt")
+async def onboarding_integrations_prompt(principal=Depends(get_principal)):
+    """Briefing card: connect tools when the workspace has none linked yet."""
+    if "integrations:manage" not in perms_for(principal["pack"]):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "reason": "permission",
+                "message": "You do not have permission for this action",
+            },
+        )
+    c = await get_ws(principal["workspace_id"])
+    my_google_row = await _user_google_row(principal["workspace_id"], principal["user_id"])
+    my_google_sealed = (my_google_row or {}).get("google_tokens")
+    return {
+        "connected_count": _connected_integrations_count(c, my_google_sealed),
+        "dismissed": bool(c.get("integrations_prompt_dismissed")),
+    }
+
+
+@api_router.post("/onboarding/integrations-prompt/dismiss")
+async def dismiss_onboarding_integrations_prompt(principal=Depends(get_principal)):
+    """Hide the Briefing 'Connect your tools' card for this workspace."""
+    if "integrations:manage" not in perms_for(principal["pack"]):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "reason": "permission",
+                "message": "You do not have permission for this action",
+            },
+        )
+    ws_id = principal["workspace_id"]
+    await db.workspaces.update_one(
+        {"workspace_id": ws_id},
+        {"$set": {"integrations_prompt_dismissed": True}},
+    )
+    return {"ok": True, "dismissed": True}
+
+
 # ------------------------- Sales pipeline -------------------------
 DEAL_STAGES = ["lead", "qualified", "proposal", "negotiation", "won", "lost"]
 STAGE_LABEL = {"lead": "Lead", "qualified": "Qualified", "proposal": "Proposal",

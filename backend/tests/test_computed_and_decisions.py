@@ -7,6 +7,7 @@ Covers:
 - GET /reports returns exactly 3 computed cards (Financial Snapshot, Team Pulse, Execution).
 - POST /reports/weekly-pack still Pro-gated (403 when free).
 - GET /onboarding/checklist returns 4 steps with done+route, and complete boolean.
+- GET/POST /onboarding/integrations-prompt (owner-only) returns connected_count + dismissed.
 - GET /calendar returns a `live` boolean flag (false for a clean workspace w/o google_tokens).
 """
 import os
@@ -227,6 +228,34 @@ class TestOnboardingChecklist:
         # Owner sample data has financials + 6 people
         assert by_id["financials"]["done"] is True
         assert by_id["people"]["done"] is True
+
+
+# ---------------- Integrations prompt ----------------
+
+class TestIntegrationsPrompt:
+    def test_owner_gets_connected_count_and_dismissed(self, owner):
+        r = owner.get(f"{BASE_URL}/api/onboarding/integrations-prompt")
+        assert r.status_code == 200
+        j = r.json()
+        assert "connected_count" in j and isinstance(j["connected_count"], int)
+        assert j["connected_count"] >= 0
+        assert "dismissed" in j and isinstance(j["dismissed"], bool)
+
+    def test_member_forbidden(self, member):
+        r = member.get(f"{BASE_URL}/api/onboarding/integrations-prompt")
+        assert r.status_code == 403
+        r2 = member.post(f"{BASE_URL}/api/onboarding/integrations-prompt/dismiss")
+        assert r2.status_code == 403
+
+    def test_dismiss_persists(self, owner):
+        before = owner.get(f"{BASE_URL}/api/onboarding/integrations-prompt").json()
+        assert before.get("dismissed") is False
+        r = owner.post(f"{BASE_URL}/api/onboarding/integrations-prompt/dismiss")
+        assert r.status_code == 200
+        assert r.json()["dismissed"] is True
+        after = owner.get(f"{BASE_URL}/api/onboarding/integrations-prompt").json()
+        assert after["dismissed"] is True
+        assert isinstance(after["connected_count"], int)
 
 
 # ---------------- Calendar (live flag) ----------------
