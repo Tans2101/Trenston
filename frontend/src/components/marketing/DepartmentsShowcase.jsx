@@ -16,7 +16,7 @@ export default function DepartmentsShowcase({ compact = false }) {
     <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
       <div className={`mx-auto ${maxWidth}`}>
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }}>
-          <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+          <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">{title}</h2>
           <p className="mt-5 text-helm-slate leading-relaxed">{intro}</p>
         </motion.div>
