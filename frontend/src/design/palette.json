@@ -6,6 +6,8 @@
   "ink": "#09090B",
   "inkCard": "#121214",
   "goldHover": "#D4B45C",
+  "ember": "#EB5F3C",
+  "emberHover": "#D94F2E",
   "statusPositive": "#15803D",
   "statusNegative": "#BE123C",
   "statusWarning": "#B45309"

@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom";
-import { ArrowUpRight } from "lucide-react";
-import MarketingLogo from "@/components/marketing/MarketingLogo";
+import { Instagram } from "lucide-react";
 import {
-  CATEGORY,
   COMPANY_LOCATION,
   PUBLIC_CONTACT_EMAIL,
   PUBLIC_CONTACT_MAILTO,
@@ -10,139 +8,125 @@ import {
   PUBLIC_INSTAGRAM_URL,
 } from "@/lib/marketingCopy";
 
-const PRIMARY_NAV = [
-  { to: "/features", label: "Features" },
-  { to: "/pricing", label: "Pricing" },
-  { to: "/integrations", label: "Integrations" },
-  { to: "/about", label: "About" },
-  { to: "/help", label: "Help" },
-  { href: PUBLIC_CONTACT_MAILTO, label: "Contact" },
-];
+const FOOTER_LINKS = {
+  Product: [
+    { to: "/features", label: "Features" },
+    { to: "/integrations", label: "Integrations" },
+    { to: "/pricing", label: "Pricing" },
+    { to: "/changelog", label: "Changelog" },
+    { to: "/status", label: "Status" },
+  ],
+  Company: [
+    { to: "/about", label: "About" },
+    { href: PUBLIC_CONTACT_MAILTO, label: "Contact", testId: "footer-contact-cta" },
+    { to: "/login", label: "Sign in" },
+    { to: "/sign-up", label: "Create account" },
+  ],
+  Support: [
+    { to: "/help", label: "Help" },
+    { to: "/security", label: "Security" },
+    { to: "/privacy", label: "Privacy" },
+    { to: "/terms", label: "Terms" },
+    { to: "/refunds", label: "Refunds" },
+  ],
+};
 
-const UTILITY_LINKS = [
-  { to: "/privacy", label: "Privacy" },
-  { to: "/terms", label: "Terms" },
-  { to: "/refunds", label: "Refunds" },
-  { to: "/security", label: "Security" },
-  { to: "/status", label: "Status" },
-  { to: "/changelog", label: "Changelog" },
-  { to: "/login", label: "Sign in" },
-  { to: "/sign-up", label: "Create account" },
-];
+const linkClass =
+  "text-sm text-[#0A0A0A] hover:opacity-60 transition-opacity";
 
-function ExternalHint() {
-  return <ArrowUpRight className="inline-block h-3 w-3 shrink-0 opacity-70" aria-hidden />;
+function FooterLink({ item }) {
+  if (item.href) {
+    return (
+      <a href={item.href} data-testid={item.testId} className={linkClass}>
+        {item.label}
+      </a>
+    );
+  }
+  return (
+    <Link to={item.to} data-testid={item.testId} className={linkClass}>
+      {item.label}
+    </Link>
+  );
 }
 
 export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden border-t border-helm-navy/10 bg-helm-cream px-6 pt-14 pb-10">
-      <div className="relative z-10 mx-auto max-w-6xl flex flex-col gap-12">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8">
-          {/* Brand + contact */}
-          <div className="md:col-span-4 flex flex-col gap-4">
-            <MarketingLogo size="sm" showTagline />
-            <p className="text-sm text-helm-slate max-w-xs leading-relaxed">
-              The {CATEGORY.toLowerCase()} for founders and owners running real operations — however lean the team. One cockpit. Clear decisions. Quiet control.
-            </p>
-            <div className="mt-1">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate/80">Contact</p>
+    <footer className="relative overflow-hidden bg-helm-ember px-6 md:px-10 py-12 md:py-16">
+      <div className="relative z-10 mx-auto max-w-6xl flex flex-col gap-12 md:gap-14">
+        {/* Top: heading + link columns */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
+          <h2 className="font-display text-2xl md:text-3xl text-[#0A0A0A] tracking-tight max-w-xs">
+            Run a tighter company.
+          </h2>
+          <nav
+            className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-12"
+            aria-label="Footer navigation"
+          >
+            {Object.entries(FOOTER_LINKS).map(([group, links]) => (
+              <div key={group}>
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0A0A0A]/70">
+                  {group}
+                </p>
+                <ul className="mt-3 flex flex-col gap-2">
+                  {links.map((item) => (
+                    <li key={item.label}>
+                      <FooterLink item={item} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Middle: contact card + Instagram */}
+        <div className="flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-6">
+          <div className="flex-1 border border-[#0A0A0A]/25 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0A0A0A]/70">
+                Contact
+              </p>
               <a
                 href={PUBLIC_CONTACT_MAILTO}
                 data-testid="footer-contact-link"
-                className="mt-2 block text-sm text-helm-navy/85 hover:text-helm-navy transition-colors"
+                className="mt-2 block text-sm text-[#0A0A0A] hover:opacity-60 transition-opacity"
               >
                 {PUBLIC_CONTACT_EMAIL}
               </a>
-              <p className="mt-1 text-sm text-helm-slate">{COMPANY_LOCATION}</p>
+              <p className="mt-1 text-sm text-[#0A0A0A]/80">{COMPANY_LOCATION}</p>
             </div>
+            <a
+              href={PUBLIC_CONTACT_MAILTO}
+              className="inline-flex items-center justify-center rounded-md bg-[#0A0A0A] text-helm-ember text-sm font-medium px-4 py-2.5 hover:opacity-90 transition-opacity shrink-0"
+            >
+              Say hello
+            </a>
           </div>
-
-          {/* Primary navigation — visual anchor */}
-          <nav className="md:col-span-4" aria-label="Footer navigation">
-            <ul className="flex flex-col gap-1.5 sm:gap-2">
-              {PRIMARY_NAV.map((l) => (
-                <li key={l.label}>
-                  {l.href ? (
-                    <a
-                      href={l.href}
-                      data-testid="footer-contact-cta"
-                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-navy hover:text-helm-gold transition-colors leading-tight"
-                    >
-                      {l.label}
-                    </a>
-                  ) : (
-                    <Link
-                      to={l.to}
-                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-navy hover:text-helm-gold transition-colors leading-tight"
-                    >
-                      {l.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Connect */}
-          <div className="md:col-span-4 md:pl-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">Connect</p>
-            <ul className="mt-3 flex flex-col gap-2.5 text-sm text-helm-slate">
-              <li>
-                <a
-                  href={PUBLIC_INSTAGRAM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 hover:text-helm-navy transition-colors"
-                >
-                  <span>Instagram {PUBLIC_INSTAGRAM_HANDLE}</span>
-                  <ExternalHint />
-                </a>
-              </li>
-              <li>
-                <a
-                  href={PUBLIC_CONTACT_MAILTO}
-                  className="inline-flex items-center gap-1.5 hover:text-helm-navy transition-colors"
-                >
-                  <span>{PUBLIC_CONTACT_EMAIL}</span>
-                  <ExternalHint />
-                </a>
-              </li>
-            </ul>
-          </div>
+          <a
+            href={PUBLIC_INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Trenston on Instagram ${PUBLIC_INSTAGRAM_HANDLE}`}
+            className="inline-flex items-center justify-center gap-2 border border-[#0A0A0A]/25 px-5 py-4 text-[#0A0A0A] hover:opacity-60 transition-opacity sm:w-auto"
+          >
+            <Instagram className="h-5 w-5" aria-hidden />
+            <span className="text-sm font-medium">{PUBLIC_INSTAGRAM_HANDLE}</span>
+          </a>
         </div>
 
-        {/* Secondary utility / legal / auth */}
-        <nav
-          className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-helm-slate"
-          aria-label="Footer utility"
-        >
-          {UTILITY_LINKS.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className="hover:text-helm-navy/80 transition-colors font-normal"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Bottom bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-helm-navy/10 pt-6 text-[11px] text-helm-slate">
-          <p>© {year} Trenston</p>
-          <Link to="/privacy" className="hover:text-helm-navy/80 transition-colors">
-            Legal
-          </Link>
+        {/* Bottom meta */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-[#0A0A0A]">
+          <p>🇵🇭 BGC, Manila</p>
+          <p>© {year} Trenston. All rights reserved.</p>
         </div>
       </div>
 
-      {/* Faint brand watermark — bleeds past the bottom edge */}
+      {/* Oversized wordmark — crops at bottom edge */}
       <p
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[0.18em] z-0 select-none text-center font-display font-semibold leading-none tracking-[-0.04em] text-[clamp(4.5rem,22vw,14rem)] text-helm-navy/[0.06]"
+        className="relative z-0 select-none font-sans font-bold text-[#0A0A0A] text-[18vw] md:text-[12vw] leading-[0.8] tracking-tighter -mb-2 md:-mb-4 mt-6 md:mt-8"
       >
         TRENSTON
       </p>
