@@ -16,7 +16,10 @@ export default function Onboarding() {
   const [selected, setSelected] = useState(() => new Set());
   const [busy, setBusy] = useState(null);
 
-  const departments = data?.departments || [];
+  const departments = useMemo(
+    () => data?.departments || [],
+    [data?.departments],
+  );
   const lockedDepts = useMemo(
     () => departments.filter((d) => LOCKED_TYPES.has(d.type)),
     [departments],

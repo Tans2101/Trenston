@@ -166,7 +166,10 @@ function MetricTile({ m, index, total }) {
  */
 export default function BentoGrid({ metrics = [], className }) {
   const reduceMotion = useReducedMotion();
-  const list = Array.isArray(metrics) ? metrics : [];
+  const list = useMemo(
+    () => (Array.isArray(metrics) ? metrics : []),
+    [metrics],
+  );
   const groups = useMemo(() => groupMetricsBySection(list), [list]);
   if (list.length === 0) return null;
 
