@@ -207,8 +207,24 @@ input.cl-otpCodeFieldInput {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* In-app cockpit — pure white / near-black for readable contrast */
+/* In-app cockpit — theme follows html[data-theme]. Light = white/#111; dark = ink/cream. */
 .app-shell {
+  background: var(--helm-bg);
+  color: var(--helm-fg);
+}
+
+html[data-theme="dark"] .app-shell {
+  --helm-fg: var(--helm-cream);
+  --helm-bg: var(--helm-ink);
+  --helm-card: var(--helm-ink-card);
+  --helm-muted: var(--helm-slate);
+  --helm-line: color-mix(in srgb, var(--helm-cream) 18%, transparent);
+  background: var(--helm-bg);
+  color: var(--helm-fg);
+}
+
+/* Light: pure white / near-black for readable contrast (no cream page fill) */
+html[data-theme="light"] .app-shell {
   --helm-fg: #111111;
   --helm-bg: #FFFFFF;
   --helm-card: #FFFFFF;
@@ -218,12 +234,11 @@ input.cl-otpCodeFieldInput {
   color: #111111;
 }
 
-/* Single opaque white page fill — no cream, grain, or gradients */
+/* Single opaque white page fill in light — no cream, grain, or gradients */
 html[data-theme="light"],
 html[data-theme="light"] body,
 html[data-theme="light"] #root,
-html[data-theme="light"] .app-shell,
-.app-shell {
+html[data-theme="light"] .app-shell {
   background-color: #FFFFFF;
   background-image: none;
 }
@@ -250,13 +265,7 @@ html[data-theme="light"] .app-shell [class*="text-helm-cream"],
 html[data-theme="light"] .app-shell .text-helm-fg,
 html[data-theme="light"] .app-shell .text-helm-navy,
 html[data-theme="light"] .app-shell [class*="text-helm-fg"],
-html[data-theme="light"] .app-shell [class*="text-helm-navy"],
-.app-shell .text-helm-fg,
-.app-shell .text-helm-navy,
-.app-shell .text-helm-cream,
-.app-shell [class*="text-helm-fg"],
-.app-shell [class*="text-helm-navy"],
-.app-shell [class*="text-helm-cream"] {
+html[data-theme="light"] .app-shell [class*="text-helm-navy"] {
   color: #111111 !important;
 }
 
@@ -266,22 +275,13 @@ html[data-theme="light"] .app-shell .text-zinc-600,
 html[data-theme="light"] .app-shell .text-helm-muted,
 html[data-theme="light"] .app-shell .text-helm-slate,
 html[data-theme="light"] .app-shell [class*="text-helm-muted"],
-html[data-theme="light"] .app-shell [class*="text-helm-slate"],
-.app-shell .text-helm-muted,
-.app-shell .text-helm-slate,
-.app-shell [class*="text-helm-muted"],
-.app-shell [class*="text-helm-slate"],
-.app-shell .text-zinc-400,
-.app-shell .text-zinc-500,
-.app-shell .text-zinc-600 {
+html[data-theme="light"] .app-shell [class*="text-helm-slate"] {
   color: #111111 !important;
 }
 
-/* Gold as copy color → near-black; gold stays for bars/icons via non-text fills */
+/* Gold as copy color → near-black in light; gold stays for bars/icons via non-text fills */
 html[data-theme="light"] .app-shell .text-gold,
-html[data-theme="light"] .app-shell .text-helm-gold,
-.app-shell .text-gold,
-.app-shell .text-helm-gold {
+html[data-theme="light"] .app-shell .text-helm-gold {
   color: #111111 !important;
 }
 
@@ -323,13 +323,7 @@ html[data-theme="light"] .app-shell [class*="bg-helm-cream"],
 html[data-theme="light"] .app-shell .bg-helm-bg,
 html[data-theme="light"] .app-shell [class*="bg-helm-bg"],
 html[data-theme="light"] .app-shell .bg-helm-card,
-html[data-theme="light"] .app-shell [class*="bg-helm-card"],
-.app-shell .bg-helm-cream,
-.app-shell [class*="bg-helm-cream"],
-.app-shell .bg-helm-bg,
-.app-shell [class*="bg-helm-bg"],
-.app-shell .bg-helm-card,
-.app-shell [class*="bg-helm-card"] {
+html[data-theme="light"] .app-shell [class*="bg-helm-card"] {
   background-color: #FFFFFF !important;
 }
 
@@ -378,16 +372,16 @@ html[data-theme="light"] .app-shell .glass {
   background: #FFFFFF;
 }
 
-/* Stronger section/card edges so white tiles separate from the white page */
-.app-shell .border-helm-line,
-.app-shell [class*="border-helm-line"] {
+/* Stronger section/card edges in light so white tiles separate from the white page */
+html[data-theme="light"] .app-shell .border-helm-line,
+html[data-theme="light"] .app-shell [class*="border-helm-line"] {
   border-color: color-mix(in srgb, #111111 28%, transparent) !important;
 }
 
-.app-shell .rounded-xl.border.bg-helm-card,
-.app-shell .rounded-xl.border[class*="bg-helm-card"],
-.app-shell [data-testid*="card"],
-.app-shell section.rounded-xl.border {
+html[data-theme="light"] .app-shell .rounded-xl.border.bg-helm-card,
+html[data-theme="light"] .app-shell .rounded-xl.border[class*="bg-helm-card"],
+html[data-theme="light"] .app-shell [data-testid*="card"],
+html[data-theme="light"] .app-shell section.rounded-xl.border {
   box-shadow: 0 1px 2px color-mix(in srgb, #111111 6%, transparent),
     0 1px 3px color-mix(in srgb, #111111 8%, transparent);
 }
@@ -424,6 +418,25 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb {
 
 html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--helm-gold) 45%, transparent);
+}
+
+/* Dark cockpit: keep ink surfaces readable; do not force white fills */
+html[data-theme="dark"] .app-shell .bg-helm-bg,
+html[data-theme="dark"] .app-shell [class*="bg-helm-bg"],
+html[data-theme="dark"] .app-shell .bg-helm-card,
+html[data-theme="dark"] .app-shell [class*="bg-helm-card"] {
+  background-color: var(--helm-card);
+}
+
+html[data-theme="dark"] .app-shell .border-helm-line,
+html[data-theme="dark"] .app-shell [class*="border-helm-line"] {
+  border-color: color-mix(in srgb, var(--helm-cream) 18%, transparent) !important;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root {
+  background-color: var(--helm-ink);
+  color: var(--helm-cream);
 }
 
 @keyframes fadeUp {
