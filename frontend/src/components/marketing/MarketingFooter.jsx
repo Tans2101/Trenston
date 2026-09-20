@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Instagram } from "lucide-react";
+import FounderCredit from "@/components/marketing/FounderCredit";
 import {
   COMPANY_LOCATION,
   PUBLIC_CONTACT_EMAIL,
@@ -117,8 +118,15 @@ export default function MarketingFooter() {
         </div>
 
         {/* Bottom meta */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-helm-cream/80">
-          <p>🇵🇭 BGC, Manila</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-helm-cream/80">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p>🇵🇭 BGC, Manila</p>
+            <FounderCredit
+              data-testid="footer-founder-credit"
+              creditClassName="text-helm-cream/80"
+              linkClassName="text-helm-cream/80 hover:text-helm-cream"
+            />
+          </div>
           <p>© {year} Trenston. All rights reserved.</p>
         </div>
       </div>
