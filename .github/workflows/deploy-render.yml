@@ -11,7 +11,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.repository == 'Tans2101/Helm---Company-Cockpit'
+    # Repo was renamed Trenston; keep the old name so either remote still deploys.
+    if: github.repository == 'Tans2101/Trenston' || github.repository == 'Tans2101/Helm---Company-Cockpit'
     steps:
       - name: Trigger Render deploy
         env:
