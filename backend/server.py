@@ -283,7 +283,9 @@ api_router = APIRouter(prefix="/api")
 
 
 def _session_cookie_domain() -> str | None:
-    # When Clerk redirects to apexcoach but the app also runs on helmcontrol, use host-only cookies.
+    # Satellite / multi-domain Clerk: when Clerk's app origin and the public frontend
+    # are different registrable hosts, omit Domain= so the session cookie is host-only
+    # (a shared parent domain would be wrong across the cutover hosts).
     if clerk_auth.clerk_multi_domain_auth():
         return None
     explicit = os.environ.get("COOKIE_DOMAIN", "").strip()
@@ -12859,7 +12861,6 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
 
 
 api_router.add_api_route("/ai/ask-helm", ask_helm, methods=["POST"])
-api_router.add_api_route("/ai/ask-kalun", ask_helm, methods=["POST"])
 
 
 # ------------------------- Integrations -------------------------

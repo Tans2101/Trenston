@@ -32,6 +32,10 @@ services:
         value: https://www.trenston.com
       - key: APP_URL
         value: https://www.trenston.com
+      # helmcontrol.online is still owned and 301s to trenston.com via frontend/vercel.json.
+      # Keep in CORS so any browser that hits the old host before the redirect completes
+      # does not fail preflight. Remove both helmcontrol origins after 2026-12-31 if
+      # Search Console / logs show negligible legacy traffic (see docs/TRENSTON_MIGRATION.md).
       - key: CORS_ORIGINS
         value: https://www.trenston.com,https://trenston.com,https://www.helmcontrol.online,https://helmcontrol.online
       - key: COOKIE_DOMAIN
