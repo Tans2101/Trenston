@@ -6,7 +6,12 @@ import { cn } from "@/lib/utils";
  * Founder name/role plus a LinkedIn icon link (same restrained lucide treatment
  * as the Instagram icon in MarketingFooter).
  */
-export default function FounderCredit({ className, creditClassName, "data-testid": testId }) {
+export default function FounderCredit({
+  className,
+  creditClassName,
+  linkClassName,
+  "data-testid": testId,
+}) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)} data-testid={testId}>
       <span className={creditClassName}>{FOUNDER_CREDIT}</span>
@@ -16,7 +21,10 @@ export default function FounderCredit({ className, creditClassName, "data-testid
         rel="noopener noreferrer"
         aria-label={`${FOUNDER_NAME} on LinkedIn`}
         title={`${FOUNDER_NAME} on LinkedIn`}
-        className="inline-flex shrink-0 text-helm-slate hover:text-helm-navy transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
+        className={cn(
+          "inline-flex shrink-0 text-helm-slate hover:text-helm-navy transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
+          linkClassName,
+        )}
         data-testid="founder-linkedin"
       >
         <Linkedin className="h-4 w-4" aria-hidden />
