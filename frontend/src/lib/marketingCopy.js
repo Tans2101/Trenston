@@ -7,7 +7,7 @@ export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
 export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
 /** Public LinkedIn profile — also used as Person JSON-LD sameAs on /about. */
-export const FOUNDER_LINKEDIN_URL = "https://www.linkedin.com/in/tansher-dhawan-0a0848332/";
+export const FOUNDER_LINKEDIN_URL = "https://www.linkedin.com/in/tansherdhawan/";
 export const PUBLIC_CONTACT_EMAIL = "contact@trenston.com";
 export const PUBLIC_CONTACT_MAILTO = `mailto:${PUBLIC_CONTACT_EMAIL}`;
 export const PUBLIC_INSTAGRAM_HANDLE = "@usetrenston";

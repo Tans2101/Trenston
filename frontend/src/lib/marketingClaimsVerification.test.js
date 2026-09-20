@@ -105,6 +105,6 @@ describe("marketing claim verification log", () => {
     expect(FOUNDER_NAME).toBe("Tansher Dhawan");
     expect(FOUNDER_ROLE).toBe("Founder");
     expect(FOUNDER_ROLE).not.toMatch(/CEO/i);
-    expect(FOUNDER_LINKEDIN_URL).toBe("https://www.linkedin.com/in/tansher-dhawan-0a0848332/");
+    expect(FOUNDER_LINKEDIN_URL).toBe("https://www.linkedin.com/in/tansherdhawan/");
   });
 });
