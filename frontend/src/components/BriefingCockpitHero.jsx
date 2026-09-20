@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import palette from "@/design/palette.json";
 
@@ -25,7 +26,7 @@ const METRIC_KEYS = [
   { id: "cash", label: "Cash", match: /cash/i },
 ];
 
-const SPEND_COLORS = [palette.navy, palette.gold, palette.slate, palette.inkCard, palette.statusWarning];
+const SPEND_COLORS = [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember];
 
 function pickMetric(metrics, key) {
   const def = METRIC_KEYS.find((m) => m.id === key) || METRIC_KEYS[0];
@@ -46,10 +47,19 @@ function formatRangeLabel() {
  */
 export default function BriefingCockpitHero({ metrics = [], decisions = [], loading = false }) {
   const { user } = useAuth();
+  const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const canFin = (user?.granted_sections || []).includes("financials");
   const { data: fin } = useFetch(canFin ? "/financials" : null);
   const [chartOffset, setChartOffset] = useState(0);
+  const dark = resolvedTheme === "dark";
+  const currentBar = dark ? palette.gold : palette.navy;
+  const lastBar = dark ? "rgba(245, 240, 230, 0.35)" : `${palette.slate}66`;
+  const axisStroke = dark ? "rgba(245, 240, 230, 0.55)" : palette.slate;
+  const tooltipFg = dark ? palette.cream : "#111111";
+  const tooltipBg = dark ? palette.inkCard : "#FFFFFF";
+  const tooltipBorder = dark ? "rgba(245, 240, 230, 0.22)" : "rgba(17, 17, 17, 0.2)";
+  const cursorFill = dark ? "rgba(245, 240, 230, 0.06)" : "rgba(20,33,61,0.04)";
 
   const heroMetrics = useMemo(() => {
     const order = ["mrr", "burn", "runway"];
@@ -136,14 +146,27 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
 
       {/* B. Chart */}
       <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-medium text-helm-fg">Period comparison</p>
-          <div className="flex items-center gap-3 font-mono text-[11px] text-helm-muted">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-helm-fg">Revenue by month</p>
+            <p className="mt-0.5 text-xs text-helm-muted">Current month vs the month before</p>
+          </div>
+          <div className="flex items-center gap-3 font-mono text-[11px] text-helm-fg shrink-0">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-helm-navy" /> Current period
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: currentBar }}
+                aria-hidden
+              />
+              Current
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-helm-slate/40" /> Last period
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: lastBar }}
+                aria-hidden
+              />
+              Prior
             </span>
           </div>
         </div>
@@ -152,19 +175,27 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={visibleChart} margin={{ left: -8, right: 8, top: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--helm-line)" vertical={false} />
-                <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+                <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tick={{ fill: axisStroke }} />
+                <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tick={{ fill: axisStroke }} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
                 <Tooltip
-                  cursor={{ fill: "rgba(20,33,61,0.04)" }}
+                  cursor={{ fill: cursorFill }}
                   contentStyle={{
-                    background: "var(--helm-card)",
-                    border: "1px solid var(--helm-line)",
+                    background: tooltipBg,
+                    border: `1px solid ${tooltipBorder}`,
                     borderRadius: 8,
                     fontSize: 12,
+                    color: tooltipFg,
                   }}
+                  labelStyle={{ color: tooltipFg, fontWeight: 500 }}
+                  itemStyle={{ color: tooltipFg }}
+                  formatter={(value, name) => [
+                    typeof value === "number" ? `$${Math.round(value).toLocaleString()}` : value,
+                    name === "current" ? "Current month" : "Prior month",
+                  ]}
+                  labelFormatter={(label) => `${label} revenue`}
                 />
-                <Bar dataKey="current" name="Current period" fill={palette.navy} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="last" name="Last period" fill={`${palette.slate}66`} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="current" name="current" fill={currentBar} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="last" name="last" fill={lastBar} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
             {chartData.length > 6 && (
@@ -237,7 +268,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
                   <span className="text-sm text-helm-fg truncate flex-1">{row.name}</span>
                   <div className="w-20 h-1.5 rounded-full bg-helm-fg/[0.06] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-helm-navy"
+                      className="h-full rounded-full bg-helm-gold"
                       style={{ width: `${Math.min(100, Number(row.value) || 0)}%` }}
                     />
                   </div>
