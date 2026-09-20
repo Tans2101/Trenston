@@ -32,7 +32,6 @@ export const clerkAppearance = {
     socialButtonsBlockButton:
       "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none",
     socialButtonsBlockButtonText: "text-helm-cream font-medium",
-    socialButtonsProviderIcon: "brightness-0 invert",
     alternativeMethodsBlockButton:
       "w-full justify-center rounded-full bg-transparent text-helm-navy border border-helm-navy/20 font-medium hover:bg-helm-navy/[0.04] shadow-none",
     formButtonPrimary:
