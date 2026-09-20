@@ -1,4 +1,6 @@
 import "@/App.css";
+// Patch sonner toast.error before any page imports it (object details crash React).
+import "@/lib/notify";
 import { lazy, Suspense, useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
@@ -228,15 +230,16 @@ function ClerkAuthShell() {
   const { signOut } = useClerk();
   return (
     <AuthProvider onLogoutExtra={() => signOut()} deferInitialAuth>
+      {/* Toaster stays outside ErrorBoundary — a bad toast must not blank the app. */}
       <ErrorBoundary>
         <BrowserRouter>
           <AppearanceSync />
           <ClerkHelmBridge />
           <AppRouter />
           <CookieNotice />
-          <TrenstonToaster />
         </BrowserRouter>
       </ErrorBoundary>
+      <TrenstonToaster />
     </AuthProvider>
   );
 }
@@ -249,9 +252,9 @@ function TrenstonAppShell() {
           <AppearanceSync />
           <AppRouter />
           <CookieNotice />
-          <TrenstonToaster />
         </BrowserRouter>
       </ErrorBoundary>
+      <TrenstonToaster />
     </AuthProvider>
   );
 }

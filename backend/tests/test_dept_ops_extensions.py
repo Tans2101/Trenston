@@ -120,6 +120,29 @@ def test_overhead_budget_not_entered():
     assert r2["gap"] == 900000.0
 
 
+def test_enrich_spare_normalizes_equipment_names_string():
+    """Legacy rows may store equipment_names as a plain string — UI must not crash."""
+    s = mo.enrich_spare({
+        "part_name": "Bearing",
+        "equipment_name": "",
+        "equipment_names": "Press A",
+        "quantity_on_hand": 1,
+        "minimum_threshold": 2,
+    })
+    assert s["equipment_names"] == ["Press A"]
+    assert s["equipment_name"] == "Press A"
+    assert s["is_below_threshold"] is True
+
+    s2 = mo.enrich_spare({
+        "part_name": "Belt",
+        "equipment_name": "Line 1",
+        "quantity_on_hand": 5,
+        "minimum_threshold": 1,
+    })
+    assert s2["equipment_names"] == ["Line 1"]
+    assert s2["is_below_threshold"] is False
+
+
 def test_procurement_spend_skips_unpriced():
     start = datetime(2026, 9, 1, tzinfo=timezone.utc)
     end = datetime(2026, 10, 1, tzinfo=timezone.utc)

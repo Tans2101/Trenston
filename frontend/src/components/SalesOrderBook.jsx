@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ErrorScreen } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
@@ -104,7 +104,7 @@ export default function SalesOrderBook() {
       toast.success("Monthly target saved");
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not save target");
+      toast.error(apiErrorMessage(e, "Could not save target"));
     } finally {
       setBusy(false);
     }
@@ -138,7 +138,7 @@ export default function SalesOrderBook() {
       setAdding(false);
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not create entry");
+      toast.error(apiErrorMessage(e, "Could not create entry"));
     } finally {
       setBusy(false);
     }
@@ -151,7 +151,7 @@ export default function SalesOrderBook() {
       toast.success("Entry deleted");
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not delete");
+      toast.error(apiErrorMessage(e, "Could not delete"));
     } finally {
       setBusy(false);
     }

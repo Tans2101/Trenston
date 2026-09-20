@@ -57,6 +57,18 @@ def enrich_spare(row: dict) -> dict:
     out["quantity_on_hand"] = qty
     out["minimum_threshold"] = mn
     out["is_below_threshold"] = qty < mn
+    # Normalize legacy shapes so the UI never calls .filter on a string.
+    names = out.get("equipment_names")
+    if isinstance(names, str):
+        names = [names] if names.strip() else []
+    elif not isinstance(names, list):
+        single = (out.get("equipment_name") or "").strip()
+        names = [single] if single else []
+    else:
+        names = [str(n).strip() for n in names if str(n or "").strip()]
+    out["equipment_names"] = names
+    if not (out.get("equipment_name") or "").strip() and names:
+        out["equipment_name"] = names[0]
     return out
 
 

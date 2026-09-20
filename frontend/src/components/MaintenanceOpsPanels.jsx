@@ -2,11 +2,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
 const money = (n) => `$${(Number(n) || 0).toLocaleString()}`;
+
+/** equipment_names may be missing/legacy — never call .filter on a non-array. */
+function spareEquipmentLabel(s) {
+  const names = Array.isArray(s?.equipment_names)
+    ? s.equipment_names
+    : (s?.equipment_name ? [s.equipment_name] : []);
+  const label = names.map((n) => String(n || "").trim()).filter(Boolean).join(", ");
+  return label || "—";
+}
 
 /** Spares / Schedule / Contracts / Overhead panels for Maintenance. */
 export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
@@ -45,7 +54,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       toast.success("Budget saved");
       await Promise.all([settingsQ.reload?.(), onTicketsReload?.()]);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not save budget");
+      toast.error(apiErrorMessage(e, "Could not save budget"));
     } finally {
       setBusy(false);
     }
@@ -71,7 +80,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       await sparesQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not add spare");
+      toast.error(apiErrorMessage(e, "Could not add spare"));
     } finally {
       setBusy(false);
     }
@@ -94,7 +103,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       await schedQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not add schedule");
+      toast.error(apiErrorMessage(e, "Could not add schedule"));
     } finally {
       setBusy(false);
     }
@@ -108,7 +117,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       await schedQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not update");
+      toast.error(apiErrorMessage(e, "Could not update"));
     } finally {
       setBusy(false);
     }
@@ -134,7 +143,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       await contractsQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not add contract");
+      toast.error(apiErrorMessage(e, "Could not add contract"));
     } finally {
       setBusy(false);
     }
@@ -157,7 +166,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       await settingsQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not log cost");
+      toast.error(apiErrorMessage(e, "Could not log cost"));
     } finally {
       setBusy(false);
     }
@@ -240,7 +249,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                   {(sparesQ.data?.spares || []).map((s) => (
                     <tr key={s.id} className={cn("border-b border-helm-line", s.is_below_threshold && "bg-helm-status-negative/8")}>
                       <td className="px-3 py-2 text-helm-fg">{s.part_name}</td>
-                      <td className="px-3 py-2 text-helm-muted">{(s.equipment_names || [s.equipment_name]).filter(Boolean).join(", ") || "—"}</td>
+                      <td className="px-3 py-2 text-helm-muted">{spareEquipmentLabel(s)}</td>
                       <td className={cn("px-3 py-2 font-mono", s.is_below_threshold && "text-helm-status-negative")}>{s.quantity_on_hand}</td>
                       <td className="px-3 py-2 font-mono text-helm-muted">{s.minimum_threshold}</td>
                       <td className="px-3 py-2 text-helm-muted">{s.unit}</td>

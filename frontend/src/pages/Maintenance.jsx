@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, X, Wrench } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
   SkeletonKPIRow, SkeletonCardList,
@@ -223,7 +223,7 @@ export default function Maintenance() {
       await reload();
       if (res?.ticket?.id) setSelectedId(res.ticket.id);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not create ticket");
+      toast.error(apiErrorMessage(e, "Could not create ticket"));
     } finally {
       setBusy(false);
     }
@@ -257,7 +257,7 @@ export default function Maintenance() {
       await reload();
       if (res?.ticket?.id) setSelectedId(res.ticket.id);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not update ticket");
+      toast.error(apiErrorMessage(e, "Could not update ticket"));
     } finally {
       setBusy(false);
     }
@@ -273,7 +273,7 @@ export default function Maintenance() {
       setSelectedId(null);
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not delete");
+      toast.error(apiErrorMessage(e, "Could not delete"));
     } finally {
       setBusy(false);
     }
