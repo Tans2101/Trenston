@@ -26,7 +26,7 @@ const METRIC_KEYS = [
   { id: "cash", label: "Cash", match: /cash/i },
 ];
 
-const SPEND_COLORS = [palette.navy, palette.gold, palette.slate, palette.inkCard, palette.statusWarning];
+const SPEND_COLORS = [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember];
 
 function pickMetric(metrics, key) {
   const def = METRIC_KEYS.find((m) => m.id === key) || METRIC_KEYS[0];
@@ -268,7 +268,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
                   <span className="text-sm text-helm-fg truncate flex-1">{row.name}</span>
                   <div className="w-20 h-1.5 rounded-full bg-helm-fg/[0.06] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-helm-navy"
+                      className="h-full rounded-full bg-helm-gold"
                       style={{ width: `${Math.min(100, Number(row.value) || 0)}%` }}
                     />
                   </div>
