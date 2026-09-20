@@ -3,12 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
   FileText, Calendar, Contact, MessageSquareText,
-  Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Wallet, Search,
+  Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
   Info, LayoutGrid, Receipt,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { useFetch } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
@@ -76,6 +77,66 @@ const SITE_SEARCH_ICONS = {
 function pathMatches(to, pathname, end) {
   if (end) return pathname === to;
   return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/** Digits 1–9 then 0 for the first 10 visible main-nav rows; null beyond that. */
+function navShortcutLabel(index) {
+  if (index < 0 || index > 9) return null;
+  return index === 9 ? "0" : String(index + 1);
+}
+
+function isTypingTarget(el) {
+  if (!el || !(el instanceof Element)) return false;
+  const tag = el.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (el.isContentEditable) return true;
+  return Boolean(el.closest("[contenteditable='true'], [contenteditable='']"));
+}
+
+function SidebarThemeControl() {
+  const { user, setUser } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const options = [
+    { id: "light", label: "Light", icon: Sun },
+    { id: "dark", label: "Dark", icon: Moon },
+    { id: "system", label: "Auto", icon: Monitor },
+  ];
+
+  const apply = (id) => {
+    setTheme(id);
+    if (user && setUser) setUser({ ...user, appearance: id });
+  };
+
+  return (
+    <div
+      role="group"
+      aria-label="Color theme"
+      data-testid="sidebar-theme-control"
+      className="flex w-full items-center rounded-full border border-helm-line p-0.5"
+    >
+      {options.map(({ id, label, icon: Icon }) => {
+        const active = theme === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            data-testid={`sidebar-theme-${id === "system" ? "auto" : id}`}
+            aria-pressed={active}
+            onClick={() => apply(id)}
+            className={cn(
+              "flex flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[10px] font-mono uppercase tracking-wide transition-colors",
+              active
+                ? "bg-helm-fg/[0.08] text-helm-fg"
+                : "text-helm-muted hover:text-helm-fg",
+            )}
+          >
+            <Icon className="h-3 w-3 shrink-0" />
+            <span className="truncate">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
@@ -146,14 +207,14 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
 
 const QUICK_ACTION_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
 
-function SidebarContent({ onNavigate, billingEnforced }) {
+function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: company } = useCompanyQuery();
   const { data: deptData } = useDepartmentsQuery();
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
-  const mainNav = NAV.filter((item) => navItemVisible(item, user));
+  const mainNav = useMemo(() => NAV.filter((item) => navItemVisible(item, user)), [user]);
   const deptNav = (deptData?.departments || []).filter((d) => departmentNavVisible(d));
   const canBilling = canManageBilling(user);
 
@@ -165,14 +226,35 @@ function SidebarContent({ onNavigate, billingEnforced }) {
 
   const navBtn = ({ isActive }) =>
     cn(
-      "group relative flex w-full items-center gap-2.5 rounded-full px-4 py-2.5 text-sm transition-colors duration-200",
+      "group relative flex w-full items-center gap-2.5 rounded-full px-3 py-2 text-sm transition-colors duration-200",
       isActive
-        ? "text-helm-navy border border-transparent"
-        : "text-helm-muted border border-helm-line bg-helm-fg/[0.03] hover:text-helm-fg hover:bg-helm-fg/[0.06] hover:border-helm-fg/15",
+        ? "text-helm-navy"
+        : "text-helm-muted hover:text-helm-fg",
     );
+
+  useEffect(() => {
+    if (!enableNavShortcuts) return undefined;
+    const onKey = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key < "0" || e.key > "9") return;
+      if (isTypingTarget(document.activeElement)) return;
+      const index = e.key === "0" ? 9 : Number(e.key) - 1;
+      const item = mainNav[index];
+      if (!item) return;
+      e.preventDefault();
+      navigate(item.to);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [enableNavShortcuts, mainNav, navigate]);
 
   return (
     <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2.5 px-3 pt-4 pb-2" data-testid="sidebar-brand">
+        <TrenstonMark size={28} className="rounded-md" />
+        <span className="text-helm-fg font-semibold text-sm tracking-tight">Trenston</span>
+      </div>
+
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
 
       <nav className="flex-1 overflow-y-auto px-1 py-3" aria-label="App">
@@ -180,27 +262,46 @@ function SidebarContent({ onNavigate, billingEnforced }) {
           orientation="vertical"
           variant="pill"
           activeId={activeDeptId ? `dept-${activeDeptId}` : activeMainId}
-          className="gap-2"
+          className="gap-1"
         >
-          {mainNav.map((item) => (
-            <SmoothTabItem key={item.id} id={item.id}>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                onClick={onNavigate}
-                {...prefetchRouteHandlers(item.to)}
-                data-testid={`sidebar-nav-${item.id}`}
-                className={navBtn}
-              >
-                {({ isActive }) => (
-                  <>
-                    <item.icon className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-helm-navy" : "text-helm-muted group-hover:text-helm-fg")} />
-                    <span>{item.label}</span>
-                  </>
-                )}
-              </NavLink>
-            </SmoothTabItem>
-          ))}
+          {mainNav.map((item, index) => {
+            const shortcut = navShortcutLabel(index);
+            return (
+              <SmoothTabItem key={item.id} id={item.id}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  onClick={onNavigate}
+                  {...prefetchRouteHandlers(item.to)}
+                  data-testid={`sidebar-nav-${item.id}`}
+                  className={navBtn}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <item.icon className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-helm-navy" : "text-helm-muted group-hover:text-helm-fg")} />
+                      <span className="truncate flex-1 text-left">{item.label}</span>
+                      {shortcut ? (
+                        <span
+                          className={cn(
+                            "ml-auto font-mono text-[10px] tabular-nums shrink-0",
+                            isActive ? "text-helm-navy/70" : "text-helm-muted/70",
+                          )}
+                          aria-hidden
+                        >
+                          {shortcut}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </NavLink>
+              </SmoothTabItem>
+            );
+          })}
+          {deptNav.length > 0 ? (
+            <p className="px-3 pt-4 pb-1 text-[10px] font-mono uppercase tracking-[0.18em] text-helm-muted">
+              Departments
+            </p>
+          ) : null}
           {deptNav.map((dept) => {
             const Icon = departmentIcon(dept.icon);
             const to = departmentNavTo(dept.type);
@@ -216,7 +317,7 @@ function SidebarContent({ onNavigate, billingEnforced }) {
                   {({ isActive }) => (
                     <>
                       <Icon className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-helm-navy" : "text-helm-muted group-hover:text-helm-fg")} />
-                      <span>{dept.name}</span>
+                      <span className="truncate">{dept.name}</span>
                     </>
                   )}
                 </NavLink>
@@ -226,7 +327,8 @@ function SidebarContent({ onNavigate, billingEnforced }) {
         </SmoothTab>
       </nav>
 
-      <div className="px-1 pb-4">
+      <div className="px-1 pb-4 space-y-2">
+        <SidebarThemeControl />
         <ProfileDropdown
           name={user?.name || "CEO"}
           picture={user?.picture}
@@ -482,7 +584,7 @@ export default function AppLayout() {
       )}
       {/* Desktop nav rail — same surface as the page, no enclosed panel */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[220px] flex-col z-40 px-2">
-        <SidebarContent billingEnforced={billingEnforced} />
+        <SidebarContent billingEnforced={billingEnforced} enableNavShortcuts />
       </aside>
 
       {/* Mobile top bar */}
