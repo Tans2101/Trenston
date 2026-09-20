@@ -9,6 +9,7 @@ from datetime import date, datetime, timezone, timedelta
 from typing import Optional
 import logging
 import math
+import uuid
 
 from money_fmt import fmt_money_plain
 from departments_catalog import TYPE_ENGINEERING_MAINTENANCE, TYPE_HR, TYPE_LEGAL, TYPE_PRODUCTION, TYPE_PROCUREMENT
@@ -75,6 +76,39 @@ DELEGATE_SIGNAL_TYPES = frozenset({
     # Legal due dates within the next two weeks — reminder, not advisory.
     "upcoming_legal_deadline",
 })
+
+
+def workspace_has_team(workspace: dict | None) -> bool:
+    """Whether the CEO can hand work to someone else.
+
+    Explicit `has_team` on the workspace wins. Missing field defaults to True so
+    legacy workspaces keep today's delegate behavior until they re-run setup.
+    """
+    if not isinstance(workspace, dict):
+        return True
+    if "has_team" not in workspace or workspace.get("has_team") is None:
+        return True
+    return bool(workspace.get("has_team"))
+
+
+def personal_later_card_from_signal(sig: dict, *, now: str) -> dict:
+    """Solo-founder stand-in for a delegate draft: no assignee, flag-for-later only."""
+    summary = (sig.get("summary") or "Follow up").strip() or "Follow up"
+    detail = (sig.get("detail") or "").strip()
+    return {
+        "id": f"del_{uuid.uuid4().hex[:10]}",
+        "status": "suggested",
+        "source": "personal_later",
+        "personal": True,
+        "signal_type": sig.get("type"),
+        "signal": sig,
+        "severity": sig.get("severity"),
+        "created_at": now,
+        "title": summary[:200],
+        "detail": detail[:500],
+        "suggested_owner_user_id": None,
+        "suggested_owner_name": None,
+    }
 
 
 def _signal(type_: str, severity: str, summary: str, detail: str, related_id=None, **extra) -> dict:

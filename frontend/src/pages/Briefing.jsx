@@ -96,10 +96,10 @@ export default function Briefing() {
     setDelegateBusy(id);
     try {
       await api.post(`/delegates/suggestions/${id}/assign`);
-      toast.success("Task created");
+      toast.success(company?.has_team === false ? "Saved for later" : "Task created");
       reloadBriefing();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not assign task");
+      toast.error(e?.response?.data?.detail || "Could not save task");
     } finally {
       setDelegateBusy(null);
     }
@@ -163,6 +163,8 @@ export default function Briefing() {
   const whatChanged = data.what_changed || [];
   const whatToDecide = data.what_to_decide || [];
   const whatToDelegate = data.what_to_delegate || [];
+  // Missing has_team on older company docs → treat as team (matches GET /company default).
+  const hasTeam = company?.has_team !== false;
 
   return (
     <div className="max-w-6xl">
@@ -478,9 +480,9 @@ export default function Briefing() {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-5 fade-up">
+        <GlassCard className="p-5 fade-up" data-testid={hasTeam ? "briefing-handoff-column" : "briefing-later-column"}>
           <div className="flex items-center justify-between mb-4">
-            <BriefLabel>What to hand off</BriefLabel>
+            <BriefLabel>{hasTeam ? "What to hand off" : "Flag for later"}</BriefLabel>
             <button
               type="button"
               onClick={() => navigate("/app/tasks")}
@@ -491,7 +493,11 @@ export default function Briefing() {
           </div>
           <div className="space-y-3">
             {whatToDelegate.length === 0 && (
-              <p className="text-sm text-helm-muted leading-relaxed">No handoffs suggested. Overdue work will show up here.</p>
+              <p className="text-sm text-helm-muted leading-relaxed">
+                {hasTeam
+                  ? "No handoffs suggested. Overdue work will show up here."
+                  : "Nothing flagged. Overdue work will show up here when you have time."}
+              </p>
             )}
             {whatToDelegate.map((d, i) => (
               <div key={d.id || i} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`delegate-${d.id || i}`}>
@@ -503,19 +509,21 @@ export default function Briefing() {
                   <p className="text-sm text-helm-fg leading-snug group-hover:text-helm-gold">{d.title}</p>
                   <p className="text-xs text-helm-muted mt-1 leading-relaxed">{d.detail}</p>
                 </button>
-                <div className="flex items-center gap-1.5 mt-2 text-helm-muted">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span className="text-xs">{d.owner || d.suggested_owner_name}</span>
-                </div>
-                {d.source === "ai_suggested" && d.id && (
+                {hasTeam && !d.personal && (
+                  <div className="flex items-center gap-1.5 mt-2 text-helm-muted">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    <span className="text-xs">{d.owner || d.suggested_owner_name}</span>
+                  </div>
+                )}
+                {d.id && (
                   <div className="flex gap-2 mt-3">
                     <button
-                      data-testid={`assign-delegate-${d.id}`}
+                      data-testid={hasTeam && !d.personal ? `assign-delegate-${d.id}` : `save-later-${d.id}`}
                       disabled={delegateBusy === d.id}
                       onClick={() => assignDelegate(d.id)}
                       className="flex-1 rounded-md bg-helm-gold text-helm-navy text-xs font-medium py-1.5 hover:bg-helm-gold-hover disabled:opacity-50"
                     >
-                      Assign as task
+                      {hasTeam && !d.personal ? "Assign as task" : "Save for later"}
                     </button>
                     <button
                       data-testid={`dismiss-delegate-${d.id}`}

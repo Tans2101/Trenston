@@ -3290,6 +3290,8 @@ async def company(principal=Depends(get_principal)):
         "onboarding_done": c.get("onboarding_done", True),
         "company_setup_done": c.get("company_setup_done", True),
         "template": c.get("template", "sample"),
+        # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
+        "has_team": decision_engine.workspace_has_team(c),
     }
 
 
@@ -3311,6 +3313,9 @@ class CompanySetupInput(BaseModel):
     founded: Optional[str] = None
     mission: Optional[str] = None
     founder_title: Optional[str] = None
+    # Explicit: can the CEO hand work to someone else (hire/contractor/co-founder)?
+    # Separate from employees — headcount ≠ decision-makers they can delegate to.
+    has_team: Optional[bool] = None
     company_setup_done: bool = True
 
 
@@ -3352,6 +3357,8 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
         if title and title not in FOUNDER_TITLES:
             raise HTTPException(status_code=400, detail="Invalid role")
         updates["founder_title"] = title or "CEO"
+    if payload.has_team is not None:
+        updates["has_team"] = bool(payload.has_team)
     if payload.company_setup_done:
         updates["company_setup_done"] = True
     if not updates:
@@ -3786,18 +3793,21 @@ def _briefing_what_to_decide(c: dict) -> list:
 
 
 def _briefing_what_to_delegate(c: dict) -> list:
+    has_team = decision_engine.workspace_has_team(c)
     out = []
     for s in c.get("delegate_suggestions") or []:
         if s.get("status") and s.get("status") != "suggested":
             continue
+        personal = (not has_team) or bool(s.get("personal"))
         out.append({
             "id": s["id"],
             "title": s.get("title") or "Untitled",
             "detail": s.get("detail") or "",
-            "owner": s.get("suggested_owner_name") or "Unassigned",
-            "suggested_owner_user_id": s.get("suggested_owner_user_id"),
-            "suggested_owner_name": s.get("suggested_owner_name"),
-            "source": "ai_suggested",
+            "owner": None if personal else (s.get("suggested_owner_name") or "Unassigned"),
+            "suggested_owner_user_id": None if personal else s.get("suggested_owner_user_id"),
+            "suggested_owner_name": None if personal else s.get("suggested_owner_name"),
+            "source": s.get("source") or "ai_suggested",
+            "personal": personal,
         })
         if len(out) >= 5:
             break
@@ -4031,17 +4041,23 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
                     "owner": None,
                 })
             elif sig.get("type") in decision_engine.DELEGATE_SIGNAL_TYPES:
-                draft = await helm_llm.draft_delegate(sig, company_context)
-                delegate_suggestions.append({
-                    "id": f"del_{uuid.uuid4().hex[:10]}",
-                    "status": "suggested",
-                    "source": "ai_suggested",
-                    "signal_type": sig.get("type"),
-                    "signal": sig,
-                    "severity": sig.get("severity"),
-                    "created_at": now,
-                    **draft,
-                })
+                if not decision_engine.workspace_has_team(c):
+                    # Solo founders: no one to hand off to — surface as personal later items.
+                    delegate_suggestions.append(
+                        decision_engine.personal_later_card_from_signal(sig, now=now)
+                    )
+                else:
+                    draft = await helm_llm.draft_delegate(sig, company_context)
+                    delegate_suggestions.append({
+                        "id": f"del_{uuid.uuid4().hex[:10]}",
+                        "status": "suggested",
+                        "source": "ai_suggested",
+                        "signal_type": sig.get("type"),
+                        "signal": sig,
+                        "severity": sig.get("severity"),
+                        "created_at": now,
+                        **draft,
+                    })
         except Exception:
             failed_signals.append(sig)
             logger.exception(
@@ -4419,24 +4435,35 @@ async def dismiss_decision_suggestion(suggestion_id: str, principal=Depends(requ
 
 @api_router.post("/delegates/suggestions/{suggestion_id}/assign")
 async def assign_delegate_suggestion(suggestion_id: str, principal=Depends(require_section("decisions", "decisions:act"))):
-    """Promote a delegate suggestion into a real task assigned to the suggested owner."""
+    """Promote a delegate suggestion into a real task assigned to the suggested owner.
+
+    Solo workspaces (`has_team` false) always create a self-owned \"Later\" task —
+    there is no teammate to hand off to.
+    """
     c = await get_ws(principal["workspace_id"])
     suggestions = list(c.get("delegate_suggestions") or [])
     sug = next((s for s in suggestions if s.get("id") == suggestion_id), None)
     if not sug or (sug.get("status") and sug.get("status") != "suggested"):
         raise HTTPException(status_code=404, detail="Suggestion not found")
     t = c["tasks"]
-    assignee_uid = sug.get("suggested_owner_user_id") or principal["user_id"]
-    assignee_name = sug.get("suggested_owner_name") or principal.get("name") or "Me"
-    if sug.get("suggested_owner_user_id"):
-        member = await db.memberships.find_one(
-            {"workspace_id": principal["workspace_id"], "user_id": sug["suggested_owner_user_id"], "status": "active"},
-            {"_id": 0},
-        )
-        if member:
-            u = await db.users.find_one({"user_id": sug["suggested_owner_user_id"]}, {"_id": 0, "name": 1})
-            assignee_uid = sug["suggested_owner_user_id"]
-            assignee_name = (u or {}).get("name") or member.get("email") or assignee_name
+    solo = not decision_engine.workspace_has_team(c) or bool(sug.get("personal"))
+    if solo:
+        assignee_uid = principal["user_id"]
+        assignee_name = principal.get("name") or "Me"
+        tag = "Later"
+    else:
+        assignee_uid = sug.get("suggested_owner_user_id") or principal["user_id"]
+        assignee_name = sug.get("suggested_owner_name") or principal.get("name") or "Me"
+        tag = "Delegated"
+        if sug.get("suggested_owner_user_id"):
+            member = await db.memberships.find_one(
+                {"workspace_id": principal["workspace_id"], "user_id": sug["suggested_owner_user_id"], "status": "active"},
+                {"_id": 0},
+            )
+            if member:
+                u = await db.users.find_one({"user_id": sug["suggested_owner_user_id"]}, {"_id": 0, "name": 1})
+                assignee_uid = sug["suggested_owner_user_id"]
+                assignee_name = (u or {}).get("name") or member.get("email") or assignee_name
     item = {
         "id": f"t_{uuid.uuid4().hex[:8]}",
         "title": (sug.get("title") or "Follow up").strip()[:200],
@@ -4444,7 +4471,7 @@ async def assign_delegate_suggestion(suggestion_id: str, principal=Depends(requi
         "assignee_user_id": assignee_uid,
         "priority": "High" if (sug.get("signal") or {}).get("severity") == "high" else "Medium",
         "column": "backlog",
-        "tag": "Delegated",
+        "tag": tag,
         "due": "",
         "progress": 0,
         "source": "ai_suggested",
@@ -4457,14 +4484,23 @@ async def assign_delegate_suggestion(suggestion_id: str, principal=Depends(requi
         {"workspace_id": c["workspace_id"]},
         {"$set": {"tasks": t, "delegate_suggestions": suggestions}},
     )
-    await log_activity(principal, "tasks", "delegate.assign", f"Assigned from Trenston: {item['title']} → {assignee_name}")
-    await notify_task_delegated(
-        assignee_user_id=assignee_uid,
-        previous_assignee_user_id=None,
-        task=item,
-        principal=principal,
-        workspace_name=c.get("name") or "your company",
+    await log_activity(
+        principal, "tasks",
+        "delegate.later" if solo else "delegate.assign",
+        (
+            f"Saved for later: {item['title']}"
+            if solo else
+            f"Assigned from Trenston: {item['title']} → {assignee_name}"
+        ),
     )
+    if not solo:
+        await notify_task_delegated(
+            assignee_user_id=assignee_uid,
+            previous_assignee_user_id=None,
+            task=item,
+            principal=principal,
+            workspace_name=c.get("name") or "your company",
+        )
     return {"ok": True, "task": item}
 
 
@@ -14770,6 +14806,26 @@ async def confirm_age(payload: AgeConfirmInput, user=Depends(get_user)):
         {"$set": {"age_confirmed": True, "age_confirmed_at": now}},
     )
     return {"age_confirmed": True, "age_confirmed_at": now}
+
+
+class ProfileInput(BaseModel):
+    name: str
+
+
+@api_router.patch("/account/profile")
+async def update_profile(payload: ProfileInput, user=Depends(get_user)):
+    """Set the user's display name (Clerk sign-up can leave name empty)."""
+    name = (payload.name or "").strip()
+    if len(name) < 1:
+        raise HTTPException(status_code=400, detail="Name is required")
+    if len(name) > 120:
+        raise HTTPException(status_code=400, detail="Name is too long")
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"name": name}},
+    )
+    return {"name": name}
+
 
 @api_router.delete("/account")
 async def delete_account(user=Depends(get_user)):
