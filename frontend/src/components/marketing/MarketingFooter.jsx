@@ -32,7 +32,7 @@ const FOOTER_LINKS = {
 };
 
 const linkClass =
-  "text-sm text-[#0A0A0A] hover:opacity-60 transition-opacity";
+  "text-sm text-helm-cream hover:opacity-60 transition-opacity";
 
 function FooterLink({ item }) {
   if (item.href) {
@@ -53,11 +53,11 @@ export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden bg-helm-ember px-6 md:px-10 py-12 md:py-16">
+    <footer className="relative overflow-hidden bg-helm-ink px-6 md:px-10 py-12 md:py-16">
       <div className="relative z-10 mx-auto max-w-6xl flex flex-col gap-12 md:gap-14">
         {/* Top: heading + link columns */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
-          <h2 className="font-display text-2xl md:text-3xl text-[#0A0A0A] tracking-tight max-w-xs">
+          <h2 className="font-display text-2xl md:text-3xl text-helm-cream tracking-tight max-w-xs">
             Run a tighter company.
           </h2>
           <nav
@@ -66,7 +66,7 @@ export default function MarketingFooter() {
           >
             {Object.entries(FOOTER_LINKS).map(([group, links]) => (
               <div key={group}>
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0A0A0A]/70">
+                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-cream/70">
                   {group}
                 </p>
                 <ul className="mt-3 flex flex-col gap-2">
@@ -83,25 +83,25 @@ export default function MarketingFooter() {
 
         {/* Middle: contact card + Instagram */}
         <div className="flex flex-col sm:flex-row sm:items-stretch gap-4 sm:gap-6">
-          <div className="flex-1 border border-[#0A0A0A]/25 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1 border border-helm-cream/25 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#0A0A0A]/70">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-cream/70">
                 Contact
               </p>
               <a
                 href={PUBLIC_CONTACT_MAILTO}
                 data-testid="footer-contact-link"
-                className="mt-2 block text-sm text-[#0A0A0A] hover:opacity-60 transition-opacity"
+                className="mt-2 block text-sm text-helm-cream hover:opacity-60 transition-opacity"
               >
                 {PUBLIC_CONTACT_EMAIL}
               </a>
-              <p className="mt-1 text-sm text-[#0A0A0A]/80">{COMPANY_LOCATION}</p>
+              <p className="mt-1 text-sm text-helm-cream/80">{COMPANY_LOCATION}</p>
             </div>
             <a
               href={PUBLIC_CONTACT_MAILTO}
-              className="inline-flex items-center justify-center rounded-md bg-[#0A0A0A] text-helm-ember text-sm font-medium px-4 py-2.5 hover:opacity-90 transition-opacity shrink-0"
+              className="inline-flex items-center justify-center rounded-md bg-helm-cream text-helm-navy text-sm font-medium px-4 py-2.5 hover:opacity-90 transition-opacity shrink-0"
             >
-              Say hello
+              Contact Us
             </a>
           </div>
           <a
@@ -109,7 +109,7 @@ export default function MarketingFooter() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Trenston on Instagram ${PUBLIC_INSTAGRAM_HANDLE}`}
-            className="inline-flex items-center justify-center gap-2 border border-[#0A0A0A]/25 px-5 py-4 text-[#0A0A0A] hover:opacity-60 transition-opacity sm:w-auto"
+            className="inline-flex items-center justify-center gap-2 border border-helm-cream/25 px-5 py-4 text-helm-cream hover:opacity-60 transition-opacity sm:w-auto"
           >
             <Instagram className="h-5 w-5" aria-hidden />
             <span className="text-sm font-medium">{PUBLIC_INSTAGRAM_HANDLE}</span>
@@ -117,7 +117,7 @@ export default function MarketingFooter() {
         </div>
 
         {/* Bottom meta */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-[#0A0A0A]">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-helm-cream/80">
           <p>🇵🇭 BGC, Manila</p>
           <p>© {year} Trenston. All rights reserved.</p>
         </div>
@@ -126,7 +126,7 @@ export default function MarketingFooter() {
       {/* Oversized wordmark — crops at bottom edge */}
       <p
         aria-hidden
-        className="relative z-0 select-none font-sans font-bold text-[#0A0A0A] text-[18vw] md:text-[12vw] leading-[0.8] tracking-tighter -mb-2 md:-mb-4 mt-6 md:mt-8"
+        className="relative z-0 select-none font-sans font-bold text-helm-cream/15 text-[18vw] md:text-[12vw] leading-[0.8] tracking-tighter -mb-2 md:-mb-4 mt-6 md:mt-8"
       >
         TRENSTON
       </p>
