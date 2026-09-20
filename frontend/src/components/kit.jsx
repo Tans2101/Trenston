@@ -6,7 +6,7 @@ export function GlassCard({ className, children, glow, ...props }) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-helm-line bg-helm-card",
+        "rounded-xl border border-helm-line bg-helm-card shadow-sm",
         glow && "border-helm-gold/35",
         className
       )}
