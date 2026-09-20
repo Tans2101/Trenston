@@ -50,6 +50,7 @@ const Members = lazy(() => import("@/pages/Members"));
 const Integrations = lazy(() => import("@/pages/Integrations"));
 const Billing = lazy(() => import("@/pages/Billing"));
 const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
+const AppHelp = lazy(() => import("@/pages/AppHelp"));
 const DepartmentPlaceholder = lazy(() => import("@/pages/DepartmentPlaceholder"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Production = lazy(() => import("@/pages/Production"));
@@ -113,6 +114,7 @@ function AppRouter() {
       "/app/financials": "Financials · Trenston",
       "/app/billing": "Billing · Trenston",
       "/app/settings": "Settings · Trenston",
+      "/app/help": "Help · Trenston",
       "/app/members": "Team & Access · Trenston",
       "/app/integrations": "Integrations · Trenston",
     };
@@ -205,6 +207,7 @@ function AppRouter() {
           <Route path="integrations" element={<Integrations />} />
           <Route path="billing" element={<Billing />} />
           <Route path="settings" element={<AccountSettings />} />
+          <Route path="help" element={<AppHelp />} />
           <Route path="departments/production" element={<Production />} />
           <Route path="departments/procurement" element={<Procurement />} />
           <Route path="departments/legal" element={<Legal />} />

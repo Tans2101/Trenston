@@ -250,6 +250,7 @@ function SidebarContent({ onNavigate, billingEnforced, onOpenSearch }) {
           onBilling={() => { navigate("/app/billing"); onNavigate?.(); }}
           onIntegrations={() => { navigate("/app/integrations"); onNavigate?.(); }}
           onSettings={() => { navigate("/app/settings"); onNavigate?.(); }}
+          onHelp={() => { navigate("/app/help"); onNavigate?.(); }}
           onLogout={logout}
         />
       </div>
@@ -338,6 +339,14 @@ function QuickNavPalette({ open, onOpenChange }) {
         description: "Settings",
         keywords: ["google", "quickbooks", "calendar", "connect", "oauth"],
         icon: <Plug className="w-4 h-4" />,
+      },
+      {
+        id: "settings-help",
+        label: "Help",
+        to: "/app/help",
+        description: "Settings",
+        keywords: ["howto", "guide", "faq", "onboarding", "walkthrough", "glossary"],
+        icon: <HelpCircle className="w-4 h-4" />,
       },
       {
         id: "settings-export",

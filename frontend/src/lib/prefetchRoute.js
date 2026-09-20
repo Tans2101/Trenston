@@ -18,6 +18,7 @@ const prefetchers = {
   "/app/integrations": () => import("@/pages/Integrations"),
   "/app/billing": () => import("@/pages/Billing"),
   "/app/settings": () => import("@/pages/AccountSettings"),
+  "/app/help": () => import("@/pages/AppHelp"),
   "/app/departments/production": () => import("@/pages/Production"),
   "/app/departments/procurement": () => import("@/pages/Procurement"),
   "/app/departments/legal": () => import("@/pages/Legal"),
