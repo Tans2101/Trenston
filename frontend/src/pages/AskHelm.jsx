@@ -210,14 +210,17 @@ export default function AskHelm() {
   // Prefill from Briefing assistant chips (or similar navigators).
   useEffect(() => {
     const prefill = location.state?.prefill;
-    if (!prefill || autoSent.current) return;
+    if (!prefill || autoSent.current) return undefined;
     autoSent.current = true;
-    if (location.state?.autoSend) {
-      send(prefill);
-    } else {
-      setInput(prefill);
-    }
+    const shouldSend = Boolean(location.state?.autoSend);
     navigate(location.pathname, { replace: true, state: {} });
+    if (shouldSend) {
+      const t = window.setTimeout(() => send(prefill), 0);
+      return () => window.clearTimeout(t);
+    }
+    setInput(prefill);
+    return undefined;
+    // Intentionally once on mount/navigation with state — send is stable enough for this kickoff.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
