@@ -45,7 +45,7 @@ export default function About() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-helm-ink text-helm-cream overflow-x-hidden">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/about" />
 
       <section className="px-6 pt-36 md:pt-48 pb-12">
@@ -59,27 +59,27 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 pb-20 border-b border-helm-cream/[0.05]" data-testid="about-facts">
+      <section className="px-6 pb-20 border-b border-helm-navy/[0.05]" data-testid="about-facts">
         <div className="mx-auto max-w-3xl">
           <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
-          <h2 className="font-display text-2xl font-medium tracking-tight text-helm-cream">At a glance</h2>
-          <div className="mt-8 border-t border-helm-cream/[0.06]">
+          <h2 className="font-display text-2xl font-medium tracking-tight text-helm-navy">At a glance</h2>
+          <div className="mt-8 border-t border-helm-navy/[0.06]">
             {ABOUT_FACTS.map((row) => (
               <div
                 key={row.label}
-                className="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-8 py-6 border-b border-helm-cream/[0.06]"
+                className="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-8 py-6 border-b border-helm-navy/[0.06]"
               >
                 <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">{row.label}</h3>
                 {row.href ? (
                   <a
                     id={row.label === "Contact" ? "contact" : undefined}
                     href={row.href}
-                    className="text-sm text-helm-cream leading-relaxed hover:text-helm-gold transition-colors"
+                    className="text-sm text-helm-navy leading-relaxed hover:text-helm-gold transition-colors"
                   >
                     {row.body}
                   </a>
                 ) : (
-                  <p className="text-sm text-helm-cream/90 leading-relaxed">{row.body}</p>
+                  <p className="text-sm text-helm-navy/90 leading-relaxed">{row.body}</p>
                 )}
               </div>
             ))}
@@ -87,7 +87,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 py-20 border-t border-helm-cream/[0.05]">
+      <section className="px-6 py-20 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-3xl">
           <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
           <h2 className="font-display text-3xl font-medium tracking-tight">Why we built Trenston</h2>
@@ -95,11 +95,11 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 py-20 border-t border-helm-cream/[0.05]" data-testid="about-founder">
+      <section className="px-6 py-20 border-t border-helm-navy/[0.05]" data-testid="about-founder">
         <div className="mx-auto max-w-3xl">
           <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
           <h2 className="font-display text-3xl font-medium tracking-tight">Who&apos;s behind Trenston</h2>
-          <p className="mt-5 text-helm-cream/80 leading-relaxed">{FOUNDER_NOTE}</p>
+          <p className="mt-5 text-helm-navy/80 leading-relaxed">{FOUNDER_NOTE}</p>
           <FounderCredit
             className="mt-4"
             creditClassName="font-mono text-xs uppercase tracking-[0.2em] text-helm-slate"
@@ -109,7 +109,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 py-20 border-t border-helm-cream/[0.05]">
+      <section className="px-6 py-20 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-3xl space-y-16">
           <div>
             <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
@@ -122,10 +122,10 @@ export default function About() {
           </div>
           <div>
             <h2 className="font-display text-3xl font-medium tracking-tight">Who Trenston is for</h2>
-            <div className="mt-8 border-t border-helm-cream/[0.06]">
+            <div className="mt-8 border-t border-helm-navy/[0.06]">
               {WHO_HELM_IS_FOR.map((item) => (
-                <div key={item.title} className="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-8 py-6 border-b border-helm-cream/[0.06]">
-                  <h3 className="font-display text-base text-helm-cream tracking-tight">{item.title}</h3>
+                <div key={item.title} className="grid sm:grid-cols-[11rem_1fr] gap-2 sm:gap-8 py-6 border-b border-helm-navy/[0.06]">
+                  <h3 className="font-display text-base text-helm-navy tracking-tight">{item.title}</h3>
                   <p className="text-sm text-helm-slate leading-relaxed">{item.body}</p>
                 </div>
               ))}
@@ -134,15 +134,15 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 py-20 border-t border-helm-cream/[0.05]">
+      <section className="px-6 py-20 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-3xl space-y-16">
           <div>
             <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
             <h2 className="font-display text-3xl font-medium tracking-tight mb-8">What we believe</h2>
-            <div className="border-t border-helm-cream/[0.06]">
+            <div className="border-t border-helm-navy/[0.06]">
               {VALUES.map((v) => (
-                <div key={v.title} className="py-6 border-b border-helm-cream/[0.06]">
-                  <h3 className="font-display text-lg text-helm-cream tracking-tight">{v.title}</h3>
+                <div key={v.title} className="py-6 border-b border-helm-navy/[0.06]">
+                  <h3 className="font-display text-lg text-helm-navy tracking-tight">{v.title}</h3>
                   <p className="mt-2 text-sm text-helm-slate leading-relaxed">{v.body}</p>
                 </div>
               ))}
@@ -155,18 +155,18 @@ export default function About() {
         </div>
       </section>
 
-      <section className="px-6 py-24 border-t border-helm-cream/[0.05]">
+      <section className="px-6 py-24 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-2xl text-center">
           <div className="mx-auto h-px w-10 bg-helm-gold mb-8" aria-hidden />
           <h2 className="font-display text-4xl font-medium tracking-tight leading-tight">{TAGLINE}</h2>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <button type="button" onClick={enter}
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-cream text-helm-navy font-medium px-6 py-3 hover:bg-helm-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
+              className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 hover:bg-helm-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
               {authed ? "Open your cockpit" : "Get started"}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
             <Link to="/features"
-              className="inline-flex items-center gap-2 rounded-md border border-helm-cream/15 px-6 py-3 text-sm text-helm-cream/80 hover:border-helm-cream/30 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
+              className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-6 py-3 text-sm text-helm-navy/80 hover:border-helm-navy/30 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
               See all features
             </Link>
           </div>

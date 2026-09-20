@@ -15,7 +15,7 @@ const fade = {
 export default function IntegrationsShowcase({ compact = false }) {
   return (
     <section
-      className={`px-6 border-t border-helm-cream/[0.05] ${compact ? "py-16" : "py-24"}`}
+      className={`px-6 border-t border-helm-navy/[0.05] ${compact ? "py-16" : "py-24"}`}
       data-testid="integrations-showcase"
       aria-label="Works with"
     >
@@ -23,7 +23,7 @@ export default function IntegrationsShowcase({ compact = false }) {
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}>
           <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">Works with</p>
-          <h2 className="font-display mt-4 text-2xl md:text-3xl font-medium tracking-tight text-helm-cream max-w-xl">
+          <h2 className="font-display mt-4 text-2xl md:text-3xl font-medium tracking-tight text-helm-navy max-w-xl">
             Tools your team already uses.
           </h2>
           <p className="mt-3 text-sm text-helm-slate max-w-xl leading-relaxed">
@@ -39,9 +39,9 @@ export default function IntegrationsShowcase({ compact = false }) {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, margin: "-40px" }}
-              className="border-t border-helm-cream/[0.08] pt-4"
+              className="border-t border-helm-navy/[0.08] pt-4"
             >
-              <p className="font-display text-lg md:text-xl tracking-tight text-helm-cream">{item.name}</p>
+              <p className="font-display text-lg md:text-xl tracking-tight text-helm-navy">{item.name}</p>
               <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-helm-slate">{item.note}</p>
             </motion.li>
           ))}
@@ -49,7 +49,7 @@ export default function IntegrationsShowcase({ compact = false }) {
         <p className="mt-10">
           <Link
             to="/integrations"
-            className="inline-flex items-center gap-2 text-sm text-helm-cream hover:text-helm-gold transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-gold transition-colors"
           >
             See what each integration does
             <span aria-hidden>→</span>

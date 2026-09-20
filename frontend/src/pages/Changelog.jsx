@@ -35,7 +35,7 @@ export default function Changelog() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-ink text-helm-cream">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/changelog" />
 
       <main>
@@ -56,7 +56,7 @@ export default function Changelog() {
           </div>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-16 md:py-20">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
           <ol className="mx-auto max-w-3xl space-y-0">
             {entries.map((entry, i) => (
               <motion.li
@@ -66,13 +66,13 @@ export default function Changelog() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-30px" }}
                 custom={Math.min(i, 6)}
-                className="grid gap-2 border-b border-helm-cream/[0.06] py-8 first:pt-0 md:grid-cols-[7.5rem_1fr] md:gap-8"
+                className="grid gap-2 border-b border-helm-navy/[0.06] py-8 first:pt-0 md:grid-cols-[7.5rem_1fr] md:gap-8"
               >
                 <time dateTime={entry.date} className="font-mono text-[11px] uppercase tracking-[0.14em] text-helm-slate">
                   {formatDate(entry.date)}
                 </time>
                 <div>
-                  <h2 className="text-base font-medium text-helm-cream md:text-lg">{entry.title}</h2>
+                  <h2 className="text-base font-medium text-helm-navy md:text-lg">{entry.title}</h2>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate">{entry.description}</p>
                 </div>
               </motion.li>
@@ -80,11 +80,11 @@ export default function Changelog() {
           </ol>
           <p className="mx-auto mt-12 max-w-3xl text-sm text-helm-slate">
             Looking for plans and seats?{" "}
-            <Link to="/pricing" className="text-helm-cream hover:text-helm-gold transition-colors">
+            <Link to="/pricing" className="text-helm-navy hover:text-helm-gold transition-colors">
               See pricing
             </Link>
             . For live service health, see{" "}
-            <Link to="/status" className="text-helm-cream hover:text-helm-gold transition-colors">
+            <Link to="/status" className="text-helm-navy hover:text-helm-gold transition-colors">
               Status
             </Link>
             .

@@ -192,11 +192,11 @@ export default function Security() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-ink text-helm-cream">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/security" />
 
       <main>
-        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-helm-ink">
+        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-helm-cream">
           <div className="relative mx-auto max-w-4xl text-center">
             <motion.div
               variants={fade}
@@ -256,7 +256,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-cream/[0.05] px-6 py-16 md:py-20">
+        <section className="border-y border-helm-navy/[0.05] px-6 py-16 md:py-20">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Why this matters</p>
             <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
@@ -291,10 +291,10 @@ export default function Security() {
                   whileInView="show"
                   viewport={{ once: true, margin: "-40px" }}
                   custom={index}
-                  className="rounded-2xl border border-helm-cream/[0.07] bg-helm-ink-card p-6"
+                  className="rounded-2xl border border-helm-navy/[0.07] bg-white p-6"
                 >
                   <Icon className="h-5 w-5 text-helm-gold" />
-                  <h3 className="mt-4 text-base font-medium text-helm-cream">{title}</h3>
+                  <h3 className="mt-4 text-base font-medium text-helm-navy">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
                 </motion.article>
               ))}
@@ -302,7 +302,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-cream/[0.05] px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] px-6 py-20 md:py-24">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Encryption</p>
             <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
@@ -310,8 +310,8 @@ export default function Security() {
             </h2>
             <div className="mt-10 grid gap-4 md:grid-cols-3">
               {ENCRYPTION.map((item) => (
-                <article key={item.title} className="rounded-2xl border border-helm-cream/[0.07] bg-helm-ink-card p-6">
-                  <h3 className="text-sm font-medium text-helm-cream">{item.title}</h3>
+                <article key={item.title} className="rounded-2xl border border-helm-navy/[0.07] bg-white p-6">
+                  <h3 className="text-sm font-medium text-helm-navy">{item.title}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-helm-slate">{item.body}</p>
                 </article>
               ))}
@@ -331,8 +331,8 @@ export default function Security() {
             </p>
             <ul className="mt-10 space-y-3">
               {THIRD_PARTIES.map((item) => (
-                <li key={item.name} className="rounded-xl border border-helm-cream/[0.06] bg-helm-fg/[0.02] p-5 md:grid md:grid-cols-[14rem_1fr] md:gap-6">
-                  <p className="text-sm font-medium text-helm-cream">{item.name}</p>
+                <li key={item.name} className="rounded-xl border border-helm-navy/[0.06] bg-helm-fg/[0.02] p-5 md:grid md:grid-cols-[14rem_1fr] md:gap-6">
+                  <p className="text-sm font-medium text-helm-navy">{item.name}</p>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate md:mt-0">{item.why}</p>
                 </li>
               ))}
@@ -343,7 +343,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-cream/[0.05] bg-helm-ink px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
           <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Retention &amp; deletion</p>
@@ -372,7 +372,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-cream/[0.05] bg-helm-ink px-6 py-20 md:py-28">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-28">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Layered protection</p>
@@ -385,7 +385,7 @@ export default function Security() {
               </p>
             </div>
 
-            <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-helm-cream/[0.07] bg-helm-fg/[0.07] md:grid-cols-2">
+            <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-helm-navy/[0.07] bg-helm-fg/[0.07] md:grid-cols-2">
               {CONTROLS.map(({ icon: Icon, title, body }, index) => (
                 <motion.article
                   key={title}
@@ -394,10 +394,10 @@ export default function Security() {
                   whileInView="show"
                   viewport={{ once: true, margin: "-50px" }}
                   custom={index % 2}
-                  className="bg-helm-ink-card p-7 md:p-8"
+                  className="bg-white p-7 md:p-8"
                 >
                   <Icon className="h-5 w-5 text-helm-gold" />
-                  <h3 className="mt-5 text-base font-medium text-helm-cream">{title}</h3>
+                  <h3 className="mt-5 text-base font-medium text-helm-navy">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
                 </motion.article>
               ))}
@@ -423,7 +423,7 @@ export default function Security() {
 
             <ul className="grid gap-3 sm:grid-cols-2">
               {PRACTICES.map((practice) => (
-                <li key={practice} className="flex gap-3 rounded-xl border border-helm-cream/[0.06] bg-helm-fg/[0.02] p-4">
+                <li key={practice} className="flex gap-3 rounded-xl border border-helm-navy/[0.06] bg-helm-fg/[0.02] p-4">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-helm-gold/12">
                     <Check className="h-3 w-3 text-helm-gold" />
                   </span>
@@ -434,14 +434,14 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-cream/[0.05] bg-helm-ink px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Common questions</p>
             <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">What leadership teams ask</h2>
             <div className="mt-10 grid gap-6 md:grid-cols-2">
               {QUESTIONS.map((item) => (
-                <div key={item.q} className="rounded-2xl border border-helm-cream/[0.06] bg-helm-ink-card p-6">
-                  <h3 className="text-sm font-medium text-helm-cream">{item.q}</h3>
+                <div key={item.q} className="rounded-2xl border border-helm-navy/[0.06] bg-white p-6">
+                  <h3 className="text-sm font-medium text-helm-navy">{item.q}</h3>
                   <p className="mt-3 text-sm leading-relaxed text-helm-slate">{item.a}</p>
                 </div>
               ))}
@@ -450,7 +450,7 @@ export default function Security() {
         </section>
 
         <section className="px-6 py-20 md:py-24">
-          <div className="mx-auto max-w-4xl rounded-2xl border border-helm-cream/[0.07] bg-helm-ink-card p-8 md:p-12">
+          <div className="mx-auto max-w-4xl rounded-2xl border border-helm-navy/[0.07] bg-white p-8 md:p-12">
             <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Honest security</p>

@@ -10,7 +10,7 @@ export default function Help() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-helm-ink text-helm-cream overflow-x-hidden">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/help" />
 
       <section className="px-6 pt-36 md:pt-48 pb-20">
@@ -25,7 +25,7 @@ export default function Help() {
         </div>
       </section>
 
-      <section className="px-6 pb-24 border-t border-helm-cream/[0.05] pt-16">
+      <section className="px-6 pb-24 border-t border-helm-navy/[0.05] pt-16">
         <div className="mx-auto max-w-3xl">
           <TrenstonHowToUse />
         </div>

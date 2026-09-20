@@ -7,8 +7,8 @@ import { CATEGORY, TAGLINE } from "@/lib/marketingCopy";
  */
 export default function AuthProductShowcase() {
   return (
-    <div className="relative hidden lg:flex flex-col items-center justify-center overflow-hidden bg-helm-ink px-10 py-16">
-      <div className="absolute inset-0 bg-helm-ink-card/40" aria-hidden />
+    <div className="relative hidden lg:flex flex-col items-center justify-center overflow-hidden bg-helm-cream px-10 py-16">
+      <div className="absolute inset-0 bg-helm-navy/[0.03]" aria-hidden />
       <div className="relative z-[1] w-full max-w-md">
         <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate mb-6 text-center">
           {CATEGORY}
@@ -19,7 +19,7 @@ export default function AuthProductShowcase() {
         >
           <DecisionScreen />
         </div>
-        <p className="mt-10 text-center font-display text-xl text-helm-cream/80 tracking-tight leading-snug max-w-sm mx-auto">
+        <p className="mt-10 text-center font-display text-xl text-helm-navy/80 tracking-tight leading-snug max-w-sm mx-auto">
           {TAGLINE}
         </p>
       </div>

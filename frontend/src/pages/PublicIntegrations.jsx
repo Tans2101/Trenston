@@ -31,7 +31,7 @@ export default function PublicIntegrations() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-ink text-helm-cream">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/integrations" />
 
       <main>
@@ -67,8 +67,8 @@ export default function PublicIntegrations() {
           </div>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-16 md:py-20">
-          <div className="mx-auto grid max-w-6xl gap-px bg-helm-cream/[0.06] sm:grid-cols-2 lg:grid-cols-3">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
+          <div className="mx-auto grid max-w-6xl gap-px bg-helm-navy/[0.06] sm:grid-cols-2 lg:grid-cols-3">
             {PUBLIC_INTEGRATIONS.map((item, i) => (
               <motion.article
                 key={item.id}
@@ -77,13 +77,13 @@ export default function PublicIntegrations() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-40px" }}
                 custom={i}
-                className="flex flex-col bg-helm-ink p-7 md:p-8"
+                className="flex flex-col bg-helm-cream p-7 md:p-8"
                 data-testid={`public-integration-${item.id}`}
               >
                 <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
                   {item.category}
                 </p>
-                <h2 className="font-display mt-4 text-2xl font-medium tracking-tight text-helm-cream">
+                <h2 className="font-display mt-4 text-2xl font-medium tracking-tight text-helm-navy">
                   {item.name}
                 </h2>
                 <p className="mt-4 flex-1 text-sm leading-relaxed text-helm-slate">
@@ -93,7 +93,7 @@ export default function PublicIntegrations() {
                   {item.feeds}
                 </p>
                 {item.scope ? (
-                  <p className="mt-3 border-l border-helm-cream/15 pl-3 text-xs leading-relaxed text-helm-slate/90">
+                  <p className="mt-3 border-l border-helm-navy/15 pl-3 text-xs leading-relaxed text-helm-slate/90">
                     {item.scope}
                   </p>
                 ) : null}
@@ -105,12 +105,12 @@ export default function PublicIntegrations() {
           </p>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-16 md:py-20">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
           <div className="mx-auto max-w-3xl">
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
               Coming soon — not shipped
             </p>
-            <h2 className="font-display mt-4 text-3xl font-medium tracking-tight text-helm-cream">
+            <h2 className="font-display mt-4 text-3xl font-medium tracking-tight text-helm-navy">
               Planned connections
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-helm-slate">
@@ -121,12 +121,12 @@ export default function PublicIntegrations() {
               {PUBLIC_INTEGRATIONS_COMING_SOON.map((item) => (
                 <li
                   key={item.id}
-                  className="rounded-xl border border-dashed border-helm-cream/15 bg-helm-fg/[0.02] p-6"
+                  className="rounded-xl border border-dashed border-helm-navy/15 bg-helm-fg/[0.02] p-6"
                   data-testid={`public-integration-soon-${item.id}`}
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    <h3 className="text-base font-medium text-helm-cream">{item.name}</h3>
-                    <span className="rounded-full border border-helm-cream/20 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-helm-slate">
+                    <h3 className="text-base font-medium text-helm-navy">{item.name}</h3>
+                    <span className="rounded-full border border-helm-navy/20 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.16em] text-helm-slate">
                       Coming soon
                     </span>
                   </div>
@@ -138,10 +138,10 @@ export default function PublicIntegrations() {
           </div>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-24">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-24">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-8 h-px w-10 bg-helm-gold" aria-hidden />
-            <p className="font-display text-3xl font-medium leading-tight tracking-tight text-helm-cream md:text-4xl">
+            <p className="font-display text-3xl font-medium leading-tight tracking-tight text-helm-navy md:text-4xl">
               {TAGLINE}
             </p>
             <p className="mt-4 text-sm text-helm-slate">
@@ -156,16 +156,16 @@ export default function PublicIntegrations() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
             <p className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm text-helm-slate">
-              <Link to="/pricing" className="hover:text-helm-cream transition-colors">
+              <Link to="/pricing" className="hover:text-helm-navy transition-colors">
                 View pricing
               </Link>
-              <Link to="/features" className="hover:text-helm-cream transition-colors">
+              <Link to="/features" className="hover:text-helm-navy transition-colors">
                 Features
               </Link>
-              <Link to="/security" className="hover:text-helm-cream transition-colors">
+              <Link to="/security" className="hover:text-helm-navy transition-colors">
                 Security
               </Link>
-              <Link to="/changelog" className="hover:text-helm-cream transition-colors">
+              <Link to="/changelog" className="hover:text-helm-navy transition-colors">
                 Changelog
               </Link>
             </p>

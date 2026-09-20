@@ -16,7 +16,7 @@ export default function FounderCredit({ className, creditClassName, "data-testid
         rel="noopener noreferrer"
         aria-label={`${FOUNDER_NAME} on LinkedIn`}
         title={`${FOUNDER_NAME} on LinkedIn`}
-        className="inline-flex shrink-0 text-helm-slate hover:text-helm-cream transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
+        className="inline-flex shrink-0 text-helm-slate hover:text-helm-navy transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
         data-testid="founder-linkedin"
       >
         <Linkedin className="h-4 w-4" aria-hidden />

@@ -38,12 +38,12 @@ export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden border-t border-helm-cream/10 bg-helm-ink px-6 pt-14 pb-10">
+    <footer className="relative overflow-hidden border-t border-helm-navy/10 bg-helm-cream px-6 pt-14 pb-10">
       <div className="relative z-10 mx-auto max-w-6xl flex flex-col gap-12">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-12 md:gap-8">
           {/* Brand + contact */}
           <div className="md:col-span-4 flex flex-col gap-4">
-            <MarketingLogo size="sm" showTagline dark />
+            <MarketingLogo size="sm" showTagline />
             <p className="text-sm text-helm-slate max-w-xs leading-relaxed">
               The {CATEGORY.toLowerCase()} for founders and owners running real operations — however lean the team. One cockpit. Clear decisions. Quiet control.
             </p>
@@ -52,7 +52,7 @@ export default function MarketingFooter() {
               <a
                 href={PUBLIC_CONTACT_MAILTO}
                 data-testid="footer-contact-link"
-                className="mt-2 block text-sm text-helm-cream/85 hover:text-helm-cream transition-colors"
+                className="mt-2 block text-sm text-helm-navy/85 hover:text-helm-navy transition-colors"
               >
                 {PUBLIC_CONTACT_EMAIL}
               </a>
@@ -69,14 +69,14 @@ export default function MarketingFooter() {
                     <a
                       href={l.href}
                       data-testid="footer-contact-cta"
-                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-cream hover:text-helm-gold transition-colors leading-tight"
+                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-navy hover:text-helm-gold transition-colors leading-tight"
                     >
                       {l.label}
                     </a>
                   ) : (
                     <Link
                       to={l.to}
-                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-cream hover:text-helm-gold transition-colors leading-tight"
+                      className="font-display text-2xl sm:text-3xl md:text-[2rem] font-semibold tracking-tight text-helm-navy hover:text-helm-gold transition-colors leading-tight"
                     >
                       {l.label}
                     </Link>
@@ -95,7 +95,7 @@ export default function MarketingFooter() {
                   href={PUBLIC_INSTAGRAM_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 hover:text-helm-cream transition-colors"
+                  className="inline-flex items-center gap-1.5 hover:text-helm-navy transition-colors"
                 >
                   <span>Instagram {PUBLIC_INSTAGRAM_HANDLE}</span>
                   <ExternalHint />
@@ -104,7 +104,7 @@ export default function MarketingFooter() {
               <li>
                 <a
                   href={PUBLIC_CONTACT_MAILTO}
-                  className="inline-flex items-center gap-1.5 hover:text-helm-cream transition-colors"
+                  className="inline-flex items-center gap-1.5 hover:text-helm-navy transition-colors"
                 >
                   <span>{PUBLIC_CONTACT_EMAIL}</span>
                   <ExternalHint />
@@ -123,7 +123,7 @@ export default function MarketingFooter() {
             <Link
               key={l.to}
               to={l.to}
-              className="hover:text-helm-cream/80 transition-colors font-normal"
+              className="hover:text-helm-navy/80 transition-colors font-normal"
             >
               {l.label}
             </Link>
@@ -131,9 +131,9 @@ export default function MarketingFooter() {
         </nav>
 
         {/* Bottom bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-helm-cream/10 pt-6 text-[11px] text-helm-slate">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-helm-navy/10 pt-6 text-[11px] text-helm-slate">
           <p>© {year} Trenston</p>
-          <Link to="/privacy" className="hover:text-helm-cream/80 transition-colors">
+          <Link to="/privacy" className="hover:text-helm-navy/80 transition-colors">
             Legal
           </Link>
         </div>
@@ -142,7 +142,7 @@ export default function MarketingFooter() {
       {/* Faint brand watermark — bleeds past the bottom edge */}
       <p
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[0.18em] z-0 select-none text-center font-display font-semibold leading-none tracking-[-0.04em] text-[clamp(4.5rem,22vw,14rem)] text-helm-cream/[0.045]"
+        className="pointer-events-none absolute inset-x-0 -bottom-[0.18em] z-0 select-none text-center font-display font-semibold leading-none tracking-[-0.04em] text-[clamp(4.5rem,22vw,14rem)] text-helm-navy/[0.06]"
       >
         TRENSTON
       </p>

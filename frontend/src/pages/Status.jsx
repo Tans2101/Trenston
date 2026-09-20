@@ -24,7 +24,7 @@ function toneFor(state) {
   if (state === "operational") return "text-helm-status-positive border-helm-status-positive/35 bg-helm-status-positive/10";
   if (state === "degraded") return "text-helm-gold border-helm-gold/35 bg-helm-gold/10";
   if (state === "down") return "text-helm-status-negative border-helm-status-negative/35 bg-helm-status-negative/10";
-  return "text-helm-slate border-helm-cream/15 bg-helm-fg/[0.03]";
+  return "text-helm-slate border-helm-navy/15 bg-helm-fg/[0.03]";
 }
 
 function labelFor(state) {
@@ -113,7 +113,7 @@ export default function Status() {
   }, "operational");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-ink text-helm-cream">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/status" />
 
       <main>
@@ -139,7 +139,7 @@ export default function Status() {
           </div>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-16">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
@@ -149,7 +149,7 @@ export default function Status() {
                 type="button"
                 onClick={refresh}
                 disabled={busy}
-                className="inline-flex items-center gap-2 rounded-md border border-helm-cream/15 px-3 py-1.5 text-xs text-helm-cream hover:border-helm-cream/30 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-3 py-1.5 text-xs text-helm-navy hover:border-helm-navy/30 disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} aria-hidden />
                 Refresh
@@ -159,12 +159,12 @@ export default function Status() {
               {rows.map((row) => (
                 <li
                   key={row.id}
-                  className="rounded-xl border border-helm-cream/[0.07] bg-helm-ink-card p-5"
+                  className="rounded-xl border border-helm-navy/[0.07] bg-white p-5"
                   data-testid={`status-row-${row.id}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-sm font-medium text-helm-cream">{row.name}</h2>
+                      <h2 className="text-sm font-medium text-helm-navy">{row.name}</h2>
                       <p className="mt-1 text-sm leading-relaxed text-helm-slate">{row.detail}</p>
                       {row.note ? (
                         <p className="mt-2 font-mono text-[11px] text-helm-slate/90">{row.note}</p>
@@ -186,7 +186,7 @@ export default function Status() {
           </div>
         </section>
 
-        <section className="border-t border-helm-cream/[0.05] px-6 py-16">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
               Incident history
@@ -202,9 +202,9 @@ export default function Status() {
             ) : (
               <ul className="mt-6 space-y-4">
                 {STATUS_INCIDENTS.map((inc) => (
-                  <li key={inc.date + inc.title} className="rounded-xl border border-helm-cream/[0.07] p-5">
+                  <li key={inc.date + inc.title} className="rounded-xl border border-helm-navy/[0.07] p-5">
                     <p className="font-mono text-[11px] text-helm-slate">{inc.date}</p>
-                    <h3 className="mt-1 text-sm font-medium text-helm-cream">{inc.title}</h3>
+                    <h3 className="mt-1 text-sm font-medium text-helm-navy">{inc.title}</h3>
                     <p className="mt-2 text-sm text-helm-slate">{inc.body}</p>
                   </li>
                 ))}
@@ -212,11 +212,11 @@ export default function Status() {
             )}
             <p className="mt-8 text-sm text-helm-slate">
               Suspect an outage we have not listed?{" "}
-              <a href={PUBLIC_CONTACT_MAILTO} className="text-helm-cream hover:text-helm-gold transition-colors">
+              <a href={PUBLIC_CONTACT_MAILTO} className="text-helm-navy hover:text-helm-gold transition-colors">
                 Contact us
               </a>
               {" · "}
-              <Link to="/changelog" className="text-helm-cream hover:text-helm-gold transition-colors">
+              <Link to="/changelog" className="text-helm-navy hover:text-helm-gold transition-colors">
                 Changelog
               </Link>
             </p>

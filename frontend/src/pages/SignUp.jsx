@@ -21,7 +21,7 @@ export default function SignUpPage() {
   }
   if (!clerkEnabled) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-helm-ink p-8">
+      <div className="min-h-screen flex items-center justify-center bg-helm-cream p-8">
         <p className="text-sm text-helm-status-negative">Sign-up is not available. Clerk is not configured on this deployment.</p>
       </div>
     );
@@ -61,7 +61,7 @@ function SignUpClerk() {
 
   if (clerkComplete && !user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-helm-ink p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-helm-cream p-8">
         <LoadingScreen label={sessionError ? "Sign-up problem" : "Finishing sign-up"} />
         {sessionError && (
           <div className="mt-6 max-w-md text-center space-y-4">

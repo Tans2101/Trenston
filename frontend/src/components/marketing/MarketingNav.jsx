@@ -32,10 +32,10 @@ export default function MarketingNav({ authed, onEnter, active }) {
   );
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-helm-cream/10 bg-helm-ink/90 backdrop-blur-md">
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 bg-helm-cream/90 backdrop-blur-md">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex h-16 items-center justify-between">
-          <MarketingLogo size="sm" dark />
+          <MarketingLogo size="sm" />
 
           <nav className="hidden md:block" aria-label="Main">
             <SmoothTab
@@ -51,8 +51,8 @@ export default function MarketingNav({ authed, onEnter, active }) {
                     cn(
                       "text-sm transition-colors",
                       isActive(l.to, active)
-                        ? "text-helm-cream font-medium"
-                        : "text-helm-slate hover:text-helm-cream",
+                        ? "text-helm-navy font-medium"
+                        : "text-helm-slate hover:text-helm-navy",
                     ),
                   )}
                 </SmoothTabItem>
@@ -64,12 +64,12 @@ export default function MarketingNav({ authed, onEnter, active }) {
             <a
               href={PUBLIC_CONTACT_MAILTO}
               data-testid="nav-contact-link"
-              className="hidden sm:inline text-sm text-helm-slate hover:text-helm-cream transition-colors"
+              className="hidden sm:inline text-sm text-helm-slate hover:text-helm-navy transition-colors"
             >
               Contact
             </a>
             {!authed && (
-              <Link to="/login" className="hidden sm:inline text-sm text-helm-slate hover:text-helm-cream transition-colors">
+              <Link to="/login" className="hidden sm:inline text-sm text-helm-slate hover:text-helm-navy transition-colors">
                 Sign in
               </Link>
             )}
@@ -77,14 +77,14 @@ export default function MarketingNav({ authed, onEnter, active }) {
               data-testid="nav-signin-btn"
               type="button"
               onClick={onEnter}
-              className="group hidden sm:flex items-center gap-1.5 rounded-md bg-helm-cream text-helm-navy text-sm font-medium px-4 py-2 transition-colors hover:bg-helm-gold"
+              className="group hidden sm:flex items-center gap-1.5 rounded-md bg-helm-navy text-helm-cream text-sm font-medium px-4 py-2 transition-colors hover:bg-helm-gold"
             >
               {authed ? "Open cockpit" : "Get started"}
               <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
             </button>
             <button
               type="button"
-              className="md:hidden text-helm-slate hover:text-helm-cream p-1"
+              className="md:hidden text-helm-slate hover:text-helm-navy p-1"
               aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen((o) => !o)}
             >
@@ -94,30 +94,30 @@ export default function MarketingNav({ authed, onEnter, active }) {
         </div>
 
         {open && (
-          <nav className="md:hidden mt-2 rounded-xl border border-helm-cream/10 bg-helm-ink-card p-4 space-y-1" aria-label="Mobile">
+          <nav className="md:hidden mt-2 rounded-xl border border-helm-navy/10 bg-white p-4 space-y-1" aria-label="Mobile">
             {NAV_LINKS.map((l) =>
               renderLink(
                 l,
-                `block rounded-lg px-3 py-2.5 text-sm ${isActive(l.to, active) ? "bg-helm-cream/5 text-helm-cream" : "text-helm-slate hover:text-helm-cream"}`,
+                `block rounded-lg px-3 py-2.5 text-sm ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
               ),
             )}
             <a
               href={PUBLIC_CONTACT_MAILTO}
               onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-cream"
+              className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-navy"
             >
               Contact
             </a>
-            <div className="pt-2 border-t border-helm-cream/10 flex flex-col gap-2">
+            <div className="pt-2 border-t border-helm-navy/10 flex flex-col gap-2">
               {!authed && (
-                <Link to="/login" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-cream">
+                <Link to="/login" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-navy">
                   Sign in
                 </Link>
               )}
               <button
                 type="button"
                 onClick={() => { setOpen(false); onEnter?.(); }}
-                className="w-full rounded-md bg-helm-cream text-helm-navy text-sm font-medium px-3 py-2.5 hover:bg-helm-gold transition-colors"
+                className="w-full rounded-md bg-helm-navy text-helm-cream text-sm font-medium px-3 py-2.5 hover:bg-helm-gold transition-colors"
               >
                 {authed ? "Open cockpit" : "Get started"}
               </button>

@@ -27,7 +27,7 @@ export default function Pricing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-helm-ink text-helm-cream overflow-x-hidden">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/pricing" />
 
       <section className="px-6 pt-36 md:pt-48 pb-12">
@@ -65,7 +65,7 @@ export default function Pricing() {
       </section>
 
       <section className="px-6 pb-20" aria-label="Plans">
-        <div className="mx-auto max-w-6xl grid sm:grid-cols-2 xl:grid-cols-4 gap-0 border border-helm-cream/[0.08] divide-y sm:divide-y-0 sm:divide-x divide-helm-cream/[0.08]">
+        <div className="mx-auto max-w-6xl grid sm:grid-cols-2 xl:grid-cols-4 gap-0 border border-helm-navy/[0.08] divide-y sm:divide-y-0 sm:divide-x divide-helm-cream/[0.08]">
           {PLANS.map((plan, i) => {
             const renewalDisclosure = paidPlanRenewalDisclosure(plan);
             return (
@@ -75,14 +75,14 @@ export default function Pricing() {
                 initial="hidden"
                 animate="show"
                 custom={i}
-                className="p-6 md:p-8 flex flex-col bg-helm-ink"
+                className="p-6 md:p-8 flex flex-col bg-helm-cream"
                 data-testid={`pricing-plan-${plan.id}`}
               >
                 {plan.highlighted && <div className="h-px w-8 bg-helm-gold mb-4" aria-hidden />}
                 <h2 className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
                   {plan.label}
                 </h2>
-                <p className="font-mono text-4xl text-helm-cream mt-3 tabular-nums">
+                <p className="font-mono text-4xl text-helm-navy mt-3 tabular-nums">
                   {plan.price === 0 ? "$0" : `$${plan.price}`}
                   {plan.price > 0 && <span className="text-base text-helm-slate">/mo</span>}
                 </p>
@@ -93,7 +93,7 @@ export default function Pricing() {
                 </p>
                 <ul className="mt-6 space-y-2.5 flex-1">
                   {plan.includes.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-helm-cream/75">
+                    <li key={f} className="flex items-start gap-2 text-sm text-helm-navy/75">
                       <Check className="w-3.5 h-3.5 text-helm-slate shrink-0 mt-0.5" aria-hidden />
                       {f}
                     </li>
@@ -105,8 +105,8 @@ export default function Pricing() {
                   data-testid={`pricing-page-cta-${plan.id}`}
                   className={`mt-8 w-full rounded-md font-medium py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold ${
                     plan.highlighted
-                      ? "bg-helm-cream text-helm-navy hover:bg-helm-gold"
-                      : "border border-helm-cream/15 text-helm-cream hover:border-helm-cream/30"
+                      ? "bg-helm-navy text-helm-cream hover:bg-helm-gold"
+                      : "border border-helm-navy/15 text-helm-navy hover:border-helm-navy/30"
                   }`}
                 >
                   {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
@@ -120,19 +120,19 @@ export default function Pricing() {
         </div>
       </section>
 
-      <section className="px-6 pb-24 border-t border-helm-cream/[0.05] pt-16">
+      <section className="px-6 pb-24 border-t border-helm-navy/[0.05] pt-16">
         <div className="mx-auto max-w-2xl space-y-5">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">
             Common questions
           </p>
           {PRICING_FAQ.map((item) => (
-            <div key={item.q} className="border-b border-helm-cream/[0.06] pb-4">
-              <p className="text-sm text-helm-cream">{item.q}</p>
+            <div key={item.q} className="border-b border-helm-navy/[0.06] pb-4">
+              <p className="text-sm text-helm-navy">{item.q}</p>
               <p className="text-xs text-helm-slate mt-1.5 leading-relaxed">{item.a}</p>
               {item.link ? (
                 <Link
                   to={item.link.to}
-                  className="inline-block mt-2 text-xs text-helm-cream hover:text-helm-gold transition-colors"
+                  className="inline-block mt-2 text-xs text-helm-navy hover:text-helm-gold transition-colors"
                 >
                   {item.link.label} →
                 </Link>
@@ -140,10 +140,10 @@ export default function Pricing() {
             </div>
           ))}
           <div className="pt-8 text-center">
-            <p className="font-display text-2xl text-helm-cream tracking-tight">{TAGLINE}</p>
+            <p className="font-display text-2xl text-helm-navy tracking-tight">{TAGLINE}</p>
             <Link
               to="/features"
-              className="inline-flex items-center gap-2 mt-6 text-sm text-helm-cream hover:text-helm-gold transition-colors"
+              className="inline-flex items-center gap-2 mt-6 text-sm text-helm-navy hover:text-helm-gold transition-colors"
             >
               See features <ArrowRight className="w-4 h-4" />
             </Link>

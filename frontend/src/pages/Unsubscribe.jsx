@@ -67,16 +67,16 @@ export default function Unsubscribe() {
             : "Please try again in a moment, or email us and we'll help.";
 
   return (
-    <div className="min-h-screen bg-helm-ink text-helm-cream">
+    <div className="min-h-screen bg-helm-cream text-helm-navy">
       <div className="relative z-10 mx-auto max-w-lg px-6 py-16 md:py-24">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-helm-slate hover:text-helm-cream transition-colors mb-10">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-helm-slate hover:text-helm-navy transition-colors mb-10">
           <TrenstonMark size={24} className="rounded" />
           Back to Trenston
         </Link>
 
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-4">Email preferences</p>
-        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-cream">{title}</h1>
-        <p className="mt-4 text-[15px] text-helm-cream/80 leading-relaxed">{body}</p>
+        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">{title}</h1>
+        <p className="mt-4 text-[15px] text-helm-navy/80 leading-relaxed">{body}</p>
         <p className="mt-8 text-sm text-helm-slate leading-relaxed">
           Trenston · {COMPANY_LOCATION}
           <br />
