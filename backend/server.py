@@ -212,15 +212,15 @@ CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",")
 CORS_ORIGIN_REGEX = os.environ.get("CORS_ORIGIN_REGEX", "").strip() or None
 
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY')  # unused; kept so old envs don't crash on import
-GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-QB_CLIENT_ID = os.environ.get('QUICKBOOKS_CLIENT_ID', '')
-QB_CLIENT_SECRET = os.environ.get('QUICKBOOKS_CLIENT_SECRET', '')
-QB_ENV = os.environ.get('QUICKBOOKS_ENV', 'sandbox')
-XERO_CLIENT_ID = os.environ.get('XERO_CLIENT_ID', '')
-XERO_CLIENT_SECRET = os.environ.get('XERO_CLIENT_SECRET', '')
-HUBSPOT_CLIENT_ID = os.environ.get('HUBSPOT_CLIENT_ID', '')
-HUBSPOT_CLIENT_SECRET = os.environ.get('HUBSPOT_CLIENT_SECRET', '')
+GOOGLE_CLIENT_ID = (os.environ.get('GOOGLE_CLIENT_ID') or '').strip()
+GOOGLE_CLIENT_SECRET = (os.environ.get('GOOGLE_CLIENT_SECRET') or '').strip()
+QB_CLIENT_ID = (os.environ.get('QUICKBOOKS_CLIENT_ID') or '').strip()
+QB_CLIENT_SECRET = (os.environ.get('QUICKBOOKS_CLIENT_SECRET') or '').strip()
+QB_ENV = (os.environ.get('QUICKBOOKS_ENV') or 'sandbox').strip().lower()
+XERO_CLIENT_ID = (os.environ.get('XERO_CLIENT_ID') or '').strip()
+XERO_CLIENT_SECRET = (os.environ.get('XERO_CLIENT_SECRET') or '').strip()
+HUBSPOT_CLIENT_ID = (os.environ.get('HUBSPOT_CLIENT_ID') or '').strip()
+HUBSPOT_CLIENT_SECRET = (os.environ.get('HUBSPOT_CLIENT_SECRET') or '').strip()
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 PADDLE_API_KEY = os.environ.get('PADDLE_API_KEY', '')
@@ -13096,7 +13096,8 @@ async def integrations(principal=Depends(get_principal)):
         "hubspot": _can_use_integration_tokens(principal, c, "hubspot_tokens"),
         "sap_b1": _can_use_integration_tokens(principal, c, "sap_b1_credentials"),
     }
-    return {
+    can_manage = "integrations:manage" in perms_for(principal["pack"])
+    out = {
         "integrations": ints,
         "is_pro": workspace_is_pro(c),
         "can_manage": "integrations:manage" in perms_for(principal["pack"]),
@@ -13104,9 +13105,20 @@ async def integrations(principal=Depends(get_principal)):
         "connection_owners": connection_owners,
         "can_use_connection": can_use,
         "slack_webhook_configured": bool((c.get("slack_webhook_url") or "").strip()),
-        "slack_webhook_url": (c.get("slack_webhook_url") or "") if "integrations:manage" in perms_for(principal["pack"]) else "",
-        "xero_pending_tenants": xero_pending if "integrations:manage" in perms_for(principal["pack"]) else [],
+        "slack_webhook_url": (c.get("slack_webhook_url") or "") if can_manage else "",
+        "xero_pending_tenants": xero_pending if can_manage else [],
     }
+    if can_manage:
+        # Owner-only diagnostics — no secrets, helps debug Connect failures.
+        out["encryption_ready"] = cred_crypto.encryption_key_is_fernet()
+        out["oauth_redirect_uris"] = {
+            "quickbooks": _oauth_callback_uri("quickbooks"),
+            "google": _oauth_callback_uri("google"),
+            "xero": _oauth_callback_uri("xero"),
+            "hubspot": _oauth_callback_uri("hubspot"),
+        }
+        out["quickbooks_env"] = QB_ENV
+    return out
 
 
 class SlackWebhookInput(BaseModel):
@@ -13265,6 +13277,50 @@ def _integrations_oauth_redirect() -> str:
     return f"{frontend}/app/integrations"
 
 
+_SAFE_OAUTH_REASONS = frozenset({
+    "invalid_client",
+    "invalid_grant",
+    "invalid_request",
+    "unauthorized_client",
+    "unsupported_grant_type",
+    "access_denied",
+    "bad_json",
+    "missing_token",
+    "provider_error",
+    "network",
+    "seal",
+    "store",
+})
+
+
+def _oauth_error_reason_from_token_response(response) -> str:
+    """Map provider token-endpoint failures to a short safe reason for the UI."""
+    try:
+        payload = response.json()
+    except Exception:
+        payload = None
+    if isinstance(payload, dict):
+        err = str(payload.get("error") or "").strip().lower()
+        if err in _SAFE_OAUTH_REASONS:
+            return err
+        if err:
+            return "provider_error"
+    status = getattr(response, "status_code", None)
+    if isinstance(status, int) and status >= 400:
+        return f"http_{status}"
+    return "provider_error"
+
+
+def _oauth_fail_redirect(integrations_path: str, *, error: str, provider: str, reason: str = "") -> RedirectResponse:
+    q = f"error={error}&provider={provider}"
+    safe = (reason or "").strip().lower()
+    if safe.startswith("http_") and safe[5:].isdigit():
+        q += f"&reason={safe}"
+    elif safe in _SAFE_OAUTH_REASONS:
+        q += f"&reason={safe}"
+    return RedirectResponse(f"{integrations_path}?{q}")
+
+
 @api_router.get("/oauth/{provider}/callback")
 async def oauth_callback(provider: str, request: Request, code: Optional[str] = None, state: Optional[str] = None, realmId: Optional[str] = None):
     integrations_path = _integrations_oauth_redirect()
@@ -13272,7 +13328,7 @@ async def oauth_callback(provider: str, request: Request, code: Optional[str] = 
         return await _complete_oauth_callback(provider, code, state, realmId, integrations_path)
     except Exception:
         logger.exception("oauth callback failed for %s", provider)
-        return RedirectResponse(f"{integrations_path}?error=token")
+        return _oauth_fail_redirect(integrations_path, error="token", provider=provider, reason="network")
 
 
 async def _complete_oauth_callback(
@@ -13284,10 +13340,10 @@ async def _complete_oauth_callback(
 ):
     cfg = _provider_config(provider)
     if not cfg or not code or not state:
-        return RedirectResponse(f"{integrations_path}?error=oauth")
+        return _oauth_fail_redirect(integrations_path, error="oauth", provider=provider)
     verified = _verify_state(state)
     if not verified or verified[0] != provider:
-        return RedirectResponse(f"{integrations_path}?error=state")
+        return _oauth_fail_redirect(integrations_path, error="state", provider=provider)
     workspace_id, user_id, _nonce = verified[1:]
     state_row = await db.oauth_states.find_one_and_delete({
         "state_hash": hashlib.sha256(state.encode()).hexdigest(),
@@ -13296,18 +13352,32 @@ async def _complete_oauth_callback(
         "user_id": user_id,
     })
     if not state_row or _oauth_datetime_expired(state_row.get("expires_at")):
-        return RedirectResponse(f"{integrations_path}?error=state")
+        return _oauth_fail_redirect(integrations_path, error="state", provider=provider)
     membership = await db.memberships.find_one({
         "workspace_id": workspace_id,
         "user_id": user_id,
         "status": "active",
     }, {"_id": 0, "role": 1, "pack": 1, "permissions": 1})
     if not membership:
-        return RedirectResponse(f"{integrations_path}?error=state")
+        return _oauth_fail_redirect(integrations_path, error="state", provider=provider)
     # Google is per-user — any active member may complete their own connect.
     # Company ledgers (QB/Xero/HubSpot) still require integrations:manage.
     if provider != "google" and "integrations:manage" not in perms_for(pack_of(membership)):
-        return RedirectResponse(f"{integrations_path}?error=state")
+        return _oauth_fail_redirect(integrations_path, error="state", provider=provider)
+
+    async def _persist_tokens(payload: dict):
+        try:
+            await _store_integration_tokens(
+                workspace_id, cfg["token_field"], payload, connected_by_user_id=user_id,
+            )
+        except cred_crypto.CredentialCryptoError:
+            logger.exception("oauth token seal failed for %s", provider)
+            return _oauth_fail_redirect(integrations_path, error="save", provider=provider, reason="seal")
+        except Exception:
+            logger.exception("oauth token store failed for %s", provider)
+            return _oauth_fail_redirect(integrations_path, error="save", provider=provider, reason="store")
+        return None
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as hc:
             if provider in ("quickbooks", "xero"):
@@ -13320,7 +13390,10 @@ async def _complete_oauth_callback(
                         "redirect_uri": cfg["redirect_uri"],
                     },
                     auth=(cfg["client_id"], cfg["client_secret"]),
-                    headers={"Accept": "application/json"},
+                    headers={
+                        "Accept": "application/json",
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
                 )
             elif provider == "hubspot":
                 tr = await hc.post(
@@ -13347,20 +13420,37 @@ async def _complete_oauth_callback(
                     headers={"Accept": "application/json"},
                 )
         if tr.status_code >= 400:
-            logger.error("oauth token exchange %s failed with status %s: %s", provider, tr.status_code, (tr.text or "")[:300])
-            return RedirectResponse(f"{integrations_path}?error=token")
+            reason = _oauth_error_reason_from_token_response(tr)
+            logger.error(
+                "oauth token exchange %s failed with status %s reason=%s: %s",
+                provider, tr.status_code, reason, (tr.text or "")[:300],
+            )
+            return _oauth_fail_redirect(
+                integrations_path, error="token", provider=provider, reason=reason,
+            )
         try:
             tokens = tr.json()
         except Exception:
             logger.error("oauth token response was not JSON for %s", provider)
-            return RedirectResponse(f"{integrations_path}?error=token")
+            return _oauth_fail_redirect(
+                integrations_path, error="token", provider=provider, reason="bad_json",
+            )
         if not isinstance(tokens, dict) or tokens.get("error"):
-            logger.error("oauth token response contained an error for %s", provider)
-            return RedirectResponse(f"{integrations_path}?error=token")
+            reason = "provider_error"
+            if isinstance(tokens, dict):
+                err = str(tokens.get("error") or "").strip().lower()
+                if err in _SAFE_OAUTH_REASONS:
+                    reason = err
+            logger.error("oauth token response contained an error for %s reason=%s", provider, reason)
+            return _oauth_fail_redirect(
+                integrations_path, error="token", provider=provider, reason=reason,
+            )
         tokens = sanitize_oauth_token_payload(tokens)
         if not tokens.get("access_token"):
             logger.error("oauth token response missing access_token for %s", provider)
-            return RedirectResponse(f"{integrations_path}?error=token")
+            return _oauth_fail_redirect(
+                integrations_path, error="token", provider=provider, reason="missing_token",
+            )
         if realmId:
             tokens["realmId"] = realmId
         tokens["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -13372,25 +13462,35 @@ async def _complete_oauth_callback(
                 tenants = await xero_sync.fetch_xero_connections(tokens.get("access_token") or "")
             except Exception:
                 logger.exception("xero connections lookup failed")
-                return RedirectResponse(f"{integrations_path}?error=token")
+                return _oauth_fail_redirect(
+                    integrations_path, error="token", provider=provider, reason="network",
+                )
             if not tenants:
-                return RedirectResponse(f"{integrations_path}?error=xero_org")
+                return _oauth_fail_redirect(integrations_path, error="xero_org", provider=provider)
             if len(tenants) == 1:
                 tokens["tenant_id"] = tenants[0]["tenant_id"]
                 tokens["tenant_name"] = tenants[0]["tenant_name"]
                 tokens.pop("pending_tenants", None)
-                await _store_integration_tokens(workspace_id, cfg["token_field"], tokens, connected_by_user_id=user_id)
+                store_err = await _persist_tokens(tokens)
+                if store_err:
+                    return store_err
                 return RedirectResponse(f"{integrations_path}?connected=xero")
             tokens["pending_tenants"] = tenants
             tokens.pop("tenant_id", None)
             tokens.pop("tenant_name", None)
             tokens = sanitize_oauth_token_payload(tokens)
-            await _store_integration_tokens(workspace_id, cfg["token_field"], tokens, connected_by_user_id=user_id)
+            store_err = await _persist_tokens(tokens)
+            if store_err:
+                return store_err
             return RedirectResponse(f"{integrations_path}?xero_select=1")
-        await _store_integration_tokens(workspace_id, cfg["token_field"], tokens, connected_by_user_id=user_id)
+        store_err = await _persist_tokens(tokens)
+        if store_err:
+            return store_err
     except Exception:
-        logger.exception("oauth token exchange failed")
-        return RedirectResponse(f"{integrations_path}?error=token")
+        logger.exception("oauth token exchange failed for %s", provider)
+        return _oauth_fail_redirect(
+            integrations_path, error="token", provider=provider, reason="network",
+        )
     return RedirectResponse(f"{integrations_path}?connected={provider}")
 
 

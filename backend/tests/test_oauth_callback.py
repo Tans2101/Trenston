@@ -122,4 +122,152 @@ def test_google_callback_never_500s_on_unexpected_error():
 
     assert r.status_code in (302, 307)
     assert "error=token" in r.headers.get("location", "")
+    assert "provider=google" in r.headers.get("location", "")
+    assert "reason=network" in r.headers.get("location", "")
     assert r.status_code != 500
+
+
+def test_quickbooks_callback_succeeds_and_stores_realm():
+    os.environ.setdefault("QUICKBOOKS_CLIENT_ID", "test-qb-client")
+    os.environ.setdefault("QUICKBOOKS_CLIENT_SECRET", "test-qb-secret")
+    server.QB_CLIENT_ID = os.environ["QUICKBOOKS_CLIENT_ID"]
+    server.QB_CLIENT_SECRET = os.environ["QUICKBOOKS_CLIENT_SECRET"]
+
+    state = server._sign_state("quickbooks", "ws_oauth", "user_oauth", "nonce-qb")
+    mock_db = MagicMock()
+    mock_db.oauth_states.find_one_and_delete = AsyncMock(return_value={
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=9),
+    })
+    mock_db.memberships.find_one = AsyncMock(return_value={
+        "workspace_id": "ws_oauth",
+        "user_id": "user_oauth",
+        "status": "active",
+        "pack": "owner",
+        "role": "owner",
+    })
+
+    token_resp = MagicMock()
+    token_resp.status_code = 200
+    token_resp.json.return_value = {
+        "access_token": "qb-access",
+        "refresh_token": "qb-refresh",
+        "expires_in": 3600,
+        "token_type": "bearer",
+        "x_refresh_token_expires_in": 8726400,
+    }
+    token_resp.text = "{}"
+    mock_hc = AsyncMock()
+    mock_hc.post = AsyncMock(return_value=token_resp)
+    mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+    mock_hc.__aexit__ = AsyncMock(return_value=None)
+
+    with patch.object(server, "db", mock_db), patch("httpx.AsyncClient", return_value=mock_hc), patch.object(
+        server, "_store_integration_tokens", new_callable=AsyncMock,
+    ) as store:
+        client = TestClient(server.app)
+        r = client.get(
+            "/api/oauth/quickbooks/callback",
+            params={"code": "auth-code", "state": state, "realmId": "1234567890"},
+            follow_redirects=False,
+        )
+
+    assert r.status_code in (302, 307)
+    assert "connected=quickbooks" in r.headers.get("location", "")
+    stored = store.await_args.args[2]
+    assert stored["access_token"] == "qb-access"
+    assert stored["realmId"] == "1234567890"
+    post_kwargs = mock_hc.post.await_args.kwargs
+    assert post_kwargs["auth"] == (server.QB_CLIENT_ID, server.QB_CLIENT_SECRET)
+
+
+def test_quickbooks_callback_token_exchange_includes_provider():
+    os.environ.setdefault("QUICKBOOKS_CLIENT_ID", "test-qb-client")
+    os.environ.setdefault("QUICKBOOKS_CLIENT_SECRET", "test-qb-secret")
+    server.QB_CLIENT_ID = os.environ["QUICKBOOKS_CLIENT_ID"]
+    server.QB_CLIENT_SECRET = os.environ["QUICKBOOKS_CLIENT_SECRET"]
+
+    state = server._sign_state("quickbooks", "ws_oauth", "user_oauth", "nonce-qb-fail")
+    mock_db = MagicMock()
+    mock_db.oauth_states.find_one_and_delete = AsyncMock(return_value={
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=9),
+    })
+    mock_db.memberships.find_one = AsyncMock(return_value={
+        "workspace_id": "ws_oauth",
+        "user_id": "user_oauth",
+        "status": "active",
+        "pack": "owner",
+        "role": "owner",
+    })
+
+    token_resp = MagicMock()
+    token_resp.status_code = 401
+    token_resp.text = '{"error":"invalid_client"}'
+    token_resp.json.return_value = {"error": "invalid_client"}
+    mock_hc = AsyncMock()
+    mock_hc.post = AsyncMock(return_value=token_resp)
+    mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+    mock_hc.__aexit__ = AsyncMock(return_value=None)
+
+    with patch.object(server, "db", mock_db), patch("httpx.AsyncClient", return_value=mock_hc):
+        client = TestClient(server.app)
+        r = client.get(
+            "/api/oauth/quickbooks/callback",
+            params={"code": "auth-code", "state": state, "realmId": "123"},
+            follow_redirects=False,
+        )
+
+    assert r.status_code in (302, 307)
+    loc = r.headers.get("location", "")
+    assert "error=token" in loc
+    assert "provider=quickbooks" in loc
+    assert "reason=invalid_client" in loc
+
+
+def test_quickbooks_callback_save_failure_includes_provider():
+    os.environ.setdefault("QUICKBOOKS_CLIENT_ID", "test-qb-client")
+    os.environ.setdefault("QUICKBOOKS_CLIENT_SECRET", "test-qb-secret")
+    server.QB_CLIENT_ID = os.environ["QUICKBOOKS_CLIENT_ID"]
+    server.QB_CLIENT_SECRET = os.environ["QUICKBOOKS_CLIENT_SECRET"]
+
+    state = server._sign_state("quickbooks", "ws_oauth", "user_oauth", "nonce-qb-save")
+    mock_db = MagicMock()
+    mock_db.oauth_states.find_one_and_delete = AsyncMock(return_value={
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=9),
+    })
+    mock_db.memberships.find_one = AsyncMock(return_value={
+        "workspace_id": "ws_oauth",
+        "user_id": "user_oauth",
+        "status": "active",
+        "pack": "owner",
+        "role": "owner",
+    })
+
+    token_resp = MagicMock()
+    token_resp.status_code = 200
+    token_resp.json.return_value = {
+        "access_token": "qb-access",
+        "refresh_token": "qb-refresh",
+        "expires_in": 3600,
+        "token_type": "bearer",
+    }
+    token_resp.text = "{}"
+    mock_hc = AsyncMock()
+    mock_hc.post = AsyncMock(return_value=token_resp)
+    mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+    mock_hc.__aexit__ = AsyncMock(return_value=None)
+
+    with patch.object(server, "db", mock_db), patch("httpx.AsyncClient", return_value=mock_hc), patch.object(
+        server, "_store_integration_tokens", new_callable=AsyncMock, side_effect=RuntimeError("seal failed"),
+    ):
+        client = TestClient(server.app)
+        r = client.get(
+            "/api/oauth/quickbooks/callback",
+            params={"code": "auth-code", "state": state, "realmId": "123"},
+            follow_redirects=False,
+        )
+
+    assert r.status_code in (302, 307)
+    loc = r.headers.get("location", "")
+    assert "error=save" in loc
+    assert "provider=quickbooks" in loc
+    assert "reason=store" in loc

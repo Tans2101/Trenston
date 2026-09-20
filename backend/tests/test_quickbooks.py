@@ -88,8 +88,10 @@ def test_refresh_raises_on_failure():
             asyncio.run(qb.refresh_qb_token(tokens))
 
 
-def test_refresh_preserves_refresh_token_when_intuit_omits_it():
+def test_refresh_preserves_refresh_token_when_intuit_omits_it(monkeypatch):
     """Intuit sometimes omits refresh_token on refresh — do not drop the grant."""
+    monkeypatch.setattr(qb, "QB_CLIENT_ID", "test-client")
+    monkeypatch.setattr(qb, "QB_CLIENT_SECRET", "test-secret")
     tokens = {
         "access_token": "old",
         "refresh_token": "keep-me",

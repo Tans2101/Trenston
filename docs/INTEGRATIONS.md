@@ -120,6 +120,16 @@ Look under `integrations` / `oauth_redirect_uris` — `configured: true` means t
 6. HubSpot: after Connect, click **Sync to Pipeline**.
 7. Financials uploads need R2 + Anthropic; Ask Trenston / briefing need Anthropic.
 
+## Troubleshooting OAuth connect
+
+If Intuit/Google shows Allow, then Helm toasts that it could not finish or save the connection:
+
+1. Confirm the exact redirect URI is registered (see above) — sandbox and production Intuit apps each need their own Keys + Redirect URI.
+2. On Render, set **sandbox** Development keys with `QUICKBOOKS_ENV=sandbox`, or Production keys with `QUICKBOOKS_ENV=production` (do not mix).
+3. Ensure `INTEGRATION_ENCRYPTION_KEY` is a Fernet key (see `docs/DEPLOY.md`) — without it Helm cannot store tokens.
+4. Check Render logs for `oauth token exchange quickbooks failed` (bad client secret / redirect) vs `oauth token store failed` (encryption/Mongo).
+5. Click **Connect** again after fixing env (auth codes are single-use).
+
 ## Coming soon
 
 GitHub stays “Coming soon” in the UI until that OAuth app is built.

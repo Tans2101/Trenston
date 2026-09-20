@@ -7,9 +7,11 @@ from typing import Optional
 
 import httpx
 
-QB_CLIENT_ID = os.environ.get("QUICKBOOKS_CLIENT_ID", "")
-QB_CLIENT_SECRET = os.environ.get("QUICKBOOKS_CLIENT_SECRET", "")
-QB_ENVIRONMENT = (os.environ.get("QB_ENVIRONMENT") or os.environ.get("QUICKBOOKS_ENV", "sandbox")).lower()
+QB_CLIENT_ID = (os.environ.get("QUICKBOOKS_CLIENT_ID") or "").strip()
+QB_CLIENT_SECRET = (os.environ.get("QUICKBOOKS_CLIENT_SECRET") or "").strip()
+QB_ENVIRONMENT = (
+    os.environ.get("QB_ENVIRONMENT") or os.environ.get("QUICKBOOKS_ENV") or "sandbox"
+).strip().lower()
 
 TOKEN_URL = "https://oauth2.platform.intuit.com/oauth2/v1/tokens/bearer"
 API_BASE = (
