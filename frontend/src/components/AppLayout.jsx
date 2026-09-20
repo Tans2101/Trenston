@@ -595,6 +595,12 @@ function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, en
           window.location.href = action.to;
           return;
         }
+        // Public marketing URLs leave the cockpit shell so the address bar
+        // actually becomes /features, /about, etc. (not an in-app overlay).
+        if (!action.to.startsWith("/app")) {
+          window.location.assign(action.to);
+          return;
+        }
         navigate(action.to);
         // Re-trigger hash scroll when already on settings with a new hash.
         if (action.to.includes("#")) {

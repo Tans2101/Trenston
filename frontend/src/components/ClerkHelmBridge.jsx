@@ -98,7 +98,12 @@ export default function ClerkHelmBridge() {
               return;
             }
           }
-          if (!window.location.pathname.startsWith("/app")) {
+          // Only enter the cockpit from auth entry routes. Marketing pages
+          // (/about, /features, …) must stay reachable while signed in.
+          const path = window.location.pathname;
+          const fromAuthEntry =
+            path.startsWith("/login") || path.startsWith("/sign-up");
+          if (fromAuthEntry) {
             navigate("/app", { replace: true });
           }
           return;

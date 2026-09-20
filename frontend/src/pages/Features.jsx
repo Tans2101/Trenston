@@ -60,30 +60,11 @@ export default function Features() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const sections = FEATURE_CATEGORIES.map((c) => document.getElementById(`features-${c.id}`)).filter(Boolean);
-    if (!sections.length) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]?.target?.id) {
-          const id = visible[0].target.id.replace(/^features-/, "");
-          setActiveCat(id);
-        }
-      },
-      { rootMargin: "-30% 0px -50% 0px", threshold: [0.15, 0.35, 0.55] },
-    );
-    sections.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
+  const activeCategory = FEATURE_CATEGORIES.find((c) => c.id === activeCat) || FEATURE_CATEGORIES[0];
+  const ActiveIcon = CATEGORY_ICONS[activeCategory?.id] || Activity;
 
-  const scrollToCategory = (id) => {
-    const el = document.getElementById(`features-${id}`);
-    if (!el) return;
+  const selectCategory = (id) => {
     setActiveCat(id);
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   return (
@@ -183,7 +164,7 @@ export default function Features() {
         className="sticky top-16 z-30 border-y border-helm-navy/[0.06] bg-helm-cream/90 backdrop-blur-md"
       >
         <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <div className="flex gap-1 overflow-x-auto scrollbar-none py-1 -mx-1 px-1">
+          <div className="flex gap-1 overflow-x-auto scrollbar-none py-1 -mx-1 px-1" role="tablist">
             {FEATURE_CATEGORIES.map((cat) => {
               const Icon = CATEGORY_ICONS[cat.id] || Activity;
               const active = activeCat === cat.id;
@@ -191,7 +172,11 @@ export default function Features() {
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => scrollToCategory(cat.id)}
+                  role="tab"
+                  aria-selected={active}
+                  id={`features-tab-${cat.id}`}
+                  aria-controls={`features-panel-${cat.id}`}
+                  onClick={() => selectCategory(cat.id)}
                   className={cn(
                     "shrink-0 inline-flex items-center gap-2 rounded-md px-3 py-2.5 text-left border-b-2 transition-colors",
                     active
@@ -210,71 +195,69 @@ export default function Features() {
         </div>
       </nav>
 
-      {FEATURE_CATEGORIES.map((cat) => {
-        const Icon = CATEGORY_ICONS[cat.id] || Activity;
-        return (
-          <section
-            key={cat.id}
-            id={`features-${cat.id}`}
-            className="px-6 py-16 md:py-20 border-t border-helm-navy/[0.05] scroll-mt-28"
-          >
-            <div className="mx-auto max-w-6xl">
-              <motion.div
-                variants={fade}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, margin: "-40px" }}
-                className="mb-10 md:mb-12 max-w-2xl"
-              >
-                <Icon className="w-8 h-8 text-helm-gold mb-5" aria-hidden />
-                <h2 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">
-                  {cat.label}
-                </h2>
-                <p className="mt-3 text-helm-slate text-sm md:text-base leading-relaxed">{cat.intro}</p>
-              </motion.div>
+      {activeCategory && (
+        <section
+          key={activeCategory.id}
+          id={`features-panel-${activeCategory.id}`}
+          role="tabpanel"
+          aria-labelledby={`features-tab-${activeCategory.id}`}
+          className="px-6 py-16 md:py-20 border-t border-helm-navy/[0.05]"
+        >
+          <div className="mx-auto max-w-6xl">
+            <motion.div
+              key={`head-${activeCategory.id}`}
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              className="mb-10 md:mb-12 max-w-2xl"
+            >
+              <ActiveIcon className="w-8 h-8 text-helm-gold mb-5" aria-hidden />
+              <h2 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">
+                {activeCategory.label}
+              </h2>
+              <p className="mt-3 text-helm-slate text-sm md:text-base leading-relaxed">{activeCategory.intro}</p>
+            </motion.div>
 
-              <div className="grid md:grid-cols-2 gap-4 md:gap-5">
-                {cat.modules.map((title, i) => {
-                  const mod = modulesByTitle[title];
-                  if (!mod) return null;
-                  return (
-                    <motion.article
-                      key={mod.title}
-                      variants={fade}
-                      custom={i}
-                      initial="hidden"
-                      whileInView="show"
-                      viewport={{ once: true, margin: "-40px" }}
-                      className="group rounded-md border border-helm-navy/[0.08] bg-helm-cream/[0.015] p-5 md:p-6 transition-all duration-300 hover:border-helm-gold/30 hover:-translate-y-0.5"
-                    >
-                      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
-                        {mod.title}
+            <div className="grid md:grid-cols-2 gap-4 md:gap-5">
+              {activeCategory.modules.map((title, i) => {
+                const mod = modulesByTitle[title];
+                if (!mod) return null;
+                return (
+                  <motion.article
+                    key={mod.title}
+                    variants={fade}
+                    custom={i}
+                    initial="hidden"
+                    animate="show"
+                    className="group rounded-md border border-helm-navy/[0.08] bg-helm-cream/[0.015] p-5 md:p-6 transition-all duration-300 hover:border-helm-gold/30 hover:-translate-y-0.5"
+                  >
+                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
+                      {mod.title}
+                    </p>
+                    <h3 className="font-display mt-3 text-xl md:text-2xl tracking-tight text-helm-navy leading-snug">
+                      {mod.ceoValue}
+                    </h3>
+                    <p className="mt-3 text-sm text-helm-slate leading-relaxed">{mod.body}</p>
+                    {mod.link ? (
+                      <p className="mt-3">
+                        <Link
+                          to={mod.link.to}
+                          className="text-sm text-helm-navy hover:text-helm-gold transition-colors"
+                        >
+                          {mod.link.label} →
+                        </Link>
                       </p>
-                      <h3 className="font-display mt-3 text-xl md:text-2xl tracking-tight text-helm-navy leading-snug">
-                        {mod.ceoValue}
-                      </h3>
-                      <p className="mt-3 text-sm text-helm-slate leading-relaxed">{mod.body}</p>
-                      {mod.link ? (
-                        <p className="mt-3">
-                          <Link
-                            to={mod.link.to}
-                            className="text-sm text-helm-navy hover:text-helm-gold transition-colors"
-                          >
-                            {mod.link.label} →
-                          </Link>
-                        </p>
-                      ) : null}
-                      <p className="mt-4 text-sm text-helm-slate/90 leading-relaxed pl-3 border-l border-helm-gold/25">
-                        {mod.example}
-                      </p>
-                    </motion.article>
-                  );
-                })}
-              </div>
+                    ) : null}
+                    <p className="mt-4 text-sm text-helm-slate/90 leading-relaxed pl-3 border-l border-helm-gold/25">
+                      {mod.example}
+                    </p>
+                  </motion.article>
+                );
+              })}
             </div>
-          </section>
-        );
-      })}
+          </div>
+        </section>
+      )}
 
       <DepartmentsShowcase compact />
 

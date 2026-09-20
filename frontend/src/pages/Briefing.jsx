@@ -177,7 +177,7 @@ export default function Briefing() {
       <BriefingCockpitHero metrics={metrics} decisions={whatToDecide} />
 
       {showChecklist && (
-        <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5" data-testid="onboarding-checklist">
+        <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm" data-testid="onboarding-checklist">
           <div className="flex items-center gap-3 mb-4">
             <BriefLabel>Finish setting up</BriefLabel>
             <span className="ml-auto text-xs text-helm-muted tabular-nums">{doneCount}/{stepCount}</span>
@@ -239,7 +239,7 @@ export default function Briefing() {
       )}
 
       {showIntegrationsPrompt && (
-        <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5" data-testid="integrations-prompt">
+        <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm" data-testid="integrations-prompt">
           <div className="flex items-center gap-3 mb-3">
             <BriefLabel>Connect your tools</BriefLabel>
             <button
@@ -283,7 +283,7 @@ export default function Briefing() {
 
       {metrics.length > 0 && <BentoGrid metrics={metrics} />}
 
-      <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5 md:p-6">
+      <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-3">
           <BriefLabel>Today&apos;s summary</BriefLabel>
           {data.ai_summary && canGenerateAi && (

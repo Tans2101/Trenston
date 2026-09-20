@@ -113,7 +113,7 @@ function MetricTile({ m, index, total }) {
   const navigate = useNavigate();
   const clickable = Boolean(m.href && m.missing);
   const surfaceClass = cn(
-    "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full",
+    "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full shadow-sm",
     index === 0 && total >= 3 && "md:p-5",
     clickable && "cursor-pointer transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
   );
@@ -166,9 +166,16 @@ export default function BentoGrid({ metrics = [], className }) {
   if (list.length === 0) return null;
 
   return (
-    <div className={cn("mb-6 space-y-6", className)} data-testid="briefing-metrics-grouped">
-      {groups.map((group) => (
-        <section key={group.key} data-testid={`briefing-metrics-section-${group.key}`}>
+    <div className={cn("mb-6 space-y-0", className)} data-testid="briefing-metrics-grouped">
+      {groups.map((group, groupIndex) => (
+        <section
+          key={group.key}
+          data-testid={`briefing-metrics-section-${group.key}`}
+          className={cn(
+            "py-6",
+            groupIndex > 0 && "border-t border-helm-fg/20",
+          )}
+        >
           <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">
             {group.label}
           </h2>

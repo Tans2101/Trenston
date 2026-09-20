@@ -118,7 +118,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
           {heroMetrics.map((m) => (
             <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
               <p className="text-sm font-medium text-helm-fg">{m.label}</p>
-              <p className="mt-2 font-display text-3xl md:text-4xl text-helm-navy tracking-tight tabular-nums">
+              <p className="mt-2 font-display text-3xl md:text-4xl text-helm-fg tracking-tight tabular-nums">
                 {m.value || "—"}
               </p>
               <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
