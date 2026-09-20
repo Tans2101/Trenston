@@ -6,7 +6,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Union
 
 from anthropic import AsyncAnthropic
 
@@ -15,6 +15,10 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or ""
 ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 # Cheaper/faster model for high-volume grounded report read/summarize + digest combine.
 ANTHROPIC_MODEL_FAST = os.environ.get("ANTHROPIC_MODEL_FAST", "claude-haiku-4-5")
+
+# System prompt for messages.create / messages.stream: plain string or content-block list
+# (list form enables Anthropic prompt caching via cache_control on a text block).
+SystemPrompt = Union[str, list]
 
 _EXTRACT_SYSTEM = """You extract financial data from bills, receipts, and invoices.
 Return ONLY strict JSON with no markdown and no prose.
@@ -55,7 +59,7 @@ def get_client() -> AsyncAnthropic:
     return _client
 
 
-async def complete(system: str, user: str, *, max_tokens: int = 1200, model: Optional[str] = None) -> str:
+async def complete(system: SystemPrompt, user: str, *, max_tokens: int = 1200, model: Optional[str] = None) -> str:
     client = get_client()
     msg = await client.messages.create(
         model=model or ANTHROPIC_MODEL,
@@ -71,7 +75,16 @@ async def complete(system: str, user: str, *, max_tokens: int = 1200, model: Opt
     return "".join(parts).strip()
 
 
-async def stream_text(system: str, user: str, *, max_tokens: int = 1600) -> AsyncIterator[str]:
+async def stream_text(
+    system: SystemPrompt,
+    user: str,
+    *,
+    max_tokens: int = 1600,
+) -> AsyncIterator[str]:
+    """Stream a completion. ``system`` may be a plain string or a list of
+    Anthropic system content blocks (for prompt caching). Other callers that
+    pass a string are unchanged.
+    """
     client = get_client()
     async with client.messages.stream(
         model=ANTHROPIC_MODEL,

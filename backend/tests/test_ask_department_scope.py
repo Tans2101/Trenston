@@ -213,6 +213,20 @@ def _access_by_type(member_types=(), *, ceo=False, types=_ASK_TYPES):
     return {t: ([f"dept_{t}"] if t in member_types else []) for t in types}
 
 
+
+def _system_text(system) -> str:
+    """Flatten ask_helm system prompt (str or Anthropic content-block list) for assertions."""
+    if isinstance(system, list):
+        parts = []
+        for block in system:
+            if isinstance(block, dict):
+                parts.append(block.get("text") or "")
+            else:
+                parts.append(str(block))
+        return "\n".join(parts)
+    return system or ""
+
+
 def _ask_period():
     return {
         "key": "2026-09-01",
@@ -252,8 +266,9 @@ async def test_ask_helm_scopes_each_department_by_membership():
 
     captured = {}
 
-    async def _capture_stream(system, message):
-        captured["system"] = system
+    async def _capture_stream(system, message, **kwargs):
+        captured["system"] = _system_text(system)
+        captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ok"
 
     async def _slice(principal, dept_type, collection_attr, *, enabled_dept=None, access_ids=None):
@@ -319,8 +334,9 @@ async def test_ask_helm_member_of_production_gets_production_counts():
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
     captured = {}
 
-    async def _capture_stream(system, message):
-        captured["system"] = system
+    async def _capture_stream(system, message, **kwargs):
+        captured["system"] = _system_text(system)
+        captured["max_tokens"] = kwargs.get("max_tokens")
         yield "prod-ok"
 
     async def _slice(principal, dept_type, collection_attr, *, enabled_dept=None, access_ids=None):
@@ -354,7 +370,7 @@ async def test_ask_helm_member_of_production_gets_production_counts():
             pass
 
     system = captured["system"]
-    assert '"open_count": 1' in system or "'open_count': 1" in system
+    assert '"open_count":1' in system or '"open_count": 1' in system
     assert "Production data is not shared" not in system
     assert "Sales pipeline is not shared" in system
     assert "Secret WO" not in system
@@ -394,8 +410,9 @@ async def test_ask_helm_ceo_sees_all_department_slices_unfiltered():
 
     captured = {}
 
-    async def _capture_stream(system, message):
-        captured["system"] = system
+    async def _capture_stream(system, message, **kwargs):
+        captured["system"] = _system_text(system)
+        captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ceo-ok"
 
     with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
@@ -442,7 +459,7 @@ async def test_ask_helm_ceo_sees_all_department_slices_unfiltered():
     assert dept_catalog.TYPE_PRODUCTION in slice_calls
     assert dept_catalog.TYPE_LEGAL in slice_calls
     assert dept_catalog.TYPE_ENGINEERING_MAINTENANCE in slice_calls
-    assert '"open_count": 1' in system or "'open_count': 1" in system
+    assert '"open_count":1' in system or '"open_count": 1' in system
 
 
 @pytest.mark.asyncio
@@ -545,8 +562,9 @@ async def test_ask_helm_calls_membership_slice_for_every_non_finance_dept():
 
     captured = {}
 
-    async def _capture_stream(system, message):
-        captured["system"] = system
+    async def _capture_stream(system, message, **kwargs):
+        captured["system"] = _system_text(system)
+        captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ok"
 
     with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \

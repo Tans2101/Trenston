@@ -65,9 +65,12 @@ def test_ask_and_weekly_pack_prompts_require_literal_grounding():
     assert "literally" in helm_llm._REPORTS_DIGEST_SYSTEM
     assert "Never invent" in helm_llm._REPORTS_DIGEST_SYSTEM or "never invent" in helm_llm._REPORTS_DIGEST_SYSTEM.lower()
     assert "literally" in helm_llm._REPORT_SUMMARY_SYSTEM
+    assert "literally" in server.STATIC_ASK_TRENSTON_INSTRUCTIONS
+    assert "possibly_stale" in server.STATIC_ASK_TRENSTON_INSTRUCTIONS
     ask_src = inspect.getsource(server.ask_helm)
-    assert "literally" in ask_src
-    assert "possibly_stale" in ask_src
+    assert "STATIC_ASK_TRENSTON_INSTRUCTIONS" in ask_src
+    assert "ASK_TRENSTON_MAX_TOKENS" in ask_src
+    assert 'separators=(",", ":")' in ask_src or "separators=(',', ':')" in ask_src
     briefing_src = inspect.getsource(server.generate_briefing)
     assert "literally" in briefing_src
     ctx = server.ask_context_for_synthesis(
