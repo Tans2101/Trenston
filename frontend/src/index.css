@@ -68,25 +68,24 @@
     }
 
     html[data-theme="light"] {
-        --helm-fg: var(--helm-navy);
-        /* Flat page canvas = raw cream token only — no gold/warning mix-ins */
-        --helm-bg: var(--helm-cream);
-        --helm-card: color-mix(in srgb, var(--helm-cream) 70%, white);
-        --helm-muted: var(--helm-slate);
-        --helm-line: color-mix(in srgb, var(--helm-navy) 16%, transparent);
-        /* Keep shadcn bg-background in lockstep with #F5F0E6 */
-        --background: 40 42.86% 93.14%;
-        --foreground: 221 51% 16%;
-        /* Card ≈ cream 70% + white 30% (#F8F4ED), not a warmer peach HSL */
-        --card: 38 44% 95%;
-        --card-foreground: 221 51% 16%;
-        --popover: 38 44% 95%;
-        --popover-foreground: 221 51% 16%;
+        --helm-fg: #111111;
+        /* Pure white page canvas — no cream/beige */
+        --helm-bg: #FFFFFF;
+        --helm-card: #FFFFFF;
+        --helm-muted: #111111;
+        --helm-line: color-mix(in srgb, #111111 16%, transparent);
+        /* Keep shadcn bg-background in lockstep with pure white */
+        --background: 0 0% 100%;
+        --foreground: 0 0% 7%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 7%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 7%;
         --primary: 41 55% 54%;
-        --primary-foreground: 221 51% 16%;
-        --muted-foreground: 220 9% 46%;
-        --border: 221 30% 80%;
-        --input: 221 30% 80%;
+        --primary-foreground: 0 0% 7%;
+        --muted-foreground: 0 0% 7%;
+        --border: 0 0% 85%;
+        --input: 0 0% 85%;
         --ring: 41 55% 54%;
     }
   .dark {
@@ -208,18 +207,24 @@ input.cl-otpCodeFieldInput {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* In-app cockpit — cream/navy in light (default), ink/cream in dark */
+/* In-app cockpit — pure white / near-black for readable contrast */
 .app-shell {
-  background: var(--helm-bg);
-  color: var(--helm-fg);
+  --helm-fg: #111111;
+  --helm-bg: #FFFFFF;
+  --helm-card: #FFFFFF;
+  --helm-muted: #111111;
+  --helm-line: color-mix(in srgb, #111111 16%, transparent);
+  background: #FFFFFF;
+  color: #111111;
 }
 
-/* Single opaque cream page fill — no stacked tints, grain, or gradients */
+/* Single opaque white page fill — no cream, grain, or gradients */
 html[data-theme="light"],
 html[data-theme="light"] body,
 html[data-theme="light"] #root,
-html[data-theme="light"] .app-shell {
-  background-color: var(--helm-cream);
+html[data-theme="light"] .app-shell,
+.app-shell {
+  background-color: #FFFFFF;
   background-image: none;
 }
 
@@ -242,29 +247,49 @@ html[data-theme="light"] .app-shell .text-zinc-200,
 html[data-theme="light"] .app-shell .text-zinc-300,
 html[data-theme="light"] .app-shell .text-helm-cream,
 html[data-theme="light"] .app-shell [class*="text-helm-cream"],
-html[data-theme="light"] .app-shell .text-helm-fg {
-  color: var(--helm-navy) !important;
+html[data-theme="light"] .app-shell .text-helm-fg,
+html[data-theme="light"] .app-shell .text-helm-navy,
+html[data-theme="light"] .app-shell [class*="text-helm-fg"],
+html[data-theme="light"] .app-shell [class*="text-helm-navy"],
+.app-shell .text-helm-fg,
+.app-shell .text-helm-navy,
+.app-shell .text-helm-cream,
+.app-shell [class*="text-helm-fg"],
+.app-shell [class*="text-helm-navy"],
+.app-shell [class*="text-helm-cream"] {
+  color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell .text-zinc-400,
 html[data-theme="light"] .app-shell .text-zinc-500,
 html[data-theme="light"] .app-shell .text-zinc-600,
 html[data-theme="light"] .app-shell .text-helm-muted,
-html[data-theme="light"] .app-shell .text-helm-slate {
-  color: #3d4a63 !important;
+html[data-theme="light"] .app-shell .text-helm-slate,
+html[data-theme="light"] .app-shell [class*="text-helm-muted"],
+html[data-theme="light"] .app-shell [class*="text-helm-slate"],
+.app-shell .text-helm-muted,
+.app-shell .text-helm-slate,
+.app-shell [class*="text-helm-muted"],
+.app-shell [class*="text-helm-slate"],
+.app-shell .text-zinc-400,
+.app-shell .text-zinc-500,
+.app-shell .text-zinc-600 {
+  color: #111111 !important;
 }
 
-/* Gold on cream is too light for copy — keep gold for bars/icons only */
+/* Gold as copy color → near-black; gold stays for bars/icons via non-text fills */
 html[data-theme="light"] .app-shell .text-gold,
-html[data-theme="light"] .app-shell .text-helm-gold {
-  color: var(--helm-navy) !important;
+html[data-theme="light"] .app-shell .text-helm-gold,
+.app-shell .text-gold,
+.app-shell .text-helm-gold {
+  color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell .bg-gold .text-helm-navy,
 html[data-theme="light"] .app-shell .bg-helm-gold .text-helm-navy,
 html[data-theme="light"] .app-shell button.bg-gold,
 html[data-theme="light"] .app-shell button.bg-helm-gold {
-  color: var(--helm-navy) !important;
+  color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell [class*="border-white"] {
@@ -277,64 +302,80 @@ html[data-theme="light"] .app-shell [class*="bg-[#0c0c0e]"],
 html[data-theme="light"] .app-shell [class*="bg-[#101012]"],
 html[data-theme="light"] .app-shell [class*="bg-[#111113]"],
 html[data-theme="light"] .app-shell [class*="bg-[#0B1020]"] {
-  background-color: var(--helm-bg) !important;
+  background-color: #FFFFFF !important;
 }
 
 html[data-theme="light"] .app-shell [class*="bg-[#121214]"],
 html[data-theme="light"] .app-shell [class*="bg-[#141417]"],
 html[data-theme="light"] .app-shell .bg-helm-ink-card,
 html[data-theme="light"] .app-shell [class*="bg-helm-ink-card"] {
-  background-color: var(--helm-card) !important;
-  color: var(--helm-navy);
+  background-color: #FFFFFF !important;
+  color: #111111;
 }
 
 html[data-theme="light"] .app-shell .bg-helm-ink,
 html[data-theme="light"] .app-shell [class*="bg-helm-ink/"] {
-  background-color: var(--helm-bg) !important;
+  background-color: #FFFFFF !important;
+}
+
+html[data-theme="light"] .app-shell .bg-helm-cream,
+html[data-theme="light"] .app-shell [class*="bg-helm-cream"],
+html[data-theme="light"] .app-shell .bg-helm-bg,
+html[data-theme="light"] .app-shell [class*="bg-helm-bg"],
+html[data-theme="light"] .app-shell .bg-helm-card,
+html[data-theme="light"] .app-shell [class*="bg-helm-card"],
+.app-shell .bg-helm-cream,
+.app-shell [class*="bg-helm-cream"],
+.app-shell .bg-helm-bg,
+.app-shell [class*="bg-helm-bg"],
+.app-shell .bg-helm-card,
+.app-shell [class*="bg-helm-card"] {
+  background-color: #FFFFFF !important;
 }
 
 html[data-theme="light"] .app-shell [class*="bg-white/"] {
-  background-color: color-mix(in srgb, var(--helm-navy) 5%, transparent) !important;
+  background-color: color-mix(in srgb, #111111 5%, transparent) !important;
 }
 
 html[data-theme="light"] .app-shell [class*="hover:text-white"]:hover {
-  color: var(--helm-navy) !important;
+  color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell [class*="hover:bg-white"]:hover {
-  background-color: color-mix(in srgb, var(--helm-navy) 7%, transparent) !important;
+  background-color: color-mix(in srgb, #111111 7%, transparent) !important;
 }
 
-/* Primary gold fills become gold-outline + navy type so gold is not a large fill */
+/* Primary gold fills become gold-outline + near-black type so gold is not a large fill */
 html[data-theme="light"] .app-shell .bg-gold,
 html[data-theme="light"] .app-shell .bg-helm-gold {
-  background-color: var(--helm-card) !important;
-  color: var(--helm-navy) !important;
+  background-color: #FFFFFF !important;
+  color: #111111 !important;
   box-shadow: inset 0 0 0 1px var(--helm-gold);
 }
 html[data-theme="light"] .app-shell .bg-gold:hover,
 html[data-theme="light"] .app-shell .bg-helm-gold:hover,
 html[data-theme="light"] .app-shell .hover\:bg-gold-hover:hover,
 html[data-theme="light"] .app-shell .hover\:bg-helm-gold-hover:hover {
-  background-color: color-mix(in srgb, var(--helm-gold) 16%, var(--helm-card)) !important;
-  color: var(--helm-navy) !important;
+  background-color: color-mix(in srgb, var(--helm-gold) 16%, #FFFFFF) !important;
+  color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell input,
 html[data-theme="light"] .app-shell textarea,
 html[data-theme="light"] .app-shell select {
-  color: var(--helm-navy);
-  caret-color: var(--helm-gold);
-  background-color: var(--helm-card);
+  color: #111111;
+  caret-color: #111111;
+  background-color: #FFFFFF;
 }
 
 html[data-theme="light"] .app-shell input::placeholder,
 html[data-theme="light"] .app-shell textarea::placeholder {
-  color: var(--helm-slate);
+  color: #111111;
+  opacity: 1;
 }
 
 html[data-theme="light"] .app-shell .glass {
-  background: var(--helm-card);
+  background: #FFFFFF;
 }
 
 html[data-theme="light"] .app-shell .font-mono,
@@ -360,11 +401,11 @@ html[data-theme="light"] .app-shell .text-amber-600 {
 
 html[data-theme="light"] ::selection {
   background: color-mix(in srgb, var(--helm-gold) 28%, transparent);
-  color: var(--helm-navy);
+  color: #111111;
 }
 
 html[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--helm-navy) 18%, transparent);
+  background: color-mix(in srgb, #111111 18%, transparent);
 }
 
 html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
