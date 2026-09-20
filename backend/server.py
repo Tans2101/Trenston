@@ -4899,6 +4899,116 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
     return entry, True
 
 
+def _procurement_expense_month(req: dict, *, now: Optional[datetime] = None) -> str:
+    """YYYY-MM from delivery / order date when parseable, else current UTC month."""
+    now = now or datetime.now(timezone.utc)
+    for key in ("actual_delivery_date", "ordered_at", "created_at"):
+        raw = (req.get(key) or "").strip()
+        if not raw:
+            continue
+        try:
+            if "T" in raw:
+                raw = raw.split("T", 1)[0]
+            datetime.strptime(raw[:10], "%Y-%m-%d")
+            return raw[:7]
+        except ValueError:
+            continue
+    return now.strftime("%Y-%m")
+
+
+async def _ensure_procurement_expense_entry(req: dict, principal: dict) -> tuple[Optional[dict], bool]:
+    """Create (or refresh) one expense financial_entries row for a delivered request.
+
+    Mirrors won-deal revenue: priced + delivered procurement spend lands in burn.
+    Returns (entry, created). Idempotent via source_procurement_request_id.
+    """
+    if (req.get("status") or "") != "delivered":
+        return None, False
+    if req.get("cost") is None or req.get("cost") == "":
+        return None, False
+    try:
+        amount = round(float(req["cost"]), 2)
+    except (TypeError, ValueError):
+        return None, False
+    if amount < 0:
+        return None, False
+
+    ws = principal["workspace_id"]
+    req_id = req.get("id")
+    if not req_id:
+        return None, False
+
+    existing = await db.financial_entries.find_one(
+        {"workspace_id": ws, "source_procurement_request_id": req_id},
+        {"_id": 0},
+    )
+    try:
+        entry_name = require_entry_name(req.get("item") or "Procurement")
+    except ValueError:
+        entry_name = "Procurement"
+    vendor = (req.get("vendor_name") or "").strip()
+    month = _procurement_expense_month(req)
+    finance_dept_id = await dept_migrate.finance_department_id(db, ws)
+    note = f"Auto-created from delivered procurement {req_id}"
+    if vendor:
+        note = f"{note} · {vendor}"
+
+    if existing:
+        # Keep burn in sync when cost/item changes after delivery.
+        changed = (
+            float(existing.get("amount") or 0) != amount
+            or (existing.get("name") or "") != entry_name
+            or (existing.get("month") or "") != month
+            or (existing.get("note") or "") != note
+        )
+        if not changed:
+            return existing, False
+        await db.financial_entries.update_one(
+            {"id": existing["id"], "workspace_id": ws},
+            {"$set": {
+                "amount": amount,
+                "name": entry_name,
+                "month": month,
+                "note": note,
+                "category": "Procurement",
+                "type": "expense",
+            }},
+        )
+        invalidate_financials_cache(ws)
+        return {**existing, "amount": amount, "name": entry_name, "month": month, "note": note}, False
+
+    entry = {
+        "id": f"fe_{uuid.uuid4().hex[:10]}",
+        "workspace_id": ws,
+        "department_id": finance_dept_id,
+        "type": "expense",
+        "category": "Procurement",
+        "name": entry_name,
+        "amount": amount,
+        "month": month,
+        "recurring": False,
+        "note": note,
+        "source": "procurement",
+        "source_procurement_request_id": req_id,
+        "created_by": principal["user_id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        await db.financial_entries.insert_one(dict(entry))
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "duplicate" in msg or "e11000" in msg:
+            existing = await db.financial_entries.find_one(
+                {"workspace_id": ws, "source_procurement_request_id": req_id},
+                {"_id": 0},
+            )
+            return existing, False
+        raise
+    invalidate_financials_cache(ws)
+    entry.pop("_id", None)
+    return entry, True
+
+
 @api_router.get("/deals")
 async def list_deals(
     principal=Depends(get_principal),
@@ -10028,6 +10138,19 @@ async def list_procurement_requests(
         rows, workspace_id=principal["workspace_id"],
     )
     items.sort(key=_procurement_queue_sort_key)
+    # Best-effort backfill: delivered + priced requests should already have an
+    # expense row. Idempotent — covers requests delivered before this wiring.
+    for row in items:
+        if row.get("status") != "delivered":
+            continue
+        if row.get("cost") is None or row.get("cost") == "":
+            continue
+        try:
+            await _ensure_procurement_expense_entry(row, principal)
+        except Exception:
+            logger.exception(
+                "procurement expense backfill failed for %s", row.get("id"),
+            )
     lead_time_summary = proc_metrics.department_lead_time_summary(items)
     month_start, month_end = decision_engine.month_period_bounds()
     spend = proc_spend.spend_rollup(
@@ -10234,8 +10357,35 @@ async def patch_procurement_request(
         {"id": request_id, "department_id": dept["department_id"]},
         {"$set": upd},
     )
+    updated = {**req, **upd}
+    financial_entry = None
+    try:
+        financial_entry, created = await _ensure_procurement_expense_entry(updated, principal)
+        if financial_entry and created:
+            currency = await _workspace_currency(principal["workspace_id"])
+            await log_activity(
+                principal, "financials", "entry.add",
+                f"Logged expense from procurement · {financial_entry['name']} "
+                f"{fmt_money(financial_entry['amount'], currency)} ({financial_entry['month']})",
+                {
+                    "type": "expense",
+                    "amount": financial_entry["amount"],
+                    "month": financial_entry["month"],
+                    "source": "procurement",
+                    "source_procurement_request_id": request_id,
+                },
+            )
+    except Exception:
+        logger.exception(
+            "procurement expense sync failed for %s in workspace %s",
+            request_id, principal.get("workspace_id"),
+        )
     invalidate_workspace_list_cache(principal["workspace_id"], "procurement", "production", "me_work", "calendar")
-    return {"ok": True, "request": await _enrich_procurement_request({**req, **upd})}
+    return {
+        "ok": True,
+        "request": await _enrich_procurement_request(updated),
+        "financial_entry": financial_entry,
+    }
 
 
 @api_router.delete("/procurement/requests/{request_id}")
@@ -15147,6 +15297,11 @@ async def _ensure_indexes():
             "name": "ws_source_deal_id_partial",
             "partialFilterExpression": {"source_deal_id": {"$type": "string"}},
         }),
+        (db.financial_entries, [("workspace_id", 1), ("source_procurement_request_id", 1)], {
+            "unique": True,
+            "name": "ws_source_procurement_request_id_partial",
+            "partialFilterExpression": {"source_procurement_request_id": {"$type": "string"}},
+        }),
         (db.documents, [("workspace_id", 1)], {}),
         (db.documents, [("workspace_id", 1), ("uploaded_at", -1)], {}),
         (db.documents, [("id", 1)], {"unique": True}),
@@ -15346,16 +15501,21 @@ async def _scrub_null_financial_external_ids() -> None:
         deal = await db.financial_entries.update_many(
             {"source_deal_id": None}, {"$unset": {"source_deal_id": ""}},
         )
+        proc = await db.financial_entries.update_many(
+            {"source_procurement_request_id": None},
+            {"$unset": {"source_procurement_request_id": ""}},
+        )
         # Drop legacy sparse indexes once partial ones exist (best-effort).
         for name in (
             "workspace_id_1_qb_txn_id_1",
             "workspace_id_1_source_deal_id_1",
+            "workspace_id_1_source_procurement_request_id_1",
         ):
             try:
                 await db.financial_entries.drop_index(name)
             except Exception:
                 pass
-        touched = (qb.modified_count or 0) + (deal.modified_count or 0)
+        touched = (qb.modified_count or 0) + (deal.modified_count or 0) + (proc.modified_count or 0)
         if touched:
             logger.info("scrubbed null external ids on %s financial entries", touched)
     except Exception:

@@ -392,7 +392,11 @@ export default function Procurement() {
     setBusy(true);
     try {
       const { data: res } = await api.patch(`/procurement/requests/${selected.id}`, body);
-      toast.success("Request updated");
+      if (res?.financial_entry) {
+        toast.success("Request updated · expense logged to Financials");
+      } else {
+        toast.success("Request updated");
+      }
       await reload();
       if (res?.request?.id) setSelectedId(res.request.id);
     } catch (e) {
@@ -406,7 +410,11 @@ export default function Procurement() {
     setBusy(true);
     try {
       const { data: res } = await api.patch(`/procurement/requests/${selected.id}`, { status, ...extra });
-      toast.success(`Marked ${STATUS_META[status]?.label || status}`);
+      if (res?.financial_entry) {
+        toast.success(`Marked ${STATUS_META[status]?.label || status} · expense logged to Financials`);
+      } else {
+        toast.success(`Marked ${STATUS_META[status]?.label || status}`);
+      }
       await reload();
       if (res?.request?.id) setSelectedId(res.request.id);
     } catch (e) {
@@ -631,6 +639,9 @@ export default function Procurement() {
                   recorded — total above may be incomplete
                 </p>
               )}
+              <p className="text-[11px] text-helm-muted mt-1.5">
+                Delivered requests with a cost also post as Procurement expenses in Financials (burn).
+              </p>
             </div>
             {canManageBudget && (
               <div className="flex flex-wrap items-end gap-2" data-testid="procurement-budget-controls">
