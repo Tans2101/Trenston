@@ -42,10 +42,10 @@ function formatManilaTime(date) {
 }
 
 function ManilaClock() {
-  const [now, setNow] = useState(() => formatManilaTime(new Date()));
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
-    const tick = () => setNow(formatManilaTime(new Date()));
+    const tick = () => setNow(new Date());
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
@@ -53,12 +53,12 @@ function ManilaClock() {
 
   return (
     <time
-      dateTime={new Date().toISOString()}
+      dateTime={now.toISOString()}
       data-testid="footer-manila-clock"
       title="Asia/Manila"
       className="font-mono tabular-nums text-helm-slate"
     >
-      {now} · Manila
+      {formatManilaTime(now)} · Manila
     </time>
   );
 }
