@@ -15542,6 +15542,7 @@ async def _ensure_indexes():
         (db.sales_order_book, [("id", 1)], {"unique": True}),
         (db.sales_order_book, [("department_id", 1), ("updated_at", -1)], {}),
         (db.sales_order_book, [("workspace_id", 1), ("expected_close_month", 1)], {}),
+        (db.sales_order_book, [("workspace_id", 1), ("created_at", -1)], {}),
         (db.sales_targets, [("workspace_id", 1), ("month", 1)], {"unique": True}),
         (db.maintenance_spares, [("id", 1)], {"unique": True}),
         (db.maintenance_spares, [("department_id", 1)], {}),
