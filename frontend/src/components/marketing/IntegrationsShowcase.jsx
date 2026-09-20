@@ -49,7 +49,7 @@ export default function IntegrationsShowcase({ compact = false }) {
         <p className="mt-10">
           <Link
             to="/integrations"
-            className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-ember transition-colors"
+            className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-ink transition-colors"
           >
             See what each integration does
             <span aria-hidden>→</span>

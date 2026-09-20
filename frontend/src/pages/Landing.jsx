@@ -49,7 +49,7 @@ function BriefingPreview() {
           ))}
         </div>
         <div className="mt-5">
-          <div className="h-px w-8 bg-helm-gold mb-3" aria-hidden />
+          <div className="h-px w-8 bg-helm-navy/25 mb-3" aria-hidden />
           <p className="font-mono text-[10px] uppercase tracking-wider text-helm-slate">One decision today</p>
           <p className="mt-2 text-sm text-helm-cream/85 leading-snug">Approve the $40K infrastructure reservation. It pays back in four months and cuts cloud spend by 18%.</p>
           <p className="mt-4 text-xs text-helm-slate">Review decision →</p>
@@ -105,7 +105,7 @@ export default function Landing() {
               className="font-display mt-8 text-5xl sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] leading-[1.05] text-helm-navy">
               {TAGLINE.split(". ").map((part, i, arr) => (
                 <span key={part}>
-                  {i === 0 ? <span className="text-helm-ember">{part}.</span> : part}
+                  {i === 0 ? <span className="text-helm-navy">{part}.</span> : part}
                   {i < arr.length - 1 && i !== 0 ? "." : ""}
                   {i < arr.length - 1 && <br />}
                 </span>
@@ -115,11 +115,11 @@ export default function Landing() {
               className="mt-8 text-lg text-helm-slate leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
             <motion.div variants={fade} initial="hidden" animate="show" custom={3} className="mt-10 flex flex-wrap items-center gap-3 relative z-10">
               <button data-testid="hero-cta-btn" onClick={enter} type="button"
-                className="group inline-flex items-center gap-2 rounded-md bg-helm-ember text-white font-medium px-6 py-3 transition-colors hover:bg-helm-ember-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-ember">
+                className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
                 {authed ? "Open your cockpit" : "Start free"}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
-              <a href="#how" className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-6 py-3 text-sm text-helm-navy transition-colors hover:border-helm-ember/35 hover:text-helm-ember focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-ember">
+              <a href="#how" className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-6 py-3 text-sm text-helm-navy transition-colors hover:border-helm-navy/30 hover:text-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
                 See the 3-minute workflow
               </a>
             </motion.div>
@@ -141,7 +141,7 @@ export default function Landing() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-8">
             {PRODUCT_FACTS.map((s, i) => (
               <motion.div key={s.l} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-left md:text-center">
-                <p className={`font-mono text-3xl md:text-4xl tabular-nums ${i === 0 ? "text-helm-ember" : "text-helm-navy"}`}>{s.v}</p>
+                <p className={`font-mono text-3xl md:text-4xl tabular-nums ${i === 0 ? "text-helm-navy" : "text-helm-navy"}`}>{s.v}</p>
                 <p className="mt-2 text-xs text-helm-slate leading-snug">{s.l}</p>
               </motion.div>
             ))}
@@ -152,7 +152,7 @@ export default function Landing() {
       <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">What CEOs open Trenston for.</h2>
           </motion.div>
           <div className="mt-16 space-y-0 border-t border-helm-navy/[0.06]">
@@ -172,7 +172,7 @@ export default function Landing() {
       <section id="how" className="px-6 py-28 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">How Trenston fits together.</h2>
           </motion.div>
           <div className="mt-16 grid md:grid-cols-3 gap-12 md:gap-10">
@@ -192,7 +192,7 @@ export default function Landing() {
       <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Everything a CEO needs, nothing they do not.
             </h2>
@@ -212,7 +212,7 @@ export default function Landing() {
             ))}
           </div>
           <div className="mt-10">
-            <Link to="/features" className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-ember transition-colors">
+            <Link to="/features" className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-navy transition-colors">
               See all features <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -224,10 +224,10 @@ export default function Landing() {
       <section id="pricing" className="scroll-mt-24 px-6 py-28 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-14 max-w-2xl">
-            <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">Plans that scale with you</h2>
             <p className="mt-4 text-helm-slate">Start free. Paid plans include a 7-day free trial. Cancel anytime.</p>
-            <Link to="/pricing" className="inline-flex items-center gap-2 mt-4 text-sm text-helm-navy hover:text-helm-ember transition-colors">
+            <Link to="/pricing" className="inline-flex items-center gap-2 mt-4 text-sm text-helm-navy hover:text-helm-navy transition-colors">
               Full pricing page <ArrowRight className="w-4 h-4" />
             </Link>
           </motion.div>
@@ -243,7 +243,7 @@ export default function Landing() {
                 viewport={{ once: true }}
                 className="p-6 md:p-8 flex flex-col bg-helm-cream"
               >
-                {plan.highlighted && <div className="h-px w-8 bg-helm-ember mb-4" aria-hidden />}
+                {plan.highlighted && <div className="h-px w-8 bg-helm-navy/40 mb-4" aria-hidden />}
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">{plan.label}</p>
                 <p className="font-mono text-4xl text-helm-navy mt-3 tabular-nums">
                   {plan.price === 0 ? "$0" : `$${plan.price}`}
@@ -261,9 +261,9 @@ export default function Landing() {
                   ))}
                 </ul>
                 <button type="button" onClick={enter} data-testid={`pricing-cta-${plan.id}`}
-                  className={`mt-8 w-full rounded-md font-medium py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-ember ${
+                  className={`mt-8 w-full rounded-md font-medium py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy ${
                     plan.highlighted
-                      ? "bg-helm-ember text-white hover:bg-helm-ember-hover"
+                      ? "bg-helm-navy text-helm-cream hover:bg-helm-ink"
                       : "border border-helm-navy/15 text-helm-navy hover:border-helm-navy/30"
                   }`}>
                   {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
@@ -289,7 +289,7 @@ export default function Landing() {
                 {item.link ? (
                   <Link
                     to={item.link.to}
-                    className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-ember transition-colors"
+                    className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-navy transition-colors"
                   >
                     {item.link.label} →
                   </Link>
@@ -303,12 +303,12 @@ export default function Landing() {
       <section className="relative z-10 px-6 py-28 border-t border-helm-navy/[0.05]">
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="relative mx-auto max-w-2xl text-center">
-          <div className="mx-auto h-px w-10 bg-helm-gold mb-8" aria-hidden />
+          <div className="mx-auto h-px w-10 bg-helm-navy/25 mb-8" aria-hidden />
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">{TAGLINE}</h2>
           <p className="mt-6 text-helm-slate">Quiet control for the owner everyone is counting on.</p>
           <div className="mt-10">
             <button data-testid="footer-cta-btn" onClick={enter} type="button"
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-ember text-white font-medium px-7 py-3 transition-colors hover:bg-helm-ember-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-ember">
+              className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-7 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
               {authed ? "Open your cockpit" : "Get started"}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </button>
