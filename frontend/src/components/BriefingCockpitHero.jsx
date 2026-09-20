@@ -1,0 +1,336 @@
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import {
+  ChevronDown, ChevronLeft, ChevronRight, Filter, Info, Plus, Sparkles,
+} from "lucide-react";
+import { useFetch } from "@/hooks/useFetch";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
+import palette from "@/design/palette.json";
+
+const ASSISTANT_PROMPTS = [
+  "What's my burn rate?",
+  "What's my runway?",
+  "Which decision should I make first?",
+  "What's the single most important thing today?",
+];
+
+const METRIC_KEYS = [
+  { id: "mrr", label: "Revenue", match: /mrr|revenue/i },
+  { id: "burn", label: "Burn", match: /^burn/i },
+  { id: "runway", label: "Runway", match: /runway/i },
+  { id: "cash", label: "Cash", match: /cash/i },
+];
+
+const SPEND_COLORS = [palette.navy, palette.gold, palette.slate, palette.inkCard, palette.statusWarning];
+
+function pickMetric(metrics, key) {
+  const def = METRIC_KEYS.find((m) => m.id === key) || METRIC_KEYS[0];
+  return (metrics || []).find((m) => def.match.test(m.label || "")) || null;
+}
+
+function formatRangeLabel() {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+  const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+/**
+ * Briefing top viewport: single-metric hero, period comparison chart,
+ * and Assistant / Spending / Decisions columns.
+ */
+export default function BriefingCockpitHero({ metrics = [], decisions = [], loading = false }) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const canFin = (user?.granted_sections || []).includes("financials");
+  const { data: fin } = useFetch(canFin ? "/financials" : null);
+  const [metricId, setMetricId] = useState("mrr");
+  const [metricOpen, setMetricOpen] = useState(false);
+  const [chartOffset, setChartOffset] = useState(0);
+
+  const availableMetrics = useMemo(() => {
+    return METRIC_KEYS.filter((k) => (metrics || []).some((m) => k.match.test(m.label || "")));
+  }, [metrics]);
+
+  const activeKey = availableMetrics.some((m) => m.id === metricId)
+    ? metricId
+    : (availableMetrics[0]?.id || "mrr");
+  const active = pickMetric(metrics, activeKey);
+  const activeLabel = METRIC_KEYS.find((m) => m.id === activeKey)?.label || "Metric";
+
+  const chartData = useMemo(() => {
+    const series = fin?.revenue_series || [];
+    if (!series.length) return [];
+    return series.map((row, i) => ({
+      month: row.month,
+      current: Number(row.revenue) || 0,
+      last: i > 0 ? Number(series[i - 1].revenue) || 0 : 0,
+    }));
+  }, [fin]);
+
+  const visibleChart = useMemo(() => {
+    if (chartData.length <= 6) return chartData;
+    const start = Math.max(0, chartData.length - 6 - chartOffset);
+    const end = Math.max(6, chartData.length - chartOffset);
+    return chartData.slice(start, end);
+  }, [chartData, chartOffset]);
+
+  const spendRows = useMemo(() => {
+    const rows = fin?.expense_breakdown || [];
+    return rows.slice(0, 5);
+  }, [fin]);
+
+  const decisionRows = (decisions || []).slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="mb-8 space-y-4 animate-pulse" data-testid="briefing-cockpit-skeleton">
+        <div className="h-28 rounded-xl border border-helm-line bg-helm-card" />
+        <div className="h-56 rounded-xl border border-helm-line bg-helm-card" />
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8 space-y-4 fade-up" data-testid="briefing-cockpit-hero">
+      {/* A. Metric header */}
+      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="relative">
+            <button
+              type="button"
+              data-testid="briefing-metric-switcher"
+              onClick={() => setMetricOpen((o) => !o)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-helm-line px-3 py-1.5 text-sm text-helm-fg transition-colors hover:bg-helm-fg/[0.04]"
+            >
+              {activeLabel}
+              <ChevronDown className={cn("w-3.5 h-3.5 text-helm-muted transition-transform", metricOpen && "rotate-180")} />
+            </button>
+            {metricOpen && (
+              <div className="absolute left-0 top-full mt-1 z-20 min-w-[9rem] rounded-xl border border-helm-line bg-helm-card shadow-xl overflow-hidden">
+                {(availableMetrics.length ? availableMetrics : METRIC_KEYS).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => { setMetricId(m.id); setMetricOpen(false); }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm transition-colors hover:bg-helm-fg/5",
+                      m.id === activeKey ? "text-helm-navy font-medium" : "text-helm-muted",
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
+              {formatRangeLabel()}
+              <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
+            </span>
+            <button
+              type="button"
+              aria-label="Filter"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
+            >
+              <Filter className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        <p className="mt-4 font-display text-4xl md:text-5xl text-helm-navy tracking-tight tabular-nums">
+          {active?.value || "—"}
+        </p>
+        <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
+          {active?.missing
+            ? "Add data on Financials to unlock this figure"
+            : active?.delta
+              ? `${active.delta > 0 ? "+" : ""}${active.delta}% vs last period`
+              : "vs last period"}
+          <Info className="w-3.5 h-3.5" aria-hidden />
+        </p>
+      </div>
+
+      {/* B. Chart */}
+      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-medium text-helm-fg">Period comparison</p>
+          <div className="flex items-center gap-3 font-mono text-[11px] text-helm-muted">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-helm-navy" /> Current period
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-helm-slate/40" /> Last period
+            </span>
+          </div>
+        </div>
+        {visibleChart.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={visibleChart} margin={{ left: -8, right: 8, top: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--helm-line)" vertical={false} />
+                <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+                <Tooltip
+                  cursor={{ fill: "rgba(20,33,61,0.04)" }}
+                  contentStyle={{
+                    background: "var(--helm-card)",
+                    border: "1px solid var(--helm-line)",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Bar dataKey="current" name="Current period" fill={palette.navy} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="last" name="Last period" fill={`${palette.slate}66`} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            {chartData.length > 6 && (
+              <div className="mt-2 flex justify-end gap-1">
+                <button
+                  type="button"
+                  aria-label="Earlier periods"
+                  disabled={chartOffset >= chartData.length - 6}
+                  onClick={() => setChartOffset((o) => o + 1)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Later periods"
+                  disabled={chartOffset <= 0}
+                  onClick={() => setChartOffset((o) => Math.max(0, o - 1))}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted disabled:opacity-40"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="py-12 text-center text-sm text-helm-muted">
+            {canFin
+              ? "Log revenue on Financials to see period comparison."
+              : "Financial charts appear when you have Financials access."}
+          </p>
+        )}
+      </div>
+
+      {/* C. Three columns */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-4 h-4 text-helm-gold" />
+            <h3 className="text-sm font-medium text-helm-fg">Assistant</h3>
+          </div>
+          <div className="flex flex-col gap-2">
+            {ASSISTANT_PROMPTS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                data-testid="briefing-ask-chip"
+                onClick={() => navigate("/app/ask", { state: { prefill: q, autoSend: true } })}
+                className="rounded-full border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-left text-sm text-helm-fg transition-colors hover:border-helm-gold/35 hover:bg-helm-gold/10"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-helm-fg">Spending</h3>
+            <span className="inline-flex items-center gap-1 text-xs text-helm-muted">
+              Last 30 days <ChevronDown className="w-3 h-3" />
+            </span>
+          </div>
+          {spendRows.length > 0 ? (
+            <ul className="space-y-3">
+              {spendRows.map((row, i) => (
+                <li key={row.name} className="flex items-center gap-2.5">
+                  <span
+                    className="h-2.5 w-2.5 rounded-sm shrink-0"
+                    style={{ background: SPEND_COLORS[i % SPEND_COLORS.length] }}
+                  />
+                  <span className="text-sm text-helm-fg truncate flex-1">{row.name}</span>
+                  <div className="w-20 h-1.5 rounded-full bg-helm-fg/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-helm-navy"
+                      style={{ width: `${Math.min(100, Number(row.value) || 0)}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-[11px] tabular-nums text-helm-muted w-8 text-right">
+                    {row.value}%
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-helm-muted py-6 text-center">
+              {canFin ? "Log expenses to see category spend." : "Spending needs Financials access."}
+            </p>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-helm-fg">Decisions</h3>
+            <button
+              type="button"
+              aria-label="Add decision"
+              onClick={() => navigate("/app/decisions")}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="mb-3 rounded-lg border border-helm-status-positive/35 bg-helm-status-positive/12 px-3 py-2.5 flex items-center justify-between">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-wider text-helm-muted">Decision queue</p>
+              <p className="text-sm text-helm-fg mt-0.5">
+                {decisionRows.length === 0 ? "Clear" : decisionRows.length <= 2 ? "Good" : "Needs attention"}
+              </p>
+            </div>
+            <span className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider",
+              decisionRows.length <= 2
+                ? "bg-helm-status-positive/12 text-helm-status-positive"
+                : "bg-helm-status-warning/12 text-helm-status-warning",
+            )}>
+              {decisionRows.length <= 2 ? "Good" : "Busy"}
+            </span>
+          </div>
+          {decisionRows.length > 0 ? (
+            <ul className="space-y-2 max-h-40 overflow-y-auto">
+              {decisionRows.map((d, i) => (
+                <li key={d.id || i} className="flex items-start justify-between gap-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="text-helm-fg truncate leading-snug">{d.title || d.label || "Open decision"}</p>
+                    <p className="text-[11px] text-helm-muted mt-0.5">{d.urgency || d.source || "Pending"}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-helm-status-warning/12 px-2 py-0.5 text-[10px] text-helm-status-warning">
+                    Open
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-helm-muted text-center py-4">No open decisions right now.</p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
