@@ -21,7 +21,7 @@ export default function IntegrationsShowcase({ compact = false }) {
     >
       <div className="mx-auto max-w-6xl">
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}>
-          <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
+          <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">Works with</p>
           <h2 className="font-display mt-4 text-2xl md:text-3xl font-medium tracking-tight text-helm-navy max-w-xl">
             Tools your team already uses.
