@@ -73,7 +73,7 @@
         --helm-bg: #FFFFFF;
         --helm-card: #FFFFFF;
         --helm-muted: #111111;
-        --helm-line: color-mix(in srgb, #111111 16%, transparent);
+        --helm-line: color-mix(in srgb, #111111 32%, transparent);
         /* Keep shadcn bg-background in lockstep with pure white */
         --background: 0 0% 100%;
         --foreground: 0 0% 7%;
@@ -213,7 +213,7 @@ input.cl-otpCodeFieldInput {
   --helm-bg: #FFFFFF;
   --helm-card: #FFFFFF;
   --helm-muted: #111111;
-  --helm-line: color-mix(in srgb, #111111 16%, transparent);
+  --helm-line: color-mix(in srgb, #111111 32%, transparent);
   background: #FFFFFF;
   color: #111111;
 }
@@ -376,6 +376,20 @@ html[data-theme="light"] .app-shell textarea::placeholder {
 
 html[data-theme="light"] .app-shell .glass {
   background: #FFFFFF;
+}
+
+/* Stronger section/card edges so white tiles separate from the white page */
+.app-shell .border-helm-line,
+.app-shell [class*="border-helm-line"] {
+  border-color: color-mix(in srgb, #111111 28%, transparent) !important;
+}
+
+.app-shell .rounded-xl.border.bg-helm-card,
+.app-shell .rounded-xl.border[class*="bg-helm-card"],
+.app-shell [data-testid*="card"],
+.app-shell section.rounded-xl.border {
+  box-shadow: 0 1px 2px color-mix(in srgb, #111111 6%, transparent),
+    0 1px 3px color-mix(in srgb, #111111 8%, transparent);
 }
 
 html[data-theme="light"] .app-shell .font-mono,

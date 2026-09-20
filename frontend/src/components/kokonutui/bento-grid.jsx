@@ -82,22 +82,14 @@ function AnimatedMetricValue({ value, missing, className }) {
 }
 
 function cellClass(index, total) {
-  // Varied bento proportions: first cell larger when there are 3+ metrics.
-  if (total === 1) return "col-span-1";
-  if (total === 2) return "col-span-1";
-  if (total === 3) {
-    if (index === 0) return "col-span-2 lg:col-span-1 lg:row-span-2";
-    return "col-span-1";
-  }
-  // 4+
-  if (index === 0) return "col-span-2 lg:col-span-2";
+  // Equal tiles — keep finance KPIs side-by-side at one height.
   return "col-span-1";
 }
 
 function gridClass(total) {
   if (total === 1) return "grid-cols-1 max-w-xs";
   if (total === 2) return "grid-cols-2 max-w-xl";
-  if (total === 3) return "grid-cols-2 lg:grid-cols-3 lg:grid-rows-2";
+  if (total === 3) return "grid-cols-1 sm:grid-cols-3";
   return "grid-cols-2 lg:grid-cols-4";
 }
 

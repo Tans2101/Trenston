@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Info, Plus, Sparkles,
+  ChevronLeft, ChevronRight, Info, Plus, Sparkles,
 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
@@ -41,27 +41,31 @@ function formatRangeLabel() {
 }
 
 /**
- * Briefing top viewport: single-metric hero, period comparison chart,
- * and Assistant / Spending / Decisions columns.
+ * Briefing top viewport: Revenue / Burn / Runway side by side,
+ * period comparison chart, and Assistant / Spending / Decisions columns.
  */
 export default function BriefingCockpitHero({ metrics = [], decisions = [], loading = false }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const canFin = (user?.granted_sections || []).includes("financials");
   const { data: fin } = useFetch(canFin ? "/financials" : null);
-  const [metricId, setMetricId] = useState("mrr");
-  const [metricOpen, setMetricOpen] = useState(false);
   const [chartOffset, setChartOffset] = useState(0);
 
-  const availableMetrics = useMemo(() => {
-    return METRIC_KEYS.filter((k) => (metrics || []).some((m) => k.match.test(m.label || "")));
+  const heroMetrics = useMemo(() => {
+    const order = ["mrr", "burn", "runway"];
+    return order.map((id) => {
+      const def = METRIC_KEYS.find((k) => k.id === id);
+      const match = pickMetric(metrics, id);
+      return {
+        id,
+        label: def?.label || id,
+        value: match?.value,
+        delta: match?.delta,
+        missing: match?.missing ?? !match,
+        tone: match?.tone,
+      };
+    });
   }, [metrics]);
-
-  const activeKey = availableMetrics.some((m) => m.id === metricId)
-    ? metricId
-    : (availableMetrics[0]?.id || "mrr");
-  const active = pickMetric(metrics, activeKey);
-  const activeLabel = METRIC_KEYS.find((m) => m.id === activeKey)?.label || "Metric";
 
   const chartData = useMemo(() => {
     const series = fin?.revenue_series || [];
@@ -90,12 +94,12 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
   if (loading) {
     return (
       <div className="mb-8 space-y-4 animate-pulse" data-testid="briefing-cockpit-skeleton">
-        <div className="h-28 rounded-xl border border-helm-line bg-helm-card" />
-        <div className="h-56 rounded-xl border border-helm-line bg-helm-card" />
+        <div className="h-28 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
+        <div className="h-56 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
         <div className="grid lg:grid-cols-3 gap-4">
-          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
-          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
-          <div className="h-48 rounded-xl border border-helm-line bg-helm-card" />
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
+          <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
         </div>
       </div>
     );
@@ -103,59 +107,35 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
 
   return (
     <div className="mb-8 space-y-4 fade-up" data-testid="briefing-cockpit-hero">
-      {/* A. Metric header */}
-      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="relative">
-            <button
-              type="button"
-              data-testid="briefing-metric-switcher"
-              onClick={() => setMetricOpen((o) => !o)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-helm-line px-3 py-1.5 text-sm text-helm-fg transition-colors hover:bg-helm-fg/[0.04]"
-            >
-              {activeLabel}
-              <ChevronDown className={cn("w-3.5 h-3.5 text-helm-muted transition-transform", metricOpen && "rotate-180")} />
-            </button>
-            {metricOpen && (
-              <div className="absolute left-0 top-full mt-1 z-20 min-w-[9rem] rounded-xl border border-helm-line bg-helm-card shadow-xl overflow-hidden">
-                {(availableMetrics.length ? availableMetrics : METRIC_KEYS).map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => { setMetricId(m.id); setMetricOpen(false); }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm transition-colors hover:bg-helm-fg/5",
-                      m.id === activeKey ? "text-helm-navy font-medium" : "text-helm-muted",
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
-              {formatRangeLabel()}
-            </span>
-          </div>
+      {/* A. Revenue / Burn / Runway — equal tiles side by side */}
+      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
+        <div className="flex items-center justify-end mb-4">
+          <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
+            {formatRangeLabel()}
+          </span>
         </div>
-
-        <p className="mt-4 font-display text-4xl md:text-5xl text-helm-navy tracking-tight tabular-nums">
-          {active?.value || "—"}
-        </p>
-        <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
-          {active?.missing
-            ? "Add data on Financials to unlock this figure"
-            : active?.delta
-              ? `${active.delta > 0 ? "+" : ""}${active.delta}% vs last period`
-              : "vs last period"}
-          <Info className="w-3.5 h-3.5" aria-hidden />
-        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" data-testid="briefing-hero-metrics">
+          {heroMetrics.map((m) => (
+            <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
+              <p className="text-sm font-medium text-helm-fg">{m.label}</p>
+              <p className="mt-2 font-display text-3xl md:text-4xl text-helm-navy tracking-tight tabular-nums">
+                {m.value || "—"}
+              </p>
+              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
+                {m.missing
+                  ? "Add data on Financials"
+                  : m.delta != null
+                    ? `${m.delta > 0 ? "+" : ""}${m.delta}% vs last period`
+                    : "vs last period"}
+                <Info className="w-3.5 h-3.5" aria-hidden />
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* B. Chart */}
-      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6">
+      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-medium text-helm-fg">Period comparison</p>
           <div className="flex items-center gap-3 font-mono text-[11px] text-helm-muted">
@@ -221,7 +201,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
 
       {/* C. Three columns */}
       <div className="grid lg:grid-cols-3 gap-4">
-        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-helm-gold" />
             <h3 className="text-sm font-medium text-helm-fg">Assistant</h3>
@@ -241,7 +221,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
           </div>
         </section>
 
-        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Spending</h3>
             <span className="text-xs text-helm-muted">Last 30 days</span>
@@ -274,7 +254,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
           )}
         </section>
 
-        <section className="rounded-xl border border-helm-line bg-helm-card p-5">
+        <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Decisions</h3>
             <button
