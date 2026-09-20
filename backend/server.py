@@ -1591,9 +1591,12 @@ _FINANCIALS_CACHE_TTL_SECONDS = 30.0
 
 
 def _financials_cache_key(workspace_id: str, department_ids: Optional[list] = None) -> str:
-    if department_ids:
-        return f"financials:{workspace_id}:{','.join(sorted(str(d) for d in department_ids))}"
-    return f"financials:{workspace_id}"
+    # None = CEO bypass (all workspace rows). [] = no department access.
+    # Must not collapse those cases — empty list is falsy but not "all data".
+    if department_ids is None:
+        return f"financials:{workspace_id}"
+    scoped = ",".join(sorted(str(d) for d in department_ids))
+    return f"financials:{workspace_id}:{scoped or 'none'}"
 
 
 def invalidate_financials_cache(workspace_id: str) -> None:
@@ -2300,10 +2303,11 @@ def ask_context_for_synthesis(
         )
 
     # Back-compat: older callers passed sales_tracked/hr_tracked without enabled flags.
+    # Visibility alone must not invent a tracked queue when the department is off.
     if sales_enabled is None:
-        sales_enabled = bool(sales_tracked or sales_visible)
+        sales_enabled = bool(sales_tracked)
     if hr_enabled is None:
-        hr_enabled = bool(hr_tracked or hr_visible)
+        hr_enabled = bool(hr_tracked)
 
     pipeline_ctx = _ask_slice_context(
         deals,
@@ -3575,7 +3579,18 @@ async def briefing(principal=Depends(get_principal)):
     b["gmail_compose"] = gmail_meta.get("compose", False)
     b["data_as_of"] = freshness.get("data_as_of")
     b["data_freshness_sources"] = freshness.get("sources") or {}
-    return {**b, "is_pro": is_pro, "ai_summary": b.get("ai_summary") if is_pro else None}
+    # Free includes AI briefing — do not strip the stored summary just because
+    # the workspace is not on a paid tier (legacy is_pro gate was wrong).
+    can_ai_briefing = workspace_allows(c, helm_plans.FEATURE_AI_BRIEFING)
+    can_generate = (
+        can_ai_briefing and "briefing:generate" in perms_for(principal.get("pack") or "member")
+    )
+    return {
+        **b,
+        "is_pro": is_pro,
+        "ai_summary": b.get("ai_summary") if can_ai_briefing else None,
+        "can_generate_ai_summary": can_generate,
+    }
 
 
 # Gmail briefing: stale-while-revalidate. Key includes user_id so a future
@@ -5562,13 +5577,15 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         activity_heatmap = await _activity_heatmap_for_workspace(c["workspace_id"], weeks=12)
     except Exception:
         logger.exception("telemetry activity heatmap failed for %s", c.get("workspace_id"))
+    freshness = await helm_freshness.resolve_workspace_data_as_of(db, c)
     return {
         "kpis": kpis, "revenue_trend": revenue_trend, "funnel": funnel, "risks": risks,
         "funnel_is_sample": funnel_is_sample,
         "risks_is_sample": risks_is_sample,
         "suggested_risks": suggested_risks,
         "expense_breakdown": fin["expense_breakdown"],
-        "data_as_of": now.isoformat(),
+        "data_as_of": freshness.get("data_as_of") or now.isoformat(),
+        "data_freshness_sources": freshness.get("sources") or {},
         "sources": sources,
         "can_write": can_write,
         "notes": manual.get("notes") or "",
@@ -6320,23 +6337,24 @@ async def delete_fin_entry(entry_id: str, principal=Depends(require_section("fin
 
 
 class FinSettingsInput(BaseModel):
-    cash: float
+    cash: Optional[float] = None
     gross_margin: Optional[float] = None
     currency: Optional[str] = None
 
 
 @api_router.put("/financials/settings")
 async def update_fin_settings(payload: FinSettingsInput, principal=Depends(require_section("financials", "finance:write"))):
-    if not math.isfinite(payload.cash):
+    if payload.cash is not None and not math.isfinite(payload.cash):
         raise HTTPException(status_code=400, detail="cash must be a finite number")
     if payload.gross_margin is not None and not math.isfinite(payload.gross_margin):
         raise HTTPException(status_code=400, detail="gross_margin must be a finite number")
     currency = normalize_currency(payload.currency) if payload.currency is not None else None
-    sets = {
-        "financial_settings.cash": round(payload.cash, 2),
-        "financial_settings.cash_entered": True,
+    sets: dict = {
         "financial_settings.gross_margin": payload.gross_margin,
     }
+    if payload.cash is not None:
+        sets["financial_settings.cash"] = round(payload.cash, 2)
+        sets["financial_settings.cash_entered"] = True
     if currency is not None:
         sets["financial_settings.currency"] = currency
     await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": sets})
@@ -6344,11 +6362,17 @@ async def update_fin_settings(payload: FinSettingsInput, principal=Depends(requi
     fin = await compute_financials(principal["workspace_id"])
     runway = fin["runway_months"]
     cur = fin.get("currency") or "usd"
-    await log_activity(principal, "financials", "settings.update",
-                       f"Updated cash to {fmt_money(payload.cash, cur)}" + (f", runway now {runway} months" if runway is not None else ""),
-                       {"cash": payload.cash, "runway_months": runway, "currency": cur})
+    cash_note = (
+        f"Updated cash to {fmt_money(payload.cash, cur)}"
+        if payload.cash is not None
+        else "Updated financial settings"
+    )
+    await log_activity(
+        principal, "financials", "settings.update",
+        cash_note + (f", runway now {runway}mo" if runway is not None and payload.cash is not None else ""),
+        {"cash": payload.cash, "runway_months": runway, "currency": cur},
+    )
     return {"ok": True, "settings": fin.get("settings"), "currency": cur}
-
 
 class CsvImportConfirmInput(BaseModel):
     entries: list
@@ -7037,6 +7061,10 @@ async def reports(principal=Depends(get_principal)):
         "financial_months": financial_months,
         "financial_latest_month": financial_latest_month,
         "is_pro": workspace_is_pro(c),
+        "can_generate_pack": (
+            "reports:pack" in perms_for(principal["pack"])
+            and workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS)
+        ),
     }
     simple_cache.put(cache_key, payload_out, _DEPT_LIST_CACHE_TTL_SECONDS)
     return payload_out
@@ -9372,19 +9400,33 @@ async def list_production_work_orders(
     )
     is_lead = _can_lead_production(principal, membership)
     cycle = decision_engine.compute_average_cycle_time(rows)
-    # Open procurement / maintenance for linking in the UI
-    open_proc = await db.procurement_requests.find(
+    # Open procurement / maintenance for linking — scoped to departments the user can see.
+    proc_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_PROCUREMENT,
+    )
+    maint_ids_access = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ENGINEERING_MAINTENANCE,
+    )
+    proc_filt = dept_access.apply_department_filter(
         {
             "workspace_id": principal["workspace_id"],
             "status": {"$in": list(PROCUREMENT_OPEN_FOR_LINK)},
         },
-        {"_id": 0, "id": 1, "item": 1, "status": 1, "quantity": 1},
-    ).sort("created_at", -1).to_list(500)
-    open_maint = await db.maintenance_tickets.find(
+        proc_ids,
+    )
+    maint_filt = dept_access.apply_department_filter(
         {
             "workspace_id": principal["workspace_id"],
             "status": {"$in": list(MAINTENANCE_OPEN_FOR_LINK)},
         },
+        maint_ids_access,
+    )
+    open_proc = await db.procurement_requests.find(
+        proc_filt,
+        {"_id": 0, "id": 1, "item": 1, "status": 1, "quantity": 1},
+    ).sort("created_at", -1).to_list(500)
+    open_maint = await db.maintenance_tickets.find(
+        maint_filt,
         {"_id": 0, "id": 1, "equipment_name": 1, "status": 1, "priority": 1},
     ).sort("created_at", -1).to_list(500)
     payload_out = {
@@ -13100,6 +13142,8 @@ async def integrations(principal=Depends(get_principal)):
     out = {
         "integrations": ints,
         "is_pro": workspace_is_pro(c),
+        "billing_enforced": BILLING_ENFORCED,
+        "integrations_enabled": workspace_allows(c, helm_plans.FEATURE_INTEGRATIONS),
         "can_manage": "integrations:manage" in perms_for(principal["pack"]),
         "can_connect_google": True,
         "connection_owners": connection_owners,
@@ -13578,13 +13622,15 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     since = c.get("sap_b1_last_synced_at")
-    txns = await sap_b1_sync.fetch_sap_transactions(live, since)
+    txns, complete = await sap_b1_sync.fetch_sap_transactions(live, since)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
-    last_synced_at = datetime.now(timezone.utc).isoformat()
-    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at}
+    last_synced_at = None
+    if complete:
+        last_synced_at = datetime.now(timezone.utc).isoformat()
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at}})
+    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 
 @api_router.post("/integrations/sap_b1/sync")
@@ -13734,13 +13780,15 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     since = c.get("qb_last_synced_at")
-    txns = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    txns, complete = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
-    last_synced_at = datetime.now(timezone.utc).isoformat()
-    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at}
+    last_synced_at = None
+    if complete:
+        last_synced_at = datetime.now(timezone.utc).isoformat()
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at}})
+    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 
 async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str = "xero_sync") -> dict:
@@ -13756,13 +13804,15 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     since = c.get("xero_last_synced_at")
-    txns = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    txns, complete = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
-    last_synced_at = datetime.now(timezone.utc).isoformat()
-    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at}
+    last_synced_at = None
+    if complete:
+        last_synced_at = datetime.now(timezone.utc).isoformat()
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at}})
+    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 
 @api_router.post("/integrations/quickbooks/sync")
@@ -13937,16 +13987,18 @@ async def hubspot_sync_endpoint(principal=Depends(require_integration_provider("
         await _store_integration_tokens(ws_id, "hubspot_tokens", tokens)
 
         since = c.get("hubspot_last_synced_at")
-        deals = await hubspot_sync.fetch_deals(tokens, since)
+        deals, complete = await hubspot_sync.fetch_deals(tokens, since)
         synced_count = await _upsert_hubspot_deals(ws_id=ws_id, principal=principal, deals=deals)
-        last_synced_at = datetime.now(timezone.utc).isoformat()
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"hubspot_last_synced_at": last_synced_at}})
+        last_synced_at = None
+        if complete:
+            last_synced_at = datetime.now(timezone.utc).isoformat()
+            await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"hubspot_last_synced_at": last_synced_at}})
         await log_activity(
             principal, "integrations", "hubspot.sync",
             f"Synced {synced_count} deal{'s' if synced_count != 1 else ''} from HubSpot",
-            {"synced_count": synced_count},
+            {"synced_count": synced_count, "complete": complete},
         )
-        return {"ok": True, "synced_count": synced_count, "last_synced_at": last_synced_at}
+        return {"ok": True, "synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
     except hubspot_sync.HubSpotAuthError as exc:
         logger.warning("HubSpot auth failed for %s: %s", ws_id, exc)
@@ -14324,6 +14376,29 @@ async def _maybe_mark_referral_converted(workspace_id: str | None, subscription_
         logger.exception("referral conversion update failed for %s", workspace_id)
 
 
+def _paddle_price_id_from_event(data: dict | None) -> Optional[str]:
+    """Best-effort price id from a Paddle Billing subscription/transaction payload."""
+    data = data or {}
+    items = data.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            price = item.get("price") if isinstance(item.get("price"), dict) else {}
+            pid = str(price.get("id") or item.get("price_id") or "").strip()
+            if pid:
+                return pid
+    details = data.get("details") if isinstance(data.get("details"), dict) else {}
+    for item in details.get("line_items") or []:
+        if not isinstance(item, dict):
+            continue
+        price = item.get("price") if isinstance(item.get("price"), dict) else {}
+        pid = str(price.get("id") or item.get("price_id") or "").strip()
+        if pid:
+            return pid
+    return None
+
+
 async def _paddle_provision(event, status: str = "active"):
     data = event.get("data") or {}
     custom = data.get("custom_data") or {}
@@ -14332,9 +14407,10 @@ async def _paddle_provision(event, status: str = "active"):
     user_id = custom.get("user_id")
     sub_id = data.get("subscription_id") or data.get("id")
     now_iso = event.get("occurred_at") or datetime.now(timezone.utc).isoformat()
+    event_price_id = _paddle_price_id_from_event(data)
 
     # Recovery path: subscription reactivated / updated without checkout nonce
-    # (e.g. past_due → active). Bind by paddle_subscription_id.
+    # (e.g. past_due → active, or portal plan change). Bind by paddle_subscription_id.
     if not (nonce and workspace_id and user_id):
         if not sub_id or status not in ("active", "trialing"):
             return
@@ -14349,15 +14425,22 @@ async def _paddle_provision(event, status: str = "active"):
         }
         if data.get("customer_id"):
             recovery["paddle_customer_id"] = data["customer_id"]
+        # Portal upgrades/downgrades send subscription.updated without checkout nonce —
+        # map the live Paddle price onto Helm plan entitlements.
+        mapped_plan = helm_plans.plan_for_paddle_price(event_price_id)
+        if mapped_plan:
+            recovery["plan"] = mapped_plan
         recovery.update(_paddle_trial_fields(data, status))
         await db.workspaces.update_one(
             {"paddle_subscription_id": sub_id},
             {"$set": recovery, "$unset": {"canceled_at": ""}},
         )
         if prev:
+            if mapped_plan:
+                invalidate_plan_cache(prev.get("workspace_id"))
             await helm_analytics.emit_billing_funnel(
                 db, prev.get("workspace_id"), user_id,
-                prev.get("subscription_status"), status, prev.get("plan"),
+                prev.get("subscription_status"), status, mapped_plan or prev.get("plan"),
             )
             await _maybe_mark_referral_converted(prev.get("workspace_id"), status)
         return
@@ -14365,7 +14448,17 @@ async def _paddle_provision(event, status: str = "active"):
     intent = await db.paddle_intents.find_one({"_id": nonce})
     if not intent or intent.get("workspace_id") != workspace_id or intent.get("user_id") != user_id:
         return
-    plan = intent.get("plan") or helm_plans.plan_for_paddle_price(intent.get("price_id")) or helm_plans.PLAN_STARTER
+    if intent.get("used"):
+        # Replay / reused checkout nonce — do not re-provision entitlements.
+        return
+    # Prefer the live event price when present (covers mid-checkout price changes),
+    # then the intent, then Starter.
+    plan = (
+        helm_plans.plan_for_paddle_price(event_price_id)
+        or intent.get("plan")
+        or helm_plans.plan_for_paddle_price(intent.get("price_id"))
+        or helm_plans.PLAN_STARTER
+    )
     plan = helm_plans.normalize_plan(plan)
     if plan == helm_plans.PLAN_FREE:
         plan = helm_plans.PLAN_STARTER
@@ -15408,9 +15501,13 @@ async def _ensure_indexes():
         (db.report_digests, [("workspace_id", 1), ("date", 1)], {"unique": True}),
         (db.document_rate_events, [("created_at", 1)], {"expireAfterSeconds": 3600}),
         (db.document_rate_events, [("workspace_id", 1), ("action", 1)], {}),
+        # Window-keyed acquire counters — expire so stale windows cannot lock a workspace out.
+        (db.document_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.insights_rate_events, [("created_at", 1)], {"expireAfterSeconds": 86400}),
         (db.insights_rate_events, [("workspace_id", 1)], {}),
+        (db.insights_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.ask_helm_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.ASK_HELM_WINDOW_SECONDS}),
+        (db.ask_helm_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.document_ai_usage, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.DOCUMENT_AI_WINDOW_SECONDS}),
         (db.document_ai_usage, [("workspace_id", 1)], {}),
         (db.join_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS}),

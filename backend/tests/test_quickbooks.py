@@ -17,6 +17,10 @@ os.environ.setdefault("QUICKBOOKS_CLIENT_SECRET", "test-secret")
 
 import quickbooks as qb  # noqa: E402
 
+# Module constants are read at import; pin them for workers that imported quickbooks earlier.
+qb.QB_CLIENT_ID = os.environ["QUICKBOOKS_CLIENT_ID"]
+qb.QB_CLIENT_SECRET = os.environ["QUICKBOOKS_CLIENT_SECRET"]
+
 
 def test_map_purchase_to_expense():
     txn = {

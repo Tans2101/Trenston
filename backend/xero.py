@@ -213,53 +213,65 @@ def _since_where_clause(since: Optional[str]) -> str:
     return f' AND Date>=DateTime({dt.year},{dt.month},{dt.day})'
 
 
+XERO_PAGE_SIZE = 100  # Xero returns at most 100 invoices per page
+XERO_MAX_PAGES = 100
+
+
 async def _fetch_invoices(
     access_token: str,
     tenant_id: str,
     inv_type: str,
     since: Optional[str],
-) -> list[dict]:
+) -> tuple[list[dict], bool]:
+    """Page through invoices. complete=False if the safety page cap is hit."""
     where = f'Type=="{inv_type}" AND Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED"'
     where += _since_where_clause(since)
     url = f"{API_BASE}/Invoices"
+    all_rows: list[dict] = []
     async with httpx.AsyncClient(timeout=60.0) as hc:
-        resp = await hc.get(
-            url,
-            params={"where": where, "page": 1, "order": "Date ASC"},
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Xero-tenant-id": tenant_id,
-                "Accept": "application/json",
-            },
-        )
-    if resp.status_code == 401:
-        raise XeroAuthError("Xero access token rejected")
-    if resp.status_code == 403:
-        raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
-    if resp.status_code != 200:
-        raise RuntimeError(f"Xero Invoices failed ({resp.status_code}): {resp.text[:300]}")
-    rows = resp.json().get("Invoices") or []
-    return rows if isinstance(rows, list) else []
+        for page in range(1, XERO_MAX_PAGES + 1):
+            resp = await hc.get(
+                url,
+                params={"where": where, "page": page, "order": "Date ASC"},
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Xero-tenant-id": tenant_id,
+                    "Accept": "application/json",
+                },
+            )
+            if resp.status_code == 401:
+                raise XeroAuthError("Xero access token rejected")
+            if resp.status_code == 403:
+                raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
+            if resp.status_code != 200:
+                raise RuntimeError(f"Xero Invoices failed ({resp.status_code}): {resp.text[:300]}")
+            rows = resp.json().get("Invoices") or []
+            if not isinstance(rows, list):
+                rows = []
+            all_rows.extend(rows)
+            if len(rows) < XERO_PAGE_SIZE:
+                return all_rows, True
+        return all_rows, False
 
 
 async def fetch_xero_transactions(
     tokens: dict,
     tenant_id: str,
     since: Optional[str] = None,
-) -> list[dict]:
-    """Fetch ACCREC invoices and ACCPAY bills; optional since ISO date (date portion)."""
+) -> tuple[list[dict], bool]:
+    """Fetch ACCREC invoices and ACCPAY bills; optional since ISO date (date portion).
+
+    Returns (mapped_rows, complete). Do not advance xero_last_synced_at when complete is False.
+    """
     access_token = tokens.get("access_token")
     if not access_token:
         raise XeroAuthError("Missing access token")
-    if not tenant_id:
-        raise XeroAuthError("Missing Xero tenant_id")
 
-    invoices = await _fetch_invoices(access_token, tenant_id, "ACCREC", since)
-    bills = await _fetch_invoices(access_token, tenant_id, "ACCPAY", since)
-
+    accruals, a_ok = await _fetch_invoices(access_token, tenant_id, "ACCREC", since)
+    payables, p_ok = await _fetch_invoices(access_token, tenant_id, "ACCPAY", since)
     mapped: list[dict] = []
-    for inv in invoices + bills:
+    for inv in accruals + payables:
         row = map_xero_invoice(inv)
         if row:
             mapped.append(row)
-    return mapped
+    return mapped, a_ok and p_ok

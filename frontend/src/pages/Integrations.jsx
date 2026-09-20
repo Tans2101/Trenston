@@ -286,6 +286,13 @@ export default function Integrations() {
       toast.error("Only workspace owners can connect integrations");
       return false;
     }
+    if (data.integrations_enabled === false) {
+      toast.error("Upgrade your plan to connect integrations");
+      navigate("/app/billing", {
+        state: { billingNotice: "Integrations require a paid Helm plan." },
+      });
+      return false;
+    }
     return true;
   };
 

@@ -130,45 +130,68 @@ def map_qb_transaction(txn: dict, txn_type: str) -> dict:
     }
 
 
-async def _query_qb(access_token: str, realm_id: str, entity: str, since: Optional[str]) -> list[dict]:
-    if since:
-        since_date = since[:10]
-        q = f"SELECT * FROM {entity} WHERE TxnDate >= '{since_date}' MAXRESULTS 1000"
-    else:
-        q = f"SELECT * FROM {entity} MAXRESULTS 1000"
-
-    url = f"{_api_base()}/v3/company/{realm_id}/query"
-    async with httpx.AsyncClient(timeout=45.0) as hc:
-        resp = await hc.get(
-            url,
-            params={"query": q, "minorversion": "65"},
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-        )
-    if resp.status_code == 401:
-        raise QuickBooksAuthError("QuickBooks access token rejected")
-    if resp.status_code != 200:
-        raise RuntimeError(f"QuickBooks query failed ({resp.status_code}): {resp.text[:300]}")
-
-    body = resp.json()
-    qr = body.get("QueryResponse") or {}
-    rows = qr.get(entity) or []
-    if isinstance(rows, dict):
-        rows = [rows]
-    return rows
+QB_PAGE_SIZE = 1000
+QB_MAX_PAGES = 100
 
 
-async def fetch_qb_transactions(tokens: dict, realm_id: str, since: Optional[str] = None) -> list[dict]:
-    """Fetch Purchase and Invoice objects, optionally since an ISO timestamp (uses date portion)."""
+async def _query_qb(
+    access_token: str, realm_id: str, entity: str, since: Optional[str],
+) -> tuple[list[dict], bool]:
+    """Fetch all pages for an entity. complete=False if the safety page cap is hit."""
+    all_rows: list[dict] = []
+    start = 1
+    for _ in range(QB_MAX_PAGES):
+        if since:
+            since_date = since[:10]
+            q = (
+                f"SELECT * FROM {entity} WHERE TxnDate >= '{since_date}' "
+                f"STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
+            )
+        else:
+            q = f"SELECT * FROM {entity} STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
+
+        url = f"{_api_base()}/v3/company/{realm_id}/query"
+        async with httpx.AsyncClient(timeout=45.0) as hc:
+            resp = await hc.get(
+                url,
+                params={"query": q, "minorversion": "65"},
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+            )
+        if resp.status_code == 401:
+            raise QuickBooksAuthError("QuickBooks access token rejected")
+        if resp.status_code != 200:
+            raise RuntimeError(f"QuickBooks query failed ({resp.status_code}): {resp.text[:300]}")
+
+        body = resp.json()
+        qr = body.get("QueryResponse") or {}
+        rows = qr.get(entity) or []
+        if isinstance(rows, dict):
+            rows = [rows]
+        all_rows.extend(rows)
+        if len(rows) < QB_PAGE_SIZE:
+            return all_rows, True
+        start += QB_PAGE_SIZE
+    return all_rows, False
+
+
+async def fetch_qb_transactions(
+    tokens: dict, realm_id: str, since: Optional[str] = None,
+) -> tuple[list[dict], bool]:
+    """Fetch Purchase and Invoice objects, optionally since an ISO timestamp (uses date portion).
+
+    Returns (mapped_rows, complete). complete is False when a page safety cap was hit —
+    callers must not advance qb_last_synced_at in that case.
+    """
     access_token = tokens.get("access_token")
     if not access_token:
         raise QuickBooksAuthError("Missing access token")
 
-    purchases = await _query_qb(access_token, realm_id, "Purchase", since)
-    invoices = await _query_qb(access_token, realm_id, "Invoice", since)
+    purchases, purchases_complete = await _query_qb(access_token, realm_id, "Purchase", since)
+    invoices, invoices_complete = await _query_qb(access_token, realm_id, "Invoice", since)
 
     mapped = []
     for p in purchases:
         mapped.append({**map_qb_transaction(p, "purchase"), "_qb_raw_type": "purchase"})
     for inv in invoices:
         mapped.append({**map_qb_transaction(inv, "invoice"), "_qb_raw_type": "invoice"})
-    return mapped
+    return mapped, purchases_complete and invoices_complete

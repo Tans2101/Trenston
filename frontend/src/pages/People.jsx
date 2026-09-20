@@ -193,11 +193,11 @@ export default function People() {
               : `${unassignedCount} people have no department, so their work won't show up anywhere in Trenston.`}
           </p>
           <Link
-            to="/app/members"
+            to="/app/settings#manage-departments"
             className="text-sm font-medium text-helm-gold hover:underline shrink-0"
             data-testid="people-unassigned-fix"
           >
-            Assign in Team & Access
+            Assign in Settings
           </Link>
         </div>
       )}

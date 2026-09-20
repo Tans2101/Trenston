@@ -69,34 +69,20 @@ def period_line_items(
     period: str,
     horizon: str,
 ) -> list[dict[str, Any]]:
-    """Ledger rows that contribute to `period`, with name as the primary label."""
+    """Ledger rows that contribute to `period`, with name as the primary label.
+
+    Uses the same non-overlapping recurring-rate supersession as dashboard totals
+    so the Line items sheet cannot disagree with Income Statement aggregates.
+    """
+    raw = fin_recur.line_items_for_period(entries, period, horizon)
     rows: list[dict[str, Any]] = []
-    for e in entries or []:
-        start = str(e.get("month") or "").strip()
-        if not fin_recur.is_valid_month(start):
-            continue
-        entry_type = (e.get("type") or "").strip().lower()
-        if entry_type not in ("revenue", "expense"):
-            continue
+    for e in raw:
         category = (e.get("category") or "Other").strip() or "Other"
-        name = normalize_entry_name(e.get("name"), category)
-        if e.get("recurring"):
-            if start > period or period > horizon:
-                continue
-            amount = (
-                fin_recur.expense_monthly_amount(e)
-                if entry_type == "expense"
-                else fin_recur.revenue_monthly_amount(e)
-            )
-        else:
-            if start != period:
-                continue
-            amount = float(e.get("amount") or 0)
         rows.append({
-            "name": name,
+            "name": normalize_entry_name(e.get("name"), category),
             "category": category,
-            "type": entry_type,
-            "amount": float(amount),
+            "type": e.get("type"),
+            "amount": float(e.get("amount") or 0),
         })
     rows.sort(key=lambda r: (0 if r["type"] == "revenue" else 1, r["name"].lower(), r["category"].lower()))
     return rows

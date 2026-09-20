@@ -238,10 +238,19 @@ async def test_weekly_pack_endpoint_uses_shared_helper():
     with patch.object(
         server,
         "_generate_weekly_pack_content",
-        new=AsyncMock(return_value={"content": "shared body", "workspace_name": "Acme"}),
+        new=AsyncMock(return_value={
+            "content": "shared body",
+            "workspace_name": "Acme",
+            "data_as_of": None,
+            "data_freshness_sources": {},
+        }),
     ) as helper:
         result = await server.weekly_pack(principal=principal)
-    assert result == {"content": "shared body"}
+    assert result == {
+        "content": "shared body",
+        "data_as_of": None,
+        "data_freshness_sources": {},
+    }
     helper.assert_awaited_once_with("ws_1")
 
 

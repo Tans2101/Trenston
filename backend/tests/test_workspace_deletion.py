@@ -37,6 +37,7 @@ class FakeDB:
     def __init__(self):
         self.collections = {name: Collection() for name in server._WORKSPACE_COLLECTIONS}
         self.documents = Collection([{"storage_key": "ws_1/invoice.pdf"}])
+        self.report_documents = Collection()
         self.legal_matters = Collection([
             {"document_ref": {"storage_key": "ws_1/contract.pdf"}},
         ])
@@ -47,6 +48,7 @@ class FakeDB:
         self.workspaces = Collection()
         self.collections.update({
             "documents": self.documents,
+            "report_documents": self.report_documents,
             "legal_matters": self.legal_matters,
         })
 

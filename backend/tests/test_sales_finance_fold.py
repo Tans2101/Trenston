@@ -268,6 +268,8 @@ def fold_api():
     mock_db.department_members = dept_members
     mock_db.deals = deals
     mock_db.financial_entries = fins
+    mock_db.users = FakeColl([])
+    mock_db.product_events = FakeColl([])
     mock_db.workspaces.find_one = AsyncMock(return_value={
         "workspace_id": "ws_fold",
         "financial_settings": {"cash": 10000, "currency": "usd"},

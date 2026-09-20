@@ -71,11 +71,17 @@ def test_setup_status_is_boolean_health_only(monkeypatch):
     monkeypatch.setattr(server, "_mongo_ping", AsyncMock(return_value=True))
     monkeypatch.setattr(server.clerk_auth, "clerk_configured", lambda: True)
     monkeypatch.setattr(server.clerk_auth, "clerk_api_ok", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        server.doc_storage,
+        "probe_r2",
+        lambda: {"configured": False, "ok": False},
+    )
     client = TestClient(server.app)
     res = client.get("/api/setup/status", headers={"X-Setup-Secret": "setup-secret"})
     assert res.status_code == 200
     body = res.json()
-    assert set(body.keys()) == {"ok", "mongo", "clerk_configured", "clerk_api_ok"}
+    assert set(body.keys()) == {"ok", "mongo", "clerk_configured", "clerk_api_ok", "r2"}
+    assert body["r2"] == {"configured": False, "ok": False}
     assert "integrations_configured" not in body
     assert "git_commit" not in body
 

@@ -41,8 +41,8 @@ def test_empty_activity_builds_nothing():
 def test_production_draft_lists_completed_work_orders():
     spec = drafts.SPEC_BY_TYPE[catalog.TYPE_PRODUCTION]
     items = [
-        {"id": "a", "reference": "Order #1", "status": "done", "completed_at": "2026-09-07T12:00:00+00:00"},
-        {"id": "b", "reference": "Order #2", "status": "done", "completed_at": "2026-09-08T09:00:00+00:00"},
+        {"id": "a", "reference": "Order #1", "status": "completed", "completed_at": "2026-09-07T12:00:00+00:00"},
+        {"id": "b", "reference": "Order #2", "status": "completed", "completed_at": "2026-09-08T09:00:00+00:00"},
     ]
     start, end, period, key = drafts.week_window(NOW)
     kept = drafts.filter_completed(items, spec, start, end)
@@ -147,7 +147,7 @@ def _store(rows):
 async def test_run_upserts_activity_and_skips_empty():
     orders = [
         {
-            "id": "s1", "workspace_id": "ws1", "reference": "Pack job", "status": "done",
+            "id": "s1", "workspace_id": "ws1", "reference": "Pack job", "status": "completed",
             "completed_at": "2026-09-07T10:00:00+00:00",
         },
     ]

@@ -91,6 +91,15 @@ def test_recurring_rate_change_uses_new_amount_from_start():
     assert by["2026-03"] == 12000
     assert by["2026-04"] == 12000
 
+    # Line items for March must show only the $12k rate — not both commitments.
+    march = fr.line_items_for_period(entries, "2026-03", "2026-04")
+    assert len(march) == 1
+    assert march[0]["amount"] == 12000
+    assert march[0]["id"] == "b"
+    feb = fr.line_items_for_period(entries, "2026-02", "2026-04")
+    assert len(feb) == 1
+    assert feb[0]["amount"] == 10000
+
 
 def test_expense_totals_by_month_category_expands(monkeypatch):
     import decision_engine as eng

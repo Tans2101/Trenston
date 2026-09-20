@@ -36,7 +36,12 @@ def owner():
 
 @pytest.fixture
 def mongo():
-    return pymongo.MongoClient(MONGO_URL)[DB_NAME]
+    client = pymongo.MongoClient(MONGO_URL, serverSelectionTimeoutMS=2000)
+    try:
+        client.admin.command("ping")
+    except Exception:
+        pytest.skip("MongoDB not available")
+    return client[DB_NAME]
 
 
 @pytest.fixture
@@ -83,7 +88,7 @@ def test_signed_delta_and_first_vs_prior_cards():
     assert _shipped_in_window(items, now=now, days=7) == 1
 
     fin = {"mrr": "$10K", "arr": "$120K", "runway_months": 12, "burn": "$5K",
-           "mrr_value": 10000, "burn_value": 5000}
+           "mrr_value": 10000, "burn_value": 5000, "mrr_known": True, "burn_known": True}
     cards = _computed_report_cards({}, fin, items, [], 5, prior=None)
     assert all("first weekly baseline" in c["summary"] for c in cards)
     assert cards[0]["metrics"][0] == {

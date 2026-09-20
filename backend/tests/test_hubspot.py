@@ -19,6 +19,10 @@ os.environ.setdefault("HUBSPOT_CLIENT_SECRET", "test-secret")
 
 import hubspot as hs  # noqa: E402
 
+# Module constants are read at import; pin them for workers that imported hubspot earlier.
+hs.HUBSPOT_CLIENT_ID = os.environ["HUBSPOT_CLIENT_ID"]
+hs.HUBSPOT_CLIENT_SECRET = os.environ["HUBSPOT_CLIENT_SECRET"]
+
 
 def test_map_stage_closed_won_lost():
     assert hs.map_hubspot_stage("Closed Won", "closedwon") == "won"

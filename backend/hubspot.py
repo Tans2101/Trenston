@@ -216,20 +216,25 @@ async def _fetch_deal_company_ids(hc: httpx.AsyncClient, access_token: str, deal
     return out
 
 
+HUBSPOT_DEAL_PAGE_LIMIT = 100
+HUBSPOT_MAX_DEALS = 10000  # safety cap — incomplete sync must not advance last_synced_at
+
+
 async def _list_or_search_deals(
     hc: httpx.AsyncClient,
     access_token: str,
     since: Optional[str],
-) -> list[dict]:
+) -> tuple[list[dict], bool]:
     results: list[dict] = []
     after: Optional[str] = None
     use_search = bool(since)
+    complete = True
 
     while True:
         if use_search:
             body: dict = {
                 "properties": DEAL_PROPERTIES,
-                "limit": 100,
+                "limit": HUBSPOT_DEAL_PAGE_LIMIT,
             }
             try:
                 since_dt = datetime.fromisoformat(str(since).replace("Z", "+00:00"))
@@ -255,7 +260,7 @@ async def _list_or_search_deals(
             )
         else:
             params: dict = {
-                "limit": 100,
+                "limit": HUBSPOT_DEAL_PAGE_LIMIT,
                 "properties": ",".join(DEAL_PROPERTIES),
             }
             if after:
@@ -279,20 +284,24 @@ async def _list_or_search_deals(
         after = (payload.get("paging") or {}).get("next", {}).get("after")
         if not after or not batch:
             break
-        if len(results) >= 500:
+        if len(results) >= HUBSPOT_MAX_DEALS:
+            complete = False
             break
-    return results
+    return results, complete
 
 
-async def fetch_deals(tokens: dict, since: Optional[str] = None) -> list[dict]:
-    """Pull HubSpot deals, optionally modified since an ISO timestamp."""
+async def fetch_deals(tokens: dict, since: Optional[str] = None) -> tuple[list[dict], bool]:
+    """Pull HubSpot deals, optionally modified since an ISO timestamp.
+
+    Returns (mapped_deals, complete). Do not advance hubspot_last_synced_at when complete is False.
+    """
     access_token = tokens.get("access_token")
     if not access_token:
         raise HubSpotAuthError("Missing access token")
 
     async with httpx.AsyncClient(timeout=60.0) as hc:
         stage_labels = await _fetch_stage_labels(hc, access_token)
-        results = await _list_or_search_deals(hc, access_token, since)
+        results, complete = await _list_or_search_deals(hc, access_token, since)
         deal_ids = [str(d.get("id") or "") for d in results if d.get("id")]
         deal_companies = await _fetch_deal_company_ids(hc, access_token, deal_ids)
         company_names = await _fetch_company_names(hc, access_token, list(deal_companies.values()))
@@ -310,4 +319,4 @@ async def fetch_deals(tokens: dict, since: Optional[str] = None) -> list[dict]:
         row = map_hubspot_deal(deal, stage_labels, company_names)
         if row:
             mapped.append(row)
-    return mapped
+    return mapped, complete

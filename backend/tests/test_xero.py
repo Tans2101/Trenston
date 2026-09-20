@@ -19,6 +19,10 @@ os.environ.setdefault("XERO_CLIENT_SECRET", "test-secret")
 
 import xero as xr  # noqa: E402
 
+# Module constants are read at import; pin them for workers that imported xero earlier.
+xr.XERO_CLIENT_ID = os.environ["XERO_CLIENT_ID"]
+xr.XERO_CLIENT_SECRET = os.environ["XERO_CLIENT_SECRET"]
+
 
 def test_map_accrec_invoice_to_revenue():
     inv = {

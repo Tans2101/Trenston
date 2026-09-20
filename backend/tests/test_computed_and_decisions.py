@@ -18,10 +18,13 @@ import requests
 from conftest import set_workspace_plan
 
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "").rstrip("/")
-assert BASE_URL, "REACT_APP_BACKEND_URL must be set"
-
 OWNER_TOKEN = "test_session_kalun_123"
 MEMBER_TOKEN = "test_session_user2"
+
+pytestmark = pytest.mark.skipif(
+    not BASE_URL,
+    reason="REACT_APP_BACKEND_URL not set (live API suite)",
+)
 
 
 def _sess(token):

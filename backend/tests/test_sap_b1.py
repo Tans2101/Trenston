@@ -186,18 +186,19 @@ async def test_fetch_sap_transactions_maps_collections(monkeypatch):
                 "DocTotal": 100,
                 "CardName": "Customer",
                 "Cancelled": "tNO",
-            }]
+            }], True
         return [{
             "DocEntry": 2,
             "DocDate": "2026-09-02",
             "DocTotal": 40,
             "CardName": "Vendor",
             "Cancelled": "tNO",
-        }]
+        }], True
 
     monkeypatch.setattr(sap_b1, "ensure_session", fake_ensure)
     monkeypatch.setattr(sap_b1, "_fetch_collection", fake_collection)
-    rows = await sap_b1.fetch_sap_transactions(creds)
+    rows, complete = await sap_b1.fetch_sap_transactions(creds)
+    assert complete is True
     assert {r["type"] for r in rows} == {"revenue", "expense"}
     assert {r["qb_txn_id"] for r in rows} == {
         "sap_b1_ar_1_2026-09-01",

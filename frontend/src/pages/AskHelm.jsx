@@ -37,8 +37,8 @@ export default function AskHelm() {
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef(null);
   const autoSent = useRef(false);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const historyHydrated = useRef(false);
+  const navigate = useNavigate();  const location = useLocation();
   const canSeeFinancials = (user?.granted_sections || []).includes("financials");
   const suggestions = SUGGESTIONS.filter(
     (s) => canSeeFinancials || !FINANCE_SUGGESTION_RE.test(s),
@@ -112,8 +112,16 @@ export default function AskHelm() {
   })();
 
   useEffect(() => {
-    if (history?.messages) setMessages(history.messages.map((m) => ({ role: m.role, content: m.content })));
-  }, [history]);
+    // Apply server history once. Never overwrite an in-flight or already-started chat
+    // when /ask/history resolves after the user has already sent a message.
+    if (historyHydrated.current || streaming) return;
+    if (!history?.messages) return;
+    historyHydrated.current = true;
+    setMessages((prev) => {
+      if (prev.length > 0) return prev;
+      return history.messages.map((m) => ({ role: m.role, content: m.content }));
+    });
+  }, [history, streaming]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });

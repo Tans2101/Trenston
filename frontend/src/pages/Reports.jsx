@@ -88,7 +88,7 @@ export default function Reports() {
   const auto = data.auto_reports || data.reports?.filter((r) => r.source === "auto") || [];
   const drafts = data.draft_reports || [];
   const canWrite = data.can_write;
-  const canGeneratePack = (user?.perms || []).includes("reports:pack");
+  const canGeneratePack = Boolean(data.can_generate_pack);
   const canExportFinancials = Boolean(data.can_export_financials);
 
   const openAdd = () => {
@@ -449,7 +449,11 @@ export default function Reports() {
               <FileText className="w-4 h-4" />{busy ? "Drafting…" : "Draft CEO Pack"}
             </button>
           ) : (
-            <p className="text-xs text-helm-muted shrink-0">Owner or executive access required to generate.</p>
+            <p className="text-xs text-helm-muted shrink-0 max-w-xs text-right">
+              {(user?.perms || []).includes("reports:pack")
+                ? "CEO Pack needs a Growth plan or higher."
+                : "Owner or executive access required to generate."}
+            </p>
           )}
         </div>
         {pack && (

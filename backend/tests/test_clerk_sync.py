@@ -20,6 +20,12 @@ if str(ROOT) not in sys.path:
 
 import clerk_auth  # noqa: E402
 
+# Module constants are read at import; pin them when another suite imported clerk_auth first.
+clerk_auth.CLERK_SECRET_KEY = os.environ["CLERK_SECRET_KEY"]
+clerk_auth.CLERK_JWKS_URL = os.environ["CLERK_JWKS_URL"]
+clerk_auth.FRONTEND_URL = os.environ["FRONTEND_URL"]
+clerk_auth.APP_URL_CLERK = os.environ.get("APP_URL", os.environ["FRONTEND_URL"])
+
 
 def test_clerk_google_oauth_redirect_uris_include_account_portal():
     uris = clerk_auth.clerk_google_oauth_redirect_uris()

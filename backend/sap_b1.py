@@ -21,7 +21,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
-MAX_PAGES = 20
+MAX_PAGES = 200  # 20k docs — if hit, return complete=False so last_synced_at is not advanced
 
 # Block server-side requests to these ranges (SSRF). Checked via ipaddress —
 # never string-prefix matching on hostnames.
@@ -328,7 +328,7 @@ async def _fetch_collection(
     collection: str,
     *,
     since: Optional[str] = None,
-) -> list[dict]:
+) -> tuple[list[dict], bool]:
     base = creds["service_layer_url"].rstrip("/") + "/"
     select = "DocEntry,DocNum,DocDate,DocTotal,CardName,Comments,Cancelled,DocumentLines"
     filt = f"Cancelled eq 'tNO'{_since_filter(since)}"
@@ -356,19 +356,22 @@ async def _fetch_collection(
         payload = resp.json() or {}
         page = payload.get("value") or []
         if not isinstance(page, list):
-            break
+            return rows, True
         rows.extend(d for d in page if isinstance(d, dict))
         if len(page) < PAGE_SIZE:
-            break
+            return rows, True
         skip += PAGE_SIZE
-    return rows
+    return rows, False
 
 
-async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> list[dict]:
-    """Pull A/R Invoices + A/P PurchaseInvoices and map to financial_entries rows."""
+async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> tuple[list[dict], bool]:
+    """Pull A/R Invoices + A/P PurchaseInvoices and map to financial_entries rows.
+
+    Returns (mapped_rows, complete). Do not advance sap_b1_last_synced_at when complete is False.
+    """
     live = await ensure_session(creds)
-    ar_docs = await _fetch_collection(live, "Invoices", since=since)
-    ap_docs = await _fetch_collection(live, "PurchaseInvoices", since=since)
+    ar_docs, ar_ok = await _fetch_collection(live, "Invoices", since=since)
+    ap_docs, ap_ok = await _fetch_collection(live, "PurchaseInvoices", since=since)
     out: list[dict] = []
     for doc in ar_docs:
         mapped = map_sap_document(doc, kind="ar")
@@ -378,7 +381,7 @@ async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> li
         mapped = map_sap_document(doc, kind="ap")
         if mapped:
             out.append(mapped)
-    return out
+    return out, ar_ok and ap_ok
 
 
 def public_connection_info(creds: dict | None) -> dict:

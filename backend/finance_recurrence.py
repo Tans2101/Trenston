@@ -302,3 +302,80 @@ def expand_expense_category_totals(
 
     return {m: dict(cats) for m, cats in out.items()}
 
+
+def line_items_for_period(
+    entries: list[dict[str, Any]],
+    period: str,
+    horizon_end: str,
+) -> list[dict[str, Any]]:
+    """Active ledger lines for one month using the same supersession as expand_entries_by_month.
+
+    Each recurring (type, category, cadence) group contributes at most one rate that
+    covers `period`. One-time rows count only when their month equals `period`.
+    """
+    from collections import defaultdict
+
+    if not is_valid_month(period) or not is_valid_month(horizon_end):
+        return []
+
+    rows: list[dict[str, Any]] = []
+    one_time: list[dict] = []
+    recurring_by_type: dict[str, list[dict]] = {"revenue": [], "expense": []}
+
+    for e in entries or []:
+        entry_type = (e.get("type") or "").strip().lower()
+        if entry_type not in ("revenue", "expense"):
+            continue
+        start = (e.get("month") or "").strip()
+        if not is_valid_month(start):
+            continue
+        if e.get("recurring"):
+            recurring_by_type[entry_type].append(e)
+        else:
+            one_time.append(e)
+
+    for e in one_time:
+        start = e["month"]
+        if start != period or start > horizon_end:
+            continue
+        category = (e.get("category") or "Other").strip() or "Other"
+        rows.append({
+            "name": e.get("name"),
+            "category": category,
+            "type": (e.get("type") or "").strip().lower(),
+            "amount": float(e.get("amount") or 0),
+            "id": e.get("id"),
+            "month": start,
+            "recurring": False,
+        })
+
+    for entry_type, recurring in recurring_by_type.items():
+        groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        for e in recurring:
+            cat = (e.get("category") or "Other").strip() or "Other"
+            cadence = normalize_recurrence(True, e.get("recurrence"), entry_type) or "monthly"
+            groups[(cat, cadence)].append(e)
+
+        for (cat, _cadence), group in groups.items():
+            group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
+            for i, e in enumerate(group):
+                start = e["month"]
+                if i + 1 < len(group):
+                    next_start = group[i + 1]["month"]
+                    series_end = start if next_start <= start else month_add(next_start, -1)
+                else:
+                    series_end = horizon_end
+                end = min(series_end, horizon_end)
+                if start > end or period < start or period > end:
+                    continue
+                rows.append({
+                    "name": e.get("name"),
+                    "category": cat,
+                    "type": entry_type,
+                    "amount": float(_monthlyized(e, entry_type)),
+                    "id": e.get("id"),
+                    "month": start,
+                    "recurring": True,
+                })
+
+    return rows

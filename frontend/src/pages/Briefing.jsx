@@ -71,8 +71,10 @@ export default function Briefing() {
   }
   if (company.onboarding_done === false) return <Onboarding />;
 
+  const canGenerateAi = Boolean(data.can_generate_ai_summary);
+
   const generate = async () => {
-    if (genLoading) return;
+    if (genLoading || !canGenerateAi) return;
     setGenLoading(true);
     try {
       const { data: res } = await api.post("/briefing/generate");
@@ -284,7 +286,7 @@ export default function Briefing() {
       <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5 md:p-6">
         <div className="flex items-center justify-between gap-3 mb-3">
           <BriefLabel>Today&apos;s summary</BriefLabel>
-          {data.ai_summary && (
+          {data.ai_summary && canGenerateAi && (
             <button
               type="button"
               data-testid="generate-briefing-btn"
@@ -306,7 +308,7 @@ export default function Briefing() {
             />
             <p className="text-helm-fg leading-relaxed text-[15px] max-w-3xl">{data.ai_summary}</p>
           </>
-        ) : (
+        ) : canGenerateAi ? (
           <div>
             <p className="text-helm-muted text-sm mb-4 max-w-xl">
               Pull a short plain-language read of what changed, what needs a decision, and what to watch, from your live company data.
@@ -321,6 +323,10 @@ export default function Briefing() {
               {!genLoading && <Send className="w-3.5 h-3.5" />}
             </button>
           </div>
+        ) : (
+          <p className="text-sm text-helm-muted max-w-xl">
+            Ask a workspace owner or executive to write today&apos;s AI summary.
+          </p>
         )}
       </section>
 
