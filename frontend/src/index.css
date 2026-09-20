@@ -375,15 +375,22 @@ html[data-theme="light"] .app-shell .glass {
 /* Stronger section/card edges in light so white tiles separate from the white page */
 html[data-theme="light"] .app-shell .border-helm-line,
 html[data-theme="light"] .app-shell [class*="border-helm-line"] {
-  border-color: color-mix(in srgb, #111111 28%, transparent) !important;
+  border-color: color-mix(in srgb, #111111 32%, transparent) !important;
 }
 
 html[data-theme="light"] .app-shell .rounded-xl.border.bg-helm-card,
 html[data-theme="light"] .app-shell .rounded-xl.border[class*="bg-helm-card"],
 html[data-theme="light"] .app-shell [data-testid*="card"],
+html[data-theme="light"] .app-shell [data-testid^="kpi-"],
+html[data-theme="light"] .app-shell [data-testid^="briefing-metric-"],
 html[data-theme="light"] .app-shell section.rounded-xl.border {
   box-shadow: 0 1px 2px color-mix(in srgb, #111111 6%, transparent),
-    0 1px 3px color-mix(in srgb, #111111 8%, transparent);
+    0 1px 3px color-mix(in srgb, #111111 10%, transparent);
+}
+
+/* Department separators between Briefing metric groups — black in light */
+html[data-theme="light"] .app-shell [data-testid="briefing-metrics-grouped"] > section.border-t {
+  border-color: #111111 !important;
 }
 
 html[data-theme="light"] .app-shell .font-mono,
@@ -430,7 +437,37 @@ html[data-theme="dark"] .app-shell [class*="bg-helm-card"] {
 
 html[data-theme="dark"] .app-shell .border-helm-line,
 html[data-theme="dark"] .app-shell [class*="border-helm-line"] {
-  border-color: color-mix(in srgb, var(--helm-cream) 18%, transparent) !important;
+  border-color: color-mix(in srgb, var(--helm-cream) 22%, transparent) !important;
+}
+
+/* Navy is near-black — unreadable on ink. Map to cream in dark except on gold CTAs / sky pills. */
+html[data-theme="dark"] .app-shell .text-helm-navy,
+html[data-theme="dark"] .app-shell [class*="text-helm-navy"] {
+  color: var(--helm-cream) !important;
+}
+
+html[data-theme="dark"] .app-shell .bg-helm-gold,
+html[data-theme="dark"] .app-shell .bg-gold,
+html[data-theme="dark"] .app-shell button.bg-helm-gold,
+html[data-theme="dark"] .app-shell button.bg-gold,
+html[data-theme="dark"] .app-shell .bg-helm-gold .text-helm-navy,
+html[data-theme="dark"] .app-shell .bg-gold .text-helm-navy {
+  color: var(--helm-navy) !important;
+}
+
+html[data-theme="dark"] .app-shell .bg-sky-100 .text-helm-navy,
+html[data-theme="dark"] .app-shell [class*="bg-sky-100"] .text-helm-navy,
+html[data-theme="dark"] .app-shell .bg-sky-100 [class*="text-helm-navy"] {
+  color: var(--helm-navy) !important;
+}
+
+/* Clearer card boxes app-wide (match Telemetry-style differentiation) */
+html[data-theme="dark"] .app-shell .rounded-xl.border,
+html[data-theme="dark"] .app-shell [data-testid*="card"],
+html[data-theme="dark"] .app-shell [data-testid^="kpi-"],
+html[data-theme="dark"] .app-shell [data-testid^="briefing-metric-"] {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--helm-cream) 8%, transparent),
+    0 1px 2px color-mix(in srgb, #000 40%, transparent);
 }
 
 html[data-theme="dark"] body,
