@@ -324,21 +324,6 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
 
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
 
-      <div className="px-1 pt-3">
-        <button
-          type="button"
-          data-testid="sidebar-ask-trenston"
-          onClick={() => {
-            navigate("/app/ask");
-            onNavigate?.();
-          }}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-helm-gold px-4 py-2.5 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold-hover"
-        >
-          <MessageSquareText className="w-4 h-4 shrink-0" />
-          Ask Trenston
-        </button>
-      </div>
-
       <nav className="flex-1 overflow-y-auto px-1 py-3" aria-label="App">
         <SmoothTab
           orientation="vertical"
