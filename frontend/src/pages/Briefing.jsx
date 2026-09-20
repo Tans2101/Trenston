@@ -13,6 +13,7 @@ import Onboarding from "@/pages/Onboarding";
 import { dayPartGreeting } from "@/lib/greeting";
 import BentoGrid from "@/components/kokonutui/bento-grid";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
+import BriefingCockpitHero from "@/components/BriefingCockpitHero";
 
 const toneDot = { positive: "bg-helm-status-positive", negative: "bg-helm-status-negative", neutral: "bg-helm-muted" };
 
@@ -47,8 +48,9 @@ export default function Briefing() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl">
+      <div className="max-w-6xl">
         <PageHeaderSkeleton />
+        <BriefingCockpitHero loading />
         <SkeletonKPIRow count={4} />
         <div className="grid lg:grid-cols-3 gap-4">
           <SkeletonCardList count={3} />
@@ -161,7 +163,7 @@ export default function Briefing() {
   const whatToDelegate = data.what_to_delegate || [];
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-6xl">
       <header className="mb-8 fade-up">
         <p className="text-xs uppercase tracking-[0.18em] text-helm-muted mb-3">
           {data.date} · {briefingLabel}
@@ -169,6 +171,8 @@ export default function Briefing() {
         <h1 className="font-display text-3xl md:text-4xl font-normal tracking-tight text-helm-fg">{greeting}.</h1>
         <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">{data.headline}</p>
       </header>
+
+      <BriefingCockpitHero metrics={metrics} decisions={whatToDecide} />
 
       {showChecklist && (
         <section className="mb-6 fade-up rounded-xl border border-helm-fg/[0.08] bg-helm-card p-5" data-testid="onboarding-checklist">

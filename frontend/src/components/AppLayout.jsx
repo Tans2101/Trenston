@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
   FileText, Calendar, Contact, MessageSquareText,
-  Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search,
+  Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search, Bell,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
   Info, LayoutGrid, Receipt,
@@ -17,7 +17,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import CompanySetup from "@/pages/CompanySetup";
-import { helmPlanLabel, helmWorkspacePlanLabel, helmHasFullAccess } from "@/lib/helmPlan";
+import { helmPlanLabel, helmWorkspacePlanLabel, helmHasFullAccess, helmIsPaidPlan } from "@/lib/helmPlan";
 import { departmentIcon } from "@/lib/departmentIcons";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/kit";
@@ -207,6 +207,72 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
 
 const QUICK_ACTION_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
 
+function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return window.sessionStorage.getItem("helm_sidebar_promo_dismissed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const navigate = useNavigate();
+
+  if (dismissed) return null;
+
+  const pitch = !isPaid && billingEnforced && canBilling
+    ? {
+        title: "Upgrade your plan",
+        body: "More seats, higher Ask Trenston limits, and accounting sync.",
+        cta: "See plans",
+        to: "/app/billing",
+        testId: "sidebar-promo-upgrade",
+      }
+    : {
+        title: "Connect your tools",
+        body: "Link Google, QuickBooks, or your bank so the briefing stays live.",
+        cta: "Integrations",
+        to: "/app/integrations",
+        testId: "sidebar-promo-integrations",
+      };
+
+  const dismiss = () => {
+    try {
+      window.sessionStorage.setItem("helm_sidebar_promo_dismissed", "1");
+    } catch {
+      /* ignore */
+    }
+    setDismissed(true);
+  };
+
+  return (
+    <div
+      className="relative rounded-xl border border-helm-gold/35 bg-helm-gold/12 p-3"
+      data-testid={pitch.testId}
+    >
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={dismiss}
+        className="absolute top-2 right-2 text-helm-muted hover:text-helm-fg p-0.5"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+      <p className="text-xs font-medium text-helm-fg pr-5 leading-snug">{pitch.title}</p>
+      <p className="mt-1 text-[11px] text-helm-muted leading-relaxed">{pitch.body}</p>
+      <button
+        type="button"
+        onClick={() => {
+          navigate(pitch.to);
+          onNavigate?.();
+        }}
+        className="mt-2 text-[11px] font-medium text-helm-gold hover:text-helm-gold-hover"
+      >
+        {pitch.cta} →
+      </button>
+    </div>
+  );
+}
+
 function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -214,6 +280,7 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
   const { data: company } = useCompanyQuery();
   const { data: deptData } = useDepartmentsQuery();
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
+  const isPaid = helmIsPaidPlan(company?.plan, billingEnforced);
   const mainNav = useMemo(() => NAV.filter((item) => navItemVisible(item, user)), [user]);
   const deptNav = (deptData?.departments || []).filter((d) => departmentNavVisible(d));
   const canBilling = canManageBilling(user);
@@ -256,6 +323,21 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
       </div>
 
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
+
+      <div className="px-1 pt-3">
+        <button
+          type="button"
+          data-testid="sidebar-ask-trenston"
+          onClick={() => {
+            navigate("/app/ask");
+            onNavigate?.();
+          }}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-helm-gold px-4 py-2.5 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold-hover"
+        >
+          <MessageSquareText className="w-4 h-4 shrink-0" />
+          Ask Trenston
+        </button>
+      </div>
 
       <nav className="flex-1 overflow-y-auto px-1 py-3" aria-label="App">
         <SmoothTab
@@ -328,6 +410,12 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
       </nav>
 
       <div className="px-1 pb-4 space-y-2">
+        <SidebarPromoCard
+          billingEnforced={billingEnforced}
+          isPaid={isPaid}
+          canBilling={canBilling}
+          onNavigate={onNavigate}
+        />
         <SidebarThemeControl />
         <ProfileDropdown
           name={user?.name || "CEO"}
@@ -540,15 +628,28 @@ export default function AppLayout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const desktopSearchRef = useRef(null);
   const location = useLocation();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const { data: billing } = useFetch("/billing/plans");
   const { data: company, loading: companyLoading } = useCompanyQuery();
   const billingEnforced = billing?.billing_enforced === true;
   const pastDue = billingEnforced && billing?.subscription_status === "past_due";
+  const trialing = billing?.subscription_status === "trialing";
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
   const onBilling = location.pathname.startsWith("/app/billing");
   const canBilling = canManageBilling(user);
   const needsCompanySetup = company?.role === "owner" && company?.company_setup_done === false;
+  const planLabel = helmPlanLabel(company?.plan, isPro, billingEnforced);
+  const trialDaysLeft = (() => {
+    if (!trialing) return null;
+    const end = billing?.trial_ends_at || billing?.current_period_end;
+    if (!end) return 7;
+    const ms = new Date(end).getTime() - Date.now();
+    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+  })();
+  const planBadge = trialing && trialDaysLeft != null
+    ? `${planLabel} trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
+    : planLabel;
 
   const openSearch = () => setSearchOpen(true);
 
@@ -635,16 +736,46 @@ export default function AppLayout() {
       </div>
 
       <main className="lg:pl-[220px] relative z-10">
-        {/* Desktop persistent top bar — search only */}
+        {/* Desktop persistent top bar */}
         <div
-          className="hidden lg:flex sticky top-0 z-40 h-14 items-center px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"
+          className="hidden lg:flex sticky top-0 z-40 h-14 items-center gap-3 px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"
           data-testid="desktop-top-bar"
         >
-          <QuickNavPalette
-            variant="inline"
-            searchRef={desktopSearchRef}
-            enableShortcut={false}
-          />
+          <div className="flex-1 min-w-0">
+            <QuickNavPalette
+              variant="inline"
+              searchRef={desktopSearchRef}
+              enableShortcut={false}
+            />
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              data-testid="topbar-plan-badge"
+              className="hidden xl:inline-flex items-center rounded-full border border-helm-line px-3 py-1 text-xs text-helm-muted whitespace-nowrap"
+            >
+              {planBadge}
+            </span>
+            <button
+              type="button"
+              data-testid="topbar-notifications"
+              aria-label="Notifications"
+              onClick={() => navigate("/app/tasks")}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-helm-line text-helm-muted transition-colors hover:bg-helm-fg/[0.04] hover:text-helm-fg"
+            >
+              <Bell className="w-4 h-4" />
+            </button>
+            <ProfileDropdown
+              name={user?.name || "CEO"}
+              picture={user?.picture}
+              planLabel={planLabel}
+              showBilling={canBilling}
+              onBilling={() => navigate("/app/billing")}
+              onIntegrations={() => navigate("/app/integrations")}
+              onSettings={() => navigate("/app/settings")}
+              onHelp={() => navigate("/app/help")}
+              onLogout={logout}
+            />
+          </div>
         </div>
         <div className="w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">
           {onBilling ? (
