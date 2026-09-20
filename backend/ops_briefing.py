@@ -270,8 +270,13 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
     out: list[dict] = []
     sections = data.get("sections") or {}
 
+    def _stamp(section: str, start: int) -> None:
+        for card in out[start:]:
+            card["section"] = section
+
     proc = sections.get("procurement")
     if proc:
+        start = len(out)
         lead = proc["lead_time"]
         sourcing_known = lead["sourcing_sample_count"] > 0
         delay_known = lead["delay_sample_count"] > 0
@@ -282,7 +287,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "neutral",
             "missing": not sourcing_known,
-            "href": None if sourcing_known else "/app/procurement",
+            "href": None if sourcing_known else "/app/departments/procurement",
         })
         out.append({
             "label": "Avg fulfillment delay",
@@ -290,7 +295,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if delay_known and (lead["avg_fulfillment_delay_days"] or 0) > 0 else "neutral",
             "missing": not delay_known,
-            "href": None if delay_known else "/app/procurement",
+            "href": None if delay_known else "/app/departments/procurement",
         })
         out.append({
             "label": "Late orders",
@@ -298,7 +303,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if late_n else "positive",
             "missing": False,
-            "href": "/app/procurement" if late_n else None,
+            "href": "/app/departments/procurement" if late_n else None,
         })
         spend = proc["spend"]
         if spend["budget_entered"]:
@@ -309,7 +314,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "negative" if gap > 0 else "positive",
                 "missing": False,
-                "href": "/app/procurement",
+                "href": "/app/departments/procurement",
             })
         else:
             out.append({
@@ -318,11 +323,13 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "neutral",
                 "missing": spend["priced_count"] == 0,
-                "href": "/app/procurement",
+                "href": "/app/departments/procurement",
             })
+        _stamp("procurement", start)
 
     prod = sections.get("production")
     if prod:
+        start = len(out)
         day_summary = prod["day_summary"]
         ot = prod["overtime"]
         if day_summary.get("has_data"):
@@ -354,7 +361,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": tone,
                 "missing": False,
-                "href": "/app/production",
+                "href": "/app/departments/production",
             })
         else:
             out.append({
@@ -363,7 +370,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "neutral",
                 "missing": True,
-                "href": "/app/production",
+                "href": "/app/departments/production",
             })
         if ot.get("has_data") and ot.get("overtime_cost") is not None:
             out.append({
@@ -372,7 +379,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "negative" if ot["overtime_cost"] > 0 else "neutral",
                 "missing": False,
-                "href": "/app/production",
+                "href": "/app/departments/production",
             })
         elif ot.get("has_data") and ot.get("overtime_hours") is not None:
             out.append({
@@ -381,7 +388,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "negative" if ot["overtime_hours"] > 0 else "neutral",
                 "missing": False,
-                "href": "/app/production",
+                "href": "/app/departments/production",
             })
         else:
             out.append({
@@ -390,7 +397,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "neutral",
                 "missing": True,
-                "href": "/app/production",
+                "href": "/app/departments/production",
             })
         y_n = prod.get("yield_below_count") or 0
         out.append({
@@ -399,11 +406,13 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if y_n else "neutral",
             "missing": not day_summary.get("has_data") and y_n == 0,
-            "href": "/app/production" if y_n else None,
+            "href": "/app/departments/production" if y_n else None,
         })
+        _stamp("production", start)
 
     sales = sections.get("sales")
     if sales:
+        start = len(out)
         tvs = sales["target_vs_actual"]
         summary = sales["summary"]
         if tvs["target_entered"]:
@@ -413,7 +422,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "negative" if (tvs.get("gap") or 0) < 0 else "positive",
                 "missing": False,
-                "href": "/app/pipeline",
+                "href": "/app/sales",
             })
         else:
             out.append({
@@ -426,7 +435,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "neutral",
                 "missing": True,
-                "href": "/app/pipeline",
+                "href": "/app/sales",
             })
         fwd = summary["forward_pipeline"]
         fwd_total = sum(
@@ -439,11 +448,13 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "neutral",
             "missing": summary["line_count"] == 0,
-            "href": "/app/pipeline",
+            "href": "/app/sales",
         })
+        _stamp("sales", start)
 
     maint = sections.get("maintenance")
     if maint:
+        start = len(out)
         below_n = maint["spares_below_threshold_count"]
         overdue_n = maint["overdue_schedules_count"]
         renew_n = maint["contracts_needing_renewal_count"]
@@ -453,7 +464,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if below_n else "positive",
             "missing": False,
-            "href": "/app/maintenance" if below_n else None,
+            "href": "/app/departments/engineering_maintenance" if below_n else None,
         })
         out.append({
             "label": "Maint overdue",
@@ -461,7 +472,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if overdue_n else "positive",
             "missing": False,
-            "href": "/app/maintenance" if overdue_n else None,
+            "href": "/app/departments/engineering_maintenance" if overdue_n else None,
         })
         out.append({
             "label": "AMC renewals",
@@ -469,7 +480,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if renew_n else "positive",
             "missing": False,
-            "href": "/app/maintenance" if renew_n else None,
+            "href": "/app/departments/engineering_maintenance" if renew_n else None,
         })
         overhead = maint["overhead"]
         if overhead["budget_entered"]:
@@ -480,7 +491,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "negative" if gap > 0 else "positive",
                 "missing": False,
-                "href": "/app/maintenance",
+                "href": "/app/departments/engineering_maintenance",
             })
         else:
             out.append({
@@ -489,8 +500,9 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "delta": 0,
                 "tone": "neutral",
                 "missing": overhead["actual"] == 0,
-                "href": "/app/maintenance",
+                "href": "/app/departments/engineering_maintenance",
             })
+        _stamp("maintenance", start)
 
     return out
 

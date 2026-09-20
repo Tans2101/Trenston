@@ -16,6 +16,16 @@ const toneDot = {
   neutral: "bg-helm-muted",
 };
 
+/** Fixed Briefing section order — only sections with tiles are rendered. */
+const SECTION_ORDER = ["finance", "procurement", "production", "sales", "maintenance"];
+const SECTION_LABELS = {
+  finance: "Finance",
+  procurement: "Procurement",
+  production: "Production",
+  sales: "Sales",
+  maintenance: "Maintenance",
+};
+
 /** Parse a display value like "$248K", "17 months", "12.5%" into animatable parts. */
 function parseMetricValue(raw) {
   if (raw == null) return { prefix: "", number: null, suffix: "", fallback: "—" };
@@ -91,85 +101,114 @@ function gridClass(total) {
   return "grid-cols-2 lg:grid-cols-4";
 }
 
+function groupMetricsBySection(metrics) {
+  const buckets = new Map();
+  for (const m of metrics) {
+    const key = SECTION_ORDER.includes(m?.section) ? m.section : "finance";
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(m);
+  }
+  return SECTION_ORDER
+    .filter((key) => (buckets.get(key) || []).length > 0)
+    .map((key) => ({
+      key,
+      label: SECTION_LABELS[key] || key,
+      metrics: buckets.get(key),
+    }));
+}
+
+function MetricTile({ m, index, total }) {
+  const navigate = useNavigate();
+  const clickable = Boolean(m.href && m.missing);
+  const surfaceClass = cn(
+    "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full",
+    index === 0 && total >= 3 && "md:p-5",
+    clickable && "cursor-pointer transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
+  );
+  const body = (
+    <>
+      <div className="flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wider text-helm-muted font-mono">{m.label}</span>
+        <span className={cn("w-1.5 h-1.5 rounded-full", toneDot[m.tone] || toneDot.neutral)} />
+      </div>
+      <div className={cn("mt-3 flex items-end justify-between gap-2", index === 0 && total >= 3 && "mt-4")}>
+        <AnimatedMetricValue
+          value={m.value}
+          missing={m.missing}
+          className={cn(
+            index === 0 && total >= 3 ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl",
+            clickable && "underline decoration-helm-muted/40 underline-offset-4",
+          )}
+        />
+        <Delta value={m.delta} tone={m.tone} />
+      </div>
+    </>
+  );
+
+  return clickable ? (
+    <button
+      type="button"
+      className={surfaceClass}
+      onClick={() => navigate(m.href)}
+      aria-label={`Add ${m.label} data`}
+    >
+      {body}
+    </button>
+  ) : (
+    <div className={surfaceClass}>{body}</div>
+  );
+}
+
 /**
  * Trenston briefing metrics bento — driven entirely by `metrics` from the briefing API.
  * Missing metrics with `href` are clickable and navigate to where data can be added.
+ * Cards with a `section` field render under uppercase department labels in fixed order.
  */
 export default function BentoGrid({ metrics = [], className }) {
-  const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const list = Array.isArray(metrics) ? metrics : [];
+  const groups = useMemo(() => groupMetricsBySection(list), [list]);
   if (list.length === 0) return null;
 
   return (
-    <motion.div
-      className={cn("grid gap-3 md:gap-4 mb-6", gridClass(list.length), className)}
-      initial={reduceMotion ? false : "hidden"}
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: { staggerChildren: reduceMotion ? 0 : 0.08 },
-        },
-      }}
-    >
-      {list.map((m, i) => {
-        const clickable = Boolean(m.href && m.missing);
-        const surfaceClass = cn(
-          "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full",
-          i === 0 && list.length >= 3 && "md:p-5",
-          clickable && "cursor-pointer transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
-        );
-        const body = (
-          <>
-            <div className="flex items-center justify-between">
-              <span className="text-xs uppercase tracking-wider text-helm-muted font-mono">{m.label}</span>
-              <span className={cn("w-1.5 h-1.5 rounded-full", toneDot[m.tone] || toneDot.neutral)} />
-            </div>
-            <div className={cn("mt-3 flex items-end justify-between gap-2", i === 0 && list.length >= 3 && "mt-4")}>
-              <AnimatedMetricValue
-                value={m.value}
-                missing={m.missing}
-                className={cn(
-                  i === 0 && list.length >= 3 ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl",
-                  clickable && "underline decoration-helm-muted/40 underline-offset-4",
-                )}
-              />
-              <Delta value={m.delta} tone={m.tone} />
-            </div>
-          </>
-        );
-
-        return (
+    <div className={cn("mb-6 space-y-6", className)} data-testid="briefing-metrics-grouped">
+      {groups.map((group) => (
+        <section key={group.key} data-testid={`briefing-metrics-section-${group.key}`}>
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">
+            {group.label}
+          </h2>
           <motion.div
-            key={m.label || i}
-            data-testid={`briefing-metric-${i}`}
-            className={cellClass(i, list.length)}
+            className={cn("grid gap-3 md:gap-4", gridClass(group.metrics.length))}
+            initial={reduceMotion ? false : "hidden"}
+            animate="visible"
             variants={{
-              hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
+              hidden: { opacity: 0 },
               visible: {
                 opacity: 1,
-                y: 0,
-                transition: { duration: reduceMotion ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] },
+                transition: { staggerChildren: reduceMotion ? 0 : 0.08 },
               },
             }}
           >
-            {clickable ? (
-              <button
-                type="button"
-                className={surfaceClass}
-                onClick={() => navigate(m.href)}
-                aria-label={`Add ${m.label} data`}
+            {group.metrics.map((m, i) => (
+              <motion.div
+                key={`${group.key}-${m.label || i}`}
+                data-testid={`briefing-metric-${group.key}-${i}`}
+                className={cellClass(i, group.metrics.length)}
+                variants={{
+                  hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
+                  visible: {
+                    opacity: 1,
+                    y: 0,
+                    transition: { duration: reduceMotion ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] },
+                  },
+                }}
               >
-                {body}
-              </button>
-            ) : (
-              <div className={surfaceClass}>{body}</div>
-            )}
+                <MetricTile m={m} index={i} total={group.metrics.length} />
+              </motion.div>
+            ))}
           </motion.div>
-        );
-      })}
-    </motion.div>
+        </section>
+      ))}
+    </div>
   );
 }

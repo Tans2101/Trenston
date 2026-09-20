@@ -30,7 +30,8 @@ def _run_compute(entries, settings):
 
 
 def test_format_runway_display_states():
-    assert server.format_runway_display({"runway_months": 12.5}) == "12.5mo"
+    assert server.format_runway_display({"runway_months": 12.5}) == "12.5 months"
+    assert server.format_runway_display({"runway_months": 0}) == "0 months"
     assert server.format_runway_display({"runway_months": None, "runway_no_burn": True}) == (
         server.RUNWAY_NO_BURN_LABEL
     )

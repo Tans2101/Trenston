@@ -477,7 +477,7 @@ export default function Financials() {
       label: "Runway",
       value:
         data.runway_months != null
-          ? `${data.runway_months}mo`
+          ? `${data.runway_months} months`
           : data.runway_no_burn
             ? "No burn — cash growing"
             : "Add data",
@@ -794,7 +794,7 @@ export default function Financials() {
                 <div className="space-y-3">
                   {data.scenarios.map((s) => (
                     <div key={s.name} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`scenario-${s.name}`}>
-                      <div className="flex items-center justify-between"><span className="text-sm text-helm-fg">{s.name}</span><span className="font-mono text-helm-gold text-sm">{s.runway}mo</span></div>
+                      <div className="flex items-center justify-between"><span className="text-sm text-helm-fg">{s.name}</span><span className="font-mono text-helm-gold text-sm">{s.runway} months</span></div>
                       <p className="text-xs text-helm-muted mt-1">{s.desc}</p>
                       <Gauge
                         orientation="linear"

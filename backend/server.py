@@ -1865,7 +1865,7 @@ def _runway_state(*, runway_months, runway_no_burn: bool) -> str:
 def format_runway_display(fin: dict, *, missing: str = "Add data") -> str:
     """Human runway label: months, profitable/breakeven, or missing-data copy."""
     if fin.get("runway_months") is not None:
-        return f"{fin['runway_months']}mo"
+        return f"{fin['runway_months']} months"
     if fin.get("runway_no_burn"):
         return RUNWAY_NO_BURN_LABEL
     return missing
@@ -3436,6 +3436,7 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
             "missing": not mrr_known,
             "state": fin.get("mrr_state") or _figure_state(mrr_known, fin.get("mrr_value")),
             "href": None if mrr_known else "/app/financials#log-mrr",
+            "section": "finance",
         },
         {
             "label": "Runway",
@@ -3456,6 +3457,7 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
                     else "/app/financials#log-entry"
                 )
             ),
+            "section": "finance",
         },
         {
             "label": "Burn",
@@ -3465,6 +3467,7 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
             "missing": not burn_known,
             "state": fin.get("burn_state") or _figure_state(burn_known, fin.get("burn_value")),
             "href": None if burn_known else "/app/financials#log-entry",
+            "section": "finance",
         },
     ]
 
@@ -3553,7 +3556,13 @@ async def briefing(principal=Depends(get_principal)):
         metrics = _briefing_finance_metrics(fin)
         nrr = b.get("nrr")
         if nrr:
-            metrics.append({"label": "NRR", "value": nrr["value"], "delta": nrr["delta"], "tone": nrr["tone"]})
+            metrics.append({
+                "label": "NRR",
+                "value": nrr["value"],
+                "delta": nrr["delta"],
+                "tone": nrr["tone"],
+                "section": "finance",
+            })
     metrics.extend(ops_metrics or [])
     b["metrics"] = metrics
     act_items = [{"title": a["summary"], "detail": f"{a['actor_name']} · {_rel_time(a['created_at'])}", "tone": "neutral"} for a in acts]
@@ -6230,7 +6239,7 @@ async def update_fin_settings(payload: FinSettingsInput, principal=Depends(requi
     runway = fin["runway_months"]
     cur = fin.get("currency") or "usd"
     await log_activity(principal, "financials", "settings.update",
-                       f"Updated cash to {fmt_money(payload.cash, cur)}" + (f", runway now {runway}mo" if runway is not None else ""),
+                       f"Updated cash to {fmt_money(payload.cash, cur)}" + (f", runway now {runway} months" if runway is not None else ""),
                        {"cash": payload.cash, "runway_months": runway, "currency": cur})
     return {"ok": True, "settings": fin.get("settings"), "currency": cur}
 
