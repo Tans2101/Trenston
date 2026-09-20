@@ -3270,6 +3270,8 @@ async def remove_member(membership_id: str, principal=Depends(require_pro_perm("
     await db.memberships.delete_one({"membership_id": membership_id, "workspace_id": principal["workspace_id"]})
     await _release_seat_reservation(principal["workspace_id"])
     await unlink_person_membership(principal["workspace_id"], membership_id)
+    # People list caches has_access from memberships — drop it so roster badges update.
+    invalidate_workspace_list_cache(principal["workspace_id"], "people")
     return {"ok": True}
 
 
@@ -8405,9 +8407,22 @@ async def people(principal=Depends(get_principal)):
             {"_id": 0, "membership_id": 1},
         ).to_list(200)
     }
+    stale_links = False
     for p in roster:
         mid = p.get("membership_id")
+        if mid and mid not in mem_ids:
+            # Access revoked but roster row still carried a stale membership_id.
+            p.pop("membership_id", None)
+            stale_links = True
+            mid = None
         p["has_access"] = bool(mid and mid in mem_ids)
+    if stale_links:
+        people_doc = dict(c.get("people") or {})
+        people_doc["people"] = roster
+        await db.workspaces.update_one(
+            {"workspace_id": principal["workspace_id"]},
+            {"$set": {"people": people_doc}},
+        )
     by_user = await dept_access.department_names_by_user_id(db, principal["workspace_id"])
     for p in roster:
         dept_access.attach_real_departments(p, by_user.get(p.get("user_id") or "") or [])
@@ -8579,7 +8594,11 @@ async def remove_person(person_id: str, principal=Depends(require_section("peopl
     person = next((p for p in people["people"] if p["id"] == person_id), None)
     if person and person.get("membership_id"):
         still = await db.memberships.find_one(
-            {"membership_id": person["membership_id"], "workspace_id": principal["workspace_id"]},
+            {
+                "membership_id": person["membership_id"],
+                "workspace_id": principal["workspace_id"],
+                "status": {"$in": ["active", "invited"]},
+            },
             {"_id": 0, "membership_id": 1},
         )
         if still:
@@ -8587,6 +8606,8 @@ async def remove_person(person_id: str, principal=Depends(require_section("peopl
                 status_code=400,
                 detail="This person has Team & Access login. Remove them from Team & Access first",
             )
+        # Stale membership_id after access was revoked — clear before deleting.
+        person.pop("membership_id", None)
     people["people"] = [p for p in people["people"] if p["id"] != person_id]
     headcount = len(people["people"])
     await db.workspaces.update_one({"workspace_id": c["workspace_id"]},

@@ -130,13 +130,22 @@ export default function People() {
   };
 
   const del = async (p) => {
+    // Always ask the API — client has_access can be stale after Team & Access removal.
+    // Backend blocks only when an active/invited membership still exists.
     if (p.has_access) {
-      toast.error("Remove them from Team & Access first");
+      if (!window.confirm(
+        `${p.name} still shows Team & Access login. If you already removed them there, continue to remove them from the People roster. Otherwise cancel and remove them from Team & Access first.`,
+      )) return;
+    } else if (!window.confirm(`Remove ${p.name} from the roster?`)) {
       return;
     }
-    if (!window.confirm(`Remove ${p.name} from the roster?`)) return;
-    try { await api.delete(`/people/${p.id}`); reload(); toast.success("Person removed. Headcount synced"); }
-    catch (e) { toast.error(e?.response?.data?.detail || "Could not delete"); }
+    try {
+      await api.delete(`/people/${p.id}`);
+      reload();
+      toast.success("Person removed. Headcount synced");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not delete");
+    }
   };
 
   const action = canWrite ? (
@@ -271,7 +280,7 @@ export default function People() {
                 {canWrite && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(p)} data-testid={`edit-person-${p.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => del(p)} data-testid={`del-person-${p.id}`} className="text-helm-muted hover:text-helm-status-negative p-1" title={p.has_access ? "Remove from Team & Access first" : "Remove"}><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => del(p)} data-testid={`del-person-${p.id}`} className="text-helm-muted hover:text-helm-status-negative p-1" title={p.has_access ? "Has Team & Access login — remove there first, or confirm to try roster remove" : "Remove"}><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 )}
               </div>

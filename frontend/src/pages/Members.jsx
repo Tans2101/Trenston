@@ -143,7 +143,7 @@ export default function Members() {
       await api.delete(`/members/${m.membership_id}`);
       reload();
       reloadAccess();
-      toast.success("Member removed");
+      toast.success("Member removed. They stay on People as roster-only until you remove them there.");
     } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
   };
 

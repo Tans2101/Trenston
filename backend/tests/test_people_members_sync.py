@@ -126,6 +126,7 @@ async def test_ensure_person_links_existing_roster_by_email():
 def api_client():
     ws = _ws()
     inserted_mems = []
+    server.simple_cache.clear()
 
     async def mock_principal():
         return MOCK_PRINCIPAL
@@ -183,6 +184,7 @@ def api_client():
         yield client, ws, inserted_mems, mock_db
 
     server.app.dependency_overrides.clear()
+    server.simple_cache.clear()
 
 
 def test_invite_member_creates_people_row(api_client):
@@ -233,10 +235,93 @@ def test_delete_person_blocked_when_has_access(api_client):
             "tenure": "New",
         }],
     }
-    mock_db.memberships.find_one = AsyncMock(return_value={"membership_id": "mem_alex"})
+    mock_db.memberships.find_one = AsyncMock(return_value={"membership_id": "mem_alex", "status": "active"})
     r = client.delete("/api/people/p_alex")
     assert r.status_code == 400
     assert "Team & Access" in r.json()["detail"]
+
+
+def test_delete_person_allowed_after_access_revoked_stale_link(api_client):
+    """Membership gone but People row still has membership_id — delete must succeed."""
+    client, ws, _, mock_db = api_client
+    ws["people"] = {
+        "people": [{
+            "id": "p_alex",
+            "name": "Alex",
+            "role": "",
+            "department": "General",
+            "membership_id": "mem_alex",
+            "tenure": "New",
+        }],
+    }
+    mock_db.memberships.find_one = AsyncMock(return_value=None)
+    r = client.delete("/api/people/p_alex")
+    assert r.status_code == 200, r.text
+    assert ws["people"]["people"] == []
+
+
+@pytest.mark.asyncio
+async def test_remove_member_unlinks_and_invalidates_people_cache():
+    ws = _ws({
+        "people": [{
+            "id": "p_alex",
+            "name": "Alex",
+            "membership_id": "mem_alex",
+            "email": "alex@acme.com",
+            "tenure": "New",
+        }],
+    })
+    membership = {
+        "membership_id": "mem_alex",
+        "workspace_id": "ws_test",
+        "user_id": "u_alex",
+        "email": "alex@acme.com",
+        "status": "active",
+        "pack": "member",
+    }
+    mock_db = MagicMock()
+    mock_db.memberships.find_one = AsyncMock(return_value=membership)
+    mock_db.memberships.delete_one = AsyncMock()
+    mock_db.workspaces.update_one = AsyncMock()
+
+    async def persist(_q, update):
+        if "people" in (update.get("$set") or {}):
+            ws["people"] = update["$set"]["people"]
+
+    mock_db.workspaces.update_one = AsyncMock(side_effect=persist)
+
+    with patch.object(server, "db", mock_db), \
+         patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
+         patch.object(server, "_release_seat_reservation", new=AsyncMock()), \
+         patch.object(server, "invalidate_workspace_list_cache") as inv:
+        out = await server.remove_member("mem_alex", MOCK_PRINCIPAL)
+    assert out == {"ok": True}
+    assert "membership_id" not in ws["people"]["people"][0]
+    inv.assert_called_with("ws_test", "people")
+
+
+def test_people_get_clears_stale_membership_id(api_client):
+    client, ws, _, mock_db = api_client
+    ws["people"] = {
+        "people": [{
+            "id": "p_alex",
+            "name": "Alex",
+            "membership_id": "mem_gone",
+            "email": "alex@acme.com",
+            "tenure": "New",
+            "user_id": "u_alex",
+        }],
+    }
+    # No active memberships
+    mock_db.memberships.find = MagicMock(return_value=_empty_cursor())
+    r = client.get("/api/people")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    person = body["people"][0]
+    assert person["has_access"] is False
+    assert "membership_id" not in person or not person.get("membership_id")
+    # Persisted cleanup
+    assert "membership_id" not in ws["people"]["people"][0]
 
 
 @pytest.mark.asyncio
