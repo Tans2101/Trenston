@@ -43,8 +43,6 @@ jobs:
           # Leave REACT_APP_BACKEND_URL unset so live-API suites skip/collect cleanly.
         run: |
           python -m pytest -q \
-            --ignore=tests/test_kalun_backend.py \
-            --ignore=tests/test_kalun_multitenant.py \
             --ignore=tests/test_updates_myday_join_exec.py \
             --ignore=tests/test_packs_activity_people.py \
             --ignore=tests/test_financials_onboarding.py \
