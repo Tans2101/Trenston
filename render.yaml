@@ -218,3 +218,23 @@ services:
         sync: false
       - key: DAILY_BRIEFING_CRON_URL
         value: https://www.trenston.com/api/internal/run-daily-briefing
+
+  # Purge uncommitted bill/receipt uploads older than DOC_ORPHAN_RETENTION_DAYS (default 7).
+  # Admin route uses SETUP_SECRET (X-Setup-Secret), not INTERNAL_CRON_SECRET.
+  - type: cron
+    name: helm-orphan-doc-cleanup
+    runtime: python
+    plan: starter
+    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    branch: main
+    rootDir: backend
+    schedule: "30 4 * * *"
+    buildCommand: pip install --upgrade pip
+    startCommand: python scripts/run_orphan_cleanup_cron.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: SETUP_SECRET
+        sync: false
+      - key: ORPHAN_CLEANUP_CRON_URL
+        value: https://www.trenston.com/api/admin/cleanup-orphaned-documents
