@@ -4,6 +4,7 @@ import { Sparkles, PenLine, ArrowRight, Check, Lock } from "lucide-react";
 import { api } from "@/lib/api";
 import { GlassCard, ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
+import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { departmentIcon } from "@/lib/departmentIcons";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +13,8 @@ const LOCKED_TYPES = new Set(["sales", "accounting_finance"]);
 
 export default function Onboarding() {
   const { data, loading, error, reload } = useDepartmentsQuery();
+  const { data: company } = useCompanyQuery();
+  const hasTeam = company?.has_team !== false;
   const [step, setStep] = useState("departments"); // departments | template
   const [selected, setSelected] = useState(() => new Set());
   const [busy, setBusy] = useState(null);
@@ -218,10 +221,15 @@ export default function Onboarding() {
           </div>
           <h3 className="mt-5 text-xl text-helm-fg tracking-tight">Start clean</h3>
           <p className="mt-2 text-sm text-helm-muted leading-relaxed flex-1">
-            Begin with an empty cockpit and make it yours. Log your financials, invite your team, and connect your tools. Trenston builds your command center around real data.
+            {hasTeam
+              ? "Begin with an empty cockpit and make it yours. Log your financials, invite your team, and connect your tools. Trenston builds your command center around real data."
+              : "Begin with an empty cockpit and make it yours. Log your own financials and connect your tools — Trenston builds your command center around real data."}
           </p>
           <ul className="mt-4 space-y-1.5">
-            {["Log financials in Trenston", "Invite your finance team", "Connect Google, QuickBooks & more"].map((f) => (
+            {(hasTeam
+              ? ["Log financials in Trenston", "Invite your finance team", "Connect Google, QuickBooks & more"]
+              : ["Log your own financials", "Connect Google, QuickBooks & more", "Build your briefing from real numbers"]
+            ).map((f) => (
               <li key={f} className="flex items-center gap-2 text-xs text-helm-muted"><Check className="w-3.5 h-3.5 text-helm-muted" />{f}</li>
             ))}
           </ul>

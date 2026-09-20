@@ -22,20 +22,42 @@ const ROLE_ICONS = {
 };
 
 export default function CompanySetup({ company }) {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+  const needsDisplayName = !(user?.name || "").trim();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [hasTeamTouched, setHasTeamTouched] = useState(
+    typeof company?.has_team === "boolean",
+  );
   const [form, setForm] = useState({
     founder_title: company?.founder_title || "CEO",
+    display_name: (user?.name || "").trim(),
     name: company?.name || "",
     industry: company?.industry || "",
     stage: COMPANY_STAGES.includes(company?.stage) ? company.stage : "",
     employees: company?.employees > 0 ? company.employees : null,
+    has_team: typeof company?.has_team === "boolean"
+      ? company.has_team
+      : null,
     founded: /^\d{4}$/.test(company?.founded || "") ? company.founded : "",
     mission: company?.mission || "",
   });
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+
+  const setEmployees = (value) => {
+    setForm((f) => ({
+      ...f,
+      employees: value,
+      // Suggest Yes/No from headcount until the founder overrides explicitly.
+      has_team: hasTeamTouched ? f.has_team : value > 1,
+    }));
+  };
+
+  const setHasTeam = (value) => {
+    setHasTeamTouched(true);
+    set("has_team", value);
+  };
 
   const teamSizeLabel = () => {
     const match = TEAM_SIZES.find((t) => t.value === form.employees);
@@ -43,9 +65,19 @@ export default function CompanySetup({ company }) {
   };
 
   const canNext = () => {
-    if (step === 0) return !!form.founder_title;
+    if (step === 0) {
+      if (!form.founder_title) return false;
+      if (form.display_name.trim().length < 1) return false;
+      return true;
+    }
     if (step === 1) return form.name.trim().length >= 2 && form.industry && form.stage;
-    if (step === 2) return form.employees && form.founded?.length === 4;
+    if (step === 2) {
+      return (
+        !!form.employees
+        && form.founded?.length === 4
+        && typeof form.has_team === "boolean"
+      );
+    }
     return true;
   };
 
@@ -55,16 +87,30 @@ export default function CompanySetup({ company }) {
       setStep(1);
       return;
     }
+    if (typeof form.has_team !== "boolean") {
+      toast.error("Tell us whether you have people you can hand work to");
+      setStep(2);
+      return;
+    }
     setBusy(true);
     try {
       if (!user?.age_confirmed) {
         await api.patch("/account/age-confirmation", { confirmed: true });
+      }
+      if (needsDisplayName || (form.display_name.trim() && form.display_name.trim() !== (user?.name || "").trim())) {
+        const { data: profile } = await api.patch("/account/profile", {
+          name: form.display_name.trim(),
+        });
+        if (setUser && profile?.name) {
+          setUser((u) => (u ? { ...u, name: profile.name } : u));
+        }
       }
       await api.patch("/company", {
         name: form.name.trim(),
         industry: form.industry,
         stage: form.stage,
         employees: form.employees,
+        has_team: form.has_team,
         founded: form.founded,
         mission: form.mission.trim(),
         founder_title: form.founder_title,
@@ -77,7 +123,7 @@ export default function CompanySetup({ company }) {
     }
   };
 
-  const firstName = user?.name?.split(" ")[0] || "there";
+  const firstName = (form.display_name || user?.name || "").trim().split(" ")[0] || "there";
 
   return (
     <div className="min-h-screen grain flex flex-col">
@@ -130,6 +176,21 @@ export default function CompanySetup({ company }) {
                     <p className="text-xs text-helm-muted mt-0.5">Trenston is built for leaders who run the company.</p>
                   </div>
                 </div>
+                <label className="block text-xs text-helm-muted mb-5">
+                  What should we call you?
+                  <input
+                    data-testid="setup-display-name"
+                    value={form.display_name}
+                    onChange={(e) => set("display_name", e.target.value)}
+                    placeholder="Your first name"
+                    className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/40"
+                  />
+                  {!needsDisplayName && (
+                    <span className="mt-1 block text-[11px] text-helm-muted">
+                      From your sign-in — edit if you prefer a different name in Trenston.
+                    </span>
+                  )}
+                </label>
                 <div className="grid gap-2">
                   {FOUNDER_ROLES.map((role) => {
                     const Icon = ROLE_ICONS[role.id] || Crown;
@@ -250,7 +311,7 @@ export default function CompanySetup({ company }) {
                           key={t.label}
                           type="button"
                           data-testid={`team-${t.label}`}
-                          onClick={() => set("employees", t.value)}
+                          onClick={() => setEmployees(t.value)}
                           className={cn(
                             "rounded-lg border px-3 py-2.5 text-sm transition-colors",
                             form.employees === t.value
@@ -259,6 +320,33 @@ export default function CompanySetup({ company }) {
                           )}
                         >
                           {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-helm-muted mb-1">Do you have a team you can delegate to?</p>
+                    <p className="text-[11px] text-helm-muted mb-2 leading-relaxed">
+                      Hires, contractors, or co-founders who actually act on things — not just company headcount.
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "Yes", value: true, testId: "has-team-yes" },
+                        { label: "No", value: false, testId: "has-team-no" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          data-testid={opt.testId}
+                          onClick={() => setHasTeam(opt.value)}
+                          className={cn(
+                            "rounded-lg border px-3 py-2.5 text-sm transition-colors",
+                            form.has_team === opt.value
+                              ? "border-helm-gold/35 bg-helm-gold/12 text-helm-gold"
+                              : "border-helm-line text-helm-muted hover:border-helm-fg/20",
+                          )}
+                        >
+                          {opt.label}
                         </button>
                       ))}
                     </div>
@@ -302,11 +390,13 @@ export default function CompanySetup({ company }) {
                 </div>
                 <dl className="space-y-3 text-sm">
                   {[
+                    ["Your name", form.display_name || user?.name || "—"],
                     ["Your role", form.founder_title],
                     ["Company", form.name],
                     ["Industry", form.industry],
                     ["Maturity", form.stage],
                     ["Team size", teamSizeLabel()],
+                    ["Can delegate", form.has_team ? "Yes — I have people I can hand work to" : "No — just me for now"],
                     ["Founded", form.founded],
                     ...(form.mission ? [["Mission", form.mission]] : []),
                   ].map(([label, value]) => (
