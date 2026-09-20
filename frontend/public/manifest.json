@@ -1,7 +1,7 @@
 {
   "name": "Trenston",
   "short_name": "Trenston",
-  "description": "CEO Operating System — run the business, don't chase it.",
+  "description": "CEO operating system — briefing, decisions, financials, and department lanes in one cockpit.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F5F0E6",
