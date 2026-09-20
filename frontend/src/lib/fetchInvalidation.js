@@ -9,6 +9,8 @@ import { getAppQueryClient } from "./queryClient";
 const MUTATION_INVALIDATIONS = [
   { match: "/production/work-orders", paths: ["/production/work-orders", "/me/work-items", "/calendar"] },
   { match: "/procurement/requests", paths: ["/procurement/requests", "/me/work-items", "/calendar", "/production/work-orders"] },
+  { match: "/procurement/settings", paths: ["/procurement/requests", "/procurement/settings", "/briefing"] },
+  { match: "/maintenance/settings", paths: ["/maintenance/tickets", "/maintenance/settings", "/briefing"] },
   { match: "/legal/matters", paths: ["/legal/matters", "/me/work-items", "/calendar"] },
   { match: "/maintenance/tickets", paths: ["/maintenance/tickets", "/me/work-items", "/calendar", "/production/work-orders"] },
   { match: "/hr/", paths: ["/hr/", "/me/work-items", "/members"] },

@@ -107,12 +107,18 @@ api.interceptors.response.use(
   (error) => {
     const data = error?.response?.data;
     const detail = data?.detail;
-    if (detail && typeof detail === "object" && !Array.isArray(detail) && typeof detail.message === "string") {
+    // Always coerce detail to a string so toast.error(detail) never crashes React
+    // (FastAPI validation lists / {message, reason} objects are not valid children).
+    if (detail != null && typeof detail !== "string") {
+      const reason =
+        detail && typeof detail === "object" && !Array.isArray(detail)
+          ? detail.reason ?? data.reason
+          : data?.reason;
       error.response.data = {
         ...data,
-        detail: detail.message,
-        reason: detail.reason ?? data.reason,
-        feature: detail.feature ?? data.feature,
+        detail: apiErrorMessage(error, "Something went wrong"),
+        reason,
+        feature: (detail && typeof detail === "object" && !Array.isArray(detail) && detail.feature) || data?.feature,
       };
     }
     return Promise.reject(error);

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import TrenstonMark from "@/components/HelmMark";
 
 export function GlassCard({ className, children, glow, ...props }) {
   return (
@@ -128,16 +129,43 @@ export function LoadingScreen({ label = "Loading" }) {
   );
 }
 
-export function ErrorScreen({ label = "Something went wrong", message, onRetry }) {
+export function ErrorScreen({
+  label = "Something went wrong",
+  title,
+  message,
+  onRetry,
+}) {
+  // Unexpected/crash-style: gold label + display title + recovery copy.
+  // Load/access failures usually pass label + message only — keep that readable
+  // without forcing the crash headline on top of a specific explanation.
+  const headline = title || (!message ? "This screen hit an unexpected error." : null);
+  const body = message || (
+    headline
+      ? "You can try again. If it keeps happening, refresh the page or sign back in."
+      : null
+  );
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-32 px-6 text-center">
-      <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-status-negative/80 mb-3">{label}</p>
-      <p className="text-sm text-helm-muted max-w-md leading-relaxed">{message}</p>
+    <div
+      className="flex-1 flex flex-col items-center justify-center py-24 md:py-32 px-6 text-center fade-up"
+      data-testid="error-screen"
+    >
+      <TrenstonMark size={48} className="rounded-md mx-auto mb-6" />
+      <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-3">{label}</p>
+      {headline ? (
+        <h2 className="font-display text-2xl font-normal text-helm-fg tracking-tight max-w-md">{headline}</h2>
+      ) : null}
+      {body ? (
+        <p className={cn("text-sm text-helm-muted max-w-md leading-relaxed", headline ? "mt-3" : "mt-1")}>
+          {body}
+        </p>
+      ) : null}
       {onRetry && (
         <button
           type="button"
+          data-testid="error-retry-btn"
           onClick={onRetry}
-          className="mt-6 rounded-md border border-helm-line bg-helm-fg/5 px-4 py-2 text-sm text-helm-fg transition-colors hover:border-helm-gold/35 hover:text-helm-fg"
+          className="mt-8 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-5 py-2.5 transition-colors hover:bg-helm-gold-hover"
         >
           Try again
         </button>

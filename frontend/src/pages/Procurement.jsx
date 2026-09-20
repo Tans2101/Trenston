@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, X, Package } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
   SkeletonKPIRow, SkeletonCardList,
@@ -51,6 +51,84 @@ function StatusBadge({ status }) {
     <span className={cn("inline-flex items-center rounded px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide border", meta.className)}>
       {meta.label}
     </span>
+  );
+}
+
+/**
+ * Prefer selecting a previous vendor name so spend rollups stay consistent.
+ * "New vendor…" opens a free-text field; that name joins the list on later requests.
+ */
+function VendorPicker({
+  value,
+  onChange,
+  knownVendors = [],
+  disabled = false,
+  testId,
+  customTestId,
+}) {
+  const valueInList = knownVendors.includes(value);
+  const [customMode, setCustomMode] = useState(() => Boolean(value) && !valueInList);
+
+  useEffect(() => {
+    if (valueInList) setCustomMode(false);
+    else if (value) setCustomMode(true);
+  }, [value, valueInList]);
+
+  const fieldClass =
+    "w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-50";
+
+  if (knownVendors.length === 0) {
+    return (
+      <input
+        data-testid={testId}
+        disabled={disabled}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Vendor name"
+        className={fieldClass}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <select
+        data-testid={testId}
+        disabled={disabled}
+        value={customMode ? "__new__" : value}
+        onChange={(e) => {
+          const next = e.target.value;
+          if (next === "__new__") {
+            setCustomMode(true);
+            onChange("");
+            return;
+          }
+          setCustomMode(false);
+          onChange(next);
+        }}
+        className={fieldClass}
+      >
+        <option value="">Select vendor…</option>
+        {knownVendors.map((name) => (
+          <option key={name} value={name}>{name}</option>
+        ))}
+        <option value="__new__">New vendor…</option>
+      </select>
+      {customMode ? (
+        <input
+          data-testid={customTestId || `${testId}-custom`}
+          disabled={disabled}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Type new vendor name"
+          className={fieldClass}
+          autoFocus
+        />
+      ) : null}
+      <p className="text-[11px] text-helm-muted leading-relaxed">
+        Reuse a previous vendor when you can — spelling variants split spend. New names show up here next time.
+      </p>
+    </div>
   );
 }
 
@@ -115,6 +193,18 @@ export default function Procurement() {
   const allRequests = useMemo(() => data?.requests || [], [data?.requests]);
   const leadSummary = data?.lead_time_summary || null;
   const spend = data?.spend || null;
+  const knownVendors = useMemo(() => {
+    const names = new Set();
+    for (const r of allRequests) {
+      const v = (r.vendor_name || "").trim();
+      if (v) names.add(v);
+    }
+    for (const row of spend?.by_vendor || []) {
+      const v = (row.vendor_name || "").trim();
+      if (v && v !== "(no vendor)") names.add(v);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [allRequests, spend?.by_vendor]);
   const canManageBudget = Boolean(data?.is_lead || data?.is_ceo || data?.can_approve);
   const [budgetDraft, setBudgetDraft] = useState("");
   const [budgetBusy, setBudgetBusy] = useState(false);
@@ -378,7 +468,7 @@ export default function Procurement() {
       toast.success("Procurement budget saved");
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not save budget");
+      toast.error(apiErrorMessage(e, "Could not save budget"));
     } finally {
       setBudgetBusy(false);
     }
@@ -392,7 +482,7 @@ export default function Procurement() {
       setBudgetDraft("");
       await reload();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not clear budget");
+      toast.error(apiErrorMessage(e, "Could not clear budget"));
     } finally {
       setBudgetBusy(false);
     }
@@ -756,12 +846,13 @@ export default function Procurement() {
             </label>
             <label className="space-y-1">
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Vendor</span>
-              <input
-                data-testid="procurement-edit-vendor"
+              <VendorPicker
+                testId="procurement-edit-vendor"
+                customTestId="procurement-edit-vendor-custom"
                 disabled={!canEditContent || busy}
                 value={draft.vendor_name}
-                onChange={(e) => setDraft((d) => ({ ...d, vendor_name: e.target.value }))}
-                className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-50"
+                onChange={(vendor_name) => setDraft((d) => ({ ...d, vendor_name }))}
+                knownVendors={knownVendors}
               />
             </label>
             <label className="space-y-1">
@@ -1033,11 +1124,12 @@ export default function Procurement() {
             </div>
             <label className="block space-y-1">
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Vendor</span>
-              <input
-                data-testid="procurement-new-vendor"
+              <VendorPicker
+                testId="procurement-new-vendor"
+                customTestId="procurement-new-vendor-custom"
                 value={form.vendor_name}
-                onChange={(e) => setForm((f) => ({ ...f, vendor_name: e.target.value }))}
-                className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
+                onChange={(vendor_name) => setForm((f) => ({ ...f, vendor_name }))}
+                knownVendors={knownVendors}
               />
             </label>
 
