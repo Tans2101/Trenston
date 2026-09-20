@@ -22,31 +22,38 @@ const fade = {
 
 function BriefingPreview() {
   return (
-    <div className="relative rounded-lg border border-helm-cream/10 bg-helm-ink-card p-5 md:p-7">
-      <div className="flex items-center justify-between border-b border-helm-cream/[0.06] pb-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
-        <span className="text-[10px] text-helm-slate">Sample briefing</span>
-      </div>
-      <p className="font-display text-helm-cream text-2xl md:text-3xl font-medium mt-6 leading-snug tracking-tight">Welcome back, Alex.</p>
-      <p className="text-helm-slate text-sm mt-3 leading-relaxed">Revenue is ahead of plan. Engineering capacity needs a decision today.</p>
-      <div className="grid grid-cols-3 gap-3 mt-6 border-y border-helm-cream/[0.06] py-4">
-        {[
-          ["Monthly revenue", "$248K", "Up $12K this month"],
-          ["Cash runway", "17 months", "No change"],
-          ["Monthly burn", "$182K", "Down $8K this month"],
-        ].map(([l, v, change]) => (
-          <div key={l}>
-            <p className="text-[9px] font-mono uppercase tracking-wider text-helm-slate">{l}</p>
-            <p className="font-mono text-helm-cream text-base mt-1 font-medium tabular-nums">{v}</p>
-            <p className="mt-1 text-[10px] text-helm-slate">{change}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-5">
-        <div className="h-px w-8 bg-helm-gold mb-3" aria-hidden />
-        <p className="font-mono text-[10px] uppercase tracking-wider text-helm-slate">One decision today</p>
-        <p className="mt-2 text-sm text-helm-cream/85 leading-snug">Approve the $40K infrastructure reservation. It pays back in four months and cuts cloud spend by 18%.</p>
-        <p className="mt-4 text-xs text-helm-slate">Review decision →</p>
+    <div className="relative">
+      {/* Decorative depth layer */}
+      <div
+        aria-hidden
+        className="absolute inset-0 translate-x-2 translate-y-3 rounded-lg border border-helm-cream/10 bg-helm-ink-card/80"
+      />
+      <div className="relative z-[1] rounded-lg border border-helm-navy/10 bg-helm-cream p-5 md:p-7 shadow-xl shadow-black/20">
+        <div className="flex items-center justify-between border-b border-helm-navy/10 pb-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
+          <span className="text-[10px] text-helm-slate">Sample briefing</span>
+        </div>
+        <p className="font-display text-helm-navy text-2xl md:text-3xl font-medium mt-6 leading-snug tracking-tight">Welcome back, Alex.</p>
+        <p className="text-helm-slate text-sm mt-3 leading-relaxed">Revenue is ahead of plan. Engineering capacity needs a decision today.</p>
+        <div className="grid grid-cols-3 gap-3 mt-6 border-y border-helm-navy/10 py-4">
+          {[
+            ["Monthly revenue", "$248K", "Up $12K this month"],
+            ["Cash runway", "17 months", "No change"],
+            ["Monthly burn", "$182K", "Down $8K this month"],
+          ].map(([l, v, change]) => (
+            <div key={l}>
+              <p className="text-[9px] font-mono uppercase tracking-wider text-helm-slate">{l}</p>
+              <p className="font-mono text-helm-navy text-base mt-1 font-medium tabular-nums">{v}</p>
+              <p className="mt-1 text-[10px] text-helm-slate">{change}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5">
+          <div className="h-px w-8 bg-helm-gold mb-3" aria-hidden />
+          <p className="font-mono text-[10px] uppercase tracking-wider text-helm-slate">One decision today</p>
+          <p className="mt-2 text-sm text-helm-navy/85 leading-snug">Approve the $40K infrastructure reservation. It pays back in four months and cuts cloud spend by 18%.</p>
+          <p className="mt-4 text-xs text-helm-slate">Review decision →</p>
+        </div>
       </div>
     </div>
   );
