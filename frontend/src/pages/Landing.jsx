@@ -83,6 +83,18 @@ export default function Landing() {
 
       {/* Hero — flat ink, typography leads */}
       <section className="relative z-10 px-6 pt-36 md:pt-48 pb-24 bg-helm-ink">
+        <p
+          aria-hidden
+          className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl] rotate-180"
+        >
+          Production · Live
+        </p>
+        <p
+          aria-hidden
+          className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl]"
+        >
+          Decisions · Tracked
+        </p>
         <div className="relative mx-auto max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
           <div>
             <motion.p variants={fade} initial="hidden" animate="show" custom={0}
@@ -90,7 +102,7 @@ export default function Landing() {
               {CATEGORY}
             </motion.p>
             <motion.h1 variants={fade} initial="hidden" animate="show" custom={1}
-              className="font-display mt-8 text-5xl sm:text-6xl lg:text-[4.25rem] font-medium tracking-[-0.03em] leading-[1.05] text-helm-cream">
+              className="font-display mt-8 text-5xl sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] leading-[1.05] text-helm-cream">
               {TAGLINE.split(". ").map((part, i, arr) => (
                 <span key={part}>
                   {i === 0 ? <span className="text-helm-gold">{part}.</span> : part}
