@@ -280,16 +280,16 @@ export default function Landing() {
               );
             })}
           </div>
-          <div className="mt-14 max-w-2xl space-y-5 text-left">
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">Common questions</p>
+          <div className="mt-14 max-w-2xl space-y-6 text-left">
+            <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-slate">Common questions</p>
             {PRICING_FAQ.map((item) => (
-              <div key={item.q} className="border-b border-helm-navy/[0.06] pb-4">
-                <p className="text-sm text-helm-navy">{item.q}</p>
-                <p className="text-xs text-helm-slate mt-1.5 leading-relaxed">{item.a}</p>
+              <div key={item.q} className="border-b border-helm-navy/[0.06] pb-5">
+                <p className="text-base md:text-lg font-medium text-helm-navy tracking-tight">{item.q}</p>
+                <p className="text-sm md:text-base text-helm-slate mt-2 leading-relaxed">{item.a}</p>
                 {item.link ? (
                   <Link
                     to={item.link.to}
-                    className="inline-block mt-2 text-xs text-helm-navy hover:text-helm-gold transition-colors"
+                    className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-gold transition-colors"
                   >
                     {item.link.label} →
                   </Link>
