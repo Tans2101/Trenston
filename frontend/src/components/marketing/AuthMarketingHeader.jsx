@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import MarketingLogo from "@/components/marketing/MarketingLogo";
 import { PUBLIC_CONTACT_MAILTO } from "@/lib/marketingCopy";
 
 const LINKS = [
@@ -11,31 +10,31 @@ const LINKS = [
   { to: "/security", label: "Security" },
 ];
 
-/** Top bar for login / sign-up. Logo goes home; explore links stay visible. */
+/**
+ * Compact top links for login / sign-up form column (light surface).
+ * Brand mark lives centered above the auth headline — not duplicated here.
+ */
 export default function AuthMarketingHeader() {
   return (
-    <header className="absolute top-0 inset-x-0 z-20 px-6 py-6 md:px-10 md:py-8">
-      <div className="flex items-center justify-between gap-4 max-w-6xl mx-auto">
-        <MarketingLogo size="md" showTagline dark />
-        <nav className="hidden sm:flex flex-wrap items-center justify-end gap-x-5 gap-y-1 text-sm text-helm-slate">
-          {LINKS.map((l) => (
-            <Link key={l.to} to={l.to} className="hover:text-helm-cream transition-colors whitespace-nowrap">
+    <header className="absolute top-0 inset-x-0 z-20 px-6 py-5 md:px-8">
+      <nav className="flex flex-wrap items-center justify-between gap-3 text-sm text-helm-slate" aria-label="Marketing">
+        <Link to="/" className="hover:text-helm-navy transition-colors whitespace-nowrap">
+          ← Home
+        </Link>
+        <div className="hidden sm:flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+          {LINKS.filter((l) => l.to !== "/").map((l) => (
+            <Link key={l.to} to={l.to} className="hover:text-helm-navy transition-colors whitespace-nowrap">
               {l.label}
             </Link>
           ))}
-          <a href={PUBLIC_CONTACT_MAILTO} className="hover:text-helm-cream transition-colors whitespace-nowrap">
+          <a href={PUBLIC_CONTACT_MAILTO} className="hover:text-helm-navy transition-colors whitespace-nowrap">
             Contact
           </a>
-        </nav>
-        <div className="sm:hidden flex items-center gap-4 text-sm text-helm-slate">
-          <a href={PUBLIC_CONTACT_MAILTO} className="hover:text-helm-cream transition-colors">
-            Contact
-          </a>
-          <Link to="/" className="hover:text-helm-cream transition-colors">
-            ← Home
-          </Link>
         </div>
-      </div>
+        <a href={PUBLIC_CONTACT_MAILTO} className="sm:hidden hover:text-helm-navy transition-colors">
+          Contact
+        </a>
+      </nav>
     </header>
   );
 }

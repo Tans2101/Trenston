@@ -1,45 +1,58 @@
-/** Shared Clerk SignIn/SignUp appearance — Trenston dark marketing (ink/cream/gold). */
+/** Shared Clerk SignIn/SignUp appearance — Trenston auth split (cream panel).
+ *
+ * Button shape notes (Clerk appearance API limits):
+ * - socialButtonsBlockButton → "Continue with Google" (solid dark pill)
+ * - formButtonPrimary / alternativeMethodsBlockButton → email continue (outlined pill)
+ * Clerk does not expose per-provider style hooks beyond social vs form/alternative, so we
+ * cannot independently restyle a second OAuth provider differently from Google. Full-width
+ * stacking is supported; exact Folk-style padding/label copy is controlled by Clerk, not us.
+ */
 import palette from "@/design/palette.json";
 
 export const clerkAppearance = {
   variables: {
-    colorBackground: palette.ink,
-    colorInputBackground: palette.inkCard,
-    colorInputText: palette.cream,
-    colorText: palette.cream,
+    colorBackground: "transparent",
+    colorInputBackground: "#ffffff",
+    colorInputText: palette.navy,
+    colorText: palette.navy,
     colorTextSecondary: palette.slate,
-    colorPrimary: palette.gold,
+    colorPrimary: palette.navy,
     colorDanger: palette.statusNegative,
     colorNeutral: palette.slate,
-    colorShimmer: palette.inkCard,
-    borderRadius: "0.5rem",
+    colorShimmer: palette.cream,
+    borderRadius: "9999px",
     fontFamily: "inherit",
   },
   elements: {
     rootBox: "w-full",
     card: "bg-transparent shadow-none border-0 p-0",
-    headerTitle: "text-helm-cream font-normal tracking-tight",
-    headerSubtitle: "text-helm-slate",
+    header: "hidden",
+    headerTitle: "hidden",
+    headerSubtitle: "hidden",
     socialButtonsBlockButton:
-      "bg-helm-gold text-helm-navy font-medium border-0 hover:bg-helm-gold-hover",
-    socialButtonsBlockButtonText: "text-helm-navy font-medium",
-    formButtonPrimary: "bg-helm-gold text-helm-navy font-medium hover:bg-helm-gold-hover",
-    footerActionLink: "text-helm-gold hover:text-helm-gold-hover",
-    identityPreviewEditButton: "text-helm-gold",
+      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none",
+    socialButtonsBlockButtonText: "text-helm-cream font-medium",
+    socialButtonsProviderIcon: "brightness-0 invert",
+    alternativeMethodsBlockButton:
+      "w-full justify-center rounded-full bg-transparent text-helm-navy border border-helm-navy/20 font-medium hover:bg-helm-navy/[0.04] shadow-none",
+    formButtonPrimary:
+      "w-full justify-center rounded-full bg-transparent text-helm-navy border border-helm-navy/25 font-medium hover:bg-helm-navy/[0.04] shadow-none",
+    footerActionLink: "text-helm-navy hover:text-helm-navy/80 underline-offset-2",
+    identityPreviewEditButton: "text-helm-navy",
     formFieldLabel: "text-helm-slate",
     formFieldInput:
-      "bg-helm-ink-card border-helm-cream/15 text-helm-cream caret-helm-gold placeholder:text-helm-slate",
+      "rounded-full bg-white border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate",
     formFieldInput__input:
-      "bg-helm-ink-card border-helm-cream/15 text-helm-cream caret-helm-gold placeholder:text-helm-slate",
-    formFieldInputShowPasswordButton: "text-helm-slate hover:text-helm-cream",
+      "rounded-full bg-white border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate",
+    formFieldInputShowPasswordButton: "text-helm-slate hover:text-helm-navy",
     otpCodeFieldInputs: "justify-center gap-2",
     otpCodeFieldInput:
-      "bg-helm-ink-card border border-helm-cream/20 text-helm-cream text-lg font-mono caret-helm-gold",
-    otpCodeFieldInput__input: "text-helm-cream bg-helm-ink-card",
-    formResendCodeLink: "text-helm-gold hover:text-helm-gold-hover",
-    dividerLine: "bg-helm-cream/10",
+      "bg-white border border-helm-navy/20 text-helm-navy text-lg font-mono caret-helm-gold rounded-lg",
+    otpCodeFieldInput__input: "text-helm-navy bg-white",
+    formResendCodeLink: "text-helm-navy hover:text-helm-navy/80",
+    dividerLine: "bg-helm-navy/10",
     dividerText: "text-helm-slate",
-    alertText: "text-helm-cream",
+    alertText: "text-helm-navy",
     formFieldErrorText: "text-helm-status-negative",
   },
 };
