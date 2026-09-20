@@ -12,7 +12,7 @@ describe("transparency content", () => {
     expect(CHANGELOG_INTRO.toLowerCase()).toMatch(/hand|plain language/);
     const entries = getChangelogEntries();
     expect(entries.length).toBe(data.entries.length);
-    expect(entries.length).toBeGreaterThan(5);
+    expect(entries.length).toBeGreaterThanOrEqual(4);
     for (const e of entries) {
       expect(e.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(e.title.length).toBeGreaterThan(8);

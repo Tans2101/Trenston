@@ -1,120 +1,30 @@
 {
-  "intro": "What actually shipped — not a roadmap. Entries are written by hand in plain language. Older notes may still say Helm; the product is now Trenston.",
+  "intro": "What actually shipped — not a roadmap. One summary per day, written by hand in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
     {
       "date": "2026-09-20",
-      "title": "Solo founders: handoffs become Flag for later",
-      "description": "Company setup asks whether you have people you can actually delegate to (separate from headcount). Solo workspaces get a Flag for later column instead of What to hand off, Onboarding drops Invite your finance team, and insights skip assign-to-teammate drafts."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Founder credit in the marketing footer",
-      "description": "Every marketing page footer now shows Tansher Dhawan, Founder with a LinkedIn link next to the Manila line."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Cockpit redesign: shell, Briefing hero, and Ask Trenston",
-      "description": "The signed-in app gets a clearer command surface. Sidebar Ask Trenston CTA, upgrade/connect promo, and a desktop top bar with search, plan badge, and profile. Briefing opens on a cockpit hero — metric switcher, large figure, period comparison chart, and Assistant / Spending / Decisions columns, with chips that deep-link into Ask. Ask itself is a two-column chat plus context rail (For you / Get started / Get inspired) on large screens."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Light and dark theme reliability",
-      "description": "Light remaps are scoped to data-theme so dark mode works again after the cream marketing refresh. App chrome uses pure white / near-black contrast in light mode, side-by-side KPIs, clearer cards, and a light-blue nav pill. Theme toggle no longer leaves the cockpit stuck in the wrong palette."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Briefing readable in dark mode",
-      "description": "Revenue period charts, gold spend meters, and KPI figures keep contrast on dark Briefing backgrounds. Section separators, Telemetry-style cards, Features filter tabs, and marketing URL/search routing for Briefing deep-links were tightened so the page stays usable after the redesign."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Marketing site: navy home, cream auth, Outway footer",
-      "description": "Home and showcase dividers move to a navy palette with a Contact Us CTA; marketing and auth pages sit on light cream. FAQ type on Pricing and Landing is enlarged to match. Footer is rebuilt in an Outway-style layout with ember accent pop, Instagram, and contact card — plus transparent Trenston favicons for the browser tab."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Sales order book, maintenance ops, and procurement settings APIs",
-      "description": "Sales order-book routes are wired end-to-end with tests. Maintenance ops panels get API indexes and coverage. Procurement settings (monthly budget set/clear) is covered so department ops panels hit real backend contracts instead of silent gaps."
-    },
-    {
-      "date": "2026-09-20",
-      "title": "Cockpit polish and bugfixes",
-      "description": "People roster remove works again after Team & Access revoke. Error toasts no longer blank Maintenance and Order book pages. QuickBooks OAuth errors no longer mislabel as Google. ⌘K search lists About and other missing public pages. Ask Trenston sidebar duplicate CTA is gone. Broader audit pass on rate limits, briefing, sync, billing, and UI stability."
+      "title": "Cockpit redesign, themes, department APIs, and solo founders",
+      "description": "The signed-in app got a full command-surface pass: sidebar Ask Trenston CTA and upgrade/connect promo, desktop top bar with search and plan badge, a Briefing cockpit hero (metric switcher, period chart, Assistant / Spending / Decisions), and a two-column Ask Trenston layout with a context rail. Light remaps are scoped so dark mode works again; Briefing charts, gold spend meters, and KPIs stay readable on dark backgrounds. Marketing moved to navy home / cream auth with an Outway-style footer, ember accent, and transparent favicons — plus Tansher Dhawan, Founder in the footer with LinkedIn. Sales order-book, maintenance ops, and procurement settings APIs are wired and tested. Company setup now asks whether you have people you can delegate to: solo workspaces get Flag for later instead of handoffs, and Onboarding drops Invite your finance team. Also fixed People remove after revoke, error toasts blanking Maintenance/Order book, QuickBooks OAuth mislabeled as Google, ⌘K missing pages, and a broader audit on rate limits, sync, and billing."
     },
     {
       "date": "2026-09-19",
-      "title": "Helm Control is now Trenston",
-      "description": "The product formerly called Helm Control is now Trenston at trenston.com. Same cockpit, new name and domain — bookmarks to helmcontrol.online redirect here."
-    },
-    {
-      "date": "2026-09-19",
-      "title": "Faster tab switching across the cockpit",
-      "description": "Department pages keep recently loaded data when you switch tabs, so revisiting Briefing, Financials, HR, or Production no longer resets to a loading skeleton every time."
-    },
-    {
-      "date": "2026-09-19",
-      "title": "Google Calendar and Gmail are personal connections",
-      "description": "Each teammate connects their own Google account. Meetings and Gmail threads stay on that person’s connection — not a shared workspace mailbox."
-    },
-    {
-      "date": "2026-09-19",
-      "title": "Public pricing page for crawlers and buyers",
-      "description": "Standalone /pricing with the live Free, Starter, Growth, and Business tiers, plus structured data and llms.txt so published prices match the product."
-    },
-    {
-      "date": "2026-09-19",
-      "title": "Public integrations page",
-      "description": "A marketing page that lists what each connection actually does today — Google, QuickBooks, Xero, SAP Business One, HubSpot, and Slack webhook alerts."
+      "title": "Helm Control is Trenston, plus public pricing and personal Google",
+      "description": "The product formerly called Helm Control is now Trenston at trenston.com — same cockpit, new name and domain; helmcontrol.online bookmarks redirect here. Department pages keep recently loaded data when you switch tabs so Briefing, Financials, HR, and Production don’t skeleton-reload every visit. Each teammate connects their own Google Calendar and Gmail (not a shared workspace mailbox). Standalone /pricing publishes Free, Starter, Growth, and Business with structured data and llms.txt, and a public /integrations page lists what each connection actually does today (Google, QuickBooks, Xero, SAP Business One, HubSpot, Slack)."
     },
     {
       "date": "2026-09-18",
-      "title": "SAP Business One in Financials",
-      "description": "Pull A/R and A/P invoices from SAP Business One Service Layer into the same Financials and Decision Engine pipeline as QuickBooks and Xero."
-    },
-    {
-      "date": "2026-09-18",
-      "title": "Honest financial zeros vs missing data",
-      "description": "Burn, MRR, and runway distinguish “not entered” from a confirmed zero, and future-dated ledger rows no longer inflate current metrics."
-    },
-    {
-      "date": "2026-09-18",
-      "title": "Decision Center ranking and resilience",
-      "description": "Pending decisions rank by impact within severity, and a single failed AI draft no longer clears the rest of the decision board."
-    },
-    {
-      "date": "2026-09-18",
-      "title": "Ask Trenston stays inside your access lanes",
-      "description": "Ask Trenston and department context respect membership and finance:write — no cross-lane leakage of Sales, HR, or financial figures you cannot open in the UI."
-    },
-    {
-      "date": "2026-09-18",
-      "title": "AI summary freshness labels",
-      "description": "AI summaries surface when underlying department data may be stale, so leadership can tell synthesis from a live pull."
+      "title": "SAP B1, honest financials, and tighter Ask / Decision Center",
+      "description": "Financials can pull A/R and A/P from SAP Business One Service Layer into the same pipeline as QuickBooks and Xero. Burn, MRR, and runway distinguish “not entered” from a confirmed zero; future-dated ledger rows no longer inflate current metrics. Decision Center ranks pending items by impact within severity, and a single failed AI draft no longer clears the board. Ask Trenston and department context respect membership and finance:write — no cross-lane leakage. AI summaries label when underlying department data may be stale."
     },
     {
       "date": "2026-09-17",
-      "title": "Secure document library",
-      "description": "Private Cloudflare R2 storage with signed downloads for bills, receipts, and legal files — plus tighter controls on legal document access."
-    },
-    {
-      "date": "2026-09-17",
-      "title": "Daily alerts and weekly digest email",
-      "description": "Render cron jobs schedule high-severity alerts and the weekly leadership pack email, separate from in-app Briefing."
-    },
-    {
-      "date": "2026-09-17",
-      "title": "HR leave cancellation",
-      "description": "Employees can cancel their own pending leave requests without waiting on an HR lead."
-    },
-    {
-      "date": "2026-09-17",
-      "title": "Billing clarity after Paddle checkout",
-      "description": "Plan state refreshes after checkout, seat and AI-extract over-limit usage is shown clearly, and Stripe leftover UI is gone."
+      "title": "Document library, alert emails, leave cancel, and billing clarity",
+      "description": "Bills, receipts, and legal files sit in private Cloudflare R2 with signed downloads and tighter legal access. Render cron jobs send high-severity daily alerts and the weekly leadership pack email, separate from in-app Briefing. Employees can cancel their own pending leave without waiting on HR. After Paddle checkout, plan state refreshes cleanly, seat and AI-extract over-limit usage is obvious, and leftover Stripe UI is gone."
     },
     {
       "date": "2026-09-16",
-      "title": "⌘K search across settings and site pages",
-      "description": "Quick search reaches settings sections and public marketing pages from inside the signed-in app."
+      "title": "Public changelog and ⌘K search across the product",
+      "description": "We added this public /changelog — hand-written ship notes in plain language (not a roadmap, not auto-generated from git), linked from the marketing footer, SEO, and sitemap so buyers can see what actually landed. Inside the signed-in app, ⌘K quick search reaches settings sections and public marketing pages without leaving the cockpit."
     }
   ]
 }
