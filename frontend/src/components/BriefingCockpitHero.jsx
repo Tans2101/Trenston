@@ -4,7 +4,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Filter, Info, Plus, Sparkles,
+  ChevronDown, ChevronLeft, ChevronRight, Info, Plus, Sparkles,
 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
@@ -137,15 +137,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
               {formatRangeLabel()}
-              <ChevronDown className="w-3 h-3 ml-1 opacity-70" />
             </span>
-            <button
-              type="button"
-              aria-label="Filter"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
-            >
-              <Filter className="w-3.5 h-3.5" />
-            </button>
           </div>
         </div>
 
@@ -252,9 +244,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
         <section className="rounded-xl border border-helm-line bg-helm-card p-5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Spending</h3>
-            <span className="inline-flex items-center gap-1 text-xs text-helm-muted">
-              Last 30 days <ChevronDown className="w-3 h-3" />
-            </span>
+            <span className="text-xs text-helm-muted">Last 30 days</span>
           </div>
           {spendRows.length > 0 ? (
             <ul className="space-y-3">
