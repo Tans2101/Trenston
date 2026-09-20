@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpRight } from "lucide-react";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
@@ -30,38 +29,6 @@ const UTILITY_LINKS = [
   { to: "/login", label: "Sign in" },
   { to: "/sign-up", label: "Create account" },
 ];
-
-function formatManilaTime(date) {
-  return date.toLocaleTimeString("en-PH", {
-    timeZone: "Asia/Manila",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-}
-
-function ManilaClock() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    tick();
-    const id = window.setInterval(tick, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
-  return (
-    <time
-      dateTime={now.toISOString()}
-      data-testid="footer-manila-clock"
-      title="Asia/Manila"
-      className="font-mono tabular-nums text-helm-slate"
-    >
-      {formatManilaTime(now)} · Manila
-    </time>
-  );
-}
 
 function ExternalHint() {
   return <ArrowUpRight className="inline-block h-3 w-3 shrink-0 opacity-70" aria-hidden />;
@@ -169,7 +136,6 @@ export default function MarketingFooter() {
           <Link to="/privacy" className="hover:text-helm-cream/80 transition-colors">
             Legal
           </Link>
-          <ManilaClock />
         </div>
       </div>
 
