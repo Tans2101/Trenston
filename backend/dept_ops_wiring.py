@@ -25,8 +25,122 @@ import sales_order_book as sales_ob
 logger = logging.getLogger("helm.dept_ops")
 
 
+# ----- Request bodies (module-level so FastAPI binds them as JSON bodies) -----
+class OrderBookCreate(BaseModel):
+    buyer_name: str
+    country: str
+    product: str
+    price: float
+    quantity: float
+    status: str = "expected"
+    expected_close_month: str = ""
+    source_deal_id: Optional[str] = None
+    notes: str = ""
+
+
+class OrderBookPatch(BaseModel):
+    buyer_name: Optional[str] = None
+    country: Optional[str] = None
+    product: Optional[str] = None
+    price: Optional[float] = None
+    quantity: Optional[float] = None
+    status: Optional[str] = None
+    expected_close_month: Optional[str] = None
+    source_deal_id: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class SalesTargetPut(BaseModel):
+    month: str
+    target: float
+
+
+class SpareInput(BaseModel):
+    part_name: str
+    equipment_name: str = ""
+    equipment_names: list[str] = Field(default_factory=list)
+    quantity_on_hand: float = 0
+    minimum_threshold: float = 0
+    unit: str = "pcs"
+
+
+class SparePatch(BaseModel):
+    part_name: Optional[str] = None
+    equipment_name: Optional[str] = None
+    equipment_names: Optional[list[str]] = None
+    quantity_on_hand: Optional[float] = None
+    minimum_threshold: Optional[float] = None
+    unit: Optional[str] = None
+
+
+class ScheduleInput(BaseModel):
+    equipment_name: str
+    task: str
+    frequency_days: int
+    last_done_at: Optional[str] = None
+
+
+class SchedulePatch(BaseModel):
+    equipment_name: Optional[str] = None
+    task: Optional[str] = None
+    frequency_days: Optional[int] = None
+    last_done_at: Optional[str] = None
+    mark_done: Optional[bool] = None
+
+
+class ContractInput(BaseModel):
+    equipment_name: str
+    vendor_name: str
+    coverage_start: str
+    coverage_end: str
+    renewal_date: str = ""
+    cost: Optional[float] = None
+    scope_notes: str = ""
+
+
+class ContractPatch(BaseModel):
+    equipment_name: Optional[str] = None
+    vendor_name: Optional[str] = None
+    coverage_start: Optional[str] = None
+    coverage_end: Optional[str] = None
+    renewal_date: Optional[str] = None
+    cost: Optional[float] = None
+    scope_notes: Optional[str] = None
+
+
+class MaintSettingsPut(BaseModel):
+    monthly_budget: Optional[float] = None
+    clear_budget: bool = False
+
+
+class MaintCostCreate(BaseModel):
+    amount: float
+    description: str = ""
+    month: str = ""
+    category: str = "general"
+
+
+class ProcSettingsPut(BaseModel):
+    monthly_budget: Optional[float] = None
+    clear_budget: bool = False
+
+
 def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, invalidate_departments_cache):
-    """Attach all new department-ops endpoints onto api_router."""
+    """Attach all new department-ops endpoints onto api_router.
+
+    `db` is resolved at request time via server.db when available so TestClient
+    patches of server.db (same pattern as procurement routes) take effect.
+    """
+
+    class _LiveDb:
+        def __getattr__(self, name):
+            try:
+                import server as _server
+                return getattr(_server.db, name)
+            except Exception:
+                return getattr(db, name)
+
+    db = _LiveDb()
 
     # ----- Sales department gate (mirrors procurement) -----
     async def _sales_department(principal: dict) -> dict:
@@ -45,32 +159,6 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         return bool(membership) and membership.get("role") == "lead"
 
     # ===================== Sales order book =====================
-    class OrderBookCreate(BaseModel):
-        buyer_name: str
-        country: str
-        product: str
-        price: float
-        quantity: float
-        status: str = "expected"
-        expected_close_month: str = ""
-        source_deal_id: Optional[str] = None
-        notes: str = ""
-
-    class OrderBookPatch(BaseModel):
-        buyer_name: Optional[str] = None
-        country: Optional[str] = None
-        product: Optional[str] = None
-        price: Optional[float] = None
-        quantity: Optional[float] = None
-        status: Optional[str] = None
-        expected_close_month: Optional[str] = None
-        source_deal_id: Optional[str] = None
-        notes: Optional[str] = None
-
-    class SalesTargetPut(BaseModel):
-        month: str
-        target: float
-
     def _strip_entry(row: dict) -> dict:
         return {k: v for k, v in row.items() if k != "_id"}
 
@@ -334,63 +422,6 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         return {"ok": True, "target": {k: v for k, v in doc.items() if k != "_id"}}
 
     # ===================== Maintenance spares / schedules / contracts / costs =====================
-    class SpareInput(BaseModel):
-        part_name: str
-        equipment_name: str = ""
-        equipment_names: list[str] = Field(default_factory=list)
-        quantity_on_hand: float = 0
-        minimum_threshold: float = 0
-        unit: str = "pcs"
-
-    class SparePatch(BaseModel):
-        part_name: Optional[str] = None
-        equipment_name: Optional[str] = None
-        equipment_names: Optional[list[str]] = None
-        quantity_on_hand: Optional[float] = None
-        minimum_threshold: Optional[float] = None
-        unit: Optional[str] = None
-
-    class ScheduleInput(BaseModel):
-        equipment_name: str
-        task: str
-        frequency_days: int
-        last_done_at: Optional[str] = None
-
-    class SchedulePatch(BaseModel):
-        equipment_name: Optional[str] = None
-        task: Optional[str] = None
-        frequency_days: Optional[int] = None
-        last_done_at: Optional[str] = None
-        mark_done: Optional[bool] = None
-
-    class ContractInput(BaseModel):
-        equipment_name: str
-        vendor_name: str
-        coverage_start: str
-        coverage_end: str
-        renewal_date: str = ""
-        cost: Optional[float] = None
-        scope_notes: str = ""
-
-    class ContractPatch(BaseModel):
-        equipment_name: Optional[str] = None
-        vendor_name: Optional[str] = None
-        coverage_start: Optional[str] = None
-        coverage_end: Optional[str] = None
-        renewal_date: Optional[str] = None
-        cost: Optional[float] = None
-        scope_notes: Optional[str] = None
-
-    class MaintSettingsPut(BaseModel):
-        monthly_budget: Optional[float] = None
-        clear_budget: bool = False
-
-    class MaintCostCreate(BaseModel):
-        amount: float
-        description: str = ""
-        month: str = ""
-        category: str = "general"
-
     async def _maint_dept(principal: dict) -> dict:
         doc = await db.departments.find_one(
             {
@@ -890,10 +921,6 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         return {"ok": True}
 
     # ===================== Procurement spend / budget =====================
-    class ProcSettingsPut(BaseModel):
-        monthly_budget: Optional[float] = None
-        clear_budget: bool = False
-
     async def _proc_dept(principal: dict) -> dict:
         doc = await db.departments.find_one(
             {
