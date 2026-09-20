@@ -5,9 +5,19 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
 import { api } from "@/lib/api";
 import { ErrorScreen, EmptyState, GlassCard, PageHeaderSkeleton, SkeletonChart, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
+
+function eventScopeLabel(ev) {
+  if (!ev) return null;
+  if (ev.scope_label) return ev.scope_label;
+  if (ev.visibility === "personal") return "Personal";
+  if (ev.department_name) return ev.department_name;
+  if (ev.source === "deadline" && ev.type) return ev.type;
+  return null;
+}
 
 const HOUR_HEIGHT = 52;
 const GRID_START = 7;
@@ -229,6 +239,7 @@ function AgendaSidebar({ events, weekDays, selectedDay, onSelectDay }) {
                     <p className="text-sm text-helm-fg truncate">{ev.title}</p>
                     <p className="text-[11px] text-helm-muted">
                       {ev.all_day ? "All day" : `${ev.time || "—"} · ${ev.duration || 0}m`}
+                      {eventScopeLabel(ev) ? ` · ${eventScopeLabel(ev)}` : ""}
                     </p>
                   </div>
                 </button>
@@ -305,9 +316,12 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                 type="button"
                 onClick={() => onEventClick?.(ev)}
                 className={cn("rounded px-1.5 py-0.5 text-[10px] truncate border text-left w-full", typeBlock[ev.type] || "bg-helm-fg/10 border-helm-line text-helm-fg", isEditableHelmEvent(ev) && "cursor-pointer hover:brightness-110")}
-                title={ev.title}
+                title={eventScopeLabel(ev) ? `${ev.title} · ${eventScopeLabel(ev)}` : ev.title}
               >
                 {ev.title}
+                {eventScopeLabel(ev) ? (
+                  <span className="opacity-70"> · {eventScopeLabel(ev)}</span>
+                ) : null}
               </button>
             ))}
           </div>
@@ -379,11 +393,12 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                         isEditableHelmEvent(ev) && "cursor-pointer hover:brightness-110",
                       )}
                       style={{ top: top + 1, height }}
-                      title={ev.title}
+                      title={eventScopeLabel(ev) ? `${ev.title} · ${eventScopeLabel(ev)}` : ev.title}
                     >
                       <p className="text-[11px] font-medium leading-tight truncate">{ev.title}</p>
                       <p className="text-[10px] opacity-80 truncate">
                         {ev.time}{ev.duration ? ` · ${ev.duration}m` : ""}
+                        {eventScopeLabel(ev) ? ` · ${eventScopeLabel(ev)}` : ""}
                       </p>
                     </button>
                   );
@@ -409,12 +424,22 @@ export default function CalendarPage() {
   const [view, setView] = useState("week");
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ title: "", date: "", time: "09:00", duration: 30, type: "Internal", all_day: false, push_to_google: false });
+  const [form, setForm] = useState({
+    title: "", date: "", time: "09:00", duration: 30, type: "Internal",
+    all_day: false, push_to_google: false, visibility: "personal", department_id: "",
+  });
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
   const weekParam = toIsoDate(weekStart);
   const { data, loading, error, reload } = useFetch(`/calendar?week_start=${weekParam}`, [weekParam]);
+  const { data: departmentsData } = useDepartmentsQuery();
+
+  const scopeDepartments = useMemo(() => {
+    const rows = departmentsData?.departments || [];
+    const isCeo = departmentsData?.is_ceo === true;
+    return rows.filter((d) => d.enabled && d.department_id && (isCeo || d.is_member));
+  }, [departmentsData]);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const events = data?.events || data?.meetings || [];
@@ -440,13 +465,17 @@ export default function CalendarPage() {
 
   const openAdd = (day) => {
     setEditing(null);
-    setForm({ title: "", date: toIsoDate(day || selectedDay), time: "09:00", duration: 30, type: "Internal", all_day: false, push_to_google: false });
+    setForm({
+      title: "", date: toIsoDate(day || selectedDay), time: "09:00", duration: 30, type: "Internal",
+      all_day: false, push_to_google: false, visibility: "personal", department_id: "",
+    });
     setShowForm(true);
   };
 
   const openEdit = (ev) => {
     if (data?.can_write !== true || !isEditableHelmEvent(ev)) return;
     setEditing(ev.id);
+    const vis = ev.visibility === "department" ? "department" : "personal";
     setForm({
       title: ev.title,
       date: ev.date || toIsoDate(selectedDay),
@@ -455,16 +484,33 @@ export default function CalendarPage() {
       type: ev.type || "Internal",
       all_day: !!ev.all_day,
       push_to_google: false,
+      visibility: vis,
+      department_id: vis === "department" ? (ev.department_id || "") : "",
     });
     setShowForm(true);
   };
 
   const submitEvent = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (form.visibility === "department" && !form.department_id) {
+      toast.error("Choose a department for this event");
+      return;
+    }
     setBusy(true);
     try {
-      if (editing) await api.patch(`/calendar/events/${editing}`, form);
-      else await api.post("/calendar/events", form);
+      const body = {
+        title: form.title,
+        date: form.date,
+        time: form.time,
+        duration: form.duration,
+        type: form.type,
+        all_day: form.all_day,
+        push_to_google: form.push_to_google,
+        visibility: form.visibility,
+        department_id: form.visibility === "department" ? form.department_id : null,
+      };
+      if (editing) await api.patch(`/calendar/events/${editing}`, body);
+      else await api.post("/calendar/events", body);
       toast.success(editing ? "Event updated" : "Event added");
       setShowForm(false);
       reload();
@@ -697,6 +743,33 @@ export default function CalendarPage() {
                   </select>
                 </label>
               </div>
+              <label className="text-xs text-helm-muted block">Visibility
+                <select
+                  data-testid="event-visibility"
+                  value={form.visibility === "department" ? `department:${form.department_id || ""}` : "personal"}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v === "personal") {
+                      setForm((f) => ({ ...f, visibility: "personal", department_id: "" }));
+                    } else {
+                      const deptId = v.startsWith("department:") ? v.slice("department:".length) : "";
+                      setForm((f) => ({ ...f, visibility: "department", department_id: deptId }));
+                    }
+                  }}
+                  className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
+                >
+                  <option value="personal">Personal (only me)</option>
+                  {scopeDepartments.length === 0 ? (
+                    <option value="department:" disabled>No departments available</option>
+                  ) : (
+                    scopeDepartments.map((d) => (
+                      <option key={d.department_id} value={`department:${d.department_id}`}>
+                        {d.name} department
+                      </option>
+                    ))
+                  )}
+                </select>
+              </label>
               <label className="flex items-center gap-2 text-sm text-helm-fg">
                 <input type="checkbox" checked={form.all_day} onChange={(e) => setForm((f) => ({ ...f, all_day: e.target.checked }))} className="accent-helm-gold" />
                 All day

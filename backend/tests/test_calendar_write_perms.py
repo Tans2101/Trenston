@@ -165,19 +165,123 @@ def test_annotate_sets_can_edit_flags():
 def test_build_helm_event_stamps_created_by_and_departments():
     import server
 
-    payload = server.CalendarEventInput(title="Kickoff", date="2026-09-18", time="10:00")
+    payload = server.CalendarEventInput(
+        title="Kickoff",
+        date="2026-09-18",
+        time="10:00",
+        visibility="department",
+        department_id="dept_sales",
+    )
     ev = server._build_helm_event(
-        payload, created_by="u_member", department_ids=["dept_sales", "dept_hr"],
+        payload,
+        created_by="u_member",
+        visibility="department",
+        department_id="dept_sales",
+        department_name="Sales",
     )
     assert ev["created_by"] == "u_member"
     assert ev["source"] == "helm"
-    assert ev["department_ids"] == ["dept_sales", "dept_hr"]
+    assert ev["visibility"] == "department"
+    assert ev["department_ids"] == ["dept_sales"]
     assert ev["department_id"] == "dept_sales"
+    assert ev["department_name"] == "Sales"
 
     edited = server._build_helm_event(
         payload,
         event_id=ev["id"],
+        visibility="department",
+        department_id="dept_sales",
+        department_name="Sales",
         preserve=ev,
     )
     assert edited["created_by"] == "u_member"
-    assert edited["department_ids"] == ["dept_sales", "dept_hr"]
+    assert edited["department_ids"] == ["dept_sales"]
+    assert edited["visibility"] == "department"
+
+
+def test_build_helm_event_personal_omits_department():
+    import server
+
+    payload = server.CalendarEventInput(
+        title="Focus block",
+        date="2026-09-18",
+        time="10:00",
+        visibility="personal",
+    )
+    ev = server._build_helm_event(
+        payload, created_by="u_member", visibility="personal", department_id=None,
+    )
+    assert ev["visibility"] == "personal"
+    assert "department_id" not in ev
+    assert "department_ids" not in ev
+
+
+def test_can_view_personal_only_creator():
+    import server
+
+    creator = {"user_id": "u_a", "pack": "member"}
+    ceo = {"user_id": "u_ceo", "pack": "owner", "role": "owner"}
+    other = {"user_id": "u_b", "pack": "member"}
+    personal = {
+        "id": "helm_1",
+        "source": "helm",
+        "created_by": "u_a",
+        "visibility": "personal",
+        "title": "Mine",
+    }
+    legacy = {
+        "id": "helm_old",
+        "source": "helm",
+        "created_by": "u_a",
+        "department_ids": ["dept_sales"],
+        "title": "Legacy stamp",
+    }
+    assert server.can_view_helm_calendar_event(creator, personal, accessible_department_ids=set()) is True
+    assert server.can_view_helm_calendar_event(other, personal, accessible_department_ids=set()) is False
+    assert server.can_view_helm_calendar_event(ceo, personal, accessible_department_ids=None) is False
+    # Legacy without visibility → personal for read
+    assert server.can_view_helm_calendar_event(creator, legacy, accessible_department_ids={"dept_sales"}) is True
+    assert server.can_view_helm_calendar_event(other, legacy, accessible_department_ids={"dept_sales"}) is False
+    assert server.can_view_helm_calendar_event(ceo, legacy, accessible_department_ids=None) is False
+
+
+def test_can_view_department_scoped():
+    import server
+
+    member = {"user_id": "u_member", "pack": "member"}
+    ceo = {"user_id": "u_ceo", "pack": "owner", "role": "owner"}
+    outsider = {"user_id": "u_out", "pack": "member"}
+    dept_ev = {
+        "id": "helm_fin",
+        "source": "helm",
+        "created_by": "u_other",
+        "visibility": "department",
+        "department_id": "dept_finance",
+        "title": "Close books",
+    }
+    assert server.can_view_helm_calendar_event(
+        member, dept_ev, accessible_department_ids={"dept_finance"},
+    ) is True
+    assert server.can_view_helm_calendar_event(
+        outsider, dept_ev, accessible_department_ids={"dept_hr"},
+    ) is False
+    assert server.can_view_helm_calendar_event(
+        ceo, dept_ev, accessible_department_ids=None,
+    ) is True
+
+
+def test_explicit_personal_not_manageable_by_dept_peer():
+    import server
+
+    peer = {"user_id": "u_peer", "pack": "member"}
+    personal = {
+        "id": "helm_1",
+        "source": "helm",
+        "created_by": "u_other",
+        "visibility": "personal",
+        "department_id": "dept_sales",  # should be ignored for manage
+        "title": "Private",
+    }
+    assert server.can_manage_helm_calendar_event(
+        peer, personal, accessible_department_ids={"dept_sales"},
+    ) is False

@@ -12,7 +12,7 @@ import logging
 import time
 from pathlib import Path
 from datetime import date, datetime, timezone, timedelta
-from typing import Optional, Any
+from typing import Optional, Any, Literal
 from urllib.parse import urlencode, urlparse, quote
 from collections import defaultdict
 
@@ -7621,8 +7621,16 @@ def _parse_calendar_day(raw) -> Optional[str]:
     return day
 
 
-async def _department_calendar_upcoming(workspace_id: str) -> list[dict]:
+async def _department_calendar_upcoming(
+    workspace_id: str,
+    *,
+    accessible_department_ids: Optional[set[str]] = None,
+) -> list[dict]:
     """Load open department dates from CALENDAR_DATE_SOURCES for this workspace.
+
+    ``accessible_department_ids``:
+      - ``None`` — CEO / unrestricted: include every enabled department source
+      - ``set`` — only sources whose department_id is in the set (may be empty)
 
     Sources may set optional ``end_date_field`` for inclusive date ranges
     (e.g. approved leave). Without it, behavior stays single-day.
@@ -7634,6 +7642,9 @@ async def _department_calendar_upcoming(workspace_id: str) -> list[dict]:
         )
         if not enabled:
             continue
+        dept_id = enabled["department_id"]
+        if accessible_department_ids is not None and dept_id not in accessible_department_ids:
+            continue
         coll = getattr(db, src["collection"], None)
         if coll is None:
             continue
@@ -7641,13 +7652,17 @@ async def _department_calendar_upcoming(workspace_id: str) -> list[dict]:
         end_date_field = src.get("end_date_field")
         filt: dict = {
             "workspace_id": workspace_id,
-            "department_id": enabled["department_id"],
+            "department_id": dept_id,
             "status": {"$in": list(src["open_statuses"])},
             date_field: {"$exists": True, "$nin": [None, ""]},
         }
         if end_date_field:
             filt[end_date_field] = {"$exists": True, "$nin": [None, ""]}
         rows = await coll.find(filt, {"_id": 0}).to_list(1000)
+        dept_name = (
+            (enabled.get("name") or "").strip()
+            or dept_catalog.default_name(src["department_type"])
+        )
         for row in rows:
             day = _parse_calendar_day(row.get(date_field))
             if not day:
@@ -7670,6 +7685,9 @@ async def _department_calendar_upcoming(workspace_id: str) -> list[dict]:
                 "meta": "",
                 "source_type": src["source_type"],
                 "source_id": rid,
+                "visibility": "department",
+                "department_id": dept_id,
+                "department_name": dept_name,
             }
             if end_date_field and end_day != day:
                 item["end_date"] = end_day
@@ -7704,6 +7722,7 @@ def _deadlines_as_events(upcoming: list[dict]) -> list[dict]:
             "start_at": f"{start_day}T00:00:00+00:00",
             "end_at": f"{end_day}T23:59:59+00:00",
             "all_day": True,
+            "visibility": u.get("visibility") or "department",
         }
         if u.get("end_date"):
             ev["end_date"] = u["end_date"]
@@ -7711,6 +7730,10 @@ def _deadlines_as_events(upcoming: list[dict]) -> list[dict]:
             ev["source_type"] = u["source_type"]
         if u.get("source_id"):
             ev["source_id"] = u["source_id"]
+        if u.get("department_id"):
+            ev["department_id"] = u["department_id"]
+        if u.get("department_name"):
+            ev["department_name"] = u["department_name"]
         events.append(ev)
     return events
 
@@ -7744,6 +7767,9 @@ async def calendar(
         anchor_day = datetime.now(timezone.utc).date()
     week_anchor = _calendar_week_start(anchor_day)
 
+    visible_dept_ids = await _calendar_accessible_department_ids(principal)
+    dept_names = await _calendar_department_names(principal["workspace_id"])
+
     live_cal = await _google_calendar_snapshot(c, week_anchor, principal)
     if live_cal is not None:
         data = {**dict(c["calendar"]), **live_cal}
@@ -7774,7 +7800,10 @@ async def calendar(
         if t.get("column") != "done" and (not t.get("assignee_user_id") or t.get("assignee_user_id") == principal["user_id"]):
             upcoming.append({"id": t["id"], "title": t["title"], "date": due,
                              "type": "Task", "meta": t.get("tag", "")})
-    upcoming.extend(await _department_calendar_upcoming(principal["workspace_id"]))
+    upcoming.extend(await _department_calendar_upcoming(
+        principal["workspace_id"],
+        accessible_department_ids=visible_dept_ids,
+    ))
     upcoming.sort(key=lambda x: x["date"])
     data["upcoming"] = upcoming
     week_end = (week_anchor + timedelta(days=6)).strftime("%Y-%m-%d")
@@ -7799,6 +7828,10 @@ async def calendar(
     if helm_events:
         week_end_dt = week_anchor + timedelta(days=6)
         for ev in helm_events:
+            if not can_view_helm_calendar_event(
+                principal, ev, accessible_department_ids=visible_dept_ids,
+            ):
+                continue
             ev_date = (ev.get("date") or (ev.get("start_at") or "")[:10]).strip()
             try:
                 ev_day = datetime.strptime(ev_date, "%Y-%m-%d").date()
@@ -7806,9 +7839,16 @@ async def calendar(
                 continue
             if week_anchor.date() <= ev_day <= week_end_dt.date():
                 if ev.get("id") not in existing_ids:
-                    events.append(ev)
+                    row = dict(ev)
+                    _enrich_helm_event_scope_labels(row, dept_names)
+                    events.append(row)
                     existing_ids.add(ev.get("id"))
         data["events"] = events
+    # Enrich deadline/helm rows already in the list with scope labels.
+    data["events"] = [
+        _enrich_helm_event_scope_labels(dict(ev), dept_names)
+        for ev in (data.get("events") or [])
+    ]
     data["can_write"] = await can_section_write(principal, "calendar", "calendar:write")
     if data["can_write"] and not _has_pack_calendar_write(principal):
         member_depts = await _principal_calendar_department_ids(principal)
@@ -7840,6 +7880,8 @@ class CalendarEventInput(BaseModel):
     type: str = "Internal"
     all_day: bool = False
     push_to_google: bool = False
+    visibility: Literal["personal", "department"]
+    department_id: Optional[str] = None
 
 
 def _helm_event_creator_id(event: dict | None) -> Optional[str]:
@@ -7862,30 +7904,134 @@ def _helm_event_department_ids(event: dict | None) -> set[str]:
     return out
 
 
+def _helm_event_visibility(event: dict | None) -> str:
+    """Effective read visibility. Missing/unknown → personal (legacy safe default)."""
+    if not event:
+        return "personal"
+    raw = (event.get("visibility") or "").strip().lower()
+    if raw in ("personal", "department"):
+        return raw
+    return "personal"
+
+
 def _has_pack_calendar_write(principal: dict) -> bool:
     """Owner/exec (and any pack with calendar:write) — full calendar manage, all events."""
     return "calendar:write" in perms_for(principal.get("pack") or "")
 
 
-async def _principal_calendar_department_ids(principal: dict) -> Optional[set[str]]:
-    """Department ids the principal may treat as their calendar scope.
+async def _calendar_accessible_department_ids(principal: dict) -> Optional[set[str]]:
+    """Department ids visible on the calendar for this principal.
 
-    ``None`` means CEO/owner (all departments). Empty set means no memberships.
+    ``None`` = CEO (all departments). Empty set = no department memberships.
+    Uses the shared dept_access helpers (same semantics as other departments).
     """
     if dept_access.is_workspace_ceo(principal):
         return None
-    enabled = await db.departments.find(
-        {"workspace_id": principal["workspace_id"], "enabled": True},
-        {"_id": 0, "department_id": 1},
-    ).to_list(50)
-    enabled_ids = [d["department_id"] for d in enabled if d.get("department_id")]
-    if not enabled_ids:
-        return set()
-    mine = await db.department_members.find(
-        {"user_id": principal["user_id"], "department_id": {"$in": enabled_ids}},
-        {"_id": 0, "department_id": 1},
-    ).to_list(50)
-    return {m["department_id"] for m in mine if m.get("department_id")}
+    by_type = await dept_access.accessible_department_ids_by_type(
+        db, principal, list(dept_catalog.VALID_DEPARTMENT_TYPES),
+    )
+    out: set[str] = set()
+    for ids in by_type.values():
+        if ids:
+            out.update(ids)
+    return out
+
+
+async def _calendar_department_names(workspace_id: str) -> dict[str, str]:
+    rows = await dept_access.list_enabled_departments(db, workspace_id)
+    return {d["department_id"]: d["name"] for d in rows if d.get("department_id")}
+
+
+def _enrich_helm_event_scope_labels(event: dict, dept_names: dict[str, str]) -> dict:
+    """Attach visibility + human label for UI (mutates and returns the row)."""
+    if event.get("source") == "deadline":
+        event["visibility"] = event.get("visibility") or "department"
+        did = (event.get("department_id") or "").strip()
+        if did and not event.get("department_name"):
+            event["department_name"] = dept_names.get(did) or ""
+        if event.get("department_name"):
+            event["scope_label"] = event["department_name"]
+        return event
+    if event.get("source") != "helm":
+        return event
+    vis = _helm_event_visibility(event)
+    event["visibility"] = vis
+    if vis == "personal":
+        event["scope_label"] = "Personal"
+        event.pop("department_name", None)
+    else:
+        did = (event.get("department_id") or "").strip()
+        name = (event.get("department_name") or "").strip() or dept_names.get(did) or "Department"
+        event["department_name"] = name
+        event["scope_label"] = name
+    return event
+
+
+def can_view_helm_calendar_event(
+    principal: dict,
+    event: dict | None,
+    *,
+    accessible_department_ids: Optional[set[str]] = None,
+) -> bool:
+    """Whether principal may see this Trenston-created helm event on GET /calendar.
+
+    - personal (default for legacy rows): creator only — CEO does NOT see others'
+    - department: CEO sees all; members see only their department(s)
+    """
+    if not event or event.get("source") not in (None, "helm"):
+        return False
+    vis = _helm_event_visibility(event)
+    if vis == "personal":
+        creator = _helm_event_creator_id(event)
+        return bool(creator) and creator == principal.get("user_id")
+    dept_id = (event.get("department_id") or "").strip()
+    if not dept_id:
+        return False
+    if accessible_department_ids is None:
+        return True
+    return dept_id in accessible_department_ids
+
+
+async def _principal_calendar_department_ids(principal: dict) -> Optional[set[str]]:
+    """Department ids used for edit/delete membership overlap (manage path).
+
+    ``None`` means CEO/owner (all departments). Empty set means no memberships.
+    Prefer :func:`_calendar_accessible_department_ids` for read visibility.
+    """
+    return await _calendar_accessible_department_ids(principal)
+
+
+async def _validate_calendar_event_scope(
+    payload: "CalendarEventInput",
+    principal: dict,
+) -> tuple[str, Optional[str]]:
+    """Return (visibility, department_id) after validating membership."""
+    vis = payload.visibility
+    if vis == "personal":
+        return "personal", None
+    dept_id = (payload.department_id or "").strip()
+    if not dept_id:
+        raise HTTPException(
+            status_code=400,
+            detail="department_id is required when visibility is department",
+        )
+    dept = await db.departments.find_one(
+        {
+            "department_id": dept_id,
+            "workspace_id": principal["workspace_id"],
+            "enabled": True,
+        },
+        {"_id": 0, "department_id": 1, "name": 1, "type": 1},
+    )
+    if not dept:
+        raise HTTPException(status_code=400, detail="Department not found or not enabled")
+    if not dept_access.is_workspace_ceo(principal):
+        if not await dept_access.is_department_member(db, principal["user_id"], dept_id):
+            raise HTTPException(
+                status_code=403,
+                detail="You must be a member of that department to create a department event",
+            )
+    return "department", dept_id
 
 
 def can_manage_helm_calendar_event(
@@ -7899,7 +8045,10 @@ def can_manage_helm_calendar_event(
     Pack calendar:write (CEO/owner/exec) → any helm event.
     Otherwise (with calendar section grant already required by the route):
       - events they personally created, or
-      - events tied to a department they belong to.
+      - department-scoped events (explicit visibility=department, or legacy
+        rows that still carry department_id(s)) tied to a department they
+        belong to.
+    Explicit personal events are creator-only (plus pack writers above).
     Legacy unscoped events (no creator, no department) stay editable by anyone
     who already has calendar write, so older workspaces are not locked out.
     """
@@ -7910,8 +8059,13 @@ def can_manage_helm_calendar_event(
     creator = _helm_event_creator_id(event)
     if creator and creator == principal.get("user_id"):
         return True
+    explicit_vis = (event.get("visibility") or "").strip().lower()
+    if explicit_vis == "personal":
+        return False
     event_depts = _helm_event_department_ids(event)
-    if event_depts:
+    if explicit_vis == "department" or event_depts:
+        if not event_depts:
+            return False
         if accessible_department_ids is None:
             # Caller didn't load memberships — treat as no department overlap.
             return False
@@ -7952,7 +8106,9 @@ def _build_helm_event(
     google_event_id: Optional[str] = None,
     *,
     created_by: Optional[str] = None,
-    department_ids: Optional[list[str]] = None,
+    visibility: Optional[str] = None,
+    department_id: Optional[str] = None,
+    department_name: Optional[str] = None,
     preserve: Optional[dict] = None,
 ) -> dict:
     try:
@@ -7966,29 +8122,36 @@ def _build_helm_event(
     creator = (created_by or _helm_event_creator_id(preserve) or "").strip()
     if creator:
         extra["created_by"] = creator
-    depts: list[str] = []
-    if department_ids is not None:
-        seen: set[str] = set()
-        for raw in department_ids:
-            value = str(raw or "").strip()
-            if value and value not in seen:
-                seen.add(value)
-                depts.append(value)
-    elif preserve:
-        if isinstance(preserve.get("department_ids"), list) and preserve.get("department_ids"):
-            seen = set()
-            for raw in preserve["department_ids"]:
-                value = str(raw or "").strip()
-                if value and value not in seen:
-                    seen.add(value)
-                    depts.append(value)
+
+    vis = visibility
+    dept_id = department_id
+    dept_name = department_name
+    if vis is None and preserve is not None:
+        vis = _helm_event_visibility(preserve)
+        if vis == "department":
+            dept_id = (preserve.get("department_id") or "").strip() or None
+            dept_name = (preserve.get("department_name") or "").strip() or None
         else:
-            one = (preserve.get("department_id") or "").strip()
-            if one:
-                depts = [one]
-    if depts:
-        extra["department_ids"] = depts
-        extra["department_id"] = depts[0]
+            dept_id = None
+            dept_name = None
+    if vis is None:
+        vis = getattr(payload, "visibility", None) or "personal"
+    if vis == "department":
+        did = (dept_id or getattr(payload, "department_id", None) or "").strip()
+        if not did:
+            raise HTTPException(
+                status_code=400,
+                detail="department_id is required when visibility is department",
+            )
+        extra["visibility"] = "department"
+        extra["department_id"] = did
+        extra["department_ids"] = [did]
+        if dept_name:
+            extra["department_name"] = dept_name
+    else:
+        extra["visibility"] = "personal"
+        # Personal events intentionally omit department_id / department_ids.
+
     if payload.all_day:
         start = datetime(day.year, day.month, day.day, tzinfo=timezone.utc)
         end = datetime(day.year, day.month, day.day, 23, 59, 59, tzinfo=timezone.utc)
@@ -8052,16 +8215,20 @@ async def create_calendar_event(
 ):
     if not payload.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
+    vis, dept_id = await _validate_calendar_event_scope(payload, principal)
+    dept_name = None
+    if dept_id:
+        names = await _calendar_department_names(principal["workspace_id"])
+        dept_name = names.get(dept_id)
     c = await get_ws(principal["workspace_id"])
     cal = dict(c.get("calendar") or {})
     events = list(cal.get("helm_events") or [])
-    member_depts = await _principal_calendar_department_ids(principal)
-    # Stamp the creator's department memberships so co-members can manage the event.
-    dept_list = None if member_depts is None else sorted(member_depts)
     ev = _build_helm_event(
         payload,
         created_by=principal["user_id"],
-        department_ids=dept_list,
+        visibility=vis,
+        department_id=dept_id,
+        department_name=dept_name,
     )
     ev = await _maybe_push_google_event(c, ev, payload, principal)
     events.append(ev)
@@ -8080,6 +8247,11 @@ async def edit_calendar_event(
 ):
     if not payload.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
+    vis, dept_id = await _validate_calendar_event_scope(payload, principal)
+    dept_name = None
+    if dept_id:
+        names = await _calendar_department_names(principal["workspace_id"])
+        dept_name = names.get(dept_id)
     c = await get_ws(principal["workspace_id"])
     cal = dict(c.get("calendar") or {})
     events = list(cal.get("helm_events") or [])
@@ -8099,6 +8271,10 @@ async def edit_calendar_event(
                 payload,
                 event_id=event_id,
                 google_event_id=ev.get("google_event_id"),
+                created_by=_helm_event_creator_id(ev),
+                visibility=vis,
+                department_id=dept_id,
+                department_name=dept_name,
                 preserve=ev,
             )
             found = events[i]
