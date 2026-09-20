@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
 DOC_UPLOAD_HOURLY_LIMIT = int(os.environ.get("DOC_UPLOAD_HOURLY_LIMIT", "30"))
 DOC_EXTRACT_HOURLY_LIMIT = int(
@@ -23,6 +24,12 @@ DOCUMENT_AI_COLLECTION = "document_ai_usage"
 DOCUMENT_AI_WINDOW_SECONDS = 86400
 DOCUMENT_AI_GLOBAL_DAILY_LIMIT = int(os.environ.get("DOCUMENT_AI_GLOBAL_DAILY_LIMIT", "80"))
 DOCUMENT_AI_WORKSPACE_DAILY_LIMIT = int(os.environ.get("DOCUMENT_AI_WORKSPACE_DAILY_LIMIT", "8"))
+
+# Workspace join-code guesses — shared across workers (was in-process memory).
+JOIN_COLLECTION = "join_rate_events"
+JOIN_BUCKETS_COLLECTION = "join_rate_buckets"
+JOIN_WINDOW_SECONDS = 15 * 60
+JOIN_RATE_LIMIT = 10
 
 
 async def count_events(db, workspace_id: str, action: str) -> int:
@@ -217,3 +224,67 @@ async def record_document_ai(db, workspace_id: str) -> None:
         "workspace_id": workspace_id,
         "created_at": datetime.now(timezone.utc),
     })
+
+
+def _join_bucket_key(client_ip: str, *, now: Optional[datetime] = None) -> str:
+    """Fixed 15-minute window key so counts reset when the window rolls."""
+    ts = (now or datetime.now(timezone.utc)).timestamp()
+    window = int(ts) // JOIN_WINDOW_SECONDS
+    # Normalize IP so IPv6 literals are safe as Mongo _id fragments.
+    ip = (client_ip or "unknown").strip() or "unknown"
+    return f"join:{ip}:{window}"
+
+
+async def count_join_events(db, client_ip: str) -> int:
+    return await db.join_rate_events.count_documents({"client_ip": client_ip})
+
+
+async def record_join_event(db, client_ip: str) -> None:
+    await db.join_rate_events.insert_one({
+        "client_ip": client_ip,
+        "action": "join",
+        "created_at": datetime.now(timezone.utc),
+    })
+
+
+async def acquire_join_slot(
+    db,
+    client_ip: str,
+    limit: int = JOIN_RATE_LIMIT,
+) -> bool:
+    """Check+record a join attempt for this IP. True when the caller may proceed.
+
+    Same find_one_and_update bucket pattern as uploads / Ask Trenston, with a
+    time-windowed key so the 10/15min limit resets after the window.
+    """
+    from pymongo import ReturnDocument
+    from pymongo.errors import DuplicateKeyError
+
+    ip = (client_ip or "unknown").strip() or "unknown"
+    if limit <= 0:
+        await record_join_event(db, ip)
+        return True
+    now = datetime.now(timezone.utc)
+    key = _join_bucket_key(ip, now=now)
+    coll = db.join_rate_buckets
+    try:
+        doc = await coll.find_one_and_update(
+            {"_id": key, "count": {"$lt": limit}},
+            {
+                "$inc": {"count": 1},
+                "$set": {"updated_at": now, "client_ip": ip, "action": "join"},
+                "$setOnInsert": {"created_at": now},
+            },
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+    except DuplicateKeyError:
+        doc = await coll.find_one_and_update(
+            {"_id": key, "count": {"$lt": limit}},
+            {"$inc": {"count": 1}, "$set": {"updated_at": now}},
+            return_document=ReturnDocument.AFTER,
+        )
+    if not doc:
+        return False
+    await record_join_event(db, ip)
+    return True

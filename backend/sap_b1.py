@@ -9,14 +9,29 @@ Credentials are per-workspace (Service Layer URL, CompanyDB, username, password)
 """
 from __future__ import annotations
 
+import ipaddress
+import logging
+import socket
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 import httpx
 
+logger = logging.getLogger(__name__)
+
 PAGE_SIZE = 100
 MAX_PAGES = 20
+
+# Block server-side requests to these ranges (SSRF). Checked via ipaddress —
+# never string-prefix matching on hostnames.
+_BLOCKED_NETWORKS = (
+    ipaddress.ip_network("169.254.0.0/16"),  # link-local / cloud metadata
+    ipaddress.ip_network("127.0.0.0/8"),  # loopback
+    ipaddress.ip_network("10.0.0.0/8"),  # RFC1918
+    ipaddress.ip_network("172.16.0.0/12"),  # RFC1918
+    ipaddress.ip_network("192.168.0.0/16"),  # RFC1918
+)
 
 
 class SapB1AuthError(Exception):
@@ -27,25 +42,91 @@ class SapB1Error(Exception):
     """Non-auth Service Layer failure."""
 
 
+def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """True when the address must not be contacted from the Trenston API."""
+    # IPv4-mapped IPv6 (::ffff:x.x.x.x) → check the embedded IPv4.
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        ip = ip.ipv4_mapped
+    for net in _BLOCKED_NETWORKS:
+        if ip in net:
+            return True
+    return False
+
+
+def _assert_public_service_layer_host(hostname: str) -> None:
+    """Resolve hostname and reject private / loopback / link-local targets."""
+    host = (hostname or "").strip().lower().rstrip(".")
+    if not host:
+        raise ValueError("Service Layer URL host is required")
+    if host == "localhost" or host.endswith(".localhost"):
+        raise ValueError("Service Layer URL must not target a private or internal address")
+
+    # Literal IP in the URL — check without DNS.
+    try:
+        literal = ipaddress.ip_address(host)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if _is_blocked_ip(literal):
+            raise ValueError("Service Layer URL must not target a private or internal address")
+        return
+
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        raise ValueError("Service Layer URL host could not be resolved") from exc
+    if not infos:
+        raise ValueError("Service Layer URL host could not be resolved")
+
+    for info in infos:
+        sockaddr = info[4]
+        if not sockaddr:
+            continue
+        try:
+            addr = ipaddress.ip_address(sockaddr[0])
+        except ValueError:
+            continue
+        if _is_blocked_ip(addr):
+            raise ValueError("Service Layer URL must not target a private or internal address")
+
+
 def normalize_service_layer_url(url: str) -> str:
-    """Return a clean Service Layer base URL ending with /b1s/v1."""
+    """Return a clean https Service Layer base URL ending with /b1s/v1.
+
+    Rejects plain http and hostnames that resolve to private/internal addresses
+    so Connect cannot be used for SSRF.
+    """
     raw = (url or "").strip().rstrip("/")
     if not raw:
         raise ValueError("Service Layer URL is required")
     if not raw.startswith(("http://", "https://")):
         raw = "https://" + raw
     parsed = urlparse(raw)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise ValueError("Service Layer URL must be an http(s) address")
+    if parsed.scheme != "https" or not parsed.netloc:
+        raise ValueError("Service Layer URL must be an https address")
+    if parsed.username or parsed.password:
+        raise ValueError("Service Layer URL must not include credentials")
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Service Layer URL host is required")
+    _assert_public_service_layer_host(hostname)
+
+    # Rebuild netloc without userinfo; keep non-default port.
+    port = parsed.port
+    if port and port != 443:
+        netloc = f"{hostname}:{port}"
+    else:
+        netloc = hostname
+
     path = (parsed.path or "").rstrip("/")
     if path.endswith("/b1s/v1"):
-        base = f"{parsed.scheme}://{parsed.netloc}{path}"
+        base = f"https://{netloc}{path}"
     elif path.endswith("/b1s"):
-        base = f"{parsed.scheme}://{parsed.netloc}{path}/v1"
+        base = f"https://{netloc}{path}/v1"
     elif path:
-        base = f"{parsed.scheme}://{parsed.netloc}{path}/b1s/v1"
+        base = f"https://{netloc}{path}/b1s/v1"
     else:
-        base = f"{parsed.scheme}://{parsed.netloc}/b1s/v1"
+        base = f"https://{netloc}/b1s/v1"
     return base
 
 
@@ -163,16 +244,24 @@ async def login(
         raise ValueError("Company database, username, and password are required")
 
     login_url = urljoin(base.rstrip("/") + "/", "Login")
-    async with httpx.AsyncClient(timeout=45.0, verify=True) as hc:
+    async with httpx.AsyncClient(timeout=45.0, verify=True, follow_redirects=False) as hc:
         resp = await hc.post(
             login_url,
             json={"CompanyDB": company, "UserName": user, "Password": password},
             headers={"Content-Type": "application/json", "Accept": "application/json"},
         )
     if resp.status_code in (401, 403):
-        raise SapB1AuthError(resp.text[:300] or "SAP Business One login rejected")
+        logger.warning(
+            "SAP B1 login rejected (%s) body=%s",
+            resp.status_code, (resp.text or "")[:2000],
+        )
+        raise SapB1AuthError("SAP connection failed")
     if resp.status_code >= 400:
-        raise SapB1Error(f"SAP login failed ({resp.status_code}): {resp.text[:300]}")
+        logger.warning(
+            "SAP B1 login failed (%s) body=%s",
+            resp.status_code, (resp.text or "")[:2000],
+        )
+        raise SapB1Error("SAP connection failed")
 
     body = resp.json() if resp.content else {}
     session_id = str((body or {}).get("SessionId") or "").strip()
@@ -215,7 +304,7 @@ async def ensure_session(creds: dict) -> dict:
     if creds.get("session_id") and creds.get("service_layer_url"):
         ping = urljoin(creds["service_layer_url"].rstrip("/") + "/", "$metadata")
         try:
-            async with httpx.AsyncClient(timeout=20.0) as hc:
+            async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as hc:
                 resp = await hc.get(
                     ping,
                     headers=_session_headers(creds["session_id"], creds.get("route_id")),
@@ -251,7 +340,7 @@ async def _fetch_collection(
             f"?$select={select}&$filter={filt}"
             f"&$orderby=DocDate asc&$top={PAGE_SIZE}&$skip={skip}"
         )
-        async with httpx.AsyncClient(timeout=60.0) as hc:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
             resp = await hc.get(
                 url,
                 headers=_session_headers(creds["session_id"], creds.get("route_id")),
@@ -259,7 +348,11 @@ async def _fetch_collection(
         if resp.status_code in (401, 403):
             raise SapB1AuthError("SAP session expired")
         if resp.status_code >= 400:
-            raise SapB1Error(f"SAP {collection} failed ({resp.status_code}): {resp.text[:300]}")
+            logger.warning(
+                "SAP B1 %s fetch failed (%s) body=%s",
+                collection, resp.status_code, (resp.text or "")[:2000],
+            )
+            raise SapB1Error("SAP connection failed")
         payload = resp.json() or {}
         page = payload.get("value") or []
         if not isinstance(page, list):

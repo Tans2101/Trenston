@@ -279,10 +279,7 @@ _enforce_production_config()
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# In-memory join-code rate limit: IP -> list of attempt timestamps
-_join_attempts: dict[str, list[float]] = defaultdict(list)
-_JOIN_RATE_LIMIT = 10
-_JOIN_RATE_WINDOW = 15 * 60
+# Join-code attempt limit (10 / 15 min) lives in Mongo — see rate_limit.acquire_join_slot.
 
 
 def _session_cookie_domain() -> str | None:
@@ -340,15 +337,14 @@ def _normalize_email(email: str) -> str:
     return (email or "").strip().lower()
 
 
-def _check_join_rate_limit(ip: str):
-    now = datetime.now(timezone.utc).timestamp()
-    window_start = now - _JOIN_RATE_WINDOW
-    attempts = [t for t in _join_attempts[ip] if t > window_start]
-    _join_attempts[ip] = attempts
-    if len(attempts) >= _JOIN_RATE_LIMIT:
+async def _check_join_rate_limit(ip: str):
+    """Shared across workers via Mongo (rate_limit.join_* collections)."""
+    ok = await doc_rate_limit.acquire_join_slot(
+        db, ip, limit=doc_rate_limit.JOIN_RATE_LIMIT,
+    )
+    if not ok:
         raise HTTPException(status_code=429, detail="Too many join attempts. Try again later.")
-    attempts.append(now)
-    _join_attempts[ip] = attempts
+
 
 # ------------------------- Access packs / permissions -------------------------
 # Every employee can do daily work: read, move/create their tasks, ask Trenston, post a daily update.
@@ -2940,7 +2936,7 @@ async def join_info(code: str, user=Depends(get_user)):
 
 @api_router.post("/workspaces/join")
 async def join_workspace(payload: JoinInput, request: Request, user=Depends(get_user)):
-    _check_join_rate_limit(_client_ip(request))
+    await _check_join_rate_limit(_client_ip(request))
     ws = await _find_workspace_by_join_code(payload.code)
     if not ws:
         raise HTTPException(status_code=404, detail="Invalid invite code")
@@ -15317,6 +15313,9 @@ async def _ensure_indexes():
         (db.ask_helm_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.ASK_HELM_WINDOW_SECONDS}),
         (db.document_ai_usage, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.DOCUMENT_AI_WINDOW_SECONDS}),
         (db.document_ai_usage, [("workspace_id", 1)], {}),
+        (db.join_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS}),
+        (db.join_rate_events, [("client_ip", 1)], {}),
+        (db.join_rate_buckets, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS * 2}),
         (db.oauth_states, [("state_hash", 1)], {"unique": True}),
         (db.oauth_states, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.ask_helm_rate_events, [("workspace_id", 1)], {}),

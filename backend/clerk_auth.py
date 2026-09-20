@@ -79,6 +79,49 @@ def clerk_jwks_host() -> str | None:
     return urlparse(CLERK_JWKS_URL).hostname
 
 
+def clerk_jwt_issuer() -> str:
+    """Clerk Frontend API URL — the `iss` claim on session tokens.
+
+    Derived from CLERK_JWKS_URL (e.g. https://clerk.trenston.com/.well-known/jwks.json
+    → https://clerk.trenston.com). Override with CLERK_JWT_ISSUER when needed.
+    """
+    explicit = os.environ.get("CLERK_JWT_ISSUER", "").strip().rstrip("/")
+    if explicit:
+        return explicit
+    host = clerk_jwks_host()
+    if not host:
+        raise ValueError("CLERK_JWKS_URL is not configured")
+    return f"https://{host}"
+
+
+def clerk_jwt_audiences() -> list[str]:
+    """Accepted `aud` values when a session/API token includes an audience claim.
+
+    Default Clerk session tokens often omit `aud` (they use `azp` instead). When
+    `aud` is present it is typically the Frontend API URL (same as issuer).
+    Override with comma-separated CLERK_JWT_AUDIENCE.
+    """
+    explicit = os.environ.get("CLERK_JWT_AUDIENCE", "").strip()
+    if explicit:
+        return [a.strip() for a in explicit.split(",") if a.strip()]
+    return [clerk_jwt_issuer()]
+
+
+def clerk_authorized_parties() -> set[str]:
+    """Origins allowed in the session token `azp` claim."""
+    allowed = {o.rstrip("/") for o in helm_frontend_origins() if o}
+    for extra in (
+        clerk_primary_origin(),
+        primary_frontend_origin(),
+        FRONTEND_URL,
+        APP_URL_CLERK,
+        TRENSTON_CANONICAL_ORIGIN,
+    ):
+        if extra:
+            allowed.add(extra.rstrip("/"))
+    return {a for a in allowed if a}
+
+
 def clerk_primary_origin() -> str | None:
     """Clerk instance primary app domain — redirect URLs must use this host."""
     explicit = os.environ.get("CLERK_PRIMARY_ORIGIN", "").strip().rstrip("/")
@@ -713,7 +756,12 @@ async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
 
 
 async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
-    """Verify JWT signature against async-cached public JWKS."""
+    """Verify JWT signature against async-cached public JWKS.
+
+    Defense-in-depth fallback when the BAPI session check is unreachable.
+    Validates issuer (and audience when the token carries `aud`) — Clerk
+    session tokens typically omit `aud` and use `azp` instead; we check both.
+    """
     import json
 
     from jwt.algorithms import RSAAlgorithm
@@ -728,12 +776,28 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
             break
     if signing_key is None:
         raise jwt.InvalidTokenError("JWKS kid not found")
-    return jwt.decode(
-        token,
-        signing_key,
-        algorithms=["RS256"],
-        options={"verify_aud": False},
-    )
+
+    issuer = clerk_jwt_issuer()
+    audiences = clerk_jwt_audiences()
+    unverified = _jwt_payload_unverified(token)
+    decode_kwargs: dict[str, Any] = {
+        "algorithms": ["RS256"],
+        "issuer": issuer,
+    }
+    # Only pass audience= when the token has an aud claim — PyJWT raises
+    # MissingRequiredClaimError if we require audience on Clerk session tokens
+    # that omit it. When aud is present, it must match our expected list.
+    if unverified.get("aud"):
+        decode_kwargs["audience"] = audiences
+
+    payload = jwt.decode(token, signing_key, **decode_kwargs)
+
+    azp = (payload.get("azp") or "").strip().rstrip("/")
+    if azp:
+        allowed = clerk_authorized_parties()
+        if azp not in allowed:
+            raise jwt.InvalidTokenError("Invalid authorized party")
+    return payload
 
 
 async def decode_clerk_jwt(token: str) -> dict[str, Any]:
