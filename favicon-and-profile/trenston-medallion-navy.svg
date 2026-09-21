@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#14213D"/>
+  <polygon points="50.00,3.50 46.22,15.20 53.78,15.20" fill="#C9A24B"/>
+  <polygon points="73.25,9.73 64.12,17.98 70.67,21.76" fill="#C9A24B"/>
+  <polygon points="90.27,26.75 78.24,29.33 82.02,35.88" fill="#C9A24B"/>
+  <polygon points="96.50,50.00 84.80,46.22 84.80,53.78" fill="#C9A24B"/>
+  <polygon points="90.27,73.25 82.02,64.12 78.24,70.67" fill="#C9A24B"/>
+  <polygon points="73.25,90.27 70.67,78.24 64.12,82.02" fill="#C9A24B"/>
+  <polygon points="50.00,96.50 53.78,84.80 46.22,84.80" fill="#C9A24B"/>
+  <polygon points="26.75,90.27 35.88,82.02 29.33,78.24" fill="#C9A24B"/>
+  <polygon points="9.73,73.25 21.76,70.67 17.98,64.12" fill="#C9A24B"/>
+  <polygon points="3.50,50.00 15.20,53.78 15.20,46.22" fill="#C9A24B"/>
+  <polygon points="9.73,26.75 17.98,35.88 21.76,29.33" fill="#C9A24B"/>
+  <polygon points="26.75,9.73 29.33,21.76 35.88,17.98" fill="#C9A24B"/>
+  <circle cx="50" cy="50" r="34.50" fill="none" stroke="#F5F0E6" stroke-width="0.9"/>
+  <circle cx="50" cy="50" r="32.50" fill="none" stroke="#F5F0E6" stroke-width="0.55"/>
+  <circle cx="50.00" cy="15.50" r="1.15" fill="#C9A24B"/>
+  <circle cx="67.25" cy="20.12" r="1.15" fill="#C9A24B"/>
+  <circle cx="79.88" cy="32.75" r="1.15" fill="#C9A24B"/>
+  <circle cx="84.50" cy="50.00" r="1.15" fill="#C9A24B"/>
+  <circle cx="79.88" cy="67.25" r="1.15" fill="#C9A24B"/>
+  <circle cx="67.25" cy="79.88" r="1.15" fill="#C9A24B"/>
+  <circle cx="50.00" cy="84.50" r="1.15" fill="#C9A24B"/>
+  <circle cx="32.75" cy="79.88" r="1.15" fill="#C9A24B"/>
+  <circle cx="20.12" cy="67.25" r="1.15" fill="#C9A24B"/>
+  <circle cx="15.50" cy="50.00" r="1.15" fill="#C9A24B"/>
+  <circle cx="20.12" cy="32.75" r="1.15" fill="#C9A24B"/>
+  <circle cx="32.75" cy="20.12" r="1.15" fill="#C9A24B"/>
+  <line x1="59.08" y1="16.10" x2="59.65" y2="13.97" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="74.82" y1="25.18" x2="76.38" y2="23.62" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="83.90" y1="40.92" x2="86.03" y2="40.35" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="83.90" y1="59.08" x2="86.03" y2="59.65" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="74.82" y1="74.82" x2="76.38" y2="76.38" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="59.08" y1="83.90" x2="59.65" y2="86.03" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="40.92" y1="83.90" x2="40.35" y2="86.03" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="25.18" y1="74.82" x2="23.62" y2="76.38" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="16.10" y1="59.08" x2="13.97" y2="59.65" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="16.10" y1="40.92" x2="13.97" y2="40.35" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="25.18" y1="25.18" x2="23.62" y2="23.62" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <line x1="40.92" y1="16.10" x2="40.35" y2="13.97" stroke="#F5F0E6" stroke-width="0.6" stroke-linecap="round"/>
+  <g transform="translate(36.40,32.94) scale(0.04875,-0.04875) translate(0,-700.00)" fill="#F5F0E6">
+    <path d="M209 0V587H5V700H553V587H349V0Z"/>
+  </g>
+</svg>
