@@ -115,7 +115,7 @@ function LoginClerk() {
               routing="path"
               path="/login"
               signUpUrl={signUpPath}
-              oauthFlow="auto"
+              oauthFlow="redirect"
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
             />
