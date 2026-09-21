@@ -1196,6 +1196,63 @@ async def _patch_clerk_json(
     return await client.patch(f"{CLERK_BAPI}/{path.lstrip('/')}", headers=headers, json=body)
 
 
+async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
+    """Password must not be required or OAuth users hit Account Portal /continue (CF-blocked).
+
+    When password is required, Clerk sends post-OAuth \"missing requirements\" to
+    accounts.*/sign-up/continue — Cloudflare challenges that host and users see
+    \"Unable to complete action at this time\".
+    """
+    result: dict[str, Any] = {"attempted": True, "ok": False}
+    if not clerk_configured():
+        result["reason"] = "not_configured"
+        return result
+    body = {
+        "attributes": {
+            "password": {
+                "enabled": True,
+                "required": False,
+            }
+        }
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            headers = _bapi_headers()
+            # Probe which path exists for this instance.
+            get_r = await client.get(f"{CLERK_BAPI}/user_settings", headers=headers)
+            result["get_status"] = get_r.status_code
+            result["get_body"] = get_r.text[:300]
+            patch_r = await client.patch(
+                f"{CLERK_BAPI}/user_settings",
+                headers=headers,
+                json=body,
+            )
+            result["patch_status"] = patch_r.status_code
+            if patch_r.status_code >= 400:
+                # Alternate shape used by some Clerk API versions.
+                alt = await client.patch(
+                    f"{CLERK_BAPI}/instance/user_settings",
+                    headers=headers,
+                    json=body,
+                )
+                result["alt_patch_status"] = alt.status_code
+                result["alt_patch_body"] = alt.text[:300]
+                if alt.status_code < 400:
+                    patch_r = alt
+                else:
+                    result["patch_body"] = patch_r.text[:300]
+                    result["reason"] = f"patch_{patch_r.status_code}"
+                    return result
+            result["ok"] = True
+            result["reason"] = "ok"
+            logger.info("Clerk password attribute set to optional (OAuth-friendly)")
+            return result
+    except Exception:
+        logger.exception("Clerk password optional sync failed")
+        result["reason"] = "exception"
+        return result
+
+
 async def sync_clerk_account_portal(primary: str, app_url: str | None = None) -> dict[str, Any]:
     """Point Clerk auth Paths at www Trenston — never leave users on accounts.*.
 
@@ -1466,6 +1523,8 @@ async def sync_clerk_instance() -> dict[str, Any]:
             portal_url = clerk_post_auth_url() or f"{primary.rstrip('/')}/app"
             portal = await sync_clerk_account_portal(portal_primary, portal_url)
             status["account_portal"] = portal
+            password_opt = await sync_clerk_password_optional_for_oauth()
+            status["password_optional"] = password_opt
             status["clerk_primary_origin"] = clerk_primary_origin()
             status["clerk_post_auth_url"] = portal_url
             redirects = await sync_clerk_redirect_urls()
@@ -1474,6 +1533,12 @@ async def sync_clerk_instance() -> dict[str, Any]:
             status["satellite_domain"] = satellite
             domain_proxy = await sync_clerk_domain_proxy(primary)
             status["domain_proxy"] = domain_proxy
+            if not password_opt.get("ok"):
+                status["warnings"].append(
+                    "Could not make password optional via API. In Clerk Dashboard → "
+                    "User & authentication → Password, turn OFF \"Required\". "
+                    "Required passwords send OAuth users to accounts.*/continue (Cloudflare-blocked)."
+                )
             if not portal.get("ok"):
                 redirect_hint = portal_url
                 status["warnings"].append(

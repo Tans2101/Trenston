@@ -43,8 +43,10 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
     const redirectUrlComplete = helmAppUrl(CLERK_AFTER_AUTH_PATH);
     setBusy(strategy);
     try {
+      // Fresh attempt — avoids a half-filled SignIn/SignUp form poisoning OAuth.
       if (mode === "sign-up") {
         if (!signUp) throw new Error("Sign-up not ready");
+        await signUp.create({});
         await signUp.authenticateWithRedirect({
           strategy,
           redirectUrl,
@@ -52,6 +54,7 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
         });
       } else {
         if (!signIn) throw new Error("Sign-in not ready");
+        await signIn.create({});
         await signIn.authenticateWithRedirect({
           strategy,
           redirectUrl,

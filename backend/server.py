@@ -15067,10 +15067,7 @@ async def setup_clerk_sync(request: Request):
 
 @api_router.post("/setup/clerk-portal-www")
 async def setup_clerk_portal_www(request: Request):
-    """Force Clerk Paths + Account Portal redirects onto www (fixes Google OAuth bounce).
-
-    Uses https://api.clerk.com/v1/... — omitting /v1 yields plain \"404 page not found\".
-    """
+    """Force Clerk Paths + make password optional for OAuth (avoids accounts.* continue)."""
     _require_setup_secret(request)
     if not clerk_auth.clerk_configured():
         raise HTTPException(status_code=400, detail="Clerk is not configured")
@@ -15080,17 +15077,20 @@ async def setup_clerk_portal_www(request: Request):
     portal = await clerk_auth.sync_clerk_account_portal(
         primary, clerk_auth.clerk_post_auth_url() or f"{primary.rstrip('/')}/app",
     )
+    password_opt = await clerk_auth.sync_clerk_password_optional_for_oauth()
     redirects = await clerk_auth.sync_clerk_redirect_urls()
     return {
-        "ok": bool(portal.get("ok")),
+        "ok": bool(portal.get("ok") or password_opt.get("ok")),
         "account_portal": portal,
+        "password_optional": password_opt,
         "redirect_urls": redirects,
         "hint": (
             None
-            if portal.get("ok")
+            if password_opt.get("ok")
             else (
-                "If Paths stay on accounts.*, open Clerk Dashboard → Account Portal → "
-                "Disable Account Portal (Trenston already hosts /login and /sign-up)."
+                "In Clerk Dashboard → User & authentication → Password, turn OFF Required. "
+                "Required password forces OAuth continue on accounts.* (Cloudflare → "
+                "Unable to complete action)."
             )
         ),
     }
