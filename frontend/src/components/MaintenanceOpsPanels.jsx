@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, X } from "lucide-react";
+import { Plus, X, PenLine, Trash2 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
-import { GlassCard, SectionLabel, EmptyState } from "@/components/kit";
+import { GlassCard, SectionLabel, EmptyState, ConfirmDialog } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
 const money = (n) => `$${(Number(n) || 0).toLocaleString()}`;
@@ -17,30 +17,47 @@ function spareEquipmentLabel(s) {
   return label || "—";
 }
 
+const emptySpare = { part_name: "", equipment_name: "", quantity_on_hand: "", minimum_threshold: "", unit: "pcs" };
+const emptySched = { equipment_name: "", task: "", frequency_days: "30" };
+const emptyContract = {
+  equipment_name: "", vendor_name: "", coverage_start: "", coverage_end: "", cost: "", scope_notes: "",
+};
+
 /** Spares / Schedule / Contracts / Overhead panels for Maintenance. */
 export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
   const [tab, setTab] = useState("spares");
   const sparesQ = useFetch("/maintenance/spares");
   const schedQ = useFetch("/maintenance/schedules");
   const contractsQ = useFetch("/maintenance/contracts");
+  const costsQ = useFetch("/maintenance/costs");
   const settingsQ = useFetch("/maintenance/settings");
   const [busy, setBusy] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState("");
-  const [spareForm, setSpareForm] = useState({ part_name: "", equipment_name: "", quantity_on_hand: "", minimum_threshold: "", unit: "pcs" });
-  const [schedForm, setSchedForm] = useState({ equipment_name: "", task: "", frequency_days: "30" });
-  const [contractForm, setContractForm] = useState({
-    equipment_name: "", vendor_name: "", coverage_start: "", coverage_end: "", cost: "", scope_notes: "",
-  });
+  const [spareForm, setSpareForm] = useState(emptySpare);
+  const [schedForm, setSchedForm] = useState(emptySched);
+  const [contractForm, setContractForm] = useState(emptyContract);
   const [costForm, setCostForm] = useState({ amount: "", description: "" });
   const [showSpare, setShowSpare] = useState(false);
   const [showSched, setShowSched] = useState(false);
   const [showContract, setShowContract] = useState(false);
+  const [editingSpareId, setEditingSpareId] = useState(null);
+  const [editingSchedId, setEditingSchedId] = useState(null);
+  const [editingContractId, setEditingContractId] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
 
-  const overhead = ticketData?.overhead || settingsQ.data?.overhead;
+  const overhead = ticketData?.overhead || costsQ.data?.overhead || settingsQ.data?.overhead;
   const canManage = Boolean(
     ticketData?.is_lead || ticketData?.is_ceo || settingsQ.data?.can_manage
     || sparesQ.data?.is_lead || sparesQ.data?.is_ceo,
   );
+
+  const refreshOverhead = async () => {
+    await Promise.all([
+      costsQ.reload?.(),
+      settingsQ.reload?.(),
+      onTicketsReload?.(),
+    ]);
+  };
 
   const saveBudget = async () => {
     const t = Number(budgetDraft);
@@ -52,7 +69,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
     try {
       await api.put("/maintenance/settings", { monthly_budget: t });
       toast.success("Budget saved");
-      await Promise.all([settingsQ.reload?.(), onTicketsReload?.()]);
+      await refreshOverhead();
     } catch (e) {
       toast.error(apiErrorMessage(e, "Could not save budget"));
     } finally {
@@ -60,50 +77,99 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
     }
   };
 
-  const createSpare = async () => {
+  const openAddSpare = () => {
+    setEditingSpareId(null);
+    setSpareForm(emptySpare);
+    setShowSpare(true);
+  };
+
+  const openEditSpare = (s) => {
+    setEditingSpareId(s.id);
+    setSpareForm({
+      part_name: s.part_name || "",
+      equipment_name: spareEquipmentLabel(s) === "—" ? "" : spareEquipmentLabel(s),
+      quantity_on_hand: String(s.quantity_on_hand ?? ""),
+      minimum_threshold: String(s.minimum_threshold ?? ""),
+      unit: s.unit || "pcs",
+    });
+    setShowSpare(true);
+  };
+
+  const saveSpare = async () => {
     if (!spareForm.part_name.trim()) {
       toast.error("Part name required");
       return;
     }
     setBusy(true);
     try {
-      await api.post("/maintenance/spares", {
+      const body = {
         part_name: spareForm.part_name.trim(),
         equipment_name: spareForm.equipment_name.trim(),
         quantity_on_hand: Number(spareForm.quantity_on_hand) || 0,
         minimum_threshold: Number(spareForm.minimum_threshold) || 0,
         unit: spareForm.unit.trim() || "pcs",
-      });
-      toast.success("Spare added");
+      };
+      if (editingSpareId) {
+        await api.patch(`/maintenance/spares/${editingSpareId}`, body);
+        toast.success("Spare updated");
+      } else {
+        await api.post("/maintenance/spares", body);
+        toast.success("Spare added");
+      }
       setShowSpare(false);
-      setSpareForm({ part_name: "", equipment_name: "", quantity_on_hand: "", minimum_threshold: "", unit: "pcs" });
+      setEditingSpareId(null);
+      setSpareForm(emptySpare);
       await sparesQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(apiErrorMessage(e, "Could not add spare"));
+      toast.error(apiErrorMessage(e, editingSpareId ? "Could not update spare" : "Could not add spare"));
     } finally {
       setBusy(false);
     }
   };
 
-  const createSchedule = async () => {
+  const openAddSched = () => {
+    setEditingSchedId(null);
+    setSchedForm(emptySched);
+    setShowSched(true);
+  };
+
+  const openEditSched = (s) => {
+    setEditingSchedId(s.id);
+    setSchedForm({
+      equipment_name: s.equipment_name || "",
+      task: s.task || "",
+      frequency_days: String(s.frequency_days ?? "30"),
+    });
+    setShowSched(true);
+  };
+
+  const saveSchedule = async () => {
     if (!schedForm.equipment_name.trim() || !schedForm.task.trim()) {
       toast.error("Equipment and task required");
       return;
     }
     setBusy(true);
     try {
-      await api.post("/maintenance/schedules", {
+      const body = {
         equipment_name: schedForm.equipment_name.trim(),
         task: schedForm.task.trim(),
         frequency_days: Number(schedForm.frequency_days) || 30,
-      });
-      toast.success("Schedule added");
+      };
+      if (editingSchedId) {
+        await api.patch(`/maintenance/schedules/${editingSchedId}`, body);
+        toast.success("Schedule updated");
+      } else {
+        await api.post("/maintenance/schedules", body);
+        toast.success("Schedule added");
+      }
       setShowSched(false);
+      setEditingSchedId(null);
+      setSchedForm(emptySched);
       await schedQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(apiErrorMessage(e, "Could not add schedule"));
+      toast.error(apiErrorMessage(e, editingSchedId ? "Could not update schedule" : "Could not add schedule"));
     } finally {
       setBusy(false);
     }
@@ -123,27 +189,54 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
     }
   };
 
-  const createContract = async () => {
+  const openAddContract = () => {
+    setEditingContractId(null);
+    setContractForm(emptyContract);
+    setShowContract(true);
+  };
+
+  const openEditContract = (c) => {
+    setEditingContractId(c.id);
+    setContractForm({
+      equipment_name: c.equipment_name || "",
+      vendor_name: c.vendor_name || "",
+      coverage_start: (c.coverage_start || "").slice(0, 10),
+      coverage_end: (c.coverage_end || "").slice(0, 10),
+      cost: c.cost == null ? "" : String(c.cost),
+      scope_notes: c.scope_notes || "",
+    });
+    setShowContract(true);
+  };
+
+  const saveContract = async () => {
     if (!contractForm.equipment_name.trim() || !contractForm.vendor_name.trim()) {
       toast.error("Equipment and vendor required");
       return;
     }
     setBusy(true);
     try {
-      await api.post("/maintenance/contracts", {
+      const body = {
         equipment_name: contractForm.equipment_name.trim(),
         vendor_name: contractForm.vendor_name.trim(),
         coverage_start: contractForm.coverage_start,
         coverage_end: contractForm.coverage_end,
         cost: contractForm.cost === "" ? null : Number(contractForm.cost),
         scope_notes: contractForm.scope_notes.trim(),
-      });
-      toast.success("Contract added");
+      };
+      if (editingContractId) {
+        await api.patch(`/maintenance/contracts/${editingContractId}`, body);
+        toast.success("Contract updated");
+      } else {
+        await api.post("/maintenance/contracts", body);
+        toast.success("Contract added");
+      }
       setShowContract(false);
+      setEditingContractId(null);
+      setContractForm(emptyContract);
       await contractsQ.reload();
       await onTicketsReload?.();
     } catch (e) {
-      toast.error(apiErrorMessage(e, "Could not add contract"));
+      toast.error(apiErrorMessage(e, editingContractId ? "Could not update contract" : "Could not add contract"));
     } finally {
       setBusy(false);
     }
@@ -163,8 +256,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       });
       toast.success("Cost logged");
       setCostForm({ amount: "", description: "" });
-      await settingsQ.reload();
-      await onTicketsReload?.();
+      await refreshOverhead();
     } catch (e) {
       toast.error(apiErrorMessage(e, "Could not log cost"));
     } finally {
@@ -172,12 +264,58 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
     }
   };
 
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { kind, id } = pendingDelete;
+    setBusy(true);
+    try {
+      if (kind === "spare") {
+        await api.delete(`/maintenance/spares/${id}`);
+        toast.success("Spare deleted");
+        await sparesQ.reload();
+        await onTicketsReload?.();
+      } else if (kind === "schedule") {
+        await api.delete(`/maintenance/schedules/${id}`);
+        toast.success("Schedule deleted");
+        await schedQ.reload();
+        await onTicketsReload?.();
+      } else if (kind === "contract") {
+        await api.delete(`/maintenance/contracts/${id}`);
+        toast.success("Contract deleted");
+        await contractsQ.reload();
+        await onTicketsReload?.();
+      } else if (kind === "cost") {
+        await api.delete(`/maintenance/costs/${id}`);
+        toast.success("Cost entry deleted");
+        await refreshOverhead();
+      }
+      setPendingDelete(null);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, "Could not delete"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteCopy = (() => {
+    if (!pendingDelete) return { title: "", description: "", confirmLabel: "Delete" };
+    const labels = {
+      spare: { title: "Delete this spare?", description: "Removes the spare part from inventory tracking. This can’t be undone.", confirmLabel: "Delete spare" },
+      schedule: { title: "Delete this schedule?", description: "Removes the preventive maintenance schedule. This can’t be undone.", confirmLabel: "Delete schedule" },
+      contract: { title: "Delete this AMC?", description: "Removes the annual maintenance contract. This can’t be undone.", confirmLabel: "Delete contract" },
+      cost: { title: "Delete this cost entry?", description: "Removes the logged cost from this month’s ledger. Overhead totals update automatically.", confirmLabel: "Delete cost" },
+    };
+    return labels[pendingDelete.kind] || { title: "Delete?", description: "This can’t be undone.", confirmLabel: "Delete" };
+  })();
+
   const tabs = [
     { id: "spares", label: `Spares${ticketData?.spares_below_threshold_count ? ` (${ticketData.spares_below_threshold_count})` : ""}` },
     { id: "schedule", label: `Schedule${ticketData?.overdue_schedules_count ? ` (${ticketData.overdue_schedules_count})` : ""}` },
     { id: "contracts", label: `AMCs${ticketData?.contracts_needing_renewal_count ? ` (${ticketData.contracts_needing_renewal_count})` : ""}` },
     { id: "overhead", label: "Overhead" },
   ];
+
+  const costs = costsQ.data?.costs || [];
 
   return (
     <div className="mt-6 space-y-4" data-testid="maintenance-ops-panels">
@@ -227,7 +365,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       {tab === "spares" && (
         <div className="space-y-3">
           {canManage && (
-            <button type="button" onClick={() => setShowSpare(true)} className="inline-flex items-center gap-1 text-sm text-helm-gold">
+            <button type="button" onClick={openAddSpare} className="inline-flex items-center gap-1 text-sm text-helm-gold">
               <Plus className="w-4 h-4" /> Add spare
             </button>
           )}
@@ -243,6 +381,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                     <th className="px-3 py-2">On hand</th>
                     <th className="px-3 py-2">Min</th>
                     <th className="px-3 py-2">Unit</th>
+                    {canManage && <th className="px-3 py-2" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -253,6 +392,32 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                       <td className={cn("px-3 py-2 font-mono", s.is_below_threshold && "text-helm-status-negative")}>{s.quantity_on_hand}</td>
                       <td className="px-3 py-2 font-mono text-helm-muted">{s.minimum_threshold}</td>
                       <td className="px-3 py-2 text-helm-muted">{s.unit}</td>
+                      {canManage && (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => openEditSpare(s)}
+                              data-testid={`edit-spare-${s.id}`}
+                              className="text-helm-muted hover:text-helm-gold p-1"
+                              aria-label="Edit spare"
+                            >
+                              <PenLine className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setPendingDelete({ kind: "spare", id: s.id })}
+                              data-testid={`delete-spare-${s.id}`}
+                              className="text-helm-muted hover:text-helm-status-negative p-1"
+                              aria-label="Delete spare"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -265,7 +430,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       {tab === "schedule" && (
         <div className="space-y-3">
           {canManage && (
-            <button type="button" onClick={() => setShowSched(true)} className="inline-flex items-center gap-1 text-sm text-helm-gold">
+            <button type="button" onClick={openAddSched} className="inline-flex items-center gap-1 text-sm text-helm-gold">
               <Plus className="w-4 h-4" /> Add schedule
             </button>
           )}
@@ -294,9 +459,31 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                       </td>
                       <td className="px-3 py-2">
                         {canManage && (
-                          <button type="button" disabled={busy} onClick={() => markDone(s.id)} className="text-xs text-helm-gold">
-                            Mark done
-                          </button>
+                          <div className="flex items-center gap-2 justify-end">
+                            <button type="button" disabled={busy} onClick={() => markDone(s.id)} className="text-xs text-helm-gold">
+                              Mark done
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => openEditSched(s)}
+                              data-testid={`edit-schedule-${s.id}`}
+                              className="text-helm-muted hover:text-helm-gold p-1"
+                              aria-label="Edit schedule"
+                            >
+                              <PenLine className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setPendingDelete({ kind: "schedule", id: s.id })}
+                              data-testid={`delete-schedule-${s.id}`}
+                              className="text-helm-muted hover:text-helm-status-negative p-1"
+                              aria-label="Delete schedule"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -311,7 +498,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
       {tab === "contracts" && (
         <div className="space-y-3">
           {canManage && (
-            <button type="button" onClick={() => setShowContract(true)} className="inline-flex items-center gap-1 text-sm text-helm-gold">
+            <button type="button" onClick={openAddContract} className="inline-flex items-center gap-1 text-sm text-helm-gold">
               <Plus className="w-4 h-4" /> Add AMC
             </button>
           )}
@@ -327,6 +514,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                     <th className="px-3 py-2">Coverage</th>
                     <th className="px-3 py-2">Renewal</th>
                     <th className="px-3 py-2">Status</th>
+                    {canManage && <th className="px-3 py-2" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -341,6 +529,32 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                           : c.renewal_due_soon ? <span className="text-helm-status-warning">Due soon</span>
                             : <span className="text-helm-muted">OK</span>}
                       </td>
+                      {canManage && (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => openEditContract(c)}
+                              data-testid={`edit-contract-${c.id}`}
+                              className="text-helm-muted hover:text-helm-gold p-1"
+                              aria-label="Edit contract"
+                            >
+                              <PenLine className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setPendingDelete({ kind: "contract", id: c.id })}
+                              data-testid={`delete-contract-${c.id}`}
+                              className="text-helm-muted hover:text-helm-status-negative p-1"
+                              aria-label="Delete contract"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -392,11 +606,61 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               <p className="text-[11px] text-helm-muted">Ticket repair costs are summed from the optional cost field when a ticket is resolved.</p>
             </>
           )}
+
+          {costs.length === 0 ? (
+            <EmptyState title="No costs logged this month" body="Non-ticket costs appear here once logged." />
+          ) : (
+            <div className="overflow-x-auto rounded-md border border-helm-line" data-testid="maintenance-costs-table">
+              <table className="w-full text-sm text-left">
+                <thead>
+                  <tr className="border-b border-helm-line text-[10px] font-mono uppercase text-helm-muted">
+                    <th className="px-3 py-2">Date</th>
+                    <th className="px-3 py-2">Description</th>
+                    <th className="px-3 py-2">Category</th>
+                    <th className="px-3 py-2">Amount</th>
+                    <th className="px-3 py-2">Logged by</th>
+                    {canManage && <th className="px-3 py-2" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {costs.map((c) => (
+                    <tr key={c.id} className="border-b border-helm-line">
+                      <td className="px-3 py-2 font-mono text-xs text-helm-muted">
+                        {c.created_at ? String(c.created_at).slice(0, 10) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-helm-fg">{c.description || "—"}</td>
+                      <td className="px-3 py-2 text-helm-muted text-xs">{c.category || "general"}</td>
+                      <td className="px-3 py-2 font-mono text-helm-fg">{money(c.amount)}</td>
+                      <td className="px-3 py-2 font-mono text-xs text-helm-muted truncate max-w-[10rem]" title={c.created_by || ""}>
+                        {c.created_by || "—"}
+                      </td>
+                      {canManage && (
+                        <td className="px-3 py-2">
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => setPendingDelete({ kind: "cost", id: c.id })}
+                              data-testid={`delete-cost-${c.id}`}
+                              className="text-helm-muted hover:text-helm-status-negative p-1"
+                              aria-label="Delete cost"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
       {showSpare && (
-        <Modal title="Add spare" onClose={() => setShowSpare(false)}>
+        <Modal title={editingSpareId ? "Edit spare" : "Add spare"} onClose={() => { setShowSpare(false); setEditingSpareId(null); }}>
           {["part_name", "equipment_name", "quantity_on_hand", "minimum_threshold", "unit"].map((k) => (
             <label key={k} className="block text-xs text-helm-muted mb-2 capitalize">
               {k.replace(/_/g, " ")}
@@ -407,11 +671,13 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               />
             </label>
           ))}
-          <button type="button" disabled={busy} onClick={createSpare} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">Save</button>
+          <button type="button" disabled={busy} onClick={saveSpare} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">
+            {editingSpareId ? "Save changes" : "Save"}
+          </button>
         </Modal>
       )}
       {showSched && (
-        <Modal title="Add schedule" onClose={() => setShowSched(false)}>
+        <Modal title={editingSchedId ? "Edit schedule" : "Add schedule"} onClose={() => { setShowSched(false); setEditingSchedId(null); }}>
           {["equipment_name", "task", "frequency_days"].map((k) => (
             <label key={k} className="block text-xs text-helm-muted mb-2 capitalize">
               {k.replace(/_/g, " ")}
@@ -422,11 +688,13 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               />
             </label>
           ))}
-          <button type="button" disabled={busy} onClick={createSchedule} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">Save</button>
+          <button type="button" disabled={busy} onClick={saveSchedule} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">
+            {editingSchedId ? "Save changes" : "Save"}
+          </button>
         </Modal>
       )}
       {showContract && (
-        <Modal title="Add AMC" onClose={() => setShowContract(false)}>
+        <Modal title={editingContractId ? "Edit AMC" : "Add AMC"} onClose={() => { setShowContract(false); setEditingContractId(null); }}>
           {["equipment_name", "vendor_name", "coverage_start", "coverage_end", "cost", "scope_notes"].map((k) => (
             <label key={k} className="block text-xs text-helm-muted mb-2 capitalize">
               {k.replace(/_/g, " ")}
@@ -438,9 +706,22 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               />
             </label>
           ))}
-          <button type="button" disabled={busy} onClick={createContract} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">Save</button>
+          <button type="button" disabled={busy} onClick={saveContract} className="w-full rounded-md bg-helm-gold text-helm-navy text-sm py-2 font-medium">
+            {editingContractId ? "Save changes" : "Save"}
+          </button>
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title={deleteCopy.title}
+        description={deleteCopy.description}
+        confirmLabel={deleteCopy.confirmLabel}
+        busy={busy}
+        onCancel={() => !busy && setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        testId="maintenance-ops-delete-confirm"
+      />
     </div>
   );
 }

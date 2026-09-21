@@ -16,7 +16,7 @@ const MUTATION_INVALIDATIONS = [
   { match: "/hr/", paths: ["/hr/", "/me/work-items", "/members"] },
   { match: "/sales/targets", paths: ["/sales/order-book", "/briefing"] },
   { match: "/sales/order-book", paths: ["/sales/order-book", "/briefing"] },
-  { match: "/maintenance/", paths: ["/maintenance/tickets", "/maintenance/spares", "/maintenance/schedules", "/maintenance/contracts", "/maintenance/settings", "/briefing"] },
+  { match: "/maintenance/", paths: ["/maintenance/tickets", "/maintenance/spares", "/maintenance/schedules", "/maintenance/contracts", "/maintenance/costs", "/maintenance/settings", "/briefing"] },
   { match: "/deals", paths: ["/deals", "/telemetry", "/briefing"] },
   { match: "/financials", paths: ["/financials", "/briefing", "/telemetry"] },
   { match: "/documents", paths: ["/financials", "/documents"] },
