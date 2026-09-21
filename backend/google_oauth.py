@@ -138,6 +138,12 @@ def _infer_meeting_type(title: str, attendee_count: int) -> str:
     return "Internal"
 
 
+def _all_day_exclusive_end(date_yyyy_mm_dd: str) -> str:
+    """Google all-day end.date is exclusive — return the day after date_yyyy_mm_dd."""
+    day = datetime.strptime(date_yyyy_mm_dd[:10], "%Y-%m-%d").date()
+    return (day + timedelta(days=1)).isoformat()
+
+
 def _map_google_event(event: dict) -> Optional[dict]:
     start_obj = event.get("start") or {}
     end_obj = event.get("end") or {}
@@ -149,6 +155,22 @@ def _map_google_event(event: dict) -> Optional[dict]:
     if not start_dt:
         return None
 
+    # Google Calendar all-day end.date is exclusive. Normalize to an inclusive
+    # end day (matching department deadlines) so the UI does not paint a ghost
+    # extra day.
+    end_date_inclusive = None
+    if all_day and end_dt:
+        inclusive = (end_dt - timedelta(days=1)).replace(
+            hour=23, minute=59, second=59, microsecond=0
+        )
+        if inclusive.date() < start_dt.date():
+            inclusive = start_dt.replace(hour=23, minute=59, second=59, microsecond=0)
+        end_dt = inclusive
+        end_date_inclusive = inclusive.strftime("%Y-%m-%d")
+    elif all_day:
+        end_dt = start_dt.replace(hour=23, minute=59, second=59, microsecond=0)
+        end_date_inclusive = start_dt.strftime("%Y-%m-%d")
+
     if end_dt:
         duration_m = max(int((end_dt - start_dt).total_seconds() // 60), 15)
     else:
@@ -158,10 +180,10 @@ def _map_google_event(event: dict) -> Optional[dict]:
     attendee_count = len(attendees) if attendees else 1
     title = event.get("summary") or "Untitled meeting"
 
-    return {
+    mapped = {
         "id": event.get("id") or f"gcal_{hash(title) & 0xfffffff}",
         "title": title,
-        "time": start_dt.strftime("%H:%M"),
+        "time": "" if all_day else start_dt.strftime("%H:%M"),
         "duration": duration_m,
         "attendees": attendee_count,
         "type": _infer_meeting_type(title, attendee_count),
@@ -173,6 +195,9 @@ def _map_google_event(event: dict) -> Optional[dict]:
         "end_at": end_dt.isoformat() if end_dt else None,
         "all_day": all_day,
     }
+    if end_date_inclusive:
+        mapped["end_date"] = end_date_inclusive
+    return mapped
 
 
 def _today_bounds() -> tuple[str, str]:
@@ -459,8 +484,9 @@ async def create_calendar_event(
     if all_day and date:
         body = {
             "summary": title,
-            "start": {"date": date},
-            "end": {"date": date},
+            "start": {"date": date[:10]},
+            # Google requires exclusive end.date > start.date for all-day events.
+            "end": {"date": _all_day_exclusive_end(date)},
         }
     else:
         body = {
@@ -499,7 +525,11 @@ async def patch_calendar_event(
         return tokens
     tokens = await refresh_google_token(tokens, client_id, client_secret)
     if all_day and date:
-        body = {"summary": title, "start": {"date": date}, "end": {"date": date}}
+        body = {
+            "summary": title,
+            "start": {"date": date[:10]},
+            "end": {"date": _all_day_exclusive_end(date)},
+        }
     else:
         body = {
             "summary": title,
