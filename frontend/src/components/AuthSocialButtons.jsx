@@ -20,30 +20,32 @@ function bounceApexToWww() {
 function oauthErrorMessage(err) {
   const code = err?.errors?.[0]?.code || err?.code || "";
   const long = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "";
+  if (code === "form_param_value_invalid" && /oauth_microsoft/i.test(long)) {
+    return "Microsoft sign-up is not enabled. Use Google, or enable Microsoft in Clerk → SSO.";
+  }
   if (code || long) return [code, long].filter(Boolean).join(": ");
   return `Google sign-in failed. Try again from www.trenston.com${CLERK_SIGN_UP_PATH}.`;
 }
 
 /**
- * Google / Microsoft OAuth that returns only to www Trenston SSO callbacks.
- * Clerk's hosted Account Portal (accounts.trenston.com) is Cloudflare-challenged;
- * if OAuth fails, Clerk dumps users there — we avoid that path entirely when we can.
+ * Google / Microsoft OAuth → www SSO callbacks only.
+ * Sign-up currently allows oauth_google only (Clerk instance) — hide Microsoft on sign-up.
  */
 export default function AuthSocialButtons({ mode = "sign-in", className }) {
   const { isLoaded: signInLoaded, signIn } = useSignIn();
   const { isLoaded: signUpLoaded, signUp } = useSignUp();
   const [busy, setBusy] = useState(null);
   const loaded = mode === "sign-up" ? signUpLoaded : signInLoaded;
+  // Live Clerk sign-up optional_fields is only oauth_google — Microsoft 422s.
+  const showMicrosoft = mode !== "sign-up";
 
   const startOAuth = async (strategy) => {
     if (!loaded) return;
-    // Bounce apex → www before starting OAuth so redirect_url matches the live host.
     if (bounceApexToWww()) return;
     const redirectUrl = clerkSsoCallbackUrl(mode);
     const redirectUrlComplete = helmAppUrl(CLERK_AFTER_AUTH_PATH);
     setBusy(strategy);
     try {
-      // Fresh attempt — avoids a half-filled SignIn/SignUp form poisoning OAuth.
       if (mode === "sign-up") {
         if (!signUp) throw new Error("Sign-up not ready");
         await signUp.create({});
@@ -79,15 +81,17 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
       >
         {busy === "oauth_google" ? "Redirecting…" : "Continue with Google"}
       </button>
-      <button
-        type="button"
-        disabled={!loaded || Boolean(busy)}
-        onClick={() => startOAuth("oauth_microsoft")}
-        className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-full bg-white text-helm-navy text-sm font-medium border border-helm-navy/20 hover:bg-helm-navy/[0.04] disabled:opacity-50"
-        data-testid="oauth-microsoft-btn"
-      >
-        {busy === "oauth_microsoft" ? "Redirecting…" : "Continue with Microsoft"}
-      </button>
+      {showMicrosoft && (
+        <button
+          type="button"
+          disabled={!loaded || Boolean(busy)}
+          onClick={() => startOAuth("oauth_microsoft")}
+          className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-full bg-white text-helm-navy text-sm font-medium border border-helm-navy/20 hover:bg-helm-navy/[0.04] disabled:opacity-50"
+          data-testid="oauth-microsoft-btn"
+        >
+          {busy === "oauth_microsoft" ? "Redirecting…" : "Continue with Microsoft"}
+        </button>
+      )}
     </div>
   );
 }
