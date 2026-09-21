@@ -99,21 +99,24 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  onClick={enter}
-                  data-testid={`pricing-page-cta-${plan.id}`}
-                  className={`mt-8 w-full rounded-md font-medium py-3 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold ${
-                    plan.highlighted
-                      ? "bg-helm-navy text-helm-cream hover:bg-helm-gold"
-                      : "border border-helm-navy/15 text-helm-navy hover:border-helm-navy/30"
-                  }`}
-                >
-                  {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
-                </button>
-                {renewalDisclosure ? (
-                  <p className="mt-3 text-[11px] leading-relaxed text-helm-slate">{renewalDisclosure}</p>
-                ) : null}
+                <div className="mt-8">
+                  <button
+                    type="button"
+                    onClick={enter}
+                    data-testid={`pricing-page-cta-${plan.id}`}
+                    className="w-full rounded-md font-medium py-3 transition-colors bg-helm-navy text-helm-cream hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
+                  >
+                    {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
+                  </button>
+                  <p
+                    className={`mt-3 text-[11px] leading-relaxed min-h-[3.25rem] ${
+                      renewalDisclosure ? "text-helm-slate" : "text-transparent select-none"
+                    }`}
+                    aria-hidden={!renewalDisclosure}
+                  >
+                    {renewalDisclosure || "\u00a0"}
+                  </p>
+                </div>
               </motion.article>
             );
           })}
