@@ -1146,11 +1146,25 @@ async def clerk_signup_policy() -> dict[str, Any]:
 
 
 async def sync_clerk_account_portal(primary: str, app_url: str | None = None) -> dict[str, Any]:
-    """Point Clerk Account Portal post-auth redirects back to Trenston (not accounts.dev)."""
+    """Point Clerk Account Portal at www Trenston auth — never leave users on accounts.*.
+
+    accounts.trenston.com is Cloudflare-fronted and often serves bot challenges that break
+    Google OAuth with Clerk's generic \"Unable to complete action at this time\". Auth must
+    stay on https://www.trenston.com/login and /sign-up.
+    """
     target = (app_url or f"{primary.rstrip('/')}/app").rstrip("/")
     if not target.endswith("/app"):
         target = f"{target}/app"
-    result: dict[str, Any] = {"attempted": True, "ok": False, "target_url": target}
+    origin = primary.rstrip("/")
+    login = f"{origin}/login"
+    signup = f"{origin}/sign-up"
+    result: dict[str, Any] = {
+        "attempted": True,
+        "ok": False,
+        "target_url": target,
+        "sign_in_url": login,
+        "sign_up_url": signup,
+    }
     if not clerk_configured() or not primary:
         result["reason"] = "not_configured"
         return result
@@ -1166,31 +1180,59 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
             result["before"] = {
                 "after_sign_in_url": current.get("after_sign_in_url"),
                 "after_sign_up_url": current.get("after_sign_up_url"),
+                "sign_in_url": current.get("sign_in_url"),
+                "sign_up_url": current.get("sign_up_url"),
+                "after_sign_out_all_url": current.get("after_sign_out_all_url"),
             }
+            # Full redirect surface → www. Dropping these on 422 left users on
+            # accounts.trenston.com (Cloudflare challenge → broken Google OAuth).
             patch_body = {
                 "after_sign_in_url": target,
                 "after_sign_up_url": target,
-                "logo_link_url": primary,
+                "logo_link_url": origin,
+                "home_url": origin,
+                "sign_in_url": login,
+                "sign_up_url": signup,
                 "after_join_waitlist_url": target,
                 "after_create_organization_url": target,
                 "after_leave_organization_url": target,
-            }
-            origin = primary.rstrip("/")
-            extra_paths = {
-                "sign_in_url": f"{origin}/login",
-                "sign_up_url": f"{origin}/sign-up",
-                "home_url": origin,
+                "after_sign_out_all_url": login,
+                "after_sign_out_one_url": login,
             }
             patch_r = await client.patch(
                 f"{CLERK_BAPI}/account_portal",
                 headers=headers,
-                json={**patch_body, **extra_paths},
+                json=patch_body,
             )
             if patch_r.status_code == 422:
+                # Retry without after_sign_out_* (some instances reject those keys).
+                slim = {
+                    k: v for k, v in patch_body.items()
+                    if k not in ("after_sign_out_all_url", "after_sign_out_one_url")
+                }
                 patch_r = await client.patch(
                     f"{CLERK_BAPI}/account_portal",
                     headers=headers,
-                    json=patch_body,
+                    json=slim,
+                )
+                result["retried_without_sign_out"] = True
+            if patch_r.status_code == 422:
+                # Last resort: post-auth only (paths may be Dashboard-locked).
+                minimal = {
+                    "after_sign_in_url": target,
+                    "after_sign_up_url": target,
+                    "logo_link_url": origin,
+                }
+                patch_r = await client.patch(
+                    f"{CLERK_BAPI}/account_portal",
+                    headers=headers,
+                    json=minimal,
+                )
+                result["retried_minimal"] = True
+                result["warning"] = (
+                    "Could not set Account Portal sign_in/sign_up to www. "
+                    f"In Clerk Dashboard → Account Portal set Sign-in URL to {login} "
+                    f"and Sign-up URL to {signup}."
                 )
             if patch_r.status_code >= 400:
                 result["reason"] = f"patch_{patch_r.status_code}"
@@ -1201,8 +1243,20 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
             result["after"] = {
                 "after_sign_in_url": updated.get("after_sign_in_url", target),
                 "after_sign_up_url": updated.get("after_sign_up_url", target),
+                "sign_in_url": updated.get("sign_in_url"),
+                "sign_up_url": updated.get("sign_up_url"),
             }
-            logger.info("Clerk account portal redirects → %s", target)
+            still_accounts = any(
+                isinstance(updated.get(k), str) and "accounts." in updated.get(k, "")
+                for k in ("sign_in_url", "sign_up_url", "after_sign_out_all_url")
+            )
+            if still_accounts:
+                result["warning"] = (
+                    "Account Portal still points at accounts.* — Google OAuth can fail "
+                    f"behind Cloudflare. Set Sign-in to {login} and Sign-up to {signup} "
+                    "in Clerk Dashboard → Account Portal."
+                )
+            logger.info("Clerk account portal redirects → %s (login=%s)", target, login)
             return result
     except Exception:
         logger.exception("Clerk account portal sync failed")

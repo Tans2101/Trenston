@@ -109,7 +109,7 @@ function SignUpClerk() {
               routing="path"
               path="/sign-up"
               signInUrl={signInPath}
-              oauthFlow="auto"
+              oauthFlow="redirect"
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
               signInForceRedirectUrl={redirectUrl}
