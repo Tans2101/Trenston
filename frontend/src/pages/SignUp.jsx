@@ -109,7 +109,9 @@ function SignUpClerk() {
               routing="path"
               path="/sign-up"
               signInUrl={signInPath}
-              oauthFlow="redirect"
+              // Prefer popup so Google never returns via accounts.trenston.com
+              // (Cloudflare-challenged Account Portal → opaque OAuth error).
+              oauthFlow="popup"
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
               signInForceRedirectUrl={redirectUrl}
