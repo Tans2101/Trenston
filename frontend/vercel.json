@@ -3,6 +3,12 @@
     "env": {
       "REACT_APP_HELM_ORIGIN": "https://www.trenston.com",
       "REACT_APP_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsudHJlbnN0b24uY29tJA",
+      "REACT_APP_CLERK_SIGN_IN_URL": "/login",
+      "REACT_APP_CLERK_SIGN_UP_URL": "/sign-up",
+      "REACT_APP_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL": "/app",
+      "REACT_APP_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL": "/app",
+      "REACT_APP_CLERK_SIGN_IN_FORCE_REDIRECT_URL": "/app",
+      "REACT_APP_CLERK_SIGN_UP_FORCE_REDIRECT_URL": "/app",
       "REACT_APP_GOOGLE_SITE_VERIFICATION": "",
       "GENERATE_SOURCEMAP": "false"
     }

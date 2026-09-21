@@ -3,7 +3,14 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { fetchAuthConfig } from "@/lib/api";
 import { getClerkPublishableKey } from "@/lib/clerkConfig";
 import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
-import { helmAppUrl, helmSignInUrl, helmSignUpUrl } from "@/lib/helmUrls";
+import {
+  CLERK_AFTER_AUTH_PATH,
+  CLERK_SIGN_IN_PATH,
+  CLERK_SIGN_UP_PATH,
+  helmAppUrl,
+  helmSignInUrl,
+  helmSignUpUrl,
+} from "@/lib/helmUrls";
 
 /**
  * Pin clerk-js so the Frontend API serves a concrete URL instead of
@@ -234,12 +241,13 @@ export default function ClerkProviderBootstrap({ children }) {
       <ClerkProvider
         publishableKey={state.publishableKey}
         {...(state.clerkUseProxy ? { proxyUrl: clerkProxyUrl() } : {})}
-        signInUrl={helmSignInUrl(state.helmCanonicalOrigin)}
-        signUpUrl={helmSignUpUrl(state.helmCanonicalOrigin)}
-        signInForceRedirectUrl={redirectUrl}
-        signUpForceRedirectUrl={redirectUrl}
-        signInFallbackRedirectUrl={redirectUrl}
-        signUpFallbackRedirectUrl={redirectUrl}
+        // Component paths from build env (Clerk Core 2) — not Dashboard Paths.
+        signInUrl={helmSignInUrl(state.helmCanonicalOrigin) || CLERK_SIGN_IN_PATH}
+        signUpUrl={helmSignUpUrl(state.helmCanonicalOrigin) || CLERK_SIGN_UP_PATH}
+        signInForceRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
+        signUpForceRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
+        signInFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
+        signUpFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
         afterSignOutUrl={helmAppUrl("/")}
       >
         {children}

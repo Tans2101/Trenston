@@ -9,7 +9,7 @@ import ClerkLoadError from "@/components/ClerkLoadError";
 import { useClerkReady } from "@/hooks/useClerkReady";
 import { clerkSessionComplete, CLERK_AUTH_OPTS } from "@/lib/clerkSession";
 import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
-import { helmSignInUrl } from "@/lib/helmUrls";
+import { CLERK_SIGN_UP_PATH, helmSignInUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
 import AuthSocialButtons from "@/components/AuthSocialButtons";
@@ -111,7 +111,7 @@ function SignUpClerk() {
             <SignUp
               appearance={clerkAppearance}
               routing="path"
-              path="/sign-up"
+              path={CLERK_SIGN_UP_PATH}
               signInUrl={signInPath}
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}

@@ -1,5 +1,7 @@
+import { CLERK_AFTER_AUTH_PATH as AFTER_AUTH_FROM_ENV } from "@/lib/helmUrls";
+
 /** Same-origin path Clerk should send users to after a complete session. */
-export const CLERK_AFTER_AUTH_PATH = "/app";
+export const CLERK_AFTER_AUTH_PATH = AFTER_AUTH_FROM_ENV;
 
 /**
  * Clerk only accepts forceRedirectUrl values on the instance allow list.

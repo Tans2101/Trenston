@@ -14,6 +14,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ProtectedRouteClerk from "@/components/ProtectedRouteClerk";
 import SectionGate from "@/components/SectionGate";
 import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
+import { CLERK_SIGN_IN_PATH, CLERK_SIGN_UP_PATH } from "@/lib/helmUrls";
 import { persistReferralFromSearch } from "@/lib/referral";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import CookieNotice from "@/components/CookieNotice";
@@ -62,13 +63,12 @@ const Maintenance = lazy(() => import("@/pages/Maintenance"));
 const HR = lazy(() => import("@/pages/HR"));
 
 function ClerkOAuthCallback() {
-  const { postAuthUrl, clerkMultiDomain, helmCanonicalOrigin } = useClerkMode();
+  const { postAuthUrl, clerkMultiDomain } = useClerkMode();
   const redirectUrl = clerkAfterAuthRedirect({ clerkMultiDomain, postAuthUrl });
-  const origin = (helmCanonicalOrigin || "https://www.trenston.com").replace(/\/$/, "");
   return (
     <AuthenticateWithRedirectCallback
-      signInUrl={`${origin}/login`}
-      signUpUrl={`${origin}/sign-up`}
+      signInUrl={CLERK_SIGN_IN_PATH}
+      signUpUrl={CLERK_SIGN_UP_PATH}
       signInForceRedirectUrl={redirectUrl}
       signUpForceRedirectUrl={redirectUrl}
       signInFallbackRedirectUrl={redirectUrl}
@@ -188,10 +188,10 @@ function AppRouter() {
         <Route path="/integrations" element={<PublicIntegrations />} />
         <Route path="/help" element={<Help />} />
         <Route path="/security" element={<Security />} />
-        <Route path="/login/sso-callback" element={<ClerkOAuthCallbackGuard />} />
-        <Route path="/sign-up/sso-callback" element={<ClerkOAuthCallbackGuard />} />
-        <Route path="/login/*" element={<Login />} />
-        <Route path="/sign-up/*" element={<SignUpPage />} />
+        <Route path={`${CLERK_SIGN_IN_PATH}/sso-callback`} element={<ClerkOAuthCallbackGuard />} />
+        <Route path={`${CLERK_SIGN_UP_PATH}/sso-callback`} element={<ClerkOAuthCallbackGuard />} />
+        <Route path={`${CLERK_SIGN_IN_PATH}/*`} element={<Login />} />
+        <Route path={`${CLERK_SIGN_UP_PATH}/*`} element={<SignUpPage />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/refunds" element={<Refunds />} />

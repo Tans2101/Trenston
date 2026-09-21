@@ -2,22 +2,26 @@ import { useState } from "react";
 import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  CLERK_AFTER_AUTH_PATH,
+  CLERK_SIGN_UP_PATH,
+  clerkSsoCallbackUrl,
+  helmAppUrl,
+} from "@/lib/helmUrls";
 
 /** Always www — apex trenston.com 308s to www and can drop OAuth state mid-flow. */
-function authOrigin() {
-  if (typeof window === "undefined") return "https://www.trenston.com";
-  const host = window.location.hostname;
-  if (host === "trenston.com" || host === "www.trenston.com") {
-    return "https://www.trenston.com";
-  }
-  return window.location.origin.replace(/\/$/, "");
+function bounceApexToWww() {
+  if (typeof window === "undefined") return false;
+  if (window.location.hostname !== "trenston.com") return false;
+  window.location.replace(`https://www.trenston.com${window.location.pathname}${window.location.search}`);
+  return true;
 }
 
 function oauthErrorMessage(err) {
   const code = err?.errors?.[0]?.code || err?.code || "";
   const long = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "";
   if (code || long) return [code, long].filter(Boolean).join(": ");
-  return "Google sign-in failed. Try again from www.trenston.com/sign-up.";
+  return `Google sign-in failed. Try again from www.trenston.com${CLERK_SIGN_UP_PATH}.`;
 }
 
 /**
@@ -34,14 +38,9 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
   const startOAuth = async (strategy) => {
     if (!loaded) return;
     // Bounce apex → www before starting OAuth so redirect_url matches the live host.
-    if (typeof window !== "undefined" && window.location.hostname === "trenston.com") {
-      window.location.replace(`https://www.trenston.com${window.location.pathname}${window.location.search}`);
-      return;
-    }
-    const origin = authOrigin();
-    const basePath = mode === "sign-up" ? "/sign-up" : "/login";
-    const redirectUrl = `${origin}${basePath}/sso-callback`;
-    const redirectUrlComplete = `${origin}/app`;
+    if (bounceApexToWww()) return;
+    const redirectUrl = clerkSsoCallbackUrl(mode);
+    const redirectUrlComplete = helmAppUrl(CLERK_AFTER_AUTH_PATH);
     setBusy(strategy);
     try {
       if (mode === "sign-up") {
