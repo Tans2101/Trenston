@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Instagram } from "lucide-react";
 import FounderCredit from "@/components/marketing/FounderCredit";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
-import trenstonWordmarkWhiteOnInk from "@/assets/trenston-wordmark-white-on-ink.svg";
 import trenstonWordmarkBlack from "@/assets/trenston-wordmark-black.svg";
 import {
   CATEGORY,
@@ -140,15 +139,6 @@ export default function MarketingFooter() {
           <p>© {year} Trenston. All rights reserved.</p>
         </div>
 
-        {/* White-on-ink signature on the near-black footer field */}
-        <div className="relative z-0 -mx-6 md:-mx-10 px-6 md:px-10 pb-6 md:pb-8" aria-hidden>
-          <img
-            src={trenstonWordmarkWhiteOnInk}
-            alt=""
-            className="w-full max-w-3xl opacity-90 select-none pointer-events-none"
-            draggable={false}
-          />
-        </div>
       </div>
 
       {/* Ember pop band — black wordmark for contrast on orange */}
