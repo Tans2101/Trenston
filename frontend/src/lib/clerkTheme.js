@@ -20,7 +20,10 @@ export const clerkAppearance = {
     colorDanger: palette.statusNegative,
     colorNeutral: palette.slate,
     colorShimmer: palette.cream,
-    borderRadius: "9999px",
+    // Global radius for Clerk card/shell — must stay modest. 9999px made the
+    // whole SignIn/SignUp panel a circle (overflow clip on a near-square box).
+    // Pill shapes for buttons/inputs come from element classes below.
+    borderRadius: "0.5rem",
     fontFamily: "inherit",
   },
   elements: {
