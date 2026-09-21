@@ -5,6 +5,14 @@ import { getClerkPublishableKey } from "@/lib/clerkConfig";
 import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { helmAppUrl, helmSignInUrl, helmSignUpUrl } from "@/lib/helmUrls";
 
+/**
+ * Pin clerk-js so the Frontend API serves a concrete URL instead of
+ * /npm/@clerk/clerk-js@5/... → 307 → @5.x.y (Google Search Console reports
+ * that floating-tag redirect as a page-resource "Redirection error").
+ * Bump when upgrading @clerk/clerk-react if Clerk bumps the default script.
+ */
+const CLERK_JS_VERSION = "5.127.2";
+
 function clerkProxyUrl() {
   if (typeof window === "undefined") return undefined;
   const host = window.location.hostname;
