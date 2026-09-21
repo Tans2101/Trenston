@@ -2510,6 +2510,8 @@ async def auth_config():
     )
     ssl_ok = api_ok = jwks_ok = None
     signup_policy: dict = {}
+    clerk_paths: dict = {}
+    clerk_sync: dict = {}
     if clerk_on:
         # Probe Clerk in parallel + TTL cache (see clerk_auth) — was ~1.5s sequential.
         ssl_ok, api_ok, jwks_ok, signup_policy = await asyncio.gather(
@@ -2518,6 +2520,29 @@ async def auth_config():
             clerk_auth.clerk_jwks_ok(),
             clerk_auth.clerk_signup_policy(),
         )
+        # Public Paths (no secret) — shows whether Google OAuth will bounce to accounts.*.
+        try:
+            dc = await clerk_auth._clerk_fapi_display_config()
+            clerk_paths = {
+                "sign_in_url": dc.get("sign_in_url"),
+                "sign_up_url": dc.get("sign_up_url"),
+                "after_sign_in_url": dc.get("after_sign_in_url"),
+                "after_sign_up_url": dc.get("after_sign_up_url"),
+                "on_accounts_host": clerk_auth._paths_still_on_accounts(dc),
+            }
+        except Exception:
+            clerk_paths = {}
+        sync = clerk_auth.clerk_sync_status()
+        portal = sync.get("account_portal") if isinstance(sync, dict) else None
+        clerk_sync = {
+            "reason": sync.get("reason") if isinstance(sync, dict) else None,
+            "synced": bool(sync.get("synced")) if isinstance(sync, dict) else False,
+            "portal_ok": bool(portal.get("ok")) if isinstance(portal, dict) else None,
+            "portal_reason": portal.get("reason") if isinstance(portal, dict) else None,
+            "portal_warning": portal.get("warning") if isinstance(portal, dict) else None,
+            "display_config_status": portal.get("display_config_status") if isinstance(portal, dict) else None,
+            "account_portal_status": portal.get("account_portal_status") if isinstance(portal, dict) else None,
+        }
     return {
         "demo_login": ALLOW_DEMO_LOGIN,
         "clerk_enabled": clerk_on,
@@ -2537,6 +2562,8 @@ async def auth_config():
         "clerk_use_proxy": (not ssl_ok) if clerk_on else None,
         "clerk_password_min_length": signup_policy.get("password_min_length") if clerk_on else None,
         "clerk_captcha_enabled": signup_policy.get("captcha_enabled") if clerk_on else None,
+        "clerk_paths": clerk_paths or None,
+        "clerk_sync": clerk_sync or None,
         "google_oauth": google_on,
         "provider": provider,
         "ai_ready": helm_llm.anthropic_configured(),

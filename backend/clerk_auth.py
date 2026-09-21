@@ -1233,7 +1233,10 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
     result["before"] = _display_paths_summary(before_dc)
 
     # after_* on Account Portal may already be www while Paths still point at accounts.*.
+    # Disable hosted Account Portal when we host /login + /sign-up — otherwise Clerk keeps
+    # Paths on accounts.* (Cloudflare challenge → Google "Unable to complete action").
     portal_body = {
+        "enabled": False,
         "after_sign_in_url": target,
         "after_sign_up_url": target,
         "logo_link_url": origin,
@@ -1262,6 +1265,14 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
 
             portal_r = await _patch_clerk_json(client, "account_portal", portal_body, headers=headers)
             result["account_portal_status"] = portal_r.status_code
+            if portal_r.status_code == 422:
+                # Some instances reject enabled=false via API — retry redirects only.
+                no_enabled = {k: v for k, v in portal_body.items() if k != "enabled"}
+                portal_r = await _patch_clerk_json(
+                    client, "account_portal", no_enabled, headers=headers
+                )
+                result["account_portal_disabled_rejected"] = True
+                result["account_portal_status"] = portal_r.status_code
             if portal_r.status_code == 404:
                 result["account_portal_error"] = (
                     "404 from BAPI — confirm URL is https://api.clerk.com/v1/account_portal "
@@ -1272,7 +1283,7 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
                 slim = {
                     k: v
                     for k, v in portal_body.items()
-                    if k not in ("after_sign_out_all_url", "after_sign_out_one_url")
+                    if k not in ("after_sign_out_all_url", "after_sign_out_one_url", "enabled")
                 }
                 portal_r = await _patch_clerk_json(client, "account_portal", slim, headers=headers)
                 result["account_portal_retried"] = True
