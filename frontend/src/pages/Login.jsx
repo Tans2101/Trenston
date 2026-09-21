@@ -116,9 +116,7 @@ function LoginClerk() {
               routing="path"
               path={CLERK_SIGN_IN_PATH}
               signUpUrl={signUpPath}
-              forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
-              signUpForceRedirectUrl={redirectUrl}
               signUpFallbackRedirectUrl={redirectUrl}
             />
           </div>

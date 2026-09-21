@@ -30,7 +30,7 @@ export default function SignUpPage() {
 }
 
 function SignUpClerk() {
-  const { postAuthUrl, helmCanonicalOrigin, clerkMultiDomain, passwordMinLength, captchaEnabled } = useClerkMode();
+  const { postAuthUrl, helmCanonicalOrigin, clerkMultiDomain, passwordMinLength, passwordRequired, captchaEnabled } = useClerkMode();
   const redirectUrl = clerkAfterAuthRedirect({ clerkMultiDomain, postAuthUrl });
   const signInPath = helmSignInUrl(helmCanonicalOrigin);
   const { user, loading, sessionError, clearSessionError } = useAuth();
@@ -96,11 +96,17 @@ function SignUpClerk() {
           <p className="mt-2 text-sm text-helm-slate leading-relaxed">
             Google or email. Activate Trenston after sign-up.
           </p>
-          {passwordMinLength > 8 && (
+          {passwordRequired && (
             <p className="mt-3 text-xs text-helm-slate leading-relaxed">
-              Passwords need at least {passwordMinLength} characters
-              {captchaEnabled ? " (CAPTCHA may appear)" : ""}. After Google you may
-              be asked to set one to finish sign-up.
+              After Google, Clerk may ask you to set a password
+              {passwordMinLength > 8 ? ` (at least ${passwordMinLength} characters)` : ""}
+              {captchaEnabled ? ". CAPTCHA may appear" : ""}.
+            </p>
+          )}
+          {!passwordRequired && passwordMinLength > 8 && (
+            <p className="mt-3 text-xs text-helm-slate leading-relaxed">
+              Email passwords need at least {passwordMinLength} characters
+              {captchaEnabled ? " (CAPTCHA may appear)" : ""}.
             </p>
           )}
 
@@ -112,9 +118,7 @@ function SignUpClerk() {
               routing="path"
               path={CLERK_SIGN_UP_PATH}
               signInUrl={signInPath}
-              forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
-              signInForceRedirectUrl={redirectUrl}
               signInFallbackRedirectUrl={redirectUrl}
             />
           </div>

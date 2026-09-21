@@ -178,6 +178,27 @@ def test_sync_clerk_instance_patches_dev_origin():
     assert result.get("account_portal", {}).get("ok") is True
 
 
+def test_clerk_accounts_host_risks_flags_accounts_urls():
+    dc = {
+        "sign_in_url": "https://www.trenston.com/login",
+        "sign_up_url": "https://www.trenston.com/sign-up",
+        "after_sign_out_all_url": "https://www.trenston.com/login",
+        "after_sign_out_one_url": "https://accounts.trenston.com/sign-in/choose",
+        "oauth_consent_url": "https://accounts.trenston.com/oauth-consent",
+    }
+    risks = clerk_auth.clerk_accounts_host_risks(dc)
+    assert risks["sign_in_up_on_accounts"] is False
+    assert "after_sign_out_one_url" in risks["on_accounts"]
+    assert "oauth_consent_url" in risks["on_accounts"]
+
+
+def test_clerk_google_oauth_primary_uri_is_clerk_host_not_accounts():
+    """Google OAuth must return to clerk.* (accounts.* is Cloudflare-blocked)."""
+    primary = clerk_auth.clerk_google_oauth_redirect_uri()
+    assert primary == "https://clerk.trenston.com/v1/oauth_callback"
+    assert "accounts." not in primary
+
+
 def test_clerk_bapi_account_portal_requires_v1_path():
     """Bare /account_portal (no /v1) is what returns plain '404 page not found'."""
     assert clerk_auth.CLERK_BAPI.endswith("/v1")

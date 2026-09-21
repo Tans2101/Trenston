@@ -69,8 +69,6 @@ function ClerkOAuthCallback() {
     <AuthenticateWithRedirectCallback
       signInUrl={CLERK_SIGN_IN_PATH}
       signUpUrl={CLERK_SIGN_UP_PATH}
-      signInForceRedirectUrl={redirectUrl}
-      signUpForceRedirectUrl={redirectUrl}
       signInFallbackRedirectUrl={redirectUrl}
       signUpFallbackRedirectUrl={redirectUrl}
     />

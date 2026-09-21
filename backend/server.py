@@ -2523,12 +2523,16 @@ async def auth_config():
         # Public Paths (no secret) — shows whether Google OAuth will bounce to accounts.*.
         try:
             dc = await clerk_auth._clerk_fapi_display_config()
+            accounts_risks = clerk_auth.clerk_accounts_host_risks(dc)
             clerk_paths = {
                 "sign_in_url": dc.get("sign_in_url"),
                 "sign_up_url": dc.get("sign_up_url"),
                 "after_sign_in_url": dc.get("after_sign_in_url"),
                 "after_sign_up_url": dc.get("after_sign_up_url"),
+                "after_sign_out_one_url": dc.get("after_sign_out_one_url"),
+                "oauth_consent_url": dc.get("oauth_consent_url"),
                 "on_accounts_host": clerk_auth._paths_still_on_accounts(dc),
+                "accounts_urls": accounts_risks.get("on_accounts") or {},
             }
         except Exception:
             clerk_paths = {}
@@ -2563,6 +2567,8 @@ async def auth_config():
         "clerk_proxy_url": clerk_auth.clerk_proxy_url() if clerk_on else None,
         "clerk_use_proxy": (not ssl_ok) if clerk_on else None,
         "clerk_password_min_length": signup_policy.get("password_min_length") if clerk_on else None,
+        "clerk_password_required": signup_policy.get("password_required") if clerk_on else None,
+        "clerk_oauth_google_enabled": signup_policy.get("oauth_google_enabled") if clerk_on else None,
         "clerk_captcha_enabled": signup_policy.get("captcha_enabled") if clerk_on else None,
         "clerk_paths": clerk_paths or None,
         "clerk_sync": clerk_sync or None,

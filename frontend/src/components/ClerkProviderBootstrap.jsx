@@ -39,6 +39,7 @@ const ClerkModeContext = createContext({
   clerkPrimaryOrigin: null,
   clerkMultiDomain: false,
   passwordMinLength: 0,
+  passwordRequired: false,
   captchaEnabled: false,
 });
 
@@ -79,6 +80,7 @@ export default function ClerkProviderBootstrap({ children }) {
     clerkMultiDomain: false,
     clerkUseProxy: false,
     passwordMinLength: 0,
+    passwordRequired: false,
     captchaEnabled: false,
   });
 
@@ -92,6 +94,7 @@ export default function ClerkProviderBootstrap({ children }) {
 
         const postAuthUrl = (cfg?.clerk_post_auth_url || "").trim() || null;
         const passwordMinLength = Number(cfg?.clerk_password_min_length) || 0;
+        const passwordRequired = Boolean(cfg?.clerk_password_required);
         const captchaEnabled = Boolean(cfg?.clerk_captcha_enabled);
 
         if (cfg?.clerk_enabled && cfg?.clerk_keys_aligned === false) {
@@ -107,6 +110,7 @@ export default function ClerkProviderBootstrap({ children }) {
             clerkMultiDomain: Boolean(cfg?.clerk_multi_domain),
             clerkUseProxy: Boolean(cfg?.clerk_use_proxy),
             passwordMinLength,
+            passwordRequired,
             captchaEnabled,
           });
           return;
@@ -126,6 +130,7 @@ export default function ClerkProviderBootstrap({ children }) {
             clerkMultiDomain: Boolean(cfg?.clerk_multi_domain),
             clerkUseProxy: Boolean(cfg?.clerk_use_proxy),
             passwordMinLength,
+            passwordRequired,
             captchaEnabled,
           });
           return;
@@ -152,6 +157,7 @@ export default function ClerkProviderBootstrap({ children }) {
             clerkMultiDomain: Boolean(cfg?.clerk_multi_domain),
             clerkUseProxy: Boolean(cfg?.clerk_use_proxy),
             passwordMinLength,
+            passwordRequired,
             captchaEnabled,
           });
           return;
@@ -168,6 +174,7 @@ export default function ClerkProviderBootstrap({ children }) {
           clerkMultiDomain: Boolean(cfg?.clerk_multi_domain),
           clerkUseProxy: Boolean(cfg?.clerk_use_proxy),
           passwordMinLength,
+          passwordRequired,
           captchaEnabled,
         });
       } catch {
@@ -184,6 +191,7 @@ export default function ClerkProviderBootstrap({ children }) {
             clerkMultiDomain: false,
             clerkUseProxy: false,
             passwordMinLength: 0,
+            passwordRequired: false,
             captchaEnabled: false,
           });
           return;
@@ -199,6 +207,7 @@ export default function ClerkProviderBootstrap({ children }) {
           clerkMultiDomain: false,
           clerkUseProxy: false,
           passwordMinLength: 0,
+          passwordRequired: false,
           captchaEnabled: false,
         });
       }
@@ -216,6 +225,7 @@ export default function ClerkProviderBootstrap({ children }) {
     clerkPrimaryOrigin: state.clerkPrimaryOrigin,
     clerkMultiDomain: state.clerkMultiDomain,
     passwordMinLength: state.passwordMinLength || 0,
+    passwordRequired: Boolean(state.passwordRequired),
     captchaEnabled: Boolean(state.captchaEnabled),
   };
 
@@ -244,8 +254,7 @@ export default function ClerkProviderBootstrap({ children }) {
         // Component paths from build env (Clerk Core 2) — not Dashboard Paths.
         signInUrl={helmSignInUrl(state.helmCanonicalOrigin) || CLERK_SIGN_IN_PATH}
         signUpUrl={helmSignUpUrl(state.helmCanonicalOrigin) || CLERK_SIGN_UP_PATH}
-        signInForceRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
-        signUpForceRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
+        {/* fallback only — forceRedirectUrl can skip /sign-up/continue when password is required */}
         signInFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
         signUpFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
         afterSignOutUrl={helmAppUrl("/")}

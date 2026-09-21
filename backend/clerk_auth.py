@@ -1113,14 +1113,20 @@ _signup_policy_cache_at: float = 0.0
 
 
 async def clerk_signup_policy() -> dict[str, Any]:
-    """Password / CAPTCHA rules from Clerk FAPI (public environment)."""
+    """Password / CAPTCHA / required-field rules from Clerk FAPI (public environment)."""
     global _signup_policy_cache, _signup_policy_cache_at
     import time
 
     now = time.time()
     if _signup_policy_cache is not None and now - _signup_policy_cache_at < 600:
         return _signup_policy_cache
-    empty = {"password_min_length": None, "captcha_enabled": None}
+    empty = {
+        "password_min_length": None,
+        "password_required": None,
+        "captcha_enabled": None,
+        "oauth_google_enabled": None,
+        "sign_up_mode": None,
+    }
     host = clerk_jwks_host()
     if not host:
         return empty
@@ -1131,11 +1137,24 @@ async def clerk_signup_policy() -> dict[str, Any]:
                 return empty
             data = r.json() if r.content else {}
             us = data.get("user_settings") or {}
+            ac = data.get("auth_config") or {}
             pw = us.get("password_settings") or {}
             sign_up = us.get("sign_up") or {}
+            attrs = us.get("attributes") or {}
+            pw_attr = attrs.get("password") or {}
+            social = us.get("social") or {}
+            google = social.get("oauth_google") or {}
+            # auth_config.password is "required" | "on" | "off" on live instances.
+            ac_password = ac.get("password")
+            password_required = bool(pw_attr.get("required"))
+            if isinstance(ac_password, str):
+                password_required = ac_password == "required" or password_required
             out = {
                 "password_min_length": pw.get("min_length"),
+                "password_required": password_required,
                 "captcha_enabled": bool(sign_up.get("captcha_enabled")),
+                "oauth_google_enabled": bool(google.get("enabled")),
+                "sign_up_mode": sign_up.get("mode"),
             }
             _signup_policy_cache = out
             _signup_policy_cache_at = now
@@ -1143,6 +1162,34 @@ async def clerk_signup_policy() -> dict[str, Any]:
     except Exception:
         logger.warning("Clerk FAPI environment fetch failed", exc_info=True)
         return empty
+
+
+def clerk_accounts_host_risks(dc: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Paths that still point at accounts.* (Cloudflare-challenged for trenston)."""
+    keys = (
+        "sign_in_url",
+        "sign_up_url",
+        "after_sign_in_url",
+        "after_sign_up_url",
+        "after_sign_out_all_url",
+        "after_sign_out_one_url",
+        "oauth_consent_url",
+        "user_profile_url",
+        "waitlist_url",
+        "create_organization_url",
+        "organization_profile_url",
+    )
+    on_accounts: dict[str, str] = {}
+    source = dc if isinstance(dc, dict) else {}
+    for key in keys:
+        val = source.get(key)
+        if isinstance(val, str) and "accounts." in val:
+            on_accounts[key] = val
+    return {
+        "on_accounts": on_accounts,
+        "sign_in_up_on_accounts": _paths_still_on_accounts(source),
+        "accounts_host_blocked": True,  # accounts.trenston.com serves CF challenge
+    }
 
 
 async def _clerk_fapi_display_config() -> dict[str, Any]:

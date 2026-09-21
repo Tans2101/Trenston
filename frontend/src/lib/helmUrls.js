@@ -11,9 +11,10 @@ export const CLERK_SIGN_UP_PATH = (
 ).trim() || "/sign-up";
 
 export const CLERK_AFTER_AUTH_PATH = (
-  process.env.REACT_APP_CLERK_SIGN_IN_FORCE_REDIRECT_URL
+  process.env.REACT_APP_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
+  || process.env.REACT_APP_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL
+  || process.env.REACT_APP_CLERK_SIGN_IN_FORCE_REDIRECT_URL
   || process.env.REACT_APP_CLERK_SIGN_UP_FORCE_REDIRECT_URL
-  || process.env.REACT_APP_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL
   || "/app"
 ).trim() || "/app";
 
