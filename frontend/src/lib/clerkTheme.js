@@ -34,12 +34,12 @@ export const clerkAppearance = {
     footer: "hidden",
     footerAction: "hidden",
     footerActionLink: "hidden",
-    socialButtons: "gap-2",
-    socialButtonsBlockButton:
-      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
-    socialButtonsBlockButtonText: "text-helm-cream font-medium",
-    alternativeMethodsBlockButton:
-      "w-full justify-center rounded-full bg-white text-helm-navy border border-helm-navy/20 font-medium hover:bg-helm-navy/[0.04] shadow-none h-11",
+    socialButtons: "hidden",
+    socialButtonsBlockButton: "hidden",
+    socialButtonsProviderIcon: "hidden",
+    dividerRow: "hidden",
+    // Prefer our AuthSocialButtons (absolute www SSO callback) over Clerk's
+    // built-ins, which can bounce through accounts.trenston.com.
     formButtonPrimary:
       "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
     formFieldLabel: "text-helm-slate text-xs",

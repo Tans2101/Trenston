@@ -12,6 +12,7 @@ import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { helmSignUpUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
+import AuthSocialButtons from "@/components/AuthSocialButtons";
 import TrenstonMark from "@/components/HelmMark";
 
 export default function Login() {
@@ -110,14 +111,12 @@ function LoginClerk() {
           )}
 
           <div className="mt-8 w-full text-left" data-testid="clerk-sign-in">
+            <AuthSocialButtons mode="sign-in" />
             <SignIn
               appearance={clerkAppearance}
               routing="path"
               path="/login"
               signUpUrl={signUpPath}
-              // Prefer popup so Google never returns via accounts.trenston.com
-              // (Cloudflare-challenged Account Portal → opaque OAuth error).
-              oauthFlow="popup"
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
             />
