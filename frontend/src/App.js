@@ -62,10 +62,13 @@ const Maintenance = lazy(() => import("@/pages/Maintenance"));
 const HR = lazy(() => import("@/pages/HR"));
 
 function ClerkOAuthCallback() {
-  const { postAuthUrl, clerkMultiDomain } = useClerkMode();
+  const { postAuthUrl, clerkMultiDomain, helmCanonicalOrigin } = useClerkMode();
   const redirectUrl = clerkAfterAuthRedirect({ clerkMultiDomain, postAuthUrl });
+  const origin = (helmCanonicalOrigin || "https://www.trenston.com").replace(/\/$/, "");
   return (
     <AuthenticateWithRedirectCallback
+      signInUrl={`${origin}/login`}
+      signUpUrl={`${origin}/sign-up`}
       signInForceRedirectUrl={redirectUrl}
       signUpForceRedirectUrl={redirectUrl}
       signInFallbackRedirectUrl={redirectUrl}

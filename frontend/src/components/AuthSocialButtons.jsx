@@ -3,16 +3,27 @@ import { useSignIn, useSignUp } from "@clerk/clerk-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+/** Always www — apex trenston.com 308s to www and can drop OAuth state mid-flow. */
+function authOrigin() {
+  if (typeof window === "undefined") return "https://www.trenston.com";
+  const host = window.location.hostname;
+  if (host === "trenston.com" || host === "www.trenston.com") {
+    return "https://www.trenston.com";
+  }
+  return window.location.origin.replace(/\/$/, "");
+}
+
 function oauthErrorMessage(err) {
   const code = err?.errors?.[0]?.code || err?.code || "";
   const long = err?.errors?.[0]?.longMessage || err?.errors?.[0]?.message || err?.message || "";
   if (code || long) return [code, long].filter(Boolean).join(": ");
-  return "Google sign-in failed. Allow popups, or try again.";
+  return "Google sign-in failed. Try again from www.trenston.com/sign-up.";
 }
 
 /**
- * Google / Microsoft OAuth that always returns to www Trenston SSO callbacks —
- * never Clerk Account Portal (accounts.trenston.com), which Cloudflare challenges.
+ * Google / Microsoft OAuth that returns only to www Trenston SSO callbacks.
+ * Clerk's hosted Account Portal (accounts.trenston.com) is Cloudflare-challenged;
+ * if OAuth fails, Clerk dumps users there — we avoid that path entirely when we can.
  */
 export default function AuthSocialButtons({ mode = "sign-in", className }) {
   const { isLoaded: signInLoaded, signIn } = useSignIn();
@@ -22,7 +33,12 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
 
   const startOAuth = async (strategy) => {
     if (!loaded) return;
-    const origin = window.location.origin.replace(/\/$/, "");
+    // Bounce apex → www before starting OAuth so redirect_url matches the live host.
+    if (typeof window !== "undefined" && window.location.hostname === "trenston.com") {
+      window.location.replace(`https://www.trenston.com${window.location.pathname}${window.location.search}`);
+      return;
+    }
+    const origin = authOrigin();
     const basePath = mode === "sign-up" ? "/sign-up" : "/login";
     const redirectUrl = `${origin}${basePath}/sso-callback`;
     const redirectUrlComplete = `${origin}/app`;
@@ -70,9 +86,6 @@ export default function AuthSocialButtons({ mode = "sign-in", className }) {
       >
         {busy === "oauth_microsoft" ? "Redirecting…" : "Continue with Microsoft"}
       </button>
-      <p className="text-[11px] text-center text-helm-slate pt-1">
-        Uses a full-page Google redirect on this site (not accounts.trenston.com).
-      </p>
     </div>
   );
 }
