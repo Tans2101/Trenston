@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { Instagram } from "lucide-react";
 import FounderCredit from "@/components/marketing/FounderCredit";
+import MarketingLogo from "@/components/marketing/MarketingLogo";
+import trenstonWordmarkWhiteOnInk from "@/assets/trenston-wordmark-white-on-ink.svg";
+import trenstonWordmarkBlack from "@/assets/trenston-wordmark-black.svg";
 import {
+  CATEGORY,
   COMPANY_LOCATION,
   PUBLIC_CONTACT_EMAIL,
   PUBLIC_CONTACT_MAILTO,
@@ -54,13 +58,19 @@ export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden bg-helm-ink px-6 md:px-10 py-12 md:py-16">
-      <div className="relative z-10 mx-auto max-w-6xl flex flex-col gap-12 md:gap-14">
-        {/* Top: heading + link columns */}
+    <footer className="relative overflow-hidden bg-helm-ink">
+      <div className="relative z-10 mx-auto max-w-6xl px-6 md:px-10 pt-12 md:pt-16 flex flex-col gap-12 md:gap-14">
+        {/* Top: brand column + link columns */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-10">
-          <h2 className="font-display text-2xl md:text-3xl text-helm-cream tracking-tight max-w-xs">
-            Run a tighter company.
-          </h2>
+          <div className="max-w-xs flex flex-col gap-4">
+            <MarketingLogo variant="lockup" dark size="sm" />
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-cream/70">
+              {CATEGORY}
+            </p>
+            <h2 className="font-display text-2xl md:text-3xl text-helm-cream tracking-tight">
+              Run a tighter company.
+            </h2>
+          </div>
           <nav
             className="grid grid-cols-2 sm:grid-cols-3 gap-8 md:gap-12"
             aria-label="Footer navigation"
@@ -118,7 +128,7 @@ export default function MarketingFooter() {
         </div>
 
         {/* Bottom meta */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-helm-cream/80">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between font-mono text-[11px] text-helm-cream/80 pb-10 md:pb-12">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             <p>🇵🇭 BGC, Manila</p>
             <FounderCredit
@@ -129,15 +139,28 @@ export default function MarketingFooter() {
           </div>
           <p>© {year} Trenston. All rights reserved.</p>
         </div>
+
+        {/* White-on-ink signature on the near-black footer field */}
+        <div className="relative z-0 -mx-6 md:-mx-10 px-6 md:px-10 pb-6 md:pb-8" aria-hidden>
+          <img
+            src={trenstonWordmarkWhiteOnInk}
+            alt=""
+            className="w-full max-w-3xl opacity-90 select-none pointer-events-none"
+            draggable={false}
+          />
+        </div>
       </div>
 
-      {/* Oversized wordmark — crops at bottom edge */}
-      <p
-        aria-hidden
-        className="relative z-0 select-none font-sans font-bold text-helm-cream/15 text-[18vw] md:text-[12vw] leading-[0.8] tracking-tighter -mb-2 md:-mb-4 mt-6 md:mt-8"
-      >
-        TRENSTON
-      </p>
+      {/* Ember pop band — black wordmark for contrast on orange */}
+      <div className="relative z-10 bg-helm-ember px-6 md:px-10 py-8 md:py-10 overflow-hidden">
+        <img
+          src={trenstonWordmarkBlack}
+          alt=""
+          aria-hidden
+          className="mx-auto w-full max-w-4xl select-none pointer-events-none"
+          draggable={false}
+        />
+      </div>
     </footer>
   );
 }
