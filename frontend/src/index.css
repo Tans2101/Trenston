@@ -153,7 +153,7 @@
     font-family: 'Hedvig Letters Sans', 'DM Sans', system-ui, sans-serif;
 }
 
-/* Clerk prebuilt SignIn/SignUp — readable OTP/password on dark marketing */
+/* Clerk SignIn/SignUp — light cream auth (do not force ink/cream; that left black voids). */
 .cl-formFieldInput input,
 .cl-formFieldInput input[type="text"],
 .cl-formFieldInput input[type="email"],
@@ -162,22 +162,35 @@
 .cl-otpCodeFieldInput,
 .cl-otpCodeFieldInput input,
 input.cl-otpCodeFieldInput {
-  color: theme("colors.helm.cream") !important;
-  -webkit-text-fill-color: theme("colors.helm.cream") !important;
-  background-color: theme("colors.helm.ink-card") !important;
-  border-color: color-mix(in srgb, theme("colors.helm.cream") 20%, transparent) !important;
+  color: theme("colors.helm.navy") !important;
+  -webkit-text-fill-color: theme("colors.helm.navy") !important;
+  background-color: #ffffff !important;
+  border-color: color-mix(in srgb, theme("colors.helm.navy") 15%, transparent) !important;
   caret-color: theme("colors.helm.gold") !important;
 }
 
 .cl-otpCodeFieldInput:focus-within,
 .cl-formFieldInput input:focus {
-  border-color: theme("colors.helm.gold") !important;
-  box-shadow: 0 0 0 1px color-mix(in srgb, theme("colors.helm.gold") 45%, transparent) !important;
+  border-color: theme("colors.helm.navy") !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, theme("colors.helm.navy") 25%, transparent) !important;
   outline: none !important;
 }
 
 .cl-otpCodeFieldInputs {
   gap: 0.5rem;
+}
+
+/* Kill leftover dark shells Clerk sometimes paints under the form on cream pages. */
+.cl-cardBox,
+.cl-card,
+.cl-main,
+.cl-scrollBox {
+  background-color: theme("colors.helm.cream") !important;
+  box-shadow: none !important;
+}
+
+.cl-footer {
+  display: none !important;
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
