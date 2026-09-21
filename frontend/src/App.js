@@ -4,7 +4,7 @@ import "@/lib/notify";
 import { lazy, Suspense, useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { useClerk, AuthenticateWithRedirectCallback } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/clerk-react";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import ClerkHelmBridge from "@/components/ClerkHelmBridge";
@@ -13,7 +13,6 @@ import ClerkProviderBootstrap, { useClerkMode } from "@/components/ClerkProvider
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ProtectedRouteClerk from "@/components/ProtectedRouteClerk";
 import SectionGate from "@/components/SectionGate";
-import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { CLERK_SIGN_IN_PATH, CLERK_SIGN_UP_PATH } from "@/lib/helmUrls";
 import { persistReferralFromSearch } from "@/lib/referral";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -62,18 +61,6 @@ const Legal = lazy(() => import("@/pages/Legal"));
 const Maintenance = lazy(() => import("@/pages/Maintenance"));
 const HR = lazy(() => import("@/pages/HR"));
 
-function ClerkOAuthCallback() {
-  const { postAuthUrl, clerkMultiDomain } = useClerkMode();
-  const redirectUrl = clerkAfterAuthRedirect({ clerkMultiDomain, postAuthUrl });
-  return (
-    <AuthenticateWithRedirectCallback
-      signInUrl={CLERK_SIGN_IN_PATH}
-      signUpUrl={CLERK_SIGN_UP_PATH}
-      signInFallbackRedirectUrl={redirectUrl}
-      signUpFallbackRedirectUrl={redirectUrl}
-    />
-  );
-}
 
 function TrenstonToaster() {
   const { resolvedTheme } = useTheme();
@@ -93,13 +80,6 @@ function TrenstonToaster() {
   );
 }
 
-function ClerkOAuthCallbackGuard() {
-  const { clerkEnabled } = useClerkMode();
-  if (!clerkEnabled) {
-    return <Navigate to="/login" replace />;
-  }
-  return <ClerkOAuthCallback />;
-}
 
 function AppRouter() {
   const location = useLocation();
@@ -186,8 +166,7 @@ function AppRouter() {
         <Route path="/integrations" element={<PublicIntegrations />} />
         <Route path="/help" element={<Help />} />
         <Route path="/security" element={<Security />} />
-        <Route path={`${CLERK_SIGN_IN_PATH}/sso-callback`} element={<ClerkOAuthCallbackGuard />} />
-        <Route path={`${CLERK_SIGN_UP_PATH}/sso-callback`} element={<ClerkOAuthCallbackGuard />} />
+        {/* Path routing: SignIn/SignUp own /sso-callback and /continue (do not steal with AuthenticateWithRedirectCallback) */}
         <Route path={`${CLERK_SIGN_IN_PATH}/*`} element={<Login />} />
         <Route path={`${CLERK_SIGN_UP_PATH}/*`} element={<SignUpPage />} />
         <Route path="/privacy" element={<Privacy />} />

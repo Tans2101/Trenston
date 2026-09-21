@@ -15094,9 +15094,9 @@ async def setup_clerk_portal_www(request: Request):
             None
             if password_opt.get("ok")
             else (
-                "In Clerk Dashboard → User & authentication → Password, turn OFF Required. "
-                "Required password forces OAuth continue on accounts.* (Cloudflare → "
-                "Unable to complete action)."
+                "API cannot change password Required (Clerk returns 404). "
+                "In Clerk Dashboard → Configure → Email, phone, username → Password, "
+                "turn OFF Required (leave Enabled on). Google sign-up stays broken while Required is on."
             )
         ),
     }

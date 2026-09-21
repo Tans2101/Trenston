@@ -1244,55 +1244,80 @@ async def _patch_clerk_json(
 
 
 async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
-    """Password must not be required or OAuth users hit Account Portal /continue (CF-blocked).
+    """Password must not be required for frictionless Google sign-up.
 
-    When password is required, Clerk sends post-OAuth \"missing requirements\" to
-    accounts.*/sign-up/continue — Cloudflare challenges that host and users see
+    When password is required, post-OAuth sign-up stays in missing_requirements and
+    Clerk must show /sign-up/continue. If that handoff fails, users see
     \"Unable to complete action at this time\".
     """
-    result: dict[str, Any] = {"attempted": True, "ok": False}
+    global _signup_policy_cache, _signup_policy_cache_at
+    result: dict[str, Any] = {"attempted": True, "ok": False, "tries": []}
     if not clerk_configured():
         result["reason"] = "not_configured"
         return result
-    body = {
-        "attributes": {
+
+    bodies = [
+        {
+            "attributes": {
+                "password": {
+                    "enabled": True,
+                    "required": False,
+                }
+            }
+        },
+        {
             "password": {
                 "enabled": True,
                 "required": False,
             }
-        }
-    }
+        },
+        {
+            "user_settings": {
+                "attributes": {
+                    "password": {
+                        "enabled": True,
+                        "required": False,
+                    }
+                }
+            }
+        },
+    ]
+    paths = (
+        "user_settings",
+        "instance/user_settings",
+        "instance",
+        "beta_features",
+    )
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             headers = _bapi_headers()
-            # Probe which path exists for this instance.
-            get_r = await client.get(f"{CLERK_BAPI}/user_settings", headers=headers)
-            result["get_status"] = get_r.status_code
-            result["get_body"] = get_r.text[:300]
-            patch_r = await client.patch(
-                f"{CLERK_BAPI}/user_settings",
-                headers=headers,
-                json=body,
+            for path in paths:
+                for body in bodies:
+                    patch_r = await client.patch(
+                        f"{CLERK_BAPI}/{path}",
+                        headers=headers,
+                        json=body,
+                    )
+                    result["tries"].append(
+                        {
+                            "path": path,
+                            "status": patch_r.status_code,
+                            "body": patch_r.text[:160],
+                        }
+                    )
+                    if patch_r.status_code < 400:
+                        _signup_policy_cache = None
+                        _signup_policy_cache_at = 0.0
+                        result["ok"] = True
+                        result["reason"] = "ok"
+                        result["patched_path"] = path
+                        logger.info("Clerk password set optional via PATCH /%s", path)
+                        return result
+            result["reason"] = "all_paths_failed"
+            result["dashboard_fix"] = (
+                "Clerk Dashboard → Configure → Email, phone, username → Password → "
+                "turn OFF Required (keep Enabled). Google sign-up cannot finish while Required is on."
             )
-            result["patch_status"] = patch_r.status_code
-            if patch_r.status_code >= 400:
-                # Alternate shape used by some Clerk API versions.
-                alt = await client.patch(
-                    f"{CLERK_BAPI}/instance/user_settings",
-                    headers=headers,
-                    json=body,
-                )
-                result["alt_patch_status"] = alt.status_code
-                result["alt_patch_body"] = alt.text[:300]
-                if alt.status_code < 400:
-                    patch_r = alt
-                else:
-                    result["patch_body"] = patch_r.text[:300]
-                    result["reason"] = f"patch_{patch_r.status_code}"
-                    return result
-            result["ok"] = True
-            result["reason"] = "ok"
-            logger.info("Clerk password attribute set to optional (OAuth-friendly)")
             return result
     except Exception:
         logger.exception("Clerk password optional sync failed")
