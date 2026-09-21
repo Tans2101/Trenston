@@ -1216,24 +1216,40 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
                     json=slim,
                 )
                 result["retried_without_sign_out"] = True
+                result["slim_error"] = patch_r.text[:500] if patch_r.status_code >= 400 else None
             if patch_r.status_code == 422:
-                # Last resort: post-auth only (paths may be Dashboard-locked).
-                minimal = {
-                    "after_sign_in_url": target,
-                    "after_sign_up_url": target,
-                    "logo_link_url": origin,
+                # Paths-only — critical so OAuth errors land on www, not accounts.*.
+                paths_only = {
+                    "home_url": origin,
+                    "sign_in_url": login,
+                    "sign_up_url": signup,
                 }
-                patch_r = await client.patch(
+                paths_r = await client.patch(
                     f"{CLERK_BAPI}/account_portal",
                     headers=headers,
-                    json=minimal,
+                    json=paths_only,
                 )
-                result["retried_minimal"] = True
-                result["warning"] = (
-                    "Could not set Account Portal sign_in/sign_up to www. "
-                    f"In Clerk Dashboard → Account Portal set Sign-in URL to {login} "
-                    f"and Sign-up URL to {signup}."
-                )
+                result["paths_only_status"] = paths_r.status_code
+                result["paths_only_error"] = paths_r.text[:500] if paths_r.status_code >= 400 else None
+                if paths_r.status_code < 400:
+                    patch_r = paths_r
+                else:
+                    # Last resort: post-auth only (paths may be Dashboard-locked).
+                    minimal = {
+                        "after_sign_in_url": target,
+                        "after_sign_up_url": target,
+                        "logo_link_url": origin,
+                    }
+                    patch_r = await client.patch(
+                        f"{CLERK_BAPI}/account_portal",
+                        headers=headers,
+                        json=minimal,
+                    )
+                    result["retried_minimal"] = True
+                    result["warning"] = (
+                        "Could not set Account Portal sign_in/sign_up to www. "
+                        f"paths_only={result.get('paths_only_status')}: {result.get('paths_only_error')}"
+                    )
             if patch_r.status_code >= 400:
                 result["reason"] = f"patch_{patch_r.status_code}"
                 result["error"] = patch_r.text[:500]

@@ -15036,6 +15036,22 @@ async def setup_clerk_sync(request: Request):
     return result
 
 
+@api_router.post("/setup/clerk-portal-www")
+async def setup_clerk_portal_www(request: Request):
+    """Force Account Portal sign-in/sign-up URLs onto www (fixes Google OAuth bounce)."""
+    _require_setup_secret(request)
+    if not clerk_auth.clerk_configured():
+        raise HTTPException(status_code=400, detail="Clerk is not configured")
+    primary = clerk_auth.clerk_primary_origin() or clerk_auth.primary_frontend_origin()
+    if not primary:
+        raise HTTPException(status_code=400, detail="No frontend origin configured")
+    portal = await clerk_auth.sync_clerk_account_portal(
+        primary, clerk_auth.clerk_post_auth_url() or f"{primary.rstrip('/')}/app",
+    )
+    redirects = await clerk_auth.sync_clerk_redirect_urls()
+    return {"ok": bool(portal.get("ok")), "account_portal": portal, "redirect_urls": redirects}
+
+
 @api_router.post("/admin/cleanup-orphaned-documents")
 async def cleanup_orphaned_documents_admin(request: Request):
     """Delete uncommitted document uploads older than DOC_ORPHAN_RETENTION_DAYS (default 7)."""
