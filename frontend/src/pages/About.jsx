@@ -14,6 +14,8 @@ import {
   CATEGORY,
   COMPANY_LOCATION,
   FOUNDED_DATE,
+  FOUNDER_LINKEDIN_URL,
+  FOUNDER_NAME,
   FOUNDER_NOTE,
   PUBLIC_CONTACT_EMAIL,
   PUBLIC_CONTACT_MAILTO,
@@ -35,6 +37,7 @@ const ABOUT_FACTS = [
   { label: "What Trenston is", body: WHAT_TRENSTON_IS },
   { label: "Who it's for", body: AUDIENCE },
   { label: "Problem we solve", body: ABOUT_PROBLEM },
+  { label: "Founder", body: FOUNDER_NAME, href: FOUNDER_LINKEDIN_URL },
   { label: "Founded", body: FOUNDED_DATE },
   { label: "Operates from", body: COMPANY_LOCATION },
   { label: "Contact", body: PUBLIC_CONTACT_EMAIL, href: PUBLIC_CONTACT_MAILTO },
@@ -74,6 +77,9 @@ export default function About() {
                   <a
                     id={row.label === "Contact" ? "contact" : undefined}
                     href={row.href}
+                    {...(row.label === "Founder"
+                      ? { target: "_blank", rel: "noopener noreferrer" }
+                      : {})}
                     className="text-sm text-helm-navy leading-relaxed hover:text-helm-gold transition-colors"
                   >
                     {row.body}
