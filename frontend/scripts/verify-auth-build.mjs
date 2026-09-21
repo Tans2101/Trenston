@@ -18,7 +18,9 @@ const required = [
   "treatPendingAsSignedOut:!1",
   "auth/clerk/exchange",
   "Connecting your account",
-  'path:"/login"',
+  // Component paths (Clerk Core 2) — path may be const-inlined as "/login" + "sso-callback".
+  "/login",
+  "sso-callback",
   "oauthFlow",
 ];
 
