@@ -1,17 +1,14 @@
-/** Shared Clerk SignIn/SignUp appearance — Trenston auth split (cream panel).
+/** Shared Clerk SignIn/SignUp appearance — cream auth panel (light).
  *
- * Button shape notes (Clerk appearance API limits):
- * - socialButtonsBlockButton → "Continue with Google" (solid dark pill)
- * - formButtonPrimary / alternativeMethodsBlockButton → email continue (outlined pill)
- * Clerk does not expose per-provider style hooks beyond social vs form/alternative, so we
- * cannot independently restyle a second OAuth provider differently from Google. Full-width
- * stacking is supported; exact Folk-style padding/label copy is controlled by Clerk, not us.
+ * Auth pages are cream/navy. Do not use ink/cream dark tokens here — global
+ * dark Clerk CSS used to force cream-on-ink inputs and left black voids under
+ * the form. Pill buttons use rounded-full; card radius stays modest.
  */
 import palette from "@/design/palette.json";
 
 export const clerkAppearance = {
   variables: {
-    colorBackground: "transparent",
+    colorBackground: palette.cream,
     colorInputBackground: "#ffffff",
     colorInputText: palette.navy,
     colorText: palette.navy,
@@ -19,42 +16,46 @@ export const clerkAppearance = {
     colorPrimary: palette.navy,
     colorDanger: palette.statusNegative,
     colorNeutral: palette.slate,
-    colorShimmer: palette.cream,
-    // Global radius for Clerk card/shell — must stay modest. 9999px made the
-    // whole SignIn/SignUp panel a circle (overflow clip on a near-square box).
-    // Pill shapes for buttons/inputs come from element classes below.
-    borderRadius: "0.5rem",
+    colorShimmer: "#ffffff",
+    // Modest shell radius only — never 9999px (that circled the whole card).
+    borderRadius: "0.75rem",
     fontFamily: "inherit",
   },
   elements: {
     rootBox: "w-full",
-    card: "bg-transparent shadow-none border-0 p-0",
+    cardBox: "w-full bg-helm-cream shadow-none border-0",
+    card: "w-full bg-helm-cream shadow-none border-0 p-0 gap-4",
+    main: "bg-helm-cream gap-4",
+    scrollBox: "bg-helm-cream",
     header: "hidden",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
+    // Page already has Sign in / Create account — hide Clerk footer (stops black void + duplicate link).
+    footer: "hidden",
+    footerAction: "hidden",
+    footerActionLink: "hidden",
+    socialButtons: "gap-2",
     socialButtonsBlockButton:
-      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none",
+      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
     socialButtonsBlockButtonText: "text-helm-cream font-medium",
     alternativeMethodsBlockButton:
-      "w-full justify-center rounded-full bg-transparent text-helm-navy border border-helm-navy/20 font-medium hover:bg-helm-navy/[0.04] shadow-none",
+      "w-full justify-center rounded-full bg-white text-helm-navy border border-helm-navy/20 font-medium hover:bg-helm-navy/[0.04] shadow-none h-11",
     formButtonPrimary:
-      "w-full justify-center rounded-full bg-transparent text-helm-navy border border-helm-navy/25 font-medium hover:bg-helm-navy/[0.04] shadow-none",
-    footerActionLink: "text-helm-navy hover:text-helm-navy/80 underline-offset-2",
-    identityPreviewEditButton: "text-helm-navy",
-    formFieldLabel: "text-helm-slate",
+      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
+    formFieldLabel: "text-helm-slate text-xs",
     formFieldInput:
-      "rounded-full bg-white border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate",
-    formFieldInput__input:
-      "rounded-full bg-white border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate",
+      "rounded-full bg-white border border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate h-11",
     formFieldInputShowPasswordButton: "text-helm-slate hover:text-helm-navy",
     otpCodeFieldInputs: "justify-center gap-2",
     otpCodeFieldInput:
       "bg-white border border-helm-navy/20 text-helm-navy text-lg font-mono caret-helm-gold rounded-lg",
-    otpCodeFieldInput__input: "text-helm-navy bg-white",
     formResendCodeLink: "text-helm-navy hover:text-helm-navy/80",
     dividerLine: "bg-helm-navy/10",
     dividerText: "text-helm-slate",
     alertText: "text-helm-navy",
     formFieldErrorText: "text-helm-status-negative",
+    identityPreviewEditButton: "text-helm-navy",
+    // Keep bot-protection widget in layout so signup is not blocked.
+    captcha: "min-h-[65px] flex justify-center my-2",
   },
 };
