@@ -1145,17 +1145,76 @@ async def clerk_signup_policy() -> dict[str, Any]:
         return empty
 
 
+async def _clerk_fapi_display_config() -> dict[str, Any]:
+    """Public Frontend API display_config (Paths + redirects). No secret required."""
+    host = clerk_jwks_host()
+    if not host:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"https://{host}/v1/environment")
+            if r.status_code != 200:
+                return {}
+            data = r.json() if r.content else {}
+            dc = data.get("display_config") or {}
+            return dc if isinstance(dc, dict) else {}
+    except Exception:
+        logger.debug("Clerk FAPI display_config fetch failed", exc_info=True)
+        return {}
+
+
+def _display_paths_summary(dc: dict[str, Any]) -> dict[str, Any]:
+    keys = (
+        "sign_in_url",
+        "sign_up_url",
+        "after_sign_in_url",
+        "after_sign_up_url",
+        "after_sign_out_all_url",
+        "after_sign_out_one_url",
+        "home_url",
+        "logo_link_url",
+    )
+    return {k: dc.get(k) for k in keys}
+
+
+def _paths_still_on_accounts(dc: dict[str, Any]) -> bool:
+    for key in ("sign_in_url", "sign_up_url", "after_sign_out_all_url"):
+        val = dc.get(key)
+        if isinstance(val, str) and "accounts." in val:
+            return True
+    return False
+
+
+async def _patch_clerk_json(
+    client: httpx.AsyncClient,
+    path: str,
+    body: dict[str, Any],
+    *,
+    headers: dict[str, str],
+) -> httpx.Response:
+    """PATCH https://api.clerk.com/v1/<path> — always include /v1 (bare /account_portal → plain 404)."""
+    return await client.patch(f"{CLERK_BAPI}/{path.lstrip('/')}", headers=headers, json=body)
+
+
 async def sync_clerk_account_portal(primary: str, app_url: str | None = None) -> dict[str, Any]:
-    """Point Clerk Account Portal at www Trenston auth — never leave users on accounts.*.
+    """Point Clerk auth Paths at www Trenston — never leave users on accounts.*.
 
     accounts.trenston.com is Cloudflare-fronted and often serves bot challenges that break
     Google OAuth with Clerk's generic \"Unable to complete action at this time\". Auth must
     stay on https://www.trenston.com/login and /sign-up.
+
+    Note: curl must use https://api.clerk.com/v1/account_portal (the /v1 segment is required;
+    without it Clerk returns the plain text \"404 page not found\"). Paths (sign_in_url /
+    sign_up_url) live on display_config; Account Portal after_* redirects are separate.
     """
     target = (app_url or f"{primary.rstrip('/')}/app").rstrip("/")
     if not target.endswith("/app"):
         target = f"{target}/app"
-    origin = primary.rstrip("/")
+    # Prefer www for hosted components even when Clerk primary is apex.
+    public = (primary_frontend_origin() or primary).rstrip("/")
+    if "trenston.com" in public and not public.startswith("https://www."):
+        public = "https://www.trenston.com"
+    origin = public
     login = f"{origin}/login"
     signup = f"{origin}/sign-up"
     result: dict[str, Any] = {
@@ -1164,116 +1223,120 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
         "target_url": target,
         "sign_in_url": login,
         "sign_up_url": signup,
+        "bapi_base": CLERK_BAPI,
     }
     if not clerk_configured() or not primary:
         result["reason"] = "not_configured"
         return result
+
+    before_dc = await _clerk_fapi_display_config()
+    result["before"] = _display_paths_summary(before_dc)
+
+    # after_* on Account Portal may already be www while Paths still point at accounts.*.
+    portal_body = {
+        "after_sign_in_url": target,
+        "after_sign_up_url": target,
+        "logo_link_url": origin,
+        "home_url": origin,
+        "after_join_waitlist_url": target,
+        "after_create_organization_url": target,
+        "after_leave_organization_url": target,
+        "after_sign_out_all_url": login,
+        "after_sign_out_one_url": login,
+    }
+    # Paths — these are what bounce failed OAuth onto accounts.* (Cloudflare).
+    display_body = {
+        "home_url": origin,
+        "sign_in_url": login,
+        "sign_up_url": signup,
+        "after_sign_in_url": target,
+        "after_sign_up_url": target,
+        "after_sign_out_all_url": login,
+        "after_sign_out_one_url": login,
+        "logo_link_url": origin,
+    }
+
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             headers = _bapi_headers()
-            get_r = await client.get(f"{CLERK_BAPI}/account_portal", headers=headers)
-            if get_r.status_code >= 400:
-                result["reason"] = f"get_{get_r.status_code}"
-                result["error"] = get_r.text[:300]
-                return result
-            current = get_r.json()
-            result["before"] = {
-                "after_sign_in_url": current.get("after_sign_in_url"),
-                "after_sign_up_url": current.get("after_sign_up_url"),
-                "sign_in_url": current.get("sign_in_url"),
-                "sign_up_url": current.get("sign_up_url"),
-                "after_sign_out_all_url": current.get("after_sign_out_all_url"),
-            }
-            # Full redirect surface → www. Dropping these on 422 left users on
-            # accounts.trenston.com (Cloudflare challenge → broken Google OAuth).
-            patch_body = {
-                "after_sign_in_url": target,
-                "after_sign_up_url": target,
-                "logo_link_url": origin,
-                "home_url": origin,
-                "sign_in_url": login,
-                "sign_up_url": signup,
-                "after_join_waitlist_url": target,
-                "after_create_organization_url": target,
-                "after_leave_organization_url": target,
-                "after_sign_out_all_url": login,
-                "after_sign_out_one_url": login,
-            }
-            patch_r = await client.patch(
-                f"{CLERK_BAPI}/account_portal",
-                headers=headers,
-                json=patch_body,
-            )
-            if patch_r.status_code == 422:
-                # Retry without after_sign_out_* (some instances reject those keys).
+
+            portal_r = await _patch_clerk_json(client, "account_portal", portal_body, headers=headers)
+            result["account_portal_status"] = portal_r.status_code
+            if portal_r.status_code == 404:
+                result["account_portal_error"] = (
+                    "404 from BAPI — confirm URL is https://api.clerk.com/v1/account_portal "
+                    "(missing /v1 returns plain '404 page not found'). "
+                    f"body={portal_r.text[:200]}"
+                )
+            elif portal_r.status_code == 422:
                 slim = {
-                    k: v for k, v in patch_body.items()
+                    k: v
+                    for k, v in portal_body.items()
                     if k not in ("after_sign_out_all_url", "after_sign_out_one_url")
                 }
-                patch_r = await client.patch(
-                    f"{CLERK_BAPI}/account_portal",
-                    headers=headers,
-                    json=slim,
-                )
-                result["retried_without_sign_out"] = True
-                result["slim_error"] = patch_r.text[:500] if patch_r.status_code >= 400 else None
-            if patch_r.status_code == 422:
-                # Paths-only — critical so OAuth errors land on www, not accounts.*.
+                portal_r = await _patch_clerk_json(client, "account_portal", slim, headers=headers)
+                result["account_portal_retried"] = True
+                result["account_portal_status"] = portal_r.status_code
+                if portal_r.status_code >= 400:
+                    result["account_portal_error"] = portal_r.text[:500]
+            elif portal_r.status_code >= 400:
+                result["account_portal_error"] = portal_r.text[:500]
+
+            display_r = await _patch_clerk_json(client, "display_config", display_body, headers=headers)
+            result["display_config_status"] = display_r.status_code
+            if display_r.status_code == 422:
                 paths_only = {
-                    "home_url": origin,
                     "sign_in_url": login,
                     "sign_up_url": signup,
+                    "home_url": origin,
                 }
-                paths_r = await client.patch(
-                    f"{CLERK_BAPI}/account_portal",
-                    headers=headers,
-                    json=paths_only,
+                display_r = await _patch_clerk_json(
+                    client, "display_config", paths_only, headers=headers
                 )
-                result["paths_only_status"] = paths_r.status_code
-                result["paths_only_error"] = paths_r.text[:500] if paths_r.status_code >= 400 else None
-                if paths_r.status_code < 400:
-                    patch_r = paths_r
-                else:
-                    # Last resort: post-auth only (paths may be Dashboard-locked).
-                    minimal = {
-                        "after_sign_in_url": target,
-                        "after_sign_up_url": target,
-                        "logo_link_url": origin,
-                    }
-                    patch_r = await client.patch(
-                        f"{CLERK_BAPI}/account_portal",
-                        headers=headers,
-                        json=minimal,
-                    )
-                    result["retried_minimal"] = True
-                    result["warning"] = (
-                        "Could not set Account Portal sign_in/sign_up to www. "
-                        f"paths_only={result.get('paths_only_status')}: {result.get('paths_only_error')}"
-                    )
-            if patch_r.status_code >= 400:
-                result["reason"] = f"patch_{patch_r.status_code}"
-                result["error"] = patch_r.text[:500]
-                return result
-            updated = patch_r.json() if patch_r.content else {}
+                result["display_config_retried"] = True
+                result["display_config_status"] = display_r.status_code
+            if display_r.status_code >= 400:
+                result["display_config_error"] = display_r.text[:500]
+
+        after_dc = await _clerk_fapi_display_config()
+        result["after"] = _display_paths_summary(after_dc)
+        still_accounts = _paths_still_on_accounts(after_dc)
+        portal_ok = int(result.get("account_portal_status") or 500) < 400
+        display_ok = int(result.get("display_config_status") or 500) < 400
+        paths_ok = (
+            after_dc.get("sign_in_url") == login and after_dc.get("sign_up_url") == signup
+        )
+        after_ok = after_dc.get("after_sign_in_url") == target
+
+        if paths_ok and after_ok and not still_accounts:
             result["ok"] = True
-            result["after"] = {
-                "after_sign_in_url": updated.get("after_sign_in_url", target),
-                "after_sign_up_url": updated.get("after_sign_up_url", target),
-                "sign_in_url": updated.get("sign_in_url"),
-                "sign_up_url": updated.get("sign_up_url"),
-            }
-            still_accounts = any(
-                isinstance(updated.get(k), str) and "accounts." in updated.get(k, "")
-                for k in ("sign_in_url", "sign_up_url", "after_sign_out_all_url")
+            result["reason"] = "ok"
+        elif still_accounts:
+            result["ok"] = False
+            result["reason"] = "paths_still_accounts"
+            result["warning"] = (
+                "Clerk Paths still point at accounts.* (Cloudflare-challenged). "
+                f"Set Sign-in to {login} and Sign-up to {signup}, or Disable Account Portal "
+                "in Clerk Dashboard → Account Portal (we already host /login and /sign-up)."
             )
-            if still_accounts:
-                result["warning"] = (
-                    "Account Portal still points at accounts.* — Google OAuth can fail "
-                    f"behind Cloudflare. Set Sign-in to {login} and Sign-up to {signup} "
-                    "in Clerk Dashboard → Account Portal."
-                )
-            logger.info("Clerk account portal redirects → %s (login=%s)", target, login)
-            return result
+        elif portal_ok or display_ok:
+            result["ok"] = after_ok and not still_accounts
+            result["reason"] = "ok" if result["ok"] else "partial"
+        else:
+            result["ok"] = False
+            result["reason"] = (
+                f"portal_{result.get('account_portal_status')}_"
+                f"display_{result.get('display_config_status')}"
+            )
+
+        if result["ok"]:
+            logger.info("Clerk auth Paths → www (login=%s signup=%s)", login, signup)
+        else:
+            logger.warning(
+                "Clerk auth Paths still wrong: %s",
+                result.get("warning") or result.get("reason"),
+            )
+        return result
     except Exception:
         logger.exception("Clerk account portal sync failed")
         result["reason"] = "exception"

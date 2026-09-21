@@ -15038,7 +15038,10 @@ async def setup_clerk_sync(request: Request):
 
 @api_router.post("/setup/clerk-portal-www")
 async def setup_clerk_portal_www(request: Request):
-    """Force Account Portal sign-in/sign-up URLs onto www (fixes Google OAuth bounce)."""
+    """Force Clerk Paths + Account Portal redirects onto www (fixes Google OAuth bounce).
+
+    Uses https://api.clerk.com/v1/... — omitting /v1 yields plain \"404 page not found\".
+    """
     _require_setup_secret(request)
     if not clerk_auth.clerk_configured():
         raise HTTPException(status_code=400, detail="Clerk is not configured")
@@ -15049,7 +15052,19 @@ async def setup_clerk_portal_www(request: Request):
         primary, clerk_auth.clerk_post_auth_url() or f"{primary.rstrip('/')}/app",
     )
     redirects = await clerk_auth.sync_clerk_redirect_urls()
-    return {"ok": bool(portal.get("ok")), "account_portal": portal, "redirect_urls": redirects}
+    return {
+        "ok": bool(portal.get("ok")),
+        "account_portal": portal,
+        "redirect_urls": redirects,
+        "hint": (
+            None
+            if portal.get("ok")
+            else (
+                "If Paths stay on accounts.*, open Clerk Dashboard → Account Portal → "
+                "Disable Account Portal (Trenston already hosts /login and /sign-up)."
+            )
+        ),
+    }
 
 
 @api_router.post("/admin/cleanup-orphaned-documents")

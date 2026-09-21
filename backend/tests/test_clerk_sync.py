@@ -116,27 +116,48 @@ def test_sync_clerk_instance_patches_dev_origin():
         "environment_type": "development",
         "allowed_origins": sorted(clerk_auth.helm_frontend_origins()),
     }
+    env_display = {
+        "display_config": {
+            "sign_in_url": "https://www.trenston.com/login",
+            "sign_up_url": "https://www.trenston.com/sign-up",
+            "after_sign_in_url": "https://www.trenston.com/app",
+            "after_sign_up_url": "https://www.trenston.com/app",
+            "after_sign_out_all_url": "https://www.trenston.com/login",
+            "home_url": "https://www.trenston.com",
+            "logo_link_url": "https://www.trenston.com",
+        }
+    }
 
     class Resp:
         def __init__(self, data, status=200, text=""):
             self.status_code = status
             self._data = data
             self.text = text
+            self.content = b"{}" if data is not None else b""
 
         def json(self):
             return self._data
 
-    portal_resp = Resp({"after_sign_in_url": "", "after_sign_up_url": ""})
     domains_resp = Resp({"data": [{"name": "trenston.com", "id": "dom_1"}]})
+
+    async def mock_get(url, **kwargs):
+        u = str(url)
+        if u.endswith("/instance"):
+            # first call before, later verify
+            if not hasattr(mock_get, "n"):
+                mock_get.n = 0
+            mock_get.n += 1
+            return Resp(instance_before if mock_get.n == 1 else instance_after)
+        if "/environment" in u:
+            return Resp(env_display)
+        if u.endswith("/redirect_urls"):
+            return Resp({"data": []})
+        if u.endswith("/domains"):
+            return domains_resp
+        return Resp({}, 404, "not found")
+
     mock_client = AsyncMock()
-    mock_client.get = AsyncMock(side_effect=[
-        Resp(instance_before),
-        Resp(instance_after),
-        portal_resp,
-        Resp({"data": []}),  # redirect_urls
-        domains_resp,
-        domains_resp,
-    ])
+    mock_client.get = AsyncMock(side_effect=mock_get)
     mock_client.patch = AsyncMock(return_value=Resp({}, 204))
     mock_client.post = AsyncMock(return_value=Resp({}, 201))
 
@@ -154,6 +175,14 @@ def test_sync_clerk_instance_patches_dev_origin():
     assert body["development_origin"] == "https://www.trenston.com"
     assert "https://trenston.com" in body["allowed_origins"]
     assert body["url_based_session_syncing"] is True
+    assert result.get("account_portal", {}).get("ok") is True
+
+
+def test_clerk_bapi_account_portal_requires_v1_path():
+    """Bare /account_portal (no /v1) is what returns plain '404 page not found'."""
+    assert clerk_auth.CLERK_BAPI.endswith("/v1")
+    assert f"{clerk_auth.CLERK_BAPI}/account_portal" == "https://api.clerk.com/v1/account_portal"
+    assert f"{clerk_auth.CLERK_BAPI}/display_config" == "https://api.clerk.com/v1/display_config"
 
 
 def test_clerk_redirect_url_list_includes_www_app():
