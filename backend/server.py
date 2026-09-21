@@ -35,6 +35,7 @@ import xero as xero_sync
 import sap_b1 as sap_b1_sync
 import hubspot as hubspot_sync
 import google_oauth as gcal
+import paddle_ips
 import google_document_ai as gcp_docai
 import integrations_catalog as integ_catalog
 import clerk_auth
@@ -14378,6 +14379,7 @@ async def paddle_config(request: Request, principal=Depends(require("billing:man
         "workspace_id": principal["workspace_id"],
         "user_id": principal["user_id"],
         "email": principal.get("email"),
+        "paddle_customer_id": (await get_ws(principal["workspace_id"])).get("paddle_customer_id") or "",
     }
 
 
@@ -14594,6 +14596,15 @@ async def paddle_portal(principal=Depends(require("billing:manage"))):
 
 @api_router.post("/webhook/paddle")
 async def paddle_webhook(request: Request):
+    # Live deliveries must come from Paddle's published IPs. Sandbox stays
+    # signature-only so local/sandbox tests aren't blocked. If the IP list
+    # can't be fetched and we have no cache, signature verification still runs.
+    if PADDLE_ENV != "sandbox":
+        networks = await paddle_ips.refresh_paddle_ip_networks()
+        client_ip = _client_ip(request)
+        if networks and not paddle_ips.ip_allowed(client_ip, networks):
+            logger.warning("Rejected Paddle webhook from %s", client_ip)
+            raise HTTPException(status_code=403, detail="Paddle webhook source not allowed")
     raw = await request.body()
     sig = request.headers.get("Paddle-Signature", "")
     if not raw or not _verify_paddle_signature(raw, sig):

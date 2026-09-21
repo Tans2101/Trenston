@@ -18,17 +18,24 @@ export function loadPaddle() {
   return loaded;
 }
 
-export async function initPaddle(token, environment, onEvent) {
+export async function initPaddle(token, environment, onEvent, paddleCustomerId) {
   const P = await loadPaddle();
   latestOnEvent = onEvent || null;
   if (!initialized) {
-    P.Environment.set(environment === "sandbox" ? "sandbox" : "production");
-    P.Initialize({
+    if (environment === "sandbox") {
+      P.Environment.set("sandbox");
+    }
+    const opts = {
       token,
       eventCallback: (event) => {
         if (typeof latestOnEvent === "function") latestOnEvent(event);
       },
-    });
+    };
+    // Retain needs Paddle's customer id (ctm_…), not our workspace id.
+    if (typeof paddleCustomerId === "string" && paddleCustomerId.startsWith("ctm_")) {
+      opts.pwCustomer = { id: paddleCustomerId };
+    }
+    P.Initialize(opts);
     initialized = true;
   }
   return P;

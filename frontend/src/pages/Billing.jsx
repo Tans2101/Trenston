@@ -153,7 +153,10 @@ export default function Billing() {
     setBusy(planId);
     try {
       const { data: cfg } = await api.post("/billing/paddle/config", { plan: planId });
-      const Paddle = await initPaddle(cfg.client_token, cfg.environment, (ev) => {
+      const Paddle = await initPaddle(
+        cfg.client_token,
+        cfg.environment,
+        (ev) => {
         if (ev?.name !== "checkout.completed") return;
         toast.success("Payment received. Activating your plan…");
         setBusy(planId);
@@ -168,7 +171,9 @@ export default function Billing() {
           toast.message("Payment received — this can take a minute to reflect. Refresh shortly.");
           reload();
         })();
-      });
+      },
+        cfg.paddle_customer_id,
+      );
       Paddle.Checkout.open({
         settings: { displayMode: "overlay", theme: "dark" },
         items: [{ priceId: cfg.price_id, quantity: 1 }],
