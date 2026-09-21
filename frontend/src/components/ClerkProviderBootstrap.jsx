@@ -254,7 +254,7 @@ export default function ClerkProviderBootstrap({ children }) {
         // Component paths from build env (Clerk Core 2) — not Dashboard Paths.
         signInUrl={helmSignInUrl(state.helmCanonicalOrigin) || CLERK_SIGN_IN_PATH}
         signUpUrl={helmSignUpUrl(state.helmCanonicalOrigin) || CLERK_SIGN_UP_PATH}
-        {/* fallback only — forceRedirectUrl can skip /sign-up/continue when password is required */}
+        // fallback only — forceRedirectUrl can skip /sign-up/continue when password is required
         signInFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
         signUpFallbackRedirectUrl={redirectUrl || CLERK_AFTER_AUTH_PATH}
         afterSignOutUrl={helmAppUrl("/")}
