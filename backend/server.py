@@ -2542,6 +2542,8 @@ async def auth_config():
             "portal_warning": portal.get("warning") if isinstance(portal, dict) else None,
             "display_config_status": portal.get("display_config_status") if isinstance(portal, dict) else None,
             "account_portal_status": portal.get("account_portal_status") if isinstance(portal, dict) else None,
+            "account_portal_error": portal.get("account_portal_error") if isinstance(portal, dict) else None,
+            "display_config_error": portal.get("display_config_error") if isinstance(portal, dict) else None,
         }
     return {
         "demo_login": ALLOW_DEMO_LOGIN,
