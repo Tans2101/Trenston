@@ -12,7 +12,6 @@ import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { CLERK_SIGN_IN_PATH, helmSignUpUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
-import AuthSocialButtons from "@/components/AuthSocialButtons";
 import TrenstonMark from "@/components/HelmMark";
 
 export default function Login() {
@@ -106,13 +105,12 @@ function LoginClerk() {
 
           {passwordMinLength > 8 && (
             <p className="mt-3 text-xs text-helm-slate leading-relaxed">
-              Email passwords need at least {passwordMinLength} characters. Google sign-in skips this.
+              Email passwords need at least {passwordMinLength} characters.
             </p>
           )}
 
           <div className="mt-8 w-full text-left" data-testid="clerk-sign-in">
             <div id="clerk-captcha" />
-            <AuthSocialButtons mode="sign-in" />
             <SignIn
               appearance={clerkAppearance}
               routing="path"
@@ -120,6 +118,8 @@ function LoginClerk() {
               signUpUrl={signUpPath}
               forceRedirectUrl={redirectUrl}
               fallbackRedirectUrl={redirectUrl}
+              signUpForceRedirectUrl={redirectUrl}
+              signUpFallbackRedirectUrl={redirectUrl}
             />
           </div>
 

@@ -34,12 +34,14 @@ export const clerkAppearance = {
     footer: "hidden",
     footerAction: "hidden",
     footerActionLink: "hidden",
-    socialButtons: "hidden",
-    socialButtonsBlockButton: "hidden",
-    socialButtonsProviderIcon: "hidden",
-    dividerRow: "hidden",
-    // Prefer our AuthSocialButtons (absolute www SSO callback) over Clerk's
-    // built-ins, which can bounce through accounts.trenston.com.
+    // Native social buttons — Paths are on www now; custom AuthSocialButtons fought SignUp state.
+    socialButtons: "flex flex-col gap-2 w-full",
+    socialButtonsBlockButton:
+      "w-full h-11 justify-center rounded-full border border-helm-navy/20 bg-helm-navy text-helm-cream font-medium hover:bg-helm-navy/90 shadow-none",
+    socialButtonsProviderIcon: "brightness-0 invert",
+    dividerRow: "flex items-center gap-3 my-2",
+    dividerLine: "bg-helm-navy/10",
+    dividerText: "text-helm-slate text-xs",
     formButtonPrimary:
       "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
     formFieldLabel: "text-helm-slate text-xs",
@@ -50,8 +52,6 @@ export const clerkAppearance = {
     otpCodeFieldInput:
       "bg-white border border-helm-navy/20 text-helm-navy text-lg font-mono caret-helm-gold rounded-lg",
     formResendCodeLink: "text-helm-navy hover:text-helm-navy/80",
-    dividerLine: "bg-helm-navy/10",
-    dividerText: "text-helm-slate",
     alertText: "text-helm-navy",
     formFieldErrorText: "text-helm-status-negative",
     identityPreviewEditButton: "text-helm-navy",

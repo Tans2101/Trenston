@@ -12,7 +12,6 @@ import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { CLERK_SIGN_UP_PATH, helmSignInUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
-import AuthSocialButtons from "@/components/AuthSocialButtons";
 import TrenstonMark from "@/components/HelmMark";
 
 export default function SignUpPage() {
@@ -99,15 +98,15 @@ function SignUpClerk() {
           </p>
           {passwordMinLength > 8 && (
             <p className="mt-3 text-xs text-helm-slate leading-relaxed">
-              Email passwords need at least {passwordMinLength} characters
-              {captchaEnabled ? " (CAPTCHA may appear)" : ""}. Google skips this.
+              Passwords need at least {passwordMinLength} characters
+              {captchaEnabled ? " (CAPTCHA may appear)" : ""}. After Google you may
+              be asked to set one to finish sign-up.
             </p>
           )}
 
           <div className="mt-8 w-full text-left" data-testid="clerk-sign-up">
             {/* Clerk bot-protection mount — required when captcha is on; harmless when off. */}
             <div id="clerk-captcha" />
-            <AuthSocialButtons mode="sign-up" />
             <SignUp
               appearance={clerkAppearance}
               routing="path"
