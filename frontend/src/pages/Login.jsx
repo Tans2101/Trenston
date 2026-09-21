@@ -111,6 +111,7 @@ function LoginClerk() {
           )}
 
           <div className="mt-8 w-full text-left" data-testid="clerk-sign-in">
+            <div id="clerk-captcha" />
             <AuthSocialButtons mode="sign-in" />
             <SignIn
               appearance={clerkAppearance}

@@ -105,6 +105,8 @@ function SignUpClerk() {
           )}
 
           <div className="mt-8 w-full text-left" data-testid="clerk-sign-up">
+            {/* Clerk bot-protection mount — required when captcha is on; harmless when off. */}
+            <div id="clerk-captcha" />
             <AuthSocialButtons mode="sign-up" />
             <SignUp
               appearance={clerkAppearance}
