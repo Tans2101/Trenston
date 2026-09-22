@@ -23,7 +23,6 @@ const ROLE_ICONS = {
 
 export default function CompanySetup({ company }) {
   const { user, setUser } = useAuth();
-  const needsDisplayName = !(user?.name || "").trim();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
   const [hasTeamTouched, setHasTeamTouched] = useState(
@@ -97,10 +96,10 @@ export default function CompanySetup({ company }) {
       if (!user?.age_confirmed) {
         await api.patch("/account/age-confirmation", { confirmed: true });
       }
-      if (needsDisplayName || (form.display_name.trim() && form.display_name.trim() !== (user?.name || "").trim())) {
-        const { data: profile } = await api.patch("/account/profile", {
-          name: form.display_name.trim(),
-        });
+      // Always write the onboarding name to the same display-name field the rest of the app reads.
+      const nextName = form.display_name.trim();
+      if (nextName) {
+        const { data: profile } = await api.patch("/account/profile", { name: nextName });
         if (setUser && profile?.name) {
           setUser((u) => (u ? { ...u, name: profile.name } : u));
         }

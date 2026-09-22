@@ -11,6 +11,7 @@ import {
 } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
+import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 
 const STEP_STATUS_META = {
   not_started: { label: "Not started", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -103,6 +104,10 @@ export default function HR() {
   const workspaceMembers = (membersData?.members || []).filter((m) => m.user_id && m.status === "active");
   const isLead = Boolean(data?.is_lead || tmplData?.can_edit_template || empData?.is_lead || leaveData?.is_lead);
   const myId = data?.my_user_id || leaveData?.my_user_id;
+  const stepAssigneeOptions = buildAssigneeOptions(workspaceMembers, myId, {
+    unassigned: true,
+    selfUsesId: true,
+  });
 
   const leaveRequests = useMemo(() => {
     const rows = leaveData?.requests || [];
@@ -639,8 +644,8 @@ export default function HR() {
                             className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-2 py-1.5 text-sm text-helm-fg disabled:opacity-50"
                           >
                             <option value="">Unassigned</option>
-                            {workspaceMembers.map((m) => (
-                              <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                            {stepAssigneeOptions.filter((o) => o.value !== "").map((o) => (
+                              <option key={o.user_id || o.label} value={o.value}>{o.label}</option>
                             ))}
                           </select>
                         </label>
@@ -702,8 +707,8 @@ export default function HR() {
           {employees.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No employee records yet"
-              body="Complete an onboarding checklist, which creates the employee record automatically."
+              title="No employees yet"
+              body="People from Team & Access appear here automatically. You can also complete an onboarding checklist for a new hire."
             />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line mb-6">
@@ -1029,8 +1034,8 @@ export default function HR() {
                             className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-2 py-1.5 text-sm text-helm-fg disabled:opacity-50"
                           >
                             <option value="">Unassigned</option>
-                            {workspaceMembers.map((m) => (
-                              <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                            {stepAssigneeOptions.filter((o) => o.value !== "").map((o) => (
+                              <option key={o.user_id || o.label} value={o.value}>{o.label}</option>
                             ))}
                           </select>
                         </label>
@@ -1195,13 +1200,20 @@ export default function HR() {
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Email</span>
+              <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">
+                Email <span className="normal-case tracking-normal text-helm-muted/80">(optional)</span>
+              </span>
               <input
                 data-testid="hr-new-email"
+                type="email"
                 value={form.hire_email}
                 onChange={(e) => setForm((f) => ({ ...f, hire_email: e.target.value }))}
+                placeholder="name@company.com"
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
               />
+              <span className="text-[11px] text-helm-muted leading-relaxed block">
+                Optional reference for this hire. Trenston does not email them or create a login from this field — invite people separately in Team &amp; Access.
+              </span>
             </label>
             <p className="text-[11px] text-helm-muted">
               Checklist will be copied from the current template ({(tmplData?.template?.steps || []).length} steps).

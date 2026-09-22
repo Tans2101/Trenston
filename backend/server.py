@@ -10,6 +10,7 @@ import secrets
 import asyncio
 import logging
 import time
+import base64
 from pathlib import Path
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Any, Literal
@@ -783,7 +784,7 @@ def _invite_email_html(inviter_name: str, workspace_name: str, role: str, app_ur
 </tr></table>
 <p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:22px 0 0 0;">You've been added</p>
 <h1 style="color:#ffffff;font-size:24px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">{inviter_name} invited you to<br><span style="color:#c9a962;">{workspace_name}</span></h1>
-<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the CEO Operating System. Sign in with Google to see the briefing, decisions, financials and more.</p>
+<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the CEO & Founder Operating System. Sign in with Google to see the briefing, decisions, financials and more.</p>
 <table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
 <td style="background:#c9a962;border-radius:8px;">
 <a href="{app_url}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Trenston &rarr;</a>
@@ -2434,10 +2435,12 @@ async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Option
     now = datetime.now(timezone.utc).isoformat()
     if existing:
         user_id = existing["user_id"]
+        # Preserve an onboarding/settings display name once the user has customized it.
+        keep_name = bool(existing.get("name_customized")) and (existing.get("name") or "").strip()
         updates = {
             "email": email,
-            "name": name or existing.get("name"),
-            "picture": picture or existing.get("picture"),
+            "name": existing.get("name") if keep_name else (name or existing.get("name")),
+            "picture": existing.get("picture") if existing.get("picture_customized") else (picture or existing.get("picture")),
             "clerk_id": clerk_id,
         }
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
@@ -2460,7 +2463,12 @@ async def _upsert_google_user(*, email: str, name: Optional[str], picture: Optio
     now = datetime.now(timezone.utc).isoformat()
     if existing:
         user_id = existing["user_id"]
-        updates = {"email": email, "name": name or existing.get("name"), "picture": picture or existing.get("picture")}
+        keep_name = bool(existing.get("name_customized")) and (existing.get("name") or "").strip()
+        updates = {
+            "email": email,
+            "name": existing.get("name") if keep_name else (name or existing.get("name")),
+            "picture": existing.get("picture") if existing.get("picture_customized") else (picture or existing.get("picture")),
+        }
         if google_sub:
             updates["google_sub"] = google_sub
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
@@ -3330,6 +3338,7 @@ async def company(principal=Depends(get_principal)):
         "template": c.get("template", "sample"),
         # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
         "has_team": decision_engine.workspace_has_team(c),
+        "logo_url": c.get("logo_url") or None,
     }
 
 
@@ -3406,7 +3415,7 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
 
 
 class TemplateInput(BaseModel):
-    template: str  # sample | clean
+    template: str  # sample | clean | clear-sample
 
 
 _PRESERVE_WS_FIELDS = frozenset({
@@ -3415,6 +3424,33 @@ _PRESERVE_WS_FIELDS = frozenset({
     "paddle_last_event_at", "billing_status", "subscription_status", "canceled_at",
     "workspace_id", "owner_user_id", "created_at",
 })
+
+
+_CLEAR_SAMPLE_PRESERVE_PROFILE = frozenset({
+    "name", "industry", "stage", "founded", "mission", "founder_title",
+    "employees", "has_team", "company_setup_done",
+})
+
+
+async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
+    """Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept)."""
+    current = await get_ws(ws_id)
+    if (current.get("template") or "") != "sample":
+        raise HTTPException(status_code=400, detail="This workspace is not using sample data")
+    fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=True)
+    update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
+    for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
+        if key in current:
+            update[key] = current[key]
+    update["onboarding_done"] = True
+    update["company_setup_done"] = True
+    update["template"] = "empty"
+    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
+    await db.financial_entries.delete_many({"workspace_id": ws_id})
+    # Drop demo-era activity so Telemetry heatmap starts blank with the rest.
+    await db.activities.delete_many({"workspace_id": ws_id})
+    invalidate_financials_cache(ws_id)
+    invalidate_workspace_list_cache(ws_id, "people")
 
 
 @api_router.post("/workspace/apply-template")
@@ -3434,8 +3470,17 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
                 e["department_id"] = finance_dept_id
         await db.financial_entries.insert_many(samples)
         invalidate_financials_cache(ws_id)
+    elif payload.template == "clear-sample":
+        await _clear_sample_workspace(ws_id, principal)
     else:
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"onboarding_done": True}})
+    return {"ok": True}
+
+
+@api_router.post("/workspace/clear-sample")
+async def clear_sample_data(principal=Depends(require("workspace:edit"))):
+    """Remove sample (Northwind) data and start fresh. Keeps billing, OAuth, and company profile."""
+    await _clear_sample_workspace(principal["workspace_id"], principal)
     return {"ok": True}
 
 
@@ -11798,6 +11843,87 @@ def _public_hr_employee(row: dict) -> dict:
     return {k: v for k, v in row.items() if k != "_id"}
 
 
+async def _sync_members_into_hr_employees(workspace_id: str, department_id: str) -> int:
+    """Ensure every active Team & Access member has an hr_employees row.
+
+    Does not require onboarding completion. Idempotent via linked_user_id.
+    """
+    mems = await db.memberships.find(
+        {"workspace_id": workspace_id, "status": "active"},
+        {"_id": 0},
+    ).to_list(500)
+    mems = [m for m in mems if m.get("user_id")]
+    if not mems:
+        return 0
+    users_by_id = await _users_by_ids(
+        [m.get("user_id") for m in mems],
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1},
+    )
+    try:
+        by_user = await dept_access.department_names_by_user_id(db, workspace_id)
+    except Exception:
+        by_user = {}
+    existing = await db.hr_employees.find(
+        {"department_id": department_id},
+        {"_id": 0, "linked_user_id": 1, "id": 1, "name": 1, "department_names": 1},
+    ).to_list(5000)
+    linked = {r.get("linked_user_id"): r for r in existing if r.get("linked_user_id")}
+    now = datetime.now(timezone.utc).isoformat()
+    created = 0
+    for m in mems:
+        uid = m.get("user_id")
+        if not uid:
+            continue
+        u = users_by_id.get(uid) or {}
+        display = ((u.get("name") or "").strip()
+                   or _display_name_from_email(m.get("email") or u.get("email") or "")
+                   or "Teammate")
+        depts = ", ".join(by_user.get(uid) or [])
+        if uid in linked:
+            # Refresh name/teams for linked roster rows that came from Team & Access.
+            row = linked[uid]
+            patch = {}
+            if display and row.get("name") != display:
+                patch["name"] = display[:200]
+            if depts and row.get("department_names") != depts:
+                patch["department_names"] = depts[:200]
+            if patch:
+                patch["updated_at"] = now
+                await db.hr_employees.update_one(
+                    {"id": row["id"], "department_id": department_id},
+                    {"$set": patch},
+                )
+            continue
+        emp = {
+            "id": f"hremp_{uuid.uuid4().hex[:10]}",
+            "department_id": department_id,
+            "workspace_id": workspace_id,
+            "name": display[:200],
+            "role": "",
+            "start_date": now[:10],
+            "status": "active",
+            "manager_user_id": None,
+            "linked_user_id": uid,
+            "department_names": depts[:200],
+            "source_onboarding_instance_id": None,
+            "source": "team_access",
+            "created_at": now,
+            "updated_at": now,
+            "departed_at": None,
+        }
+        try:
+            await db.hr_employees.insert_one(dict(emp))
+            created += 1
+        except Exception as exc:
+            msg = str(exc).lower()
+            if "duplicate" in msg or "e11000" in msg:
+                continue
+            raise
+    if created:
+        invalidate_workspace_list_cache(workspace_id, "hr")
+    return created
+
+
 async def _enrich_hr_instance(inst: dict, users: dict | None = None) -> dict:
     out = {k: v for k, v in inst.items() if k != "_id"}
     step_uids = [(s or {}).get("assigned_to") for s in (out.get("steps") or [])]
@@ -12104,15 +12230,23 @@ async def list_hr_employees(
     principal=Depends(get_principal),
     status: Optional[str] = Query(None),
 ):
-    """Employment records — no medical, government ID, compensation, or protected characteristics."""
+    """Employment records — no medical, government ID, compensation, or protected characteristics.
+
+    Team & Access members are mirrored into this list so HR Employees stays in sync
+    without requiring an onboarding checklist to complete first.
+    """
+    dept = await _hr_department(principal)
+    created = await _sync_members_into_hr_employees(
+        principal["workspace_id"], dept["department_id"],
+    )
     status_key = (status or "").strip().lower() or "all"
     cache_key = _list_cache_key(
         "hr", principal["workspace_id"], principal["user_id"], "employees", status_key,
     )
-    cached = simple_cache.peek(cache_key)
-    if cached is not None:
-        return cached
-    dept = await _hr_department(principal)
+    if not created:
+        cached = simple_cache.peek(cache_key)
+        if cached is not None:
+            return cached
     filt: dict = {"department_id": dept["department_id"]}
     if status is not None:
         st = status.strip().lower()
@@ -14888,9 +15022,104 @@ async def update_profile(payload: ProfileInput, user=Depends(get_user)):
         raise HTTPException(status_code=400, detail="Name is too long")
     await db.users.update_one(
         {"user_id": user["user_id"]},
-        {"$set": {"name": name}},
+        {"$set": {"name": name, "name_customized": True}},
     )
+    # Keep People roster + member lists in sync with the display name the UI reads.
+    mems = await db.memberships.find(
+        {"user_id": user["user_id"], "status": {"$in": ["active", "invited"]}},
+        {"_id": 0},
+    ).to_list(50)
+    for m in mems:
+        ws_id = m.get("workspace_id")
+        if not ws_id:
+            continue
+        try:
+            await ensure_person_for_membership(ws_id, m, name=name)
+            invalidate_workspace_list_cache(ws_id, "people", "members")
+        except Exception:
+            logger.exception("failed syncing display name into people for %s", ws_id)
     return {"name": name}
+
+
+_BRANDING_TYPES = frozenset({"image/jpeg", "image/jpg", "image/png", "image/webp"})
+_MAX_BRANDING_UPLOAD = 2 * 1024 * 1024
+_MAX_BRANDING_DATA_URL = 220_000
+
+
+async def _branding_data_url(file: UploadFile, *, max_edge: int) -> str:
+    raw = await file.read(_MAX_BRANDING_UPLOAD + 1)
+    if not raw:
+        raise HTTPException(status_code=400, detail="Empty image upload")
+    if len(raw) > _MAX_BRANDING_UPLOAD:
+        raise HTTPException(status_code=400, detail="Image must be 2MB or smaller")
+    ct = (file.content_type or "").split(";", 1)[0].strip().lower()
+    if ct not in _BRANDING_TYPES:
+        raise HTTPException(status_code=400, detail="Upload a JPEG, PNG, or WebP image")
+    try:
+        compressed, out_ct = await asyncio.to_thread(
+            doc_storage.compress_branding_image,
+            raw,
+            ct,
+            max_edge=max_edge,
+            filename=file.filename or "image",
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Could not read that image") from exc
+    b64 = base64.b64encode(compressed).decode("ascii")
+    data_url = f"data:{out_ct};base64,{b64}"
+    if len(data_url) > _MAX_BRANDING_DATA_URL:
+        raise HTTPException(status_code=400, detail="Image is still too large after compression")
+    return data_url
+
+
+@api_router.post("/account/picture")
+async def upload_account_picture(
+    file: UploadFile = File(...),
+    user=Depends(get_user),
+):
+    """Upload or replace the current user's profile picture."""
+    data_url = await _branding_data_url(file, max_edge=256)
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"picture": data_url, "picture_customized": True}},
+    )
+    return {"picture": data_url}
+
+
+@api_router.delete("/account/picture")
+async def clear_account_picture(user=Depends(get_user)):
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {"picture": None, "picture_customized": True}},
+    )
+    return {"picture": None}
+
+
+@api_router.post("/company/logo")
+async def upload_company_logo(
+    file: UploadFile = File(...),
+    principal=Depends(require("workspace:edit")),
+):
+    """CEO-only company logo / favicon used in the sidebar and browser tab."""
+    if not dept_access.is_workspace_ceo(principal):
+        raise HTTPException(status_code=403, detail="Only the CEO can upload the company logo")
+    data_url = await _branding_data_url(file, max_edge=192)
+    await db.workspaces.update_one(
+        {"workspace_id": principal["workspace_id"]},
+        {"$set": {"logo_url": data_url}},
+    )
+    return {"logo_url": data_url}
+
+
+@api_router.delete("/company/logo")
+async def clear_company_logo(principal=Depends(require("workspace:edit"))):
+    if not dept_access.is_workspace_ceo(principal):
+        raise HTTPException(status_code=403, detail="Only the CEO can remove the company logo")
+    await db.workspaces.update_one(
+        {"workspace_id": principal["workspace_id"]},
+        {"$set": {"logo_url": None}},
+    )
+    return {"logo_url": None}
 
 
 @api_router.delete("/account")
@@ -15536,7 +15765,7 @@ async def health():
 
 @api_router.get("/")
 async def root():
-    return {"service": "Trenston CEO Operating System"}
+    return {"service": "Trenston CEO & Founder Operating System"}
 
 
 _serve_static = should_serve_static()
@@ -15546,7 +15775,7 @@ if not _serve_static:
     async def api_root():
         """Friendly response when someone opens the Render host directly (API-only)."""
         return {
-            "service": "Trenston CEO Operating System API",
+            "service": "Trenston CEO & Founder Operating System API",
             "message": "This URL is the API backend. Open your Vercel app to use Trenston.",
             "health": "/api/health",
             "auth": "/api/auth/config",

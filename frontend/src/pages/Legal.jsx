@@ -10,6 +10,7 @@ import {
 } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
+import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 
 const STATUS_META = {
   draft: { label: "Draft", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -137,6 +138,11 @@ export default function Legal() {
   const isAssignee = selected && selected.assigned_to === myId;
   const canEdit = Boolean(selected && (isLead || isAssignee));
   const statusOptions = isLead ? LEAD_STATUSES : ["draft", "internal_review"];
+  const createAssigneeOptions = buildAssigneeOptions(workspaceMembers, myId, { selfUsesId: false });
+  const editAssigneeOptions = buildAssigneeOptions(workspaceMembers, myId, {
+    unassigned: true,
+    selfUsesId: true,
+  });
 
   const createMatter = async () => {
     if (!form.title.trim()) {
@@ -508,9 +514,8 @@ export default function Legal() {
                 onChange={(e) => setDraft((d) => ({ ...d, assigned_to: e.target.value }))}
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-50"
               >
-                <option value="">Unassigned</option>
-                {workspaceMembers.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                {editAssigneeOptions.map((o) => (
+                  <option key={o.user_id || `u-${o.label}`} value={o.value}>{o.label}</option>
                 ))}
               </select>
               {!isLead && (
@@ -728,9 +733,8 @@ export default function Legal() {
                 onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
               >
-                <option value="">Me (default)</option>
-                {workspaceMembers.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                {createAssigneeOptions.map((o) => (
+                  <option key={o.user_id || o.value || o.label} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </label>

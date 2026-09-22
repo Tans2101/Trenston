@@ -43,7 +43,7 @@ export default function Decisions() {
   const canAct = data.can_act;
   const suggestions = data.suggestions || [];
   const decisions = data.decisions || [];
-  const { selfMember, delegateMembers, selfLabel } = buildDelegateOptions(membersData);
+  const { selfMember, delegateMembers, selfLabel, selfOptionLabel } = buildDelegateOptions(membersData);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm()); setShowForm(true); };
   const openEdit = (d) => {
@@ -159,6 +159,7 @@ export default function Decisions() {
                   delegateMembers={delegateMembers}
                   selfMember={selfMember}
                   selfLabel={selfLabel}
+                  selfOptionLabel={selfOptionLabel}
                   onEdit={openEdit}
                   onDelete={del}
                 />

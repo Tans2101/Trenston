@@ -66,8 +66,11 @@ export function buildDelegateOptions(membersData) {
     seenUsers.add(key);
     delegateMembers.push(m);
   }
-  const selfLabel = selfMember?.name || selfMember?.email || "Myself";
-  return { selfMember, delegateMembers, selfLabel };
+  const selfName = selfMember?.name || selfMember?.email || "Myself";
+  // Stored owner value stays the real name/email so existing decisions keep matching.
+  const selfLabel = selfName;
+  const selfOptionLabel = selfName && selfName !== "Myself" ? `Me – ${selfName}` : "Me";
+  return { selfMember, delegateMembers, selfLabel, selfOptionLabel };
 }
 
 /** True when owner label is the current user (Myself / name / email). */

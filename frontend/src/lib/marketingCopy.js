@@ -1,7 +1,7 @@
 /** Shared marketing copy — keep Landing, About, Features, and auth pages aligned. */
 
 export const TAGLINE = "Run the business. Don't chase it.";
-export const CATEGORY = "CEO Operating System";
+export const CATEGORY = "CEO & Founder Operating System";
 export const AUDIENCE = "Built for founders and owners running real operations — however lean the team.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
@@ -35,7 +35,7 @@ export const ABOUT_DIFFERENTIATOR =
   "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the morning picture is company-wide, not one lane at a time.";
 
 export const ABOUT_STORY =
-  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is a CEO operating system — Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales — synthesized into what needs the owner's attention.";
+  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is a CEO & founder operating system — Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales — synthesized into what needs the owner's attention.";
 
 export const VALUES = [
   {

@@ -6,6 +6,7 @@ import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 
 const priorityStyle = {
   High: "text-helm-status-negative bg-helm-status-negative/12",
@@ -56,10 +57,9 @@ export default function Tasks() {
 
   const canCreate = data.can_create;
   const canAssign = data.can_assign;
-  // Exclude self — "Myself" is already the empty default option
-  const assignableMembers = (membersData?.members || []).filter(
-    (m) => m.user_id && m.status === "active" && !m.is_self && m.user_id !== data.my_user_id,
-  );
+  const taskAssigneeOptions = buildAssigneeOptions(membersData?.members || [], data.my_user_id, {
+    selfUsesId: false,
+  });
 
   const move = async (taskId, column) => {
     let snapshot = null;
@@ -241,8 +241,9 @@ export default function Tasks() {
               {canAssign && (
                 <label className="text-xs text-helm-muted col-span-2">Assign to
                   <select data-testid="task-assignee" value={form.assignee_user_id} onChange={(e) => setForm((f) => ({ ...f, assignee_user_id: e.target.value }))} className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40">
-                    <option value="">Myself</option>
-                    {assignableMembers.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>)}
+                    {taskAssigneeOptions.map((o) => (
+                      <option key={o.user_id || `task-${o.label}`} value={o.value}>{o.label}</option>
+                    ))}
                   </select>
                 </label>
               )}

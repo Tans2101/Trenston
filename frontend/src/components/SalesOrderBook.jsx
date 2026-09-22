@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
+import CirEditBtn from "@/components/CirEditBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ErrorScreen } from "@/components/kit";
-import { cn } from "@/lib/utils";
 
 const money = (n) => {
   const v = Number(n) || 0;
@@ -25,6 +25,28 @@ const emptyEntry = () => ({
   notes: "",
 });
 
+/** Next 18 months as YYYY-MM options for the expected-closing picker. */
+function closingMonthOptions(anchor = new Date()) {
+  const opts = [];
+  const y = anchor.getUTCFullYear();
+  const m = anchor.getUTCMonth(); // 0-based
+  for (let i = -1; i < 17; i += 1) {
+    const d = new Date(Date.UTC(y, m + i, 1));
+    const value = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    const label = d.toLocaleString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
+    opts.push({ value, label });
+  }
+  return opts;
+}
+
+function formatCloseMonth(ym) {
+  if (!ym || String(ym).length < 7) return "—";
+  const [ys, ms] = String(ym).slice(0, 7).split("-");
+  const d = new Date(Date.UTC(Number(ys), Number(ms) - 1, 1));
+  if (Number.isNaN(d.getTime())) return ym;
+  return d.toLocaleString(undefined, { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 /**
  * Sales order book + monthly target panel.
  * Mounted as a tab alongside the existing pipeline board.
@@ -34,9 +56,11 @@ export default function SalesOrderBook() {
   const [filterCountry, setFilterCountry] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyEntry);
   const [busy, setBusy] = useState(false);
   const [targetDraft, setTargetDraft] = useState("");
+  const monthOptions = useMemo(() => closingMonthOptions(), []);
 
   const entries = useMemo(() => data?.entries || [], [data?.entries]);
   const summary = data?.summary || null;
@@ -61,6 +85,17 @@ export default function SalesOrderBook() {
       return true;
     });
   }, [entries, filterCountry, filterStatus]);
+
+  const monthSelectOptions = useMemo(() => {
+    const values = new Set(monthOptions.map((o) => o.value));
+    if (form.expected_close_month && !values.has(form.expected_close_month)) {
+      return [
+        { value: form.expected_close_month, label: formatCloseMonth(form.expected_close_month) },
+        ...monthOptions,
+      ];
+    }
+    return monthOptions;
+  }, [monthOptions, form.expected_close_month]);
 
   if (loading) {
     return <p className="text-sm text-helm-muted">Loading order book…</p>;
@@ -87,6 +122,8 @@ export default function SalesOrderBook() {
     );
   }
 
+  const canMutate = (e) => Boolean(data?.is_lead || data?.is_ceo || e.created_by_user_id === myId);
+
   const saveTarget = async () => {
     const raw = targetDraft.trim();
     if (raw === "") {
@@ -111,7 +148,35 @@ export default function SalesOrderBook() {
     }
   };
 
-  const createEntry = async () => {
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(emptyEntry());
+    setAdding(true);
+  };
+
+  const openEdit = (entry) => {
+    setEditingId(entry.id);
+    setForm({
+      buyer_name: entry.buyer_name || "",
+      country: entry.country || "",
+      product: entry.product || "",
+      price: entry.price != null ? String(entry.price) : "",
+      quantity: entry.quantity != null ? String(entry.quantity) : "",
+      status: entry.status || "expected",
+      expected_close_month: entry.expected_close_month || "",
+      notes: entry.notes || "",
+    });
+    setAdding(true);
+  };
+
+  const closeForm = () => {
+    if (busy) return;
+    setAdding(false);
+    setEditingId(null);
+    setForm(emptyEntry());
+  };
+
+  const saveEntry = async () => {
     if (!form.buyer_name.trim() || !form.country.trim() || !form.product.trim()) {
       toast.error("Buyer, country, and product are required");
       return;
@@ -122,24 +187,29 @@ export default function SalesOrderBook() {
       toast.error("Enter a valid price and quantity");
       return;
     }
+    const payload = {
+      buyer_name: form.buyer_name.trim(),
+      country: form.country.trim(),
+      product: form.product.trim(),
+      price,
+      quantity,
+      status: form.status,
+      expected_close_month: form.expected_close_month.trim(),
+      notes: form.notes.trim(),
+    };
     setBusy(true);
     try {
-      await api.post("/sales/order-book", {
-        buyer_name: form.buyer_name.trim(),
-        country: form.country.trim(),
-        product: form.product.trim(),
-        price,
-        quantity,
-        status: form.status,
-        expected_close_month: form.expected_close_month.trim(),
-        notes: form.notes.trim(),
-      });
-      toast.success("Order book line added");
-      setForm(emptyEntry());
-      setAdding(false);
+      if (editingId) {
+        await api.patch(`/sales/order-book/${editingId}`, payload);
+        toast.success("Order book line updated");
+      } else {
+        await api.post("/sales/order-book", payload);
+        toast.success("Order book line added");
+      }
+      closeForm();
       await reload();
     } catch (e) {
-      toast.error(apiErrorMessage(e, "Could not create entry"));
+      toast.error(apiErrorMessage(e, editingId ? "Could not update entry" : "Could not create entry"));
     } finally {
       setBusy(false);
     }
@@ -249,7 +319,7 @@ export default function SalesOrderBook() {
         <button
           type="button"
           data-testid="add-order-book-btn"
-          onClick={() => setAdding(true)}
+          onClick={openCreate}
           className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 hover:bg-helm-gold-hover"
         >
           <Plus className="w-4 h-4" /> Add line
@@ -270,7 +340,7 @@ export default function SalesOrderBook() {
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Month</th>
+                <th className="px-3 py-2">Expected close</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -284,15 +354,23 @@ export default function SalesOrderBook() {
                   <td className="px-3 py-2 font-mono text-xs">{e.quantity}</td>
                   <td className="px-3 py-2 font-mono text-xs text-helm-fg">{money(e.total_value)}</td>
                   <td className="px-3 py-2 text-xs capitalize text-helm-muted">{(e.status || "").replace(/_/g, " ")}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-helm-muted">{e.expected_close_month || "—"}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-helm-muted">{formatCloseMonth(e.expected_close_month)}</td>
                   <td className="px-3 py-2">
-                    {(data?.is_lead || data?.is_ceo || e.created_by_user_id === myId) && (
-                      <CirDeleteBtn
-                        disabled={busy}
-                        onClick={() => deleteEntry(e.id)}
-                        title="Delete entry"
-                        data-testid={`delete-order-book-${e.id}`}
-                      />
+                    {canMutate(e) && (
+                      <div className="inline-flex items-center gap-1.5">
+                        <CirEditBtn
+                          disabled={busy}
+                          onClick={() => openEdit(e)}
+                          title="Edit entry"
+                          data-testid={`edit-order-book-${e.id}`}
+                        />
+                        <CirDeleteBtn
+                          disabled={busy}
+                          onClick={() => deleteEntry(e.id)}
+                          title="Delete entry"
+                          data-testid={`delete-order-book-${e.id}`}
+                        />
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -331,11 +409,11 @@ export default function SalesOrderBook() {
 
       {adding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAdding(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3">
+          <div className="absolute inset-0 bg-helm-ink/70" onClick={closeForm} />
+          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="order-book-form">
             <div className="flex justify-between items-center">
-              <p className="text-sm font-medium text-helm-fg">New order book line</p>
-              <button type="button" onClick={() => setAdding(false)} className="text-helm-muted"><X className="w-4 h-4" /></button>
+              <p className="text-sm font-medium text-helm-fg">{editingId ? "Edit order book line" : "New order book line"}</p>
+              <button type="button" onClick={closeForm} className="text-helm-muted"><X className="w-4 h-4" /></button>
             </div>
             {[
               ["buyer_name", "Buyer"],
@@ -372,12 +450,22 @@ export default function SalesOrderBook() {
                 </select>
               </label>
               <label className="block space-y-1">
-                <span className="text-[10px] font-mono uppercase text-helm-muted">Close month</span>
-                <input data-testid="ob-month" type="month" value={form.expected_close_month} onChange={(e) => setForm((f) => ({ ...f, expected_close_month: e.target.value }))} className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg" />
+                <span className="text-[10px] font-mono uppercase text-helm-muted">Expected closing month</span>
+                <select
+                  data-testid="ob-month"
+                  value={form.expected_close_month}
+                  onChange={(e) => setForm((f) => ({ ...f, expected_close_month: e.target.value }))}
+                  className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
+                >
+                  <option value="">Select month…</option>
+                  {monthSelectOptions.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
               </label>
             </div>
-            <button type="button" disabled={busy} data-testid="ob-submit" onClick={createEntry} className="w-full rounded-md bg-helm-gold text-helm-navy font-medium text-sm py-2 hover:bg-helm-gold-hover disabled:opacity-50">
-              Save line
+            <button type="button" disabled={busy} data-testid="ob-submit" onClick={saveEntry} className="w-full rounded-md bg-helm-gold text-helm-navy font-medium text-sm py-2 hover:bg-helm-gold-hover disabled:opacity-50">
+              {editingId ? "Save changes" : "Save line"}
             </button>
           </div>
         </div>

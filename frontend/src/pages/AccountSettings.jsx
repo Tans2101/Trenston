@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2 } from "lucide-react";
+import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2, Eraser, UserRound, ImageIcon } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useFetch, blobErrorDetail } from "@/hooks/useFetch";
+import { blobErrorDetail } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { PageHeader, GlassCard } from "@/components/kit";
 import DangerConfirmCard from "@/components/DangerConfirmCard";
@@ -14,7 +14,7 @@ import InviteCeoCard from "@/components/InviteCeoCard";
 import { useTheme } from "@/context/ThemeContext";
 import SwitchButton from "@/components/kokonutui/switch-button";
 import { cn } from "@/lib/utils";
-import { canManageBilling } from "@/lib/access";
+import { canManageBilling, hasPerm } from "@/lib/access";
 
 export default function AccountSettings() {
   const { user, setUser, logout } = useAuth();
@@ -23,13 +23,19 @@ export default function AccountSettings() {
   const { data: company, reload: reloadCompany } = useCompanyQuery();
   const isOwner = user?.role === "owner" || user?.pack === "owner";
   const canBilling = canManageBilling(user);
+  const canClearSample = hasPerm(user, "workspace:edit");
   const canExportActivity = isOwner || (user?.perms || []).includes("members:manage");
   const [busy, setBusy] = useState(null);
   const [companyName, setCompanyName] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [confirmAccount, setConfirmAccount] = useState("");
   const [confirmWorkspace, setConfirmWorkspace] = useState("");
+  const [confirmClearSample, setConfirmClearSample] = useState("");
   const [showAccountConfirm, setShowAccountConfirm] = useState(false);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
+  const [showClearSampleConfirm, setShowClearSampleConfirm] = useState(false);
+  const pictureInputRef = useRef(null);
+  const logoInputRef = useRef(null);
   const [actStart, setActStart] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -40,6 +46,10 @@ export default function AccountSettings() {
   useEffect(() => {
     setCompanyName(company?.name || "");
   }, [company?.name]);
+
+  useEffect(() => {
+    setDisplayName((user?.name || "").trim());
+  }, [user?.name]);
 
   useEffect(() => {
     const hash = location.hash?.replace(/^#/, "");
@@ -75,6 +85,88 @@ export default function AccountSettings() {
       reloadCompany();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not rename company");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const saveDisplayName = async () => {
+    const next = displayName.trim();
+    if (!next) {
+      toast.error("Display name is required");
+      return;
+    }
+    if (next === (user?.name || "").trim()) {
+      toast.message("Name is unchanged");
+      return;
+    }
+    setBusy("display-name");
+    try {
+      const { data } = await api.patch("/account/profile", { name: next });
+      setUser((u) => (u ? { ...u, name: data?.name || next } : u));
+      toast.success("Display name updated");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not update display name");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const uploadPicture = async (file) => {
+    if (!file) return;
+    setBusy("picture");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const { data } = await api.post("/account/picture", body);
+      setUser((u) => (u ? { ...u, picture: data?.picture || null } : u));
+      toast.success("Profile picture updated");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not upload picture");
+    } finally {
+      setBusy(null);
+      if (pictureInputRef.current) pictureInputRef.current.value = "";
+    }
+  };
+
+  const clearPicture = async () => {
+    setBusy("picture");
+    try {
+      await api.delete("/account/picture");
+      setUser((u) => (u ? { ...u, picture: null } : u));
+      toast.success("Profile picture removed");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not remove picture");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const uploadLogo = async (file) => {
+    if (!file) return;
+    setBusy("logo");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      await api.post("/company/logo", body);
+      toast.success("Company logo updated");
+      reloadCompany();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not upload logo");
+    } finally {
+      setBusy(null);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  const clearLogo = async () => {
+    setBusy("logo");
+    try {
+      await api.delete("/company/logo");
+      toast.success("Company logo removed");
+      reloadCompany();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not remove logo");
     } finally {
       setBusy(null);
     }
@@ -137,6 +229,40 @@ export default function AccountSettings() {
   const cancelWorkspaceConfirm = () => {
     setShowWorkspaceConfirm(false);
     setConfirmWorkspace("");
+  };
+
+  const cancelClearSampleConfirm = () => {
+    setShowClearSampleConfirm(false);
+    setConfirmClearSample("");
+  };
+
+  const clearSampleData = async () => {
+    if (!showClearSampleConfirm) {
+      setShowClearSampleConfirm(true);
+      return;
+    }
+    if (confirmClearSample.trim().toLowerCase() !== "start fresh") {
+      toast.error('Type "start fresh" to confirm');
+      return;
+    }
+    setBusy("clear-sample");
+    try {
+      await api.post("/workspace/clear-sample");
+      toast.success("Sample data removed. You're starting fresh.");
+      try {
+        window.localStorage.removeItem(`helm-sample-banner-${company?.workspace_id || ""}`);
+      } catch {
+        // ignore
+      }
+      reloadCompany();
+      setShowClearSampleConfirm(false);
+      setConfirmClearSample("");
+      window.location.href = "/app";
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not remove sample data");
+      setBusy(null);
+      setConfirmClearSample("");
+    }
   };
 
   const deleteAccount = async () => {
@@ -276,6 +402,76 @@ export default function AccountSettings() {
         )}
       </GlassCard>
 
+      <GlassCard id="profile" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="profile-settings-card">
+        <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
+          <UserRound className="w-4 h-4" />
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Your profile</span>
+        </div>
+        <p className="text-sm text-helm-muted mb-4 leading-relaxed">
+          Display name and photo shown in the sidebar, assignee pickers, and across the cockpit.
+        </p>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="h-14 w-14 rounded-full border border-helm-line bg-helm-fg/[0.04] overflow-hidden flex items-center justify-center shrink-0">
+            {user?.picture ? (
+              <img src={user.picture} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <UserRound className="w-6 h-6 text-helm-muted" />
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              ref={pictureInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              data-testid="profile-picture-input"
+              onChange={(e) => uploadPicture(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              data-testid="profile-picture-upload"
+              disabled={!!busy}
+              onClick={() => pictureInputRef.current?.click()}
+              className="rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+            >
+              {busy === "picture" ? "Uploading…" : "Upload photo"}
+            </button>
+            {user?.picture && (
+              <button
+                type="button"
+                data-testid="profile-picture-clear"
+                disabled={!!busy}
+                onClick={clearPicture}
+                className="rounded-md border border-helm-line text-helm-muted text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+        <label className="block text-xs text-helm-muted mb-1">Display name</label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            data-testid="display-name-input"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && saveDisplayName()}
+            maxLength={120}
+            className="flex-1 rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/40"
+            placeholder="Your name"
+          />
+          <button
+            type="button"
+            data-testid="display-name-save"
+            onClick={saveDisplayName}
+            disabled={busy === "display-name"}
+            className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
+          >
+            {busy === "display-name" ? "Saving…" : "Save name"}
+          </button>
+        </div>
+      </GlassCard>
+
       {isOwner && (
         <GlassCard id="company-name" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="company-rename-card">
           <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
@@ -304,6 +500,57 @@ export default function AccountSettings() {
             >
               {busy === "rename" ? "Saving…" : "Save name"}
             </button>
+          </div>
+        </GlassCard>
+      )}
+
+      {isOwner && (
+        <GlassCard id="company-logo" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="company-logo-card">
+          <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
+            <ImageIcon className="w-4 h-4" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Company logo</span>
+          </div>
+          <p className="text-sm text-helm-muted mb-4 leading-relaxed">
+            CEO only. Shows in the sidebar brand mark and as the browser tab icon for this workspace.
+          </p>
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-md border border-helm-line bg-helm-fg/[0.04] overflow-hidden flex items-center justify-center shrink-0">
+              {company?.logo_url ? (
+                <img src={company.logo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Building2 className="w-6 h-6 text-helm-muted" />
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                data-testid="company-logo-input"
+                onChange={(e) => uploadLogo(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                data-testid="company-logo-upload"
+                disabled={!!busy}
+                onClick={() => logoInputRef.current?.click()}
+                className="rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+              >
+                {busy === "logo" ? "Uploading…" : "Upload logo"}
+              </button>
+              {company?.logo_url && (
+                <button
+                  type="button"
+                  data-testid="company-logo-clear"
+                  disabled={!!busy}
+                  onClick={clearLogo}
+                  className="rounded-md border border-helm-line text-helm-muted text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
           </div>
         </GlassCard>
       )}
@@ -386,53 +633,116 @@ export default function AccountSettings() {
         </GlassCard>
       )}
 
-      <DangerConfirmCard
-        id="delete-account"
-        className="mb-4 fade-up"
-        title="Delete account"
-        message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
-        confirmLabel="Delete"
-        confirmingLabel="Delete"
-        icon="alert"
-        showConfirm={showAccountConfirm}
-        confirmHint={user?.email}
-        confirmValue={confirmAccount}
-        onConfirmValueChange={setConfirmAccount}
-        confirmPlaceholder={user?.email}
-        busy={busy === "account"}
-        disabled={Boolean(busy) && busy !== "account"}
-        busyLabel="Deleting…"
-        onAction={deleteAccount}
-        onCancel={cancelAccountConfirm}
-        actionTestId="delete-account-btn"
-        cancelTestId="cancel-delete-account-btn"
-        inputTestId="confirm-account-input"
-      />
+      {canClearSample && company?.template === "sample" && (
+        <GlassCard id="clear-sample" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="clear-sample-card">
+          <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
+            <Eraser className="w-4 h-4" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Sample data</span>
+          </div>
+          <p className="text-sm text-helm-muted mb-4 leading-relaxed">
+            You&apos;re exploring with Northwind Robotics sample data. Remove it to start fresh with your own numbers —
+            billing, integrations, and company profile stay intact.
+          </p>
+          {!showClearSampleConfirm ? (
+            <button
+              type="button"
+              data-testid="clear-sample-btn"
+              onClick={clearSampleData}
+              disabled={!!busy}
+              className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
+            >
+              Remove sample data
+            </button>
+          ) : (
+            <div className="space-y-3" data-testid="clear-sample-confirm">
+              <p className="text-sm text-helm-fg leading-relaxed">
+                This deletes sample financials, decisions, tasks, people, and reports. Type{" "}
+                <span className="font-mono text-helm-gold">start fresh</span> to confirm.
+              </p>
+              <input
+                data-testid="confirm-clear-sample-input"
+                value={confirmClearSample}
+                onChange={(e) => setConfirmClearSample(e.target.value)}
+                placeholder="start fresh"
+                className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-testid="confirm-clear-sample-btn"
+                  onClick={clearSampleData}
+                  disabled={busy === "clear-sample"}
+                  className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
+                >
+                  {busy === "clear-sample" ? "Removing…" : "Start fresh"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="cancel-clear-sample-btn"
+                  onClick={cancelClearSampleConfirm}
+                  disabled={busy === "clear-sample"}
+                  className="rounded-md border border-helm-line text-helm-muted text-sm px-4 py-2.5 hover:bg-helm-fg/5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </GlassCard>
+      )}
 
-      {isOwner && (
+      <div
+        className={cn("grid gap-4 mb-4", isOwner && "md:grid-cols-2")}
+        data-testid="danger-zone-row"
+      >
         <DangerConfirmCard
-          id="delete-workspace"
-          className="fade-up"
-          title="Delete workspace"
-          message="Are you sure you want to delete this workspace? All company data for every member will be permanently removed. This action cannot be undone."
+          id="delete-account"
+          className="fade-up h-full"
+          title="Delete account"
+          message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
           confirmLabel="Delete"
           confirmingLabel="Delete"
           icon="alert"
-          showConfirm={showWorkspaceConfirm}
-          confirmHint={workspaceConfirm || undefined}
-          confirmValue={confirmWorkspace}
-          onConfirmValueChange={setConfirmWorkspace}
-          confirmPlaceholder={company?.name || ""}
-          busy={busy === "workspace"}
-          disabled={Boolean(busy) && busy !== "workspace"}
+          showConfirm={showAccountConfirm}
+          confirmHint={user?.email}
+          confirmValue={confirmAccount}
+          onConfirmValueChange={setConfirmAccount}
+          confirmPlaceholder={user?.email}
+          busy={busy === "account"}
+          disabled={Boolean(busy) && busy !== "account"}
           busyLabel="Deleting…"
-          onAction={deleteWorkspace}
-          onCancel={cancelWorkspaceConfirm}
-          actionTestId="delete-workspace-btn"
-          cancelTestId="cancel-delete-workspace-btn"
-          inputTestId="confirm-workspace-input"
+          onAction={deleteAccount}
+          onCancel={cancelAccountConfirm}
+          actionTestId="delete-account-btn"
+          cancelTestId="cancel-delete-account-btn"
+          inputTestId="confirm-account-input"
         />
-      )}
+
+        {isOwner && (
+          <DangerConfirmCard
+            id="delete-workspace"
+            className="fade-up h-full"
+            title="Delete workspace"
+            message="Are you sure you want to delete this workspace? All company data for every member will be permanently removed. This action cannot be undone."
+            confirmLabel="Delete"
+            confirmingLabel="Delete"
+            icon="alert"
+            showConfirm={showWorkspaceConfirm}
+            confirmHint={workspaceConfirm || undefined}
+            confirmValue={confirmWorkspace}
+            onConfirmValueChange={setConfirmWorkspace}
+            confirmPlaceholder={company?.name || ""}
+            busy={busy === "workspace"}
+            disabled={Boolean(busy) && busy !== "workspace"}
+            busyLabel="Deleting…"
+            onAction={deleteWorkspace}
+            onCancel={cancelWorkspaceConfirm}
+            actionTestId="delete-workspace-btn"
+            cancelTestId="cancel-delete-workspace-btn"
+            inputTestId="confirm-workspace-input"
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -104,6 +104,18 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
         </p>
       )}
 
+      {isGoogle && !it.connected && !isComingSoon && !isUnavailable && (
+        <p
+          className="text-xs text-helm-muted mt-3 leading-relaxed rounded-md border border-helm-line bg-helm-fg/[0.02] px-3 py-2"
+          data-testid={`${it.id}-unverified-hint`}
+        >
+          Google may show <span className="text-helm-fg">“Google hasn&apos;t verified this app.”</span>{" "}
+          That&apos;s expected while Trenston finishes Google&apos;s review. Click{" "}
+          <span className="text-helm-fg">Advanced</span>, then{" "}
+          <span className="text-helm-fg">Go to Trenston (unsafe)</span> to continue — your connection is still encrypted.
+        </p>
+      )}
+
       {it.needs_reconsent && it.connected && canAct && (
         <button
           type="button"
@@ -416,6 +428,11 @@ export default function Integrations() {
           {connectedCount > 0 && (
             <span className="text-helm-status-positive/90"> {connectedCount} connected.</span>
           )}
+        </p>
+        <p className="text-xs text-helm-muted mt-3 leading-relaxed" data-testid="google-unverified-page-hint">
+          Connecting Google may show <span className="text-helm-fg">“Google hasn&apos;t verified this app.”</span>{" "}
+          Click <span className="text-helm-fg">Advanced</span>, then{" "}
+          <span className="text-helm-fg">Go to Trenston (unsafe)</span> — expected until Google finishes reviewing Trenston.
         </p>
       </GlassCard>
 

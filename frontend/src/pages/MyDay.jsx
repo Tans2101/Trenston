@@ -87,7 +87,7 @@ export default function MyDay() {
   const hasPosted = !!mine?.update;
   const notes = notesData.notes || [];
   const suggestions = decisionsData?.suggestions || [];
-  const { selfMember, delegateMembers, selfLabel } = buildDelegateOptions(membersData);
+  const { selfMember, delegateMembers, selfLabel, selfOptionLabel } = buildDelegateOptions(membersData);
   const pendingDecisions = (decisionsData?.decisions || []).filter((d) => isOpenDecision(d, selfLabel));
   const needsCallEmpty = suggestions.length === 0 && pendingDecisions.length === 0;
   const workItems = workData?.items || [];
@@ -213,6 +213,7 @@ export default function MyDay() {
                   delegateMembers={delegateMembers}
                   selfMember={selfMember}
                   selfLabel={selfLabel}
+                  selfOptionLabel={selfOptionLabel}
                 />
               ))}
             </div>

@@ -311,10 +311,37 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
     return () => window.removeEventListener("keydown", onKey);
   }, [enableNavShortcuts, mainNav, navigate]);
 
+  useEffect(() => {
+    const logo = company?.logo_url;
+    if (!logo) return undefined;
+    const existing = document.querySelector("link[rel='icon'][data-company-favicon='1']");
+    const link = existing || document.createElement("link");
+    link.setAttribute("rel", "icon");
+    link.setAttribute("data-company-favicon", "1");
+    link.setAttribute("href", logo);
+    if (!existing) document.head.appendChild(link);
+    return () => {
+      link.remove();
+    };
+  }, [company?.logo_url]);
+
+  const brandMark = company?.logo_url ? (
+    <img
+      src={company.logo_url}
+      alt=""
+      width={28}
+      height={28}
+      className="rounded-md shrink-0 object-cover"
+      data-testid="sidebar-company-logo"
+    />
+  ) : (
+    <TrenstonMark size={28} className="rounded-md" />
+  );
+
   return (
     <div className="cir-rail" data-testid="app-sidebar-rail">
       <div className="flex items-center gap-2.5 px-3 pt-2 pb-2" data-testid="sidebar-brand">
-        <TrenstonMark size={28} className="rounded-md" />
+        {brandMark}
         <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--cir-ink)" }}>
           Trenston
         </span>
@@ -689,7 +716,11 @@ export default function AppLayout() {
       {/* Mobile top bar */}
       <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line">
         <div className="flex items-center gap-2">
-          <TrenstonMark size={28} className="rounded-md" />
+          {company?.logo_url ? (
+            <img src={company.logo_url} alt="" width={28} height={28} className="rounded-md object-cover" />
+          ) : (
+            <TrenstonMark size={28} className="rounded-md" />
+          )}
           <span className="text-helm-fg font-semibold text-sm">Trenston</span>
         </div>
         <div className="flex items-center gap-1">

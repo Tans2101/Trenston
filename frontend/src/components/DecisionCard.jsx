@@ -40,6 +40,7 @@ export default function DecisionCard({
   delegateMembers = [],
   selfMember,
   selfLabel,
+  selfOptionLabel,
   onEdit,
   onDelete,
 }) {
@@ -116,7 +117,7 @@ export default function DecisionCard({
               <select data-testid={`delegate-${d.id}`} disabled={busy === d.id} defaultValue="" onChange={(e) => e.target.value && onDelegate(d.id, e.target.value)} className="flex-1 rounded-md border border-helm-line text-helm-fg text-sm py-2 px-2 bg-helm-card transition-colors hover:bg-helm-fg/5 focus:outline-none focus:border-helm-gold/40 disabled:opacity-50">
                 <option value="">Delegate to…</option>
                 {selfMember && (
-                  <option value={selfLabel}>Myself</option>
+                  <option value={selfLabel}>{selfOptionLabel || (selfLabel ? `Me – ${selfLabel}` : "Me")}</option>
                 )}
                 {delegateMembers.map((m) => (
                   <option key={m.membership_id} value={m.name || m.email}>{m.name || m.email}</option>

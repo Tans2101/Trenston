@@ -1,4 +1,4 @@
-# Trenston — CEO Operating System
+# Trenston — CEO & Founder Operating System
 
 Trenston is a multi-tenant executive cockpit: morning briefing, decisions, financials, pipeline, team pulse, and Ask Trenston AI.
 

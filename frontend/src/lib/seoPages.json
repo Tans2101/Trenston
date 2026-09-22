@@ -3,13 +3,13 @@
   "ogImage": "https://www.trenston.com/og-share.png",
   "pages": {
     "/": {
-      "title": "Trenston — CEO Operating System",
+      "title": "Trenston — CEO & Founder Operating System",
       "description": "Briefing, decisions, financials, and department lanes in one cockpit. Built for founders and owners running real operations — however lean the team.",
       "ogTitle": "Trenston — Run the business. Don't chase it.",
       "ogDescription": "Briefing, decisions, financials, and department lanes in one cockpit. Built for founders and owners running real operations — however lean the team."
     },
     "/about": {
-      "title": "About Trenston — CEO Operating System",
+      "title": "About Trenston — CEO & Founder Operating System",
       "description": "Why Trenston exists: money, decisions, people, and department work in one cockpit for founders and owners running real operations.",
       "ogTitle": "About Trenston",
       "ogDescription": "Trenston pulls financials, decisions, and day-to-day work into one place so founders and owners see what needs them — not another dashboard to chase."
@@ -18,7 +18,7 @@
       "title": "Features · Trenston",
       "description": "Briefing, Decision Center, Financials, Ask Trenston, and department lanes — the full Trenston cockpit for operators.",
       "ogTitle": "Trenston Features",
-      "ogDescription": "See what Trenston includes: briefing, decisions, runway, Ask Trenston, and department workflows in one CEO operating system."
+      "ogDescription": "See what Trenston includes: briefing, decisions, runway, Ask Trenston, and department workflows in one CEO & founder operating system."
     },
     "/pricing": {
       "title": "Pricing · Trenston",
@@ -36,7 +36,7 @@
       "title": "Help · Trenston",
       "description": "How to get started with Trenston and where to find support.",
       "ogTitle": "Trenston Help",
-      "ogDescription": "Guides and answers for using Trenston, the CEO operating system."
+      "ogDescription": "Guides and answers for using Trenston, the CEO & founder operating system."
     },
     "/security": {
       "title": "Security at Trenston",
@@ -64,7 +64,7 @@
     },
     "/terms": {
       "title": "Terms of Service · Trenston",
-      "description": "Terms governing use of the Trenston CEO operating system.",
+      "description": "Terms governing use of the Trenston CEO & founder operating system.",
       "ogTitle": "Terms of Service · Trenston",
       "ogDescription": "Trenston terms of service."
     },

@@ -183,5 +183,55 @@ def get_presigned_url(key: str, expires_in: int = 900) -> str:
     )
 
 
+def compress_branding_image(
+    file_bytes: bytes,
+    content_type: str,
+    *,
+    max_edge: int = 256,
+    filename: str = "",
+) -> tuple[bytes, str]:
+    """Resize/re-encode an avatar or company logo to a small JPEG/PNG."""
+    ct = _content_type_key(content_type)
+    if ct not in _IMAGE_FORMATS and ct != "image/webp":
+        raise ValueError("unsupported image type")
+    label = filename or "branding"
+    img = None
+    try:
+        img = Image.open(BytesIO(file_bytes))
+        img.load()
+        transposed = ImageOps.exif_transpose(img)
+        if transposed is not None:
+            img = transposed
+        width, height = img.size
+        longest = max(width, height)
+        edge = max(32, int(max_edge))
+        if longest > edge:
+            scale = edge / longest
+            img = img.resize(
+                (max(1, round(width * scale)), max(1, round(height * scale))),
+                Image.Resampling.LANCZOS,
+            )
+        buf = BytesIO()
+        # Prefer JPEG for photos; keep PNG when transparency is present.
+        has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+        if has_alpha:
+            if img.mode != "RGBA":
+                img = img.convert("RGBA")
+            img.save(buf, format="PNG", optimize=True)
+            out_ct = "image/png"
+        else:
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            img.save(buf, format="JPEG", quality=82, optimize=True)
+            out_ct = "image/jpeg"
+        return buf.getvalue(), out_ct
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        logger.warning("branding image rejected for %s: %s", label, type(exc).__name__)
+        raise
+    finally:
+        if img is not None:
+            img.close()
+
+
 def delete_document(key: str) -> None:
     _client().delete_object(Bucket=R2_BUCKET_NAME, Key=key)

@@ -256,6 +256,7 @@ export default function Production() {
   const todaySummary = data?.today_summary || null;
   const overtimeWeek = data?.overtime_week || null;
   const canManageSettings = Boolean(data?.is_lead || data?.is_ceo);
+  const myId = data?.my_user_id;
   const workspaceMembers = (membersData?.members || []).filter(
     (m) => m.user_id && m.status === "active",
   );
@@ -1391,7 +1392,9 @@ export default function Production() {
                       onChange={() => toggleAssignee(m.user_id)}
                       data-testid={`wo-assign-${m.user_id}`}
                     />
-                    <span className="truncate">{m.name || m.email}</span>
+                    <span className="truncate">{m.is_self || m.user_id === myId
+                      ? `Me – ${m.name || m.email || "You"}`
+                      : (m.name || m.email)}</span>
                   </label>
                 );
               })}

@@ -135,6 +135,23 @@ def hr_api():
     mock_db.hr_offboarding_template = off_templates
     mock_db.hr_offboarding_instances = off_instances
     mock_db.users = users
+    memberships = CollStore()
+    for uid, email, name in (
+        ("u_ceo", "ceo@acme.com", "CEO"),
+        ("u_lead", "lead@acme.com", "Lead"),
+        ("u_mem", "mem@acme.com", "Mem"),
+    ):
+        memberships.rows.append({
+            "membership_id": f"mem_{uid}",
+            "workspace_id": "ws_test",
+            "user_id": uid,
+            "email": email,
+            "name": name,
+            "role": "owner" if uid == "u_ceo" else "member",
+            "pack": "owner" if uid == "u_ceo" else "member",
+            "status": "active",
+        })
+    mock_db.memberships = memberships
 
     async def as_ceo():
         return CEO
@@ -281,11 +298,19 @@ def test_completing_onboarding_creates_one_employee(hr_api):
 
     listed = client.get("/api/hr/employees")
     assert listed.status_code == 200
-    assert len(listed.json()["employees"]) == 1
-    assert listed.json()["employees"][0]["name"] == "Ada Lovelace"
+    rows = listed.json()["employees"]
+    names = {e["name"] for e in rows}
+    # Onboarding hire stays listed; Team & Access members are mirrored in too.
+    assert "Ada Lovelace" in names
+    assert len(rows) >= 4
+    onboarded = [e for e in rows if e.get("source_onboarding_instance_id") == inst["id"]]
+    assert len(onboarded) == 1
+    linked = [e for e in rows if e.get("linked_user_id")]
+    assert len(linked) >= 3
 
     filtered = client.get("/api/hr/employees", params={"status": "active"})
-    assert len(filtered.json()["employees"]) == 1
+    assert len(filtered.json()["employees"]) >= 1
+    assert any(e["name"] == "Ada Lovelace" for e in filtered.json()["employees"])
     empty = client.get("/api/hr/employees", params={"status": "departed"})
     assert empty.json()["employees"] == []
 

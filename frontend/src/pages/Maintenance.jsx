@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import MaintenanceOpsPanels from "@/components/MaintenanceOpsPanels";
+import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 
 const STATUS_META = {
   reported: { label: "Reported", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -198,6 +199,10 @@ export default function Maintenance() {
   const isLead = Boolean(data?.is_lead || data?.can_assign);
   const myId = data?.my_user_id;
   const isTech = selected && selected.assigned_technician === myId;
+  const techAssigneeOptions = buildAssigneeOptions(workspaceMembers, myId, {
+    unassigned: true,
+    selfUsesId: true,
+  });
   const canEdit = Boolean(selected && (isLead || isTech));
 
   const createTicket = async () => {
@@ -516,8 +521,8 @@ export default function Maintenance() {
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-50"
               >
                 <option value="">Unassigned</option>
-                {workspaceMembers.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                {techAssigneeOptions.filter((o) => o.value !== "").map((o) => (
+                  <option key={o.user_id || o.label} value={o.value}>{o.label}</option>
                 ))}
               </select>
               {!isLead && (
@@ -667,8 +672,8 @@ export default function Maintenance() {
                   className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
                 >
                   <option value="">Unassigned</option>
-                  {workspaceMembers.map((m) => (
-                    <option key={m.user_id} value={m.user_id}>{m.name || m.email}</option>
+                  {techAssigneeOptions.filter((o) => o.value !== "").map((o) => (
+                    <option key={o.user_id || o.label} value={o.value}>{o.label}</option>
                   ))}
                 </select>
               </label>
