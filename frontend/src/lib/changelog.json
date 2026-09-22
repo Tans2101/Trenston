@@ -2,6 +2,11 @@
   "intro": "What actually shipped — not a roadmap. One summary per day, written by hand in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
     {
+      "date": "2026-09-22",
+      "title": "Briefing polish, light-mode surfaces, and a quieter sidebar",
+      "description": "Briefing charts no longer label every y-axis tick as $0k — small ranges show real dollars, and the current-period bars use brand gold in both themes. Empty finance KPIs and “Not tracked” department cards became actionable add prompts instead of underlined fake links; status dots follow one healthy / attention / alert / empty system with a short legend. Light mode keeps a pure white page canvas while cards sit on a barely-off-white lift so panels separate without cream; Active stays only on the top-bar pill, nav digit shortcuts read as hover hints, and the selected sidebar item uses a soft gold tint instead of a solid white pill. Also shipped the vertical cir-tabs sidebar rail, CirNote toasts for Gmail AI drafts, and clearer delete / danger-confirm patterns across the app."
+    },
+    {
       "date": "2026-09-20",
       "title": "Cockpit redesign, themes, department APIs, and solo founders",
       "description": "The signed-in app got a full command-surface pass: sidebar Ask Trenston CTA and upgrade/connect promo, desktop top bar with search and plan badge, a Briefing cockpit hero (metric switcher, period chart, Assistant / Spending / Decisions), and a two-column Ask Trenston layout with a context rail. Light remaps are scoped so dark mode works again; Briefing charts, gold spend meters, and KPIs stay readable on dark backgrounds. Marketing moved to navy home / cream auth with an Outway-style footer, ember accent, and transparent favicons — plus Tansher Dhawan, Founder in the footer with LinkedIn. Sales order-book, maintenance ops, and procurement settings APIs are wired and tested. Company setup now asks whether you have people you can delegate to: solo workspaces get Flag for later instead of handoffs, and Onboarding drops Invite your finance team. Also fixed People remove after revoke, error toasts blanking Maintenance/Order book, QuickBooks OAuth mislabeled as Google, ⌘K missing pages, and a broader audit on rate limits, sync, and billing."
