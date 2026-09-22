@@ -67,7 +67,7 @@ export default function Unsubscribe() {
             : "Please try again in a moment, or email us and we'll help.";
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy">
+    <div className="min-h-screen bg-helm-bg text-helm-navy">
       <div className="relative z-10 mx-auto max-w-lg px-6 py-16 md:py-24">
         <Link to="/" className="inline-flex items-center gap-2 text-sm text-helm-slate hover:text-helm-navy transition-colors mb-10">
           <TrenstonMark size={24} className="rounded" />

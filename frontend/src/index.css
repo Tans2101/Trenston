@@ -11,7 +11,7 @@
         --helm-ink: theme("colors.helm.ink");
         --helm-ink-card: theme("colors.helm.ink-card");
 
-        /* Dark marketing + default document (marketing stays dark regardless of cockpit theme) */
+        /* Default document = dark canvas. Light mode overrides --helm-bg to #FFFFFF via html[data-theme="light"]. */
         --helm-fg: var(--helm-cream);
         --helm-bg: var(--helm-ink);
         --helm-card: var(--helm-ink-card);
@@ -153,7 +153,7 @@
     font-family: 'Hedvig Letters Sans', 'DM Sans', system-ui, sans-serif;
 }
 
-/* Clerk SignIn/SignUp — light cream auth (do not force ink/cream; that left black voids). */
+/* Clerk SignIn/SignUp — light auth on white canvas (do not force ink shells; that left black voids). */
 .cl-formFieldInput input,
 .cl-formFieldInput input[type="text"],
 .cl-formFieldInput input[type="email"],
@@ -180,12 +180,12 @@ input.cl-otpCodeFieldInput {
   gap: 0.5rem;
 }
 
-/* Kill leftover dark shells Clerk sometimes paints under the form on cream pages. */
+/* Kill leftover dark shells Clerk sometimes paints under the form on white auth pages. */
 .cl-cardBox,
 .cl-card,
 .cl-main,
 .cl-scrollBox {
-  background-color: theme("colors.helm.cream") !important;
+  background-color: #ffffff !important;
   box-shadow: none !important;
 }
 

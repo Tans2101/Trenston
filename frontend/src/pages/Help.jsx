@@ -10,7 +10,7 @@ export default function Help() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
+    <div className="min-h-screen bg-helm-bg text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/help" />
 
       <section className="px-6 pt-36 md:pt-48 pb-20">

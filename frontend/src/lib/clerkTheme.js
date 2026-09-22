@@ -1,14 +1,14 @@
-/** Shared Clerk SignIn/SignUp appearance — cream auth panel (light).
+/** Shared Clerk SignIn/SignUp appearance — white auth panel (theme-aware page canvas).
  *
- * Auth pages are cream/navy. Do not use ink/cream dark tokens here — global
- * dark Clerk CSS used to force cream-on-ink inputs and left black voids under
- * the form. Pill buttons use rounded-full; card radius stays modest.
+ * Auth pages use navy on white (bg-helm-bg). Do not use ink dark tokens here —
+ * global dark Clerk CSS used to force cream-on-ink inputs and left black voids
+ * under the form. Pill buttons use rounded-full; card radius stays modest.
  */
 import palette from "@/design/palette.json";
 
 export const clerkAppearance = {
   variables: {
-    colorBackground: palette.cream,
+    colorBackground: "#ffffff",
     colorInputBackground: "#ffffff",
     colorInputText: palette.navy,
     colorText: palette.navy,
@@ -23,10 +23,10 @@ export const clerkAppearance = {
   },
   elements: {
     rootBox: "w-full",
-    cardBox: "w-full bg-helm-cream shadow-none border-0",
-    card: "w-full bg-helm-cream shadow-none border-0 p-0 gap-4",
-    main: "bg-helm-cream gap-4",
-    scrollBox: "bg-helm-cream",
+    cardBox: "w-full bg-helm-bg shadow-none border-0",
+    card: "w-full bg-helm-bg shadow-none border-0 p-0 gap-4",
+    main: "bg-helm-bg gap-4",
+    scrollBox: "bg-helm-bg",
     header: "hidden",
     headerTitle: "hidden",
     headerSubtitle: "hidden",

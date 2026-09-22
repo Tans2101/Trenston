@@ -684,7 +684,7 @@ export default function CalendarPage() {
       </div>
 
       <div
-        className="flex rounded-xl border border-helm-fg/[0.08] bg-helm-ink overflow-hidden min-h-[560px] lg:min-h-[calc(100vh-12rem)]"
+        className="flex rounded-xl border border-helm-fg/[0.08] bg-helm-bg overflow-hidden min-h-[560px] lg:min-h-[calc(100vh-12rem)]"
         data-testid="calendar-week-layout"
       >
         <aside className="hidden md:flex w-[260px] lg:w-[280px] shrink-0 flex-col border-r border-helm-line bg-helm-bg">

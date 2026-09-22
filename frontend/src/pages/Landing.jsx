@@ -78,11 +78,11 @@ export default function Landing() {
   }, [location.hash, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden relative">
+    <div className="min-h-screen bg-helm-bg text-helm-navy overflow-x-hidden relative">
       <MarketingNav authed={authed} onEnter={enter} active={location.hash === "#pricing" ? "/#pricing" : "/"} />
 
       {/* Hero — flat ink, typography leads */}
-      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-24 bg-helm-cream">
+      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-24 bg-helm-bg">
         <p
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl] rotate-180"
@@ -241,7 +241,7 @@ export default function Landing() {
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true }}
-                className="p-6 md:p-8 flex flex-col bg-helm-cream"
+                className="p-6 md:p-8 flex flex-col bg-helm-bg"
               >
                 {plan.highlighted && <div className="h-px w-8 bg-helm-navy/40 mb-4" aria-hidden />}
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">{plan.label}</p>

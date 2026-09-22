@@ -7,7 +7,7 @@ import { CATEGORY, TAGLINE } from "@/lib/marketingCopy";
  */
 export default function AuthProductShowcase() {
   return (
-    <div className="relative hidden lg:flex flex-col items-center justify-center overflow-hidden bg-helm-cream px-10 py-16">
+    <div className="relative hidden lg:flex flex-col items-center justify-center overflow-hidden bg-helm-bg px-10 py-16">
       <div className="absolute inset-0 bg-helm-navy/[0.03]" aria-hidden />
       <div className="relative z-[1] w-full max-w-md">
         <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate mb-6 text-center">
