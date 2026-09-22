@@ -494,3 +494,141 @@ html[data-theme="dark"] #root {
     to { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* cir-note — Gmail draft / action notification card (Uiverse-style) */
+.cir-note {
+  --cir-cloud: #ffffff;
+  --cir-edge: #e3e8ee;
+  --cir-mist: #5b6472;
+  --cir-ink: #0e1116;
+  --cir-signal: #2e7def;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 16px 16px 16px 18px;
+  background: var(--cir-cloud);
+  border: 1px solid var(--cir-edge);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 1px rgba(14, 17, 22, 0.05),
+    0 24px 48px -24px rgba(14, 17, 22, 0.25);
+  font-family: inherit;
+}
+
+.cir-note__ico {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: #f3f6fa;
+  color: var(--cir-signal);
+}
+
+.cir-note__ico svg {
+  width: 18px;
+  height: 18px;
+}
+
+.cir-note__body {
+  min-width: 0;
+}
+
+.cir-note__t {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--cir-ink);
+}
+
+.cir-note__d {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--cir-mist);
+}
+
+.cir-note__act {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cir-note__btn {
+  height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cir-ink);
+  color: var(--cir-cloud);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cir-note__btn:hover {
+  background: #1a1f28;
+}
+
+.cir-note__close {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--cir-mist);
+  cursor: pointer;
+  transition:
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cir-note__close:hover {
+  background: rgba(14, 17, 22, 0.05);
+  color: var(--cir-ink);
+}
+
+.cir-note__close svg {
+  width: 14px;
+  height: 14px;
+}
+
+html[data-theme="dark"] .cir-note {
+  --cir-cloud: #121214;
+  --cir-edge: color-mix(in srgb, #f5f0e6 16%, transparent);
+  --cir-mist: #8b93a1;
+  --cir-ink: #f5f0e6;
+  --cir-signal: #6ea8f0;
+}
+
+html[data-theme="dark"] .cir-note__ico {
+  background: color-mix(in srgb, #f5f0e6 8%, #121214);
+}
+
+html[data-theme="dark"] .cir-note__btn {
+  color: #09090b;
+}
+
+html[data-theme="dark"] .cir-note__btn:hover {
+  background: #ffffff;
+}
+
+html[data-theme="dark"] .cir-note__close:hover {
+  background: rgba(245, 240, 230, 0.08);
+}
+
+/* Sonner wrapper for unstyled cir-note toasts */
+[data-sonner-toast].cir-note-toast,
+[data-sonner-toast]:has(.cir-note) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}

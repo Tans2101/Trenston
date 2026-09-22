@@ -14,6 +14,7 @@ import { dayPartGreeting } from "@/lib/greeting";
 import BentoGrid from "@/components/kokonutui/bento-grid";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import BriefingCockpitHero from "@/components/BriefingCockpitHero";
+import { toastGmailDraftNote } from "@/components/CirNote";
 
 const toneDot = { positive: "bg-helm-status-positive", negative: "bg-helm-status-negative", neutral: "bg-helm-muted" };
 
@@ -396,8 +397,11 @@ export default function Briefing() {
                             subject: t.subject || "",
                             snippet: t.snippet || "",
                           });
-                          if (res?.url) window.open(res.url, "_blank", "noopener,noreferrer");
-                          toast.success("Opened a Gmail draft. Trenston did not send it");
+                          toastGmailDraftNote({
+                            recipient: t.sender || t.sender_email,
+                            url: res?.url,
+                            subject: t.subject,
+                          });
                         } catch (e) {
                           toast.error(e?.response?.data?.detail || "Reconnect Google to create drafts");
                         }
