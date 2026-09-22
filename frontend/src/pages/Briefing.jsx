@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X } from "lucide-react";
+import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useAuth } from "@/context/AuthContext";
@@ -42,7 +42,23 @@ export default function Briefing() {
   const [delegateBusy, setDelegateBusy] = useState(null);
   const [dismissBusy, setDismissBusy] = useState(false);
   const [integDismissBusy, setIntegDismissBusy] = useState(false);
+  const [sampleBannerDismissed, setSampleBannerDismissed] = useState(false);
+  const [clearSampleBusy, setClearSampleBusy] = useState(false);
   const navigate = useNavigate();
+
+  const canClearSample = hasPerm(user, "workspace:edit");
+  const sampleBannerKey = company?.workspace_id
+    ? `helm-sample-banner-${company.workspace_id}`
+    : null;
+
+  useEffect(() => {
+    if (!sampleBannerKey) return;
+    try {
+      setSampleBannerDismissed(window.localStorage.getItem(sampleBannerKey) === "1");
+    } catch {
+      setSampleBannerDismissed(false);
+    }
+  }, [sampleBannerKey]);
 
   const loading = briefingLoading || companyLoading;
   const error = briefingError || companyError;
@@ -150,6 +166,39 @@ export default function Briefing() {
     }
   };
 
+  const dismissSampleBanner = () => {
+    setSampleBannerDismissed(true);
+    if (!sampleBannerKey) return;
+    try {
+      window.localStorage.setItem(sampleBannerKey, "1");
+    } catch {
+      // Banner stays hidden for this session only.
+    }
+  };
+
+  const clearSampleFromHome = async () => {
+    if (clearSampleBusy || !canClearSample) return;
+    if (!window.confirm("Remove all sample data and start fresh? Billing and integrations stay connected.")) {
+      return;
+    }
+    setClearSampleBusy(true);
+    try {
+      await api.post("/workspace/clear-sample");
+      toast.success("Sample data removed. You're starting fresh.");
+      if (sampleBannerKey) {
+        try {
+          window.localStorage.removeItem(sampleBannerKey);
+        } catch {
+          // ignore
+        }
+      }
+      window.location.href = "/app";
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not remove sample data");
+      setClearSampleBusy(false);
+    }
+  };
+
   const { greeting: timeGreet, briefingLabel } = dayPartGreeting();
   const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "CEO"}`;
   const doneCount = checklist?.steps?.filter((s) => s.done).length ?? 0;
@@ -160,6 +209,11 @@ export default function Briefing() {
     && integPrompt
     && integPrompt.connected_count === 0
     && !integPrompt.dismissed,
+  );
+  const showSampleBanner = Boolean(
+    canClearSample
+    && company?.template === "sample"
+    && !sampleBannerDismissed,
   );
   const metrics = data.metrics || [];
   const whatChanged = data.what_changed || [];
@@ -218,6 +272,63 @@ export default function Briefing() {
       </header>
 
       <BriefingCockpitHero metrics={metrics} decisions={whatToDecide} />
+
+      {showSampleBanner && (
+        <section
+          className="mb-6 fade-up rounded-xl border border-helm-gold/30 bg-helm-card p-5 shadow-sm"
+          data-testid="sample-data-banner"
+        >
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-helm-gold/12 border border-helm-gold/25 shrink-0">
+              <Eraser className="w-4 h-4 text-helm-gold" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <BriefLabel>Exploring with sample data</BriefLabel>
+              <p className="mt-1.5 text-sm text-helm-muted leading-relaxed">
+                Northwind Robotics is loaded so you can click around. When you&apos;re ready, remove it and start with your own company data — or keep exploring and clear it later in Settings.
+              </p>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="sample-banner-clear-btn"
+                  onClick={clearSampleFromHome}
+                  disabled={clearSampleBusy}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3.5 py-2 hover:bg-helm-gold-hover disabled:opacity-60"
+                >
+                  {clearSampleBusy ? "Removing…" : "Remove sample & start fresh"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="sample-banner-settings-btn"
+                  onClick={() => navigate("/app/settings#clear-sample")}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3.5 py-2 hover:bg-helm-fg/[0.04]"
+                >
+                  Settings
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  data-testid="dismiss-sample-banner"
+                  onClick={dismissSampleBanner}
+                  className="text-xs text-helm-muted underline underline-offset-2 hover:text-helm-fg transition-colors ml-1"
+                >
+                  Hide for now
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              data-testid="dismiss-sample-banner-x"
+              onClick={dismissSampleBanner}
+              className="text-helm-muted hover:text-helm-fg transition-colors p-0.5 shrink-0"
+              aria-label="Hide sample data banner"
+              title="Hide"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </section>
+      )}
 
       {showChecklist && (
         <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm" data-testid="onboarding-checklist">

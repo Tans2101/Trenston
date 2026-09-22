@@ -3406,7 +3406,7 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
 
 
 class TemplateInput(BaseModel):
-    template: str  # sample | clean
+    template: str  # sample | clean | clear-sample
 
 
 _PRESERVE_WS_FIELDS = frozenset({
@@ -3415,6 +3415,33 @@ _PRESERVE_WS_FIELDS = frozenset({
     "paddle_last_event_at", "billing_status", "subscription_status", "canceled_at",
     "workspace_id", "owner_user_id", "created_at",
 })
+
+
+_CLEAR_SAMPLE_PRESERVE_PROFILE = frozenset({
+    "name", "industry", "stage", "founded", "mission", "founder_title",
+    "employees", "has_team", "company_setup_done",
+})
+
+
+async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
+    """Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept)."""
+    current = await get_ws(ws_id)
+    if (current.get("template") or "") != "sample":
+        raise HTTPException(status_code=400, detail="This workspace is not using sample data")
+    fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=True)
+    update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
+    for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
+        if key in current:
+            update[key] = current[key]
+    update["onboarding_done"] = True
+    update["company_setup_done"] = True
+    update["template"] = "empty"
+    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
+    await db.financial_entries.delete_many({"workspace_id": ws_id})
+    # Drop demo-era activity so Telemetry heatmap starts blank with the rest.
+    await db.activities.delete_many({"workspace_id": ws_id})
+    invalidate_financials_cache(ws_id)
+    invalidate_workspace_list_cache(ws_id, "people")
 
 
 @api_router.post("/workspace/apply-template")
@@ -3434,8 +3461,17 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
                 e["department_id"] = finance_dept_id
         await db.financial_entries.insert_many(samples)
         invalidate_financials_cache(ws_id)
+    elif payload.template == "clear-sample":
+        await _clear_sample_workspace(ws_id, principal)
     else:
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"onboarding_done": True}})
+    return {"ok": True}
+
+
+@api_router.post("/workspace/clear-sample")
+async def clear_sample_data(principal=Depends(require("workspace:edit"))):
+    """Remove sample (Northwind) data and start fresh. Keeps billing, OAuth, and company profile."""
+    await _clear_sample_workspace(principal["workspace_id"], principal)
     return {"ok": True}
 
 
