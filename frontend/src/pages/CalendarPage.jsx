@@ -63,6 +63,42 @@ function pad(n) {
   return String(n).padStart(2, "0");
 }
 
+/** "HH:MM" → minutes from midnight; invalid → null */
+function timeToMinutes(t) {
+  const m = String(t || "").match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+function minutesToTime(total) {
+  const clamped = ((Math.round(total) % (24 * 60)) + (24 * 60)) % (24 * 60);
+  return `${pad(Math.floor(clamped / 60))}:${pad(clamped % 60)}`;
+}
+
+/** Duration in minutes between start and end (same day). End must be after start. */
+function durationBetween(startTime, endTime) {
+  const a = timeToMinutes(startTime);
+  const b = timeToMinutes(endTime);
+  if (a == null || b == null || b <= a) return null;
+  return b - a;
+}
+
+function endTimeFromStart(startTime, durationMin = 30) {
+  const a = timeToMinutes(startTime);
+  if (a == null) return "09:30";
+  return minutesToTime(a + Math.max(15, Number(durationMin) || 30));
+}
+
+function formatEventTimeRange(ev) {
+  if (ev.all_day) return "All day";
+  const start = ev.time || "—";
+  if (!ev.time || !ev.duration) return start;
+  return `${start} – ${endTimeFromStart(ev.time, ev.duration)}`;
+}
+
 function toIsoDate(d) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
@@ -239,7 +275,7 @@ function AgendaSidebar({ events, weekDays, selectedDay, onSelectDay }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-helm-fg truncate">{ev.title}</p>
                     <p className="text-[11px] text-helm-muted">
-                      {ev.all_day ? "All day" : `${ev.time || "—"} · ${ev.duration || 0}m`}
+                      {formatEventTimeRange(ev)}
                       {eventScopeLabel(ev) ? ` · ${eventScopeLabel(ev)}` : ""}
                     </p>
                   </div>
@@ -398,7 +434,7 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                     >
                       <p className="text-[11px] font-medium leading-tight truncate">{ev.title}</p>
                       <p className="text-[10px] opacity-80 truncate">
-                        {ev.time}{ev.duration ? ` · ${ev.duration}m` : ""}
+                        {ev.all_day ? "All day" : formatEventTimeRange(ev)}
                         {eventScopeLabel(ev) ? ` · ${eventScopeLabel(ev)}` : ""}
                       </p>
                     </button>
@@ -426,7 +462,7 @@ export default function CalendarPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
-    title: "", date: "", time: "09:00", duration: 30, type: "Internal",
+    title: "", date: "", time: "09:00", end_time: "09:30", type: "Internal",
     all_day: false, push_to_google: false, visibility: "personal", department_id: "",
   });
   const [busy, setBusy] = useState(false);
@@ -467,7 +503,7 @@ export default function CalendarPage() {
   const openAdd = (day) => {
     setEditing(null);
     setForm({
-      title: "", date: toIsoDate(day || selectedDay), time: "09:00", duration: 30, type: "Internal",
+      title: "", date: toIsoDate(day || selectedDay), time: "09:00", end_time: "09:30", type: "Internal",
       all_day: false, push_to_google: false, visibility: "personal", department_id: "",
     });
     setShowForm(true);
@@ -477,11 +513,12 @@ export default function CalendarPage() {
     if (data?.can_write !== true || !isEditableHelmEvent(ev)) return;
     setEditing(ev.id);
     const vis = ev.visibility === "department" ? "department" : "personal";
+    const start = ev.time || "09:00";
     setForm({
       title: ev.title,
       date: ev.date || toIsoDate(selectedDay),
-      time: ev.time || "09:00",
-      duration: ev.duration || 30,
+      time: start,
+      end_time: endTimeFromStart(start, ev.duration || 30),
       type: ev.type || "Internal",
       all_day: !!ev.all_day,
       push_to_google: false,
@@ -497,13 +534,21 @@ export default function CalendarPage() {
       toast.error("Choose a department for this event");
       return;
     }
+    let duration = 30;
+    if (!form.all_day) {
+      duration = durationBetween(form.time, form.end_time);
+      if (duration == null) {
+        toast.error("End time must be after start time");
+        return;
+      }
+    }
     setBusy(true);
     try {
       const body = {
         title: form.title,
         date: form.date,
         time: form.time,
-        duration: form.duration,
+        duration,
         type: form.type,
         all_day: form.all_day,
         push_to_google: form.push_to_google,
@@ -778,10 +823,32 @@ export default function CalendarPage() {
               {!form.all_day && (
                 <div className="grid grid-cols-2 gap-3">
                   <label className="text-xs text-helm-muted">Start time
-                    <input type="time" value={form.time} onChange={(e) => setForm((f) => ({ ...f, time: e.target.value }))} className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                    <input
+                      type="time"
+                      data-testid="event-start-time"
+                      value={form.time}
+                      onChange={(e) => {
+                        const time = e.target.value;
+                        setForm((f) => {
+                          const next = { ...f, time };
+                          // Keep end after start when the user moves start later
+                          if (durationBetween(time, f.end_time) == null) {
+                            next.end_time = endTimeFromStart(time, 30);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
+                    />
                   </label>
-                  <label className="text-xs text-helm-muted">Duration (min)
-                    <input type="number" min={15} step={15} value={form.duration} onChange={(e) => setForm((f) => ({ ...f, duration: parseInt(e.target.value, 10) || 30 }))} className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                  <label className="text-xs text-helm-muted">End time
+                    <input
+                      type="time"
+                      data-testid="event-end-time"
+                      value={form.end_time}
+                      onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+                      className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
+                    />
                   </label>
                 </div>
               )}
