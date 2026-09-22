@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, PenLine, Trash2 } from "lucide-react";
+import { Plus, X, PenLine } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ConfirmDialog } from "@/components/kit";
@@ -405,16 +406,12 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                             >
                               <PenLine className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
+                            <CirDeleteBtn
                               disabled={busy}
                               onClick={() => setPendingDelete({ kind: "spare", id: s.id })}
                               data-testid={`delete-spare-${s.id}`}
-                              className="text-helm-muted hover:text-helm-status-negative p-1"
-                              aria-label="Delete spare"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                              title="Delete spare"
+                            />
                           </div>
                         </td>
                       )}
@@ -473,16 +470,12 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                             >
                               <PenLine className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
+                            <CirDeleteBtn
                               disabled={busy}
                               onClick={() => setPendingDelete({ kind: "schedule", id: s.id })}
                               data-testid={`delete-schedule-${s.id}`}
-                              className="text-helm-muted hover:text-helm-status-negative p-1"
-                              aria-label="Delete schedule"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                              title="Delete schedule"
+                            />
                           </div>
                         )}
                       </td>
@@ -542,16 +535,12 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                             >
                               <PenLine className="w-3.5 h-3.5" />
                             </button>
-                            <button
-                              type="button"
+                            <CirDeleteBtn
                               disabled={busy}
                               onClick={() => setPendingDelete({ kind: "contract", id: c.id })}
                               data-testid={`delete-contract-${c.id}`}
-                              className="text-helm-muted hover:text-helm-status-negative p-1"
-                              aria-label="Delete contract"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                              title="Delete contract"
+                            />
                           </div>
                         </td>
                       )}
@@ -637,16 +626,12 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                       {canManage && (
                         <td className="px-3 py-2">
                           <div className="flex justify-end">
-                            <button
-                              type="button"
+                            <CirDeleteBtn
                               disabled={busy}
                               onClick={() => setPendingDelete({ kind: "cost", id: c.id })}
                               data-testid={`delete-cost-${c.id}`}
-                              className="text-helm-muted hover:text-helm-status-negative p-1"
-                              aria-label="Delete cost"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                              title="Delete cost"
+                            />
                           </div>
                         </td>
                       )}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ErrorScreen } from "@/components/kit";
@@ -286,14 +287,12 @@ export default function SalesOrderBook() {
                   <td className="px-3 py-2 font-mono text-xs text-helm-muted">{e.expected_close_month || "—"}</td>
                   <td className="px-3 py-2">
                     {(data?.is_lead || data?.is_ceo || e.created_by_user_id === myId) && (
-                      <button
-                        type="button"
+                      <CirDeleteBtn
                         disabled={busy}
                         onClick={() => deleteEntry(e.id)}
-                        className="text-helm-status-negative text-xs"
-                      >
-                        Delete
-                      </button>
+                        title="Delete entry"
+                        data-testid={`delete-order-book-${e.id}`}
+                      />
                     )}
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, Factory, Trash2 } from "lucide-react";
+import { Plus, X, Factory } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import {
@@ -1287,17 +1288,13 @@ export default function Production() {
                         )}
                         <td className="py-1.5 pl-2 text-right">
                           {log.id ? (
-                            <button
-                              type="button"
+                            <CirDeleteBtn
                               disabled={busy}
                               data-testid={`delete-daily-log-${log.id}`}
                               onClick={() => setConfirmDeleteLogId(log.id)}
-                              className="inline-flex items-center justify-center rounded-md p-1.5 text-helm-muted hover:text-helm-status-negative hover:bg-helm-status-negative/10 disabled:opacity-50"
                               title="Delete daily log"
                               aria-label={`Delete daily log for ${log.date}`}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            />
                           ) : null}
                         </td>
                       </tr>
@@ -1463,15 +1460,14 @@ export default function Production() {
               Save changes
             </button>
             <StatusBadge status={selected.status} />
-            <button
-              type="button"
+            <CirDeleteBtn
               disabled={busy}
               data-testid="delete-work-order-btn"
               onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-3 py-2 hover:bg-helm-status-negative/10 disabled:opacity-50 ml-auto"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+              size="md"
+              title="Delete work order"
+              className="ml-auto"
+            />
           </div>
         </GlassCard>
       )}

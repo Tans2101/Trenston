@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { UserPlus, User, Trash2, Mail, Copy, Link2, Shield, Check } from "lucide-react";
+import { UserPlus, User, Mail, Copy, Link2, Shield, Check } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -384,10 +385,7 @@ export default function Members() {
                           {ASSIGNABLE_PACKS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                         </select>
                         {canManageOwners && (
-                          <button onClick={() => remove(m)} data-testid={`remove-${m.email}`}
-                            className="text-helm-muted hover:text-helm-status-negative p-1.5 rounded transition-colors">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <CirDeleteBtn onClick={() => remove(m)} data-testid={`remove-${m.email}`} title="Remove member" />
                         )}
                       </div>
                     )}
