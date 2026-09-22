@@ -92,17 +92,19 @@ export function SectionLabel({ children, className }) {
 const toneColor = {
   positive: "text-helm-status-positive",
   negative: "text-helm-status-negative",
+  warning: "text-helm-status-warning",
   neutral: "text-helm-muted",
 };
 
 export function Delta({ value, tone, invert }) {
+  // Hide until there is a real period-over-period change — bare "—" is meaningless.
   if (value === 0 || value === undefined || value === null) {
-    return <span className="text-helm-muted font-mono text-xs">—</span>;
+    return null;
   }
   const up = value > 0;
   const effectiveTone = tone || (up ? "positive" : "negative");
   return (
-    <span className={cn("font-mono text-xs", toneColor[effectiveTone])}>
+    <span className={cn("font-mono text-xs", toneColor[effectiveTone] || toneColor.neutral)}>
       {up ? "▲" : "▼"} {Math.abs(value)}%
     </span>
   );

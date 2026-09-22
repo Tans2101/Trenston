@@ -514,10 +514,10 @@ html[data-theme="dark"] #root {
 }
 
 .app-shell .cir-rail__indicator {
-  background: var(--cir-ink) !important;
-  box-shadow:
-    0 1px 1px rgba(14, 17, 22, 0.06),
-    0 8px 18px -10px rgba(14, 17, 22, 0.5);
+  /* Soft gold selected pill — readable without becoming the loudest object */
+  background: color-mix(in srgb, var(--helm-gold) 22%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--helm-gold) 40%, transparent);
+  box-shadow: none;
 }
 
 .app-shell .cir-rail__link {
@@ -564,11 +564,11 @@ html[data-theme="dark"] #root {
 .app-shell .cir-rail__link--active,
 .app-shell .cir-rail__link--active .cir-rail__icon,
 .app-shell .cir-rail__link--active .cir-rail__label {
-  color: var(--cir-cloud) !important;
+  color: var(--cir-ink) !important;
 }
 
 .app-shell .cir-rail__link--active .cir-rail__shortcut {
-  color: var(--cir-cloud) !important;
+  color: var(--cir-ink) !important;
   opacity: 0.45;
 }
 
@@ -633,21 +633,23 @@ html[data-theme="dark"] .app-shell .cir-rail {
 
 html[data-theme="dark"] .app-shell .cir-rail__link--active,
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__icon,
-html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__label,
+html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__label {
+  color: #f5f0e6 !important;
+}
+
 html[data-theme="dark"] .app-shell .cir-rail__theme-btn[aria-pressed="true"] {
   color: #09090b !important;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__shortcut {
-  color: #09090b !important;
+  color: #f5f0e6 !important;
   opacity: 0.45;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__indicator {
-  background: #f5f0e6 !important;
-  box-shadow:
-    0 1px 1px rgba(0, 0, 0, 0.2),
-    0 8px 18px -10px rgba(245, 240, 230, 0.35);
+  background: color-mix(in srgb, #c9a24b 28%, transparent) !important;
+  border: 1px solid color-mix(in srgb, #c9a24b 45%, transparent);
+  box-shadow: none;
 }
 
 @keyframes fadeUp {

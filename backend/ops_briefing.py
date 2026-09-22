@@ -293,7 +293,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "label": "Avg fulfillment delay",
             "value": _fmt_days(lead["avg_fulfillment_delay_days"]) if delay_known else "Not tracked",
             "delta": 0,
-            "tone": "negative" if delay_known and (lead["avg_fulfillment_delay_days"] or 0) > 0 else "neutral",
+            "tone": "warning" if delay_known and (lead["avg_fulfillment_delay_days"] or 0) > 0 else ("positive" if delay_known else "neutral"),
             "missing": not delay_known,
             "href": None if delay_known else "/app/departments/procurement",
         })
@@ -377,7 +377,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "label": "OT cost (7d)",
                 "value": _money(ot["overtime_cost"]),
                 "delta": 0,
-                "tone": "negative" if ot["overtime_cost"] > 0 else "neutral",
+                "tone": "warning" if ot["overtime_cost"] > 0 else "neutral",
                 "missing": False,
                 "href": "/app/departments/production",
             })
@@ -386,7 +386,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
                 "label": "OT hours (7d)",
                 "value": f"{ot['overtime_hours']:g}h",
                 "delta": 0,
-                "tone": "negative" if ot["overtime_hours"] > 0 else "neutral",
+                "tone": "warning" if ot["overtime_hours"] > 0 else "neutral",
                 "missing": False,
                 "href": "/app/departments/production",
             })

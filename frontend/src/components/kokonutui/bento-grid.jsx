@@ -7,13 +7,48 @@
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { Delta } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-const toneDot = {
-  positive: "bg-helm-status-positive",
-  negative: "bg-helm-status-negative",
-  neutral: "bg-helm-muted",
+/**
+ * Status-dot semantics (single system for every metric card):
+ *   healthy   (green) — tracked and OK
+ *   attention (amber) — tracked, needs a look
+ *   alert     (red)   — tracked, critical / out of range
+ *   empty     (gray)  — not tracked / no data yet
+ */
+const STATUS = {
+  healthy: {
+    id: "healthy",
+    label: "Healthy",
+    hint: "Tracked and within range",
+    className: "bg-helm-status-positive",
+  },
+  attention: {
+    id: "attention",
+    label: "Needs attention",
+    hint: "Tracked, but something needs a look",
+    className: "bg-helm-status-warning",
+  },
+  alert: {
+    id: "alert",
+    label: "Alert",
+    hint: "Tracked and critical / out of range",
+    className: "bg-helm-status-negative",
+  },
+  empty: {
+    id: "empty",
+    label: "Not tracked",
+    hint: "No data logged yet",
+    className: "bg-helm-muted",
+  },
 };
 
 /** Fixed Briefing section order — only sections with tiles are rendered. */
@@ -25,6 +60,16 @@ const SECTION_LABELS = {
   sales: "Sales",
   maintenance: "Maintenance",
 };
+
+function resolveStatus(m) {
+  if (m?.missing) return STATUS.empty;
+  const tone = m?.tone || "neutral";
+  if (tone === "negative" || tone === "alert") return STATUS.alert;
+  if (tone === "warning" || tone === "attention") return STATUS.attention;
+  if (tone === "positive") return STATUS.healthy;
+  // Tracked with a neutral tone — still “has data”, not an empty state
+  return STATUS.healthy;
+}
 
 /** Parse a display value like "$248K", "17 months", "12.5%" into animatable parts. */
 function parseMetricValue(raw) {
@@ -81,16 +126,50 @@ function AnimatedMetricValue({ value, missing, className }) {
   );
 }
 
-function cellClass(index, total) {
-  // Equal tiles — keep finance KPIs side-by-side at one height.
-  return "col-span-1";
+function StatusDot({ status }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn("w-1.5 h-1.5 rounded-full shrink-0", status.className)}
+          aria-label={status.label}
+          data-testid={`metric-status-${status.id}`}
+        />
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className="max-w-[14rem] border border-helm-line bg-helm-card text-helm-fg shadow-md"
+      >
+        <p className="font-medium">{status.label}</p>
+        <p className="text-helm-muted mt-0.5 font-sans normal-case tracking-normal">{status.hint}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
-function gridClass(total) {
-  if (total === 1) return "grid-cols-1 max-w-xs";
-  if (total === 2) return "grid-cols-2 max-w-xl";
-  if (total === 3) return "grid-cols-1 sm:grid-cols-3";
-  return "grid-cols-2 lg:grid-cols-4";
+function StatusLegend() {
+  return (
+    <div
+      className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[10px] font-mono uppercase tracking-wider text-helm-muted"
+      data-testid="briefing-status-legend"
+    >
+      <span className="tracking-[0.14em]">Status</span>
+      {Object.values(STATUS).map((s) => (
+        <span key={s.id} className="inline-flex items-center gap-1.5 normal-case tracking-normal font-sans text-xs text-helm-muted">
+          <span className={cn("w-1.5 h-1.5 rounded-full", s.className)} aria-hidden />
+          {s.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function cardWidthClass(total) {
+  // Size to actual count — avoid a sparse 2-of-4 empty column look.
+  if (total <= 1) return "w-full max-w-xs";
+  if (total === 2) return "w-full sm:w-[calc(50%-0.375rem)] max-w-sm";
+  if (total === 3) return "w-full sm:w-[calc(50%-0.375rem)] lg:w-[calc(33.333%-0.5rem)] max-w-sm";
+  return "w-full sm:w-[calc(50%-0.375rem)] lg:w-[calc(25%-0.5625rem)] max-w-sm";
 }
 
 function groupMetricsBySection(metrics) {
@@ -112,27 +191,37 @@ function groupMetricsBySection(metrics) {
 function MetricTile({ m, index, total }) {
   const navigate = useNavigate();
   const clickable = Boolean(m.href && m.missing);
+  const status = resolveStatus(m);
+  const hasDelta = m.delta != null && m.delta !== 0;
   const surfaceClass = cn(
     "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full shadow-sm",
     index === 0 && total >= 3 && "md:p-5",
     clickable && "cursor-pointer transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
   );
+
   const body = (
     <>
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-helm-muted font-mono">{m.label}</span>
-        <span className={cn("w-1.5 h-1.5 rounded-full", toneDot[m.tone] || toneDot.neutral)} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs uppercase tracking-wider text-helm-muted font-mono truncate">{m.label}</span>
+        <StatusDot status={status} />
       </div>
       <div className={cn("mt-3 flex items-end justify-between gap-2", index === 0 && total >= 3 && "mt-4")}>
-        <AnimatedMetricValue
-          value={m.value}
-          missing={m.missing}
-          className={cn(
-            index === 0 && total >= 3 ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl",
-            clickable && "underline decoration-helm-muted/40 underline-offset-4",
-          )}
-        />
-        <Delta value={m.delta} tone={m.tone} />
+        {clickable ? (
+          <span className="flex flex-col items-start gap-2 min-w-0">
+            <span className="text-sm text-helm-muted">{m.value || "No data"}</span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-helm-gold/40 bg-helm-gold/10 px-2 py-1 text-[11px] font-medium text-helm-gold">
+              <Plus className="w-3 h-3" aria-hidden />
+              Add
+            </span>
+          </span>
+        ) : (
+          <AnimatedMetricValue
+            value={m.value}
+            missing={m.missing}
+            className={index === 0 && total >= 3 ? "text-3xl md:text-4xl" : "text-2xl md:text-3xl"}
+          />
+        )}
+        {hasDelta ? <Delta value={m.delta} tone={m.tone} /> : null}
       </div>
     </>
   );
@@ -166,51 +255,54 @@ export default function BentoGrid({ metrics = [], className }) {
   if (list.length === 0) return null;
 
   return (
-    <div className={cn("mb-6 space-y-0", className)} data-testid="briefing-metrics-grouped">
-      {groups.map((group, groupIndex) => (
-        <section
-          key={group.key}
-          data-testid={`briefing-metrics-section-${group.key}`}
-          className={cn(
-            "py-6",
-            groupIndex > 0 && "border-t border-helm-fg/20",
-          )}
-        >
-          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">
-            {group.label}
-          </h2>
-          <motion.div
-            className={cn("grid gap-3 md:gap-4", gridClass(group.metrics.length))}
-            initial={reduceMotion ? false : "hidden"}
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: {
-                opacity: 1,
-                transition: { staggerChildren: reduceMotion ? 0 : 0.08 },
-              },
-            }}
+    <TooltipProvider delayDuration={200}>
+      <div className={cn("mb-6 space-y-0", className)} data-testid="briefing-metrics-grouped">
+        <StatusLegend />
+        {groups.map((group, groupIndex) => (
+          <section
+            key={group.key}
+            data-testid={`briefing-metrics-section-${group.key}`}
+            className={cn(
+              "py-6",
+              groupIndex > 0 && "border-t border-helm-fg/20",
+            )}
           >
-            {group.metrics.map((m, i) => (
-              <motion.div
-                key={`${group.key}-${m.label || i}`}
-                data-testid={`briefing-metric-${group.key}-${i}`}
-                className={cellClass(i, group.metrics.length)}
-                variants={{
-                  hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    transition: { duration: reduceMotion ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] },
-                  },
-                }}
-              >
-                <MetricTile m={m} index={i} total={group.metrics.length} />
-              </motion.div>
-            ))}
-          </motion.div>
-        </section>
-      ))}
-    </div>
+            <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">
+              {group.label}
+            </h2>
+            <motion.div
+              className="flex flex-wrap gap-3 md:gap-4"
+              initial={reduceMotion ? false : "hidden"}
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: reduceMotion ? 0 : 0.08 },
+                },
+              }}
+            >
+              {group.metrics.map((m, i) => (
+                <motion.div
+                  key={`${group.key}-${m.label || i}`}
+                  data-testid={`briefing-metric-${group.key}-${i}`}
+                  className={cardWidthClass(group.metrics.length)}
+                  variants={{
+                    hidden: { opacity: 0, y: reduceMotion ? 0 : 12 },
+                    visible: {
+                      opacity: 1,
+                      y: 0,
+                      transition: { duration: reduceMotion ? 0 : 0.4, ease: [0.16, 1, 0.3, 1] },
+                    },
+                  }}
+                >
+                  <MetricTile m={m} index={i} total={group.metrics.length} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </section>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

@@ -1786,7 +1786,9 @@ async def compute_financials(
             "currency": currency, "currency_symbol": currency_symbol(currency),
             "mrr_delta": mrr_delta if mrr_known else 0,
             "spark": [r["revenue"] for r in revenue_series],
-            "burn_tone": "negative" if burn_known and burn_val > 0 else "positive",
+            "burn_tone": (
+                "warning" if burn_known and burn_val > 0 else ("positive" if burn_known else "neutral")
+            ),
             "has_data": has_ledger,
             "mrr_known": mrr_known,
             "burn_known": burn_known,
@@ -3472,12 +3474,30 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
     mrr_known = bool(fin.get("mrr_known"))
     burn_known = bool(fin.get("burn_known"))
     runway_ready = fin.get("runway_months") is not None or bool(fin.get("runway_no_burn"))
+    runway_months = fin.get("runway_months")
+    mrr_delta = fin.get("mrr_delta") or 0
+    if not mrr_known:
+        mrr_tone = "neutral"
+    elif mrr_delta < 0:
+        mrr_tone = "warning"
+    else:
+        mrr_tone = "positive"
+    if not runway_ready:
+        runway_tone = "neutral"
+    elif fin.get("runway_no_burn"):
+        runway_tone = "positive"
+    elif runway_months is not None and float(runway_months) < 3:
+        runway_tone = "negative"
+    elif runway_months is not None and float(runway_months) < 6:
+        runway_tone = "warning"
+    else:
+        runway_tone = "positive"
     return [
         {
             "label": "MRR",
             "value": format_mrr_display(fin),
-            "delta": fin["mrr_delta"] if mrr_known else 0,
-            "tone": "positive" if mrr_known else "neutral",
+            "delta": mrr_delta if mrr_known else 0,
+            "tone": mrr_tone,
             "missing": not mrr_known,
             "state": fin.get("mrr_state") or _figure_state(mrr_known, fin.get("mrr_value")),
             "href": None if mrr_known else "/app/financials#log-mrr",
@@ -3487,7 +3507,7 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
             "label": "Runway",
             "value": format_runway_display(fin),
             "delta": 0,
-            "tone": "positive" if fin.get("runway_no_burn") else "neutral",
+            "tone": runway_tone,
             "missing": not runway_ready,
             "state": fin.get("runway_state") or _runway_state(
                 runway_months=fin.get("runway_months"),
