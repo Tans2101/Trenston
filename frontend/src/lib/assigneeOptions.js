@@ -15,12 +15,9 @@ export function meAssigneeLabel(m) {
 /**
  * @param {Array} members - from GET /members (or similar)
  * @param {string|null|undefined} myUserId
- * @param {{
- *   unassigned?: boolean,
- *   unassignedLabel?: string,
- *   /** When true, Me option value is the user's id (edit forms). When false, value is "" (create default-to-me). */
- *   selfUsesId?: boolean,
- * }} [opts]
+ * @param {{ unassigned?: boolean, unassignedLabel?: string, selfUsesId?: boolean }} [opts]
+ *   selfUsesId: when true, Me option value is the user's id (edit forms);
+ *   when false, value is "" (create default-to-me).
  */
 export function buildAssigneeOptions(members = [], myUserId, opts = {}) {
   const {
