@@ -90,6 +90,13 @@
         --border: 0 0% 90%;
         --input: 0 0% 90%;
         --ring: 41 55% 54%;
+        /* Empty heatmap cells need real contrast on white / off-white cards */
+        --chart-scale-01: rgba(17, 17, 17, 0.09);
+        --chart-scale-02: rgba(201, 168, 75, 0.32);
+        --chart-scale-03: rgba(201, 168, 75, 0.52);
+        --chart-scale-04: rgba(201, 168, 75, 0.74);
+        --chart-scale-05: #C9A24B;
+        --chart-scale-pattern-color: #111111;
     }
   .dark {
         --chart-1: oklch(1 0 none);

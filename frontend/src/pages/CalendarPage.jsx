@@ -628,6 +628,13 @@ export default function CalendarPage() {
           <p className="text-xs text-helm-muted mt-1 leading-relaxed">
             Connect Google Calendar to pull in your meetings and external events. Each teammate connects their own Google account. Microsoft Teams calendar sync is coming soon.
           </p>
+          {googleAvailable && (
+            <p className="text-xs text-helm-muted mt-2 leading-relaxed" data-testid="calendar-google-unverified-hint">
+              Google may show <span className="text-helm-fg">“Google hasn&apos;t verified this app.”</span>{" "}
+              Click <span className="text-helm-fg">Advanced</span> →{" "}
+              <span className="text-helm-fg">Go to Trenston (unsafe)</span> to continue. Expected until Google finishes reviewing Trenston.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
           {googleAvailable ? (

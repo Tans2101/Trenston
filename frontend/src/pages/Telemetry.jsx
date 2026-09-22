@@ -19,6 +19,8 @@ import {
   HeatmapTooltip,
   HeatmapXAxis,
   HeatmapYAxis,
+  HEATMAP_DEFAULT_LEVEL_COLORS,
+  HEATMAP_DEFAULT_LEVEL_STYLES,
 } from "@/components/charts/heatmap";
 import { cn } from "@/lib/utils";
 import palette from "@/design/palette.json";
@@ -26,21 +28,6 @@ import palette from "@/design/palette.json";
 const GOLD = palette.gold;
 const SLATE = palette.slate;
 const CREAM = palette.cream;
-
-/** Trenston gold intensity scale for Bklit heatmap levels 0–4. */
-const ACTIVITY_LEVEL_COLORS = [
-  "rgba(245, 240, 230, 0.08)",
-  "rgba(201, 168, 75, 0.28)",
-  "rgba(201, 168, 75, 0.48)",
-  "rgba(201, 168, 75, 0.72)",
-  GOLD,
-];
-
-const ACTIVITY_LEVEL_STYLES = ACTIVITY_LEVEL_COLORS.map((color) => ({
-  color,
-  fillMode: "solid",
-  pattern: "none",
-}));
 
 function toFunnelStages(rows = []) {
   return rows.map((row) => ({
@@ -382,7 +369,7 @@ export default function Telemetry() {
                 layout="fluid"
                 gap={3}
                 binSize={11}
-                levelColors={ACTIVITY_LEVEL_COLORS}
+                levelColors={HEATMAP_DEFAULT_LEVEL_COLORS}
                 margin={{ top: 28, right: 8, bottom: 0, left: 28 }}
                 className="max-w-full overflow-x-auto"
               >
@@ -395,7 +382,7 @@ export default function Telemetry() {
                 />
               </HeatmapChart>
               <HeatmapLegend
-                levelStyles={ACTIVITY_LEVEL_STYLES}
+                levelStyles={HEATMAP_DEFAULT_LEVEL_STYLES}
                 labelClassName="text-helm-muted"
                 className="mt-3"
                 align="start"

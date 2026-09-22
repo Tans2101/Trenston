@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2 } from "lucide-react";
+import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2, Eraser } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -14,7 +14,7 @@ import InviteCeoCard from "@/components/InviteCeoCard";
 import { useTheme } from "@/context/ThemeContext";
 import SwitchButton from "@/components/kokonutui/switch-button";
 import { cn } from "@/lib/utils";
-import { canManageBilling } from "@/lib/access";
+import { canManageBilling, hasPerm } from "@/lib/access";
 
 export default function AccountSettings() {
   const { user, setUser, logout } = useAuth();
@@ -23,13 +23,16 @@ export default function AccountSettings() {
   const { data: company, reload: reloadCompany } = useCompanyQuery();
   const isOwner = user?.role === "owner" || user?.pack === "owner";
   const canBilling = canManageBilling(user);
+  const canClearSample = hasPerm(user, "workspace:edit");
   const canExportActivity = isOwner || (user?.perms || []).includes("members:manage");
   const [busy, setBusy] = useState(null);
   const [companyName, setCompanyName] = useState("");
   const [confirmAccount, setConfirmAccount] = useState("");
   const [confirmWorkspace, setConfirmWorkspace] = useState("");
+  const [confirmClearSample, setConfirmClearSample] = useState("");
   const [showAccountConfirm, setShowAccountConfirm] = useState(false);
   const [showWorkspaceConfirm, setShowWorkspaceConfirm] = useState(false);
+  const [showClearSampleConfirm, setShowClearSampleConfirm] = useState(false);
   const [actStart, setActStart] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -137,6 +140,40 @@ export default function AccountSettings() {
   const cancelWorkspaceConfirm = () => {
     setShowWorkspaceConfirm(false);
     setConfirmWorkspace("");
+  };
+
+  const cancelClearSampleConfirm = () => {
+    setShowClearSampleConfirm(false);
+    setConfirmClearSample("");
+  };
+
+  const clearSampleData = async () => {
+    if (!showClearSampleConfirm) {
+      setShowClearSampleConfirm(true);
+      return;
+    }
+    if (confirmClearSample.trim().toLowerCase() !== "start fresh") {
+      toast.error('Type "start fresh" to confirm');
+      return;
+    }
+    setBusy("clear-sample");
+    try {
+      await api.post("/workspace/clear-sample");
+      toast.success("Sample data removed. You're starting fresh.");
+      try {
+        window.localStorage.removeItem(`helm-sample-banner-${company?.workspace_id || ""}`);
+      } catch {
+        // ignore
+      }
+      reloadCompany();
+      setShowClearSampleConfirm(false);
+      setConfirmClearSample("");
+      window.location.href = "/app";
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not remove sample data");
+      setBusy(null);
+      setConfirmClearSample("");
+    }
   };
 
   const deleteAccount = async () => {
@@ -383,6 +420,64 @@ export default function AccountSettings() {
           >
             {busy === "activity" ? "Exporting…" : "Export activity log"}
           </button>
+        </GlassCard>
+      )}
+
+      {canClearSample && company?.template === "sample" && (
+        <GlassCard id="clear-sample" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="clear-sample-card">
+          <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
+            <Eraser className="w-4 h-4" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Sample data</span>
+          </div>
+          <p className="text-sm text-helm-muted mb-4 leading-relaxed">
+            You&apos;re exploring with Northwind Robotics sample data. Remove it to start fresh with your own numbers —
+            billing, integrations, and company profile stay intact.
+          </p>
+          {!showClearSampleConfirm ? (
+            <button
+              type="button"
+              data-testid="clear-sample-btn"
+              onClick={clearSampleData}
+              disabled={!!busy}
+              className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
+            >
+              Remove sample data
+            </button>
+          ) : (
+            <div className="space-y-3" data-testid="clear-sample-confirm">
+              <p className="text-sm text-helm-fg leading-relaxed">
+                This deletes sample financials, decisions, tasks, people, and reports. Type{" "}
+                <span className="font-mono text-helm-gold">start fresh</span> to confirm.
+              </p>
+              <input
+                data-testid="confirm-clear-sample-input"
+                value={confirmClearSample}
+                onChange={(e) => setConfirmClearSample(e.target.value)}
+                placeholder="start fresh"
+                className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  data-testid="confirm-clear-sample-btn"
+                  onClick={clearSampleData}
+                  disabled={busy === "clear-sample"}
+                  className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
+                >
+                  {busy === "clear-sample" ? "Removing…" : "Start fresh"}
+                </button>
+                <button
+                  type="button"
+                  data-testid="cancel-clear-sample-btn"
+                  onClick={cancelClearSampleConfirm}
+                  disabled={busy === "clear-sample"}
+                  className="rounded-md border border-helm-line text-helm-muted text-sm px-4 py-2.5 hover:bg-helm-fg/5"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </GlassCard>
       )}
 

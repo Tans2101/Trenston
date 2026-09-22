@@ -356,19 +356,18 @@ export default function Reports() {
       )}
 
       {auto.length > 0 && (
-        <div className="mb-8" data-testid="week-over-week-trends">
+        <div className="mb-10" data-testid="week-over-week-trends">
           <SectionLabel className="mb-2">Week-over-week trends</SectionLabel>
-          <p className="text-sm text-helm-muted mb-4 max-w-2xl leading-relaxed">
+          <p className="text-sm text-helm-muted mb-6 max-w-2xl leading-relaxed">
             Auto-generated from your data. Use these as a starting point for your own report.
           </p>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid gap-5 md:grid-cols-3">
             {auto.map((r, i) => (
               <ReportCard
                 key={r.id}
                 report={r}
                 index={i}
                 badge="Auto"
-                hideSummary
                 canWrite={canWrite}
                 onAddToReport={() => openFromTrend(r)}
               />
@@ -534,52 +533,80 @@ export default function Reports() {
 }
 
 function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToReport, badge, hideSummary }) {
+  const isAuto = badge === "Auto" || badge === "Updated automatically" || r.source === "auto";
+  const metrics = r.metrics || [];
+
   return (
-    <GlassCard className="p-5 fade-up group relative" style={{ animationDelay: `${index * 60}ms` }} data-testid={`report-${r.id}`}>
+    <GlassCard
+      className={cn(
+        "p-6 fade-up group relative flex flex-col h-full",
+        isAuto && "border-helm-gold/25 shadow-sm",
+      )}
+      style={{ animationDelay: `${index * 60}ms` }}
+      data-testid={`report-${r.id}`}
+    >
       {canWrite && onEdit && (
         <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button type="button" onClick={onEdit} className="text-helm-muted hover:text-helm-gold p-1" aria-label="Edit report"><PenLine className="w-3.5 h-3.5" /></button>
           <CirDeleteBtn onClick={onDelete} title="Delete report" />
         </div>
       )}
-      <div className="flex items-center gap-2 mb-3">
-        <FileText className="w-4 h-4 text-helm-gold shrink-0" />
-        <span className="text-[10px] uppercase tracking-wider text-helm-muted">{r.type} · {r.period}</span>
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-helm-gold/12 border border-helm-gold/25 shrink-0">
+          <FileText className="w-3.5 h-3.5 text-helm-gold" />
+        </span>
+        <span className="text-[10px] uppercase tracking-wider text-helm-muted min-w-0 truncate">{r.type} · {r.period}</span>
         {badge && (
-          <span className={cn(
-            "text-[9px] uppercase tracking-wide rounded px-1.5 py-0.5 ml-auto",
-            badge === "Auto" || badge === "Updated automatically"
-              ? "text-helm-fg bg-helm-muted/12"
-              : "text-helm-gold bg-helm-gold/12",
-          )}
-          >
+          <span className="text-[9px] uppercase tracking-wide rounded px-1.5 py-0.5 ml-auto shrink-0 text-helm-gold bg-helm-gold/12">
             {badge}
           </span>
         )}
       </div>
-      <h3 className="text-helm-fg font-medium pr-8">{r.title}</h3>
+      <h3 className="text-helm-fg text-base font-medium tracking-tight pr-8">{r.title}</h3>
       {!hideSummary && r.summary && (
-        <p className="text-sm text-helm-muted mt-2 leading-relaxed">{r.summary}</p>
+        <p className="text-sm text-helm-muted mt-2.5 leading-relaxed">{r.summary}</p>
       )}
-      {r.metrics?.length > 0 && (
-        <div className={cn("grid gap-3 mt-4 pt-4 border-t border-helm-line", r.metrics.length >= 3 ? "grid-cols-3" : "grid-cols-2")}>
-          {r.metrics.map((m) => (
-            <div key={m.label} className="min-w-0">
-              <p className="font-mono text-xl md:text-2xl tracking-tight text-helm-fg tabular-nums leading-none">{m.value}</p>
-              <p className="mt-1.5 text-[11px] leading-snug text-helm-muted">{m.label}</p>
-              {m.change && (
-                <p className="mt-1 text-[10px] leading-snug text-helm-muted">{m.change}</p>
-              )}
-            </div>
-          ))}
-        </div>
+      {metrics.length > 0 && (
+        isAuto ? (
+          <ul className="mt-5 pt-5 border-t border-helm-line space-y-4">
+            {metrics.map((m) => (
+              <li key={m.label} className="flex items-start justify-between gap-4 min-w-0">
+                <div className="min-w-0">
+                  <p className="text-[11px] leading-snug text-helm-muted">{m.label}</p>
+                  {m.change && (
+                    <p className="mt-1 text-[10px] leading-snug text-helm-muted/90">{m.change}</p>
+                  )}
+                </div>
+                <p className="font-mono text-lg md:text-xl tracking-tight text-helm-fg tabular-nums leading-snug text-right shrink-0 max-w-[55%] break-words">
+                  {m.value}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className={cn(
+            "grid gap-4 mt-5 pt-5 border-t border-helm-line",
+            metrics.length >= 3 ? "grid-cols-3" : "grid-cols-2",
+          )}
+          >
+            {metrics.map((m) => (
+              <div key={m.label} className="min-w-0">
+                <p className="font-mono text-xl md:text-2xl tracking-tight text-helm-fg tabular-nums leading-none">{m.value}</p>
+                <p className="mt-1.5 text-[11px] leading-snug text-helm-muted">{m.label}</p>
+                {m.change && (
+                  <p className="mt-1 text-[10px] leading-snug text-helm-muted">{m.change}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )
       )}
       {canWrite && onAddToReport && (
         <button
           type="button"
           data-testid={`add-trend-to-report-${r.id}`}
           onClick={onAddToReport}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 hover:text-helm-fg transition-colors"
+          className="mt-auto pt-5 inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 hover:border-helm-fg/20 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" /> Add to report
         </button>
