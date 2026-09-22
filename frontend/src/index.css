@@ -71,21 +71,24 @@
         --helm-fg: #111111;
         /* Pure white page canvas — no cream/beige */
         --helm-bg: #FFFFFF;
-        --helm-card: #FFFFFF;
+        /* Barely-off-white panels so cards lift off the white page (not cream) */
+        --helm-card: #FAFAF9;
         --helm-muted: #111111;
-        --helm-line: color-mix(in srgb, #111111 32%, transparent);
+        /* Lighter edge once cards have their own fill contrast */
+        --helm-line: color-mix(in srgb, #111111 22%, transparent);
         /* Keep shadcn bg-background in lockstep with pure white */
         --background: 0 0% 100%;
         --foreground: 0 0% 7%;
-        --card: 0 0% 100%;
+        --card: 60 5% 98%;
         --card-foreground: 0 0% 7%;
-        --popover: 0 0% 100%;
+        /* Popovers match card tone for consistency */
+        --popover: 60 5% 98%;
         --popover-foreground: 0 0% 7%;
         --primary: 41 55% 54%;
         --primary-foreground: 0 0% 7%;
         --muted-foreground: 0 0% 7%;
-        --border: 0 0% 85%;
-        --input: 0 0% 85%;
+        --border: 0 0% 90%;
+        --input: 0 0% 90%;
         --ring: 41 55% 54%;
     }
   .dark {
@@ -236,13 +239,13 @@ html[data-theme="dark"] .app-shell {
   color: var(--helm-fg);
 }
 
-/* Light: pure white / near-black for readable contrast (no cream page fill) */
+/* Light: pure white page / near-black type; cards use subtle off-white lift */
 html[data-theme="light"] .app-shell {
   --helm-fg: #111111;
   --helm-bg: #FFFFFF;
-  --helm-card: #FFFFFF;
+  --helm-card: #FAFAF9;
   --helm-muted: #111111;
-  --helm-line: color-mix(in srgb, #111111 32%, transparent);
+  --helm-line: color-mix(in srgb, #111111 22%, transparent);
   background: #FFFFFF;
   color: #111111;
 }
@@ -322,7 +325,7 @@ html[data-theme="light"] .app-shell [class*="bg-[#121214]"],
 html[data-theme="light"] .app-shell [class*="bg-[#141417]"],
 html[data-theme="light"] .app-shell .bg-helm-ink-card,
 html[data-theme="light"] .app-shell [class*="bg-helm-ink-card"] {
-  background-color: #FFFFFF !important;
+  background-color: var(--helm-card) !important;
   color: #111111;
 }
 
@@ -331,13 +334,17 @@ html[data-theme="light"] .app-shell [class*="bg-helm-ink/"] {
   background-color: #FFFFFF !important;
 }
 
+/* Page canvas stays pure white; card surfaces use the off-white token */
 html[data-theme="light"] .app-shell .bg-helm-cream,
 html[data-theme="light"] .app-shell [class*="bg-helm-cream"],
 html[data-theme="light"] .app-shell .bg-helm-bg,
-html[data-theme="light"] .app-shell [class*="bg-helm-bg"],
+html[data-theme="light"] .app-shell [class*="bg-helm-bg"] {
+  background-color: #FFFFFF !important;
+}
+
 html[data-theme="light"] .app-shell .bg-helm-card,
 html[data-theme="light"] .app-shell [class*="bg-helm-card"] {
-  background-color: #FFFFFF !important;
+  background-color: var(--helm-card) !important;
 }
 
 html[data-theme="light"] .app-shell [class*="bg-white/"] {
@@ -385,10 +392,10 @@ html[data-theme="light"] .app-shell .glass {
   background: #FFFFFF;
 }
 
-/* Stronger section/card edges in light so white tiles separate from the white page */
+/* Softer edges in light — fill contrast does more of the separation work */
 html[data-theme="light"] .app-shell .border-helm-line,
 html[data-theme="light"] .app-shell [class*="border-helm-line"] {
-  border-color: color-mix(in srgb, #111111 32%, transparent) !important;
+  border-color: color-mix(in srgb, #111111 22%, transparent) !important;
 }
 
 html[data-theme="light"] .app-shell .rounded-xl.border.bg-helm-card,
@@ -397,8 +404,8 @@ html[data-theme="light"] .app-shell [data-testid*="card"],
 html[data-theme="light"] .app-shell [data-testid^="kpi-"],
 html[data-theme="light"] .app-shell [data-testid^="briefing-metric-"],
 html[data-theme="light"] .app-shell section.rounded-xl.border {
-  box-shadow: 0 1px 2px color-mix(in srgb, #111111 6%, transparent),
-    0 1px 3px color-mix(in srgb, #111111 10%, transparent);
+  box-shadow: 0 1px 2px color-mix(in srgb, #111111 4%, transparent),
+    0 1px 2px color-mix(in srgb, #111111 6%, transparent);
 }
 
 /* Department separators between Briefing metric groups — black in light */
