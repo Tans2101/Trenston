@@ -1,6 +1,8 @@
 # Trigger Render deploy on every push to main (uses deploy hook secret).
 # Add RENDER_DEPLOY_HOOK_URL in GitHub → Settings → Secrets → Actions.
 # Get the hook URL from Render → helm-company-cockpit → Settings → Deploy Hook.
+#
+# Fallback: RENDER_API_KEY + RENDER_SERVICE_ID (Render account API token + service id).
 name: Deploy Render API
 
 on:
@@ -24,16 +26,41 @@ jobs:
           if [ -n "${HOOK:-}" ]; then
             echo "Deploying via Render deploy hook..."
             curl -fsS -X POST "$HOOK"
+            echo
             echo "Deploy hook triggered."
           elif [ -n "${API_KEY:-}" ] && [ -n "${SERVICE_ID:-}" ]; then
             echo "Deploying via Render API..."
             curl -fsS -X POST "https://api.render.com/v1/services/${SERVICE_ID}/deploys" \
               -H "Authorization: Bearer ${API_KEY}" \
               -H "Content-Type: application/json" \
-              -d '{"clearCache":"do_not_clear"}'
-            echo "API deploy triggered."
+              -d '{"clearCache":"clear"}'
+            echo
+            echo "API deploy triggered (cache clear)."
           else
-            echo "::warning::No RENDER_DEPLOY_HOOK_URL or RENDER_API_KEY+RENDER_SERVICE_ID secrets set."
-            echo "Render will only deploy if its GitHub auto-deploy is connected."
-            exit 0
+            echo "::error::No RENDER_DEPLOY_HOOK_URL (or RENDER_API_KEY+RENDER_SERVICE_ID) GitHub Actions secrets are set."
+            echo "Render will NOT redeploy from this workflow until you add a Deploy Hook:"
+            echo "  1. Render Dashboard → helm-company-cockpit → Settings → Deploy Hook → Create"
+            echo "  2. GitHub → Trenston → Settings → Secrets and variables → Actions"
+            echo "  3. New secret RENDER_DEPLOY_HOOK_URL = that hook URL"
+            echo "  4. Re-run this workflow (Actions → Deploy Render API → Run workflow)"
+            echo "Meanwhile: Render Dashboard → Manual Deploy → Deploy latest commit."
+            exit 1
           fi
+
+      - name: Wait for API health
+        if: success()
+        run: |
+          set -euo pipefail
+          URL="https://helm-company-cockpit.onrender.com/api/health"
+          echo "Waiting for $URL ..."
+          for i in $(seq 1 36); do
+            if curl -fsS -m 15 "$URL" | tee /tmp/health.json; then
+              echo
+              echo "Healthy after attempt $i"
+              exit 0
+            fi
+            echo "attempt $i failed; sleeping 10s (Render builds often take 2–5 min)"
+            sleep 10
+          done
+          echo "::error::API did not become healthy within ~6 minutes"
+          exit 1

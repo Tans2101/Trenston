@@ -19,7 +19,7 @@ Render (API) + Vercel (frontend/domain) + MongoDB Atlas + Clerk + Anthropic + Pa
 
 Do these steps in order. After each step, check the “Done when” line.
 
-> **Repo / branch:** connect Render and Vercel to **`Tans2101/Helm---Company-Cockpit`** on branch **`main`** (same as `render.yaml` and `.github/workflows/deploy-render.yml`). If a Render service still points at the old `tansherd21` fork, see [RENDER_SETUP.md](./RENDER_SETUP.md) (“After repo transfer to Tans2101”).
+> **Repo / branch:** connect Render and Vercel to **`Tans2101/Trenston`** on branch **`main`** (same as `render.yaml` and `.github/workflows/deploy-render.yml`). If a Render service still points at the old `tansherd21` fork or the pre-rename `Helm---Company-Cockpit` URL, see [RENDER_SETUP.md](./RENDER_SETUP.md) (“After repo transfer to Tans2101”).
 
 ---
 
@@ -85,7 +85,7 @@ Full walkthrough: **[docs/R2_SETUP.md](R2_SETUP.md)**.
 ## 4. Deploy API on Render
 
 1. https://dashboard.render.com → New → Blueprint (or Web Service)
-2. Connect GitHub repo **`Tans2101/Helm---Company-Cockpit`** (not `tansherd21/…` — see [RENDER_SETUP.md](./RENDER_SETUP.md))
+2. Connect GitHub repo **`Tans2101/Trenston`** (not `tansherd21/…` — see [RENDER_SETUP.md](./RENDER_SETUP.md))
 3. Branch: **`main`**
 4. If not using Blueprint:
    - Root directory: `backend`
@@ -155,7 +155,7 @@ Safe to re-run. New OAuth connections are encrypted automatically; this only mig
 
 ## 5. Deploy frontend on Vercel + domain
 
-1. https://vercel.com → Import the same GitHub repo (`Tans2101/Helm---Company-Cockpit`, branch `main`)
+1. https://vercel.com → Import the same GitHub repo (`Tans2101/Trenston`, branch `main`)
 2. Root directory: `frontend`
 3. Framework: Create React App / leave defaults (`yarn build` / `npm run build`)
 4. Environment:

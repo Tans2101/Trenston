@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|--------|
-| **Repository** | `Tans2101/Helm---Company-Cockpit` |
+| **Repository** | `Tans2101/Trenston` (GitHub may still redirect the old `Helm---Company-Cockpit` name) |
 | **Branch** | `main` |
 | **Root Directory** | `backend` |
 | **Runtime** | Python 3 |
@@ -19,10 +19,21 @@ These match `render.yaml` and `.github/workflows/deploy-render.yml`. Prefer Blue
 Render may still point at the old `tansherd21` repo. That was a known past mistake — do **not** reconnect `tansherd21/Helm---Company-Cockpit` or any feature branch such as `cursor/helm-production-ready-*`. Fix:
 
 1. Render Dashboard → your service → **Settings**
-2. **Build & Deploy** → **Repository** → **Connect** / change to `Tans2101/Helm---Company-Cockpit`
+2. **Build & Deploy** → **Repository** → **Connect** / change to `Tans2101/Trenston`
 3. Or: Account → **GitHub** → configure access for **Tans2101** org/user
 4. Confirm **Branch** = `main`
 5. **Manual Deploy** → Deploy latest commit
+
+## GitHub Actions deploy hook (required for reliable deploys)
+
+The `Deploy Render API` workflow only redeploys when a secret is set. Without it, pushes to `main` look green but **do not** hit Render.
+
+1. Render Dashboard → **helm-company-cockpit** → **Settings** → **Deploy Hook** → create hook
+2. GitHub → **Trenston** → **Settings** → **Secrets and variables** → **Actions**
+3. Add secret `RENDER_DEPLOY_HOOK_URL` = the hook URL
+4. Actions → **Deploy Render API** → **Run workflow** (or push to `main`)
+
+Optional fallback secrets: `RENDER_API_KEY` + `RENDER_SERVICE_ID`.
 
 ## "Build upload failed"
 

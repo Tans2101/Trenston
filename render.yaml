@@ -8,7 +8,7 @@ services:
     name: helm-company-cockpit
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     autoDeployTrigger: commit
     rootDir: backend
@@ -131,7 +131,7 @@ services:
     name: helm-retention-checks
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "0 13 * * *"
@@ -149,7 +149,7 @@ services:
     name: helm-accounting-sync
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "15 * * * *"
@@ -169,7 +169,7 @@ services:
     name: helm-daily-alerts
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "0 12 * * *"
@@ -188,7 +188,7 @@ services:
     name: helm-weekly-digest
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "0 14 * * 1"
@@ -209,7 +209,7 @@ services:
     name: helm-daily-briefing
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "0 3 * * *"
@@ -229,7 +229,7 @@ services:
     name: helm-orphan-doc-cleanup
     runtime: python
     plan: starter
-    repo: https://github.com/Tans2101/Helm---Company-Cockpit
+    repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
     schedule: "30 4 * * *"
