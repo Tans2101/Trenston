@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { FileText, Plus, PenLine, Trash2, X, Copy, Download, Check } from "lucide-react";
+import { FileText, Plus, PenLine, X, Copy, Download, Check } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage, blobErrorDetail } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -538,7 +539,7 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
       {canWrite && onEdit && (
         <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button type="button" onClick={onEdit} className="text-helm-muted hover:text-helm-gold p-1" aria-label="Edit report"><PenLine className="w-3.5 h-3.5" /></button>
-          <button type="button" onClick={onDelete} className="text-helm-muted hover:text-helm-status-negative p-1" aria-label="Delete report"><Trash2 className="w-3.5 h-3.5" /></button>
+          <CirDeleteBtn onClick={onDelete} title="Delete report" />
         </div>
       )}
       <div className="flex items-center gap-2 mb-3">

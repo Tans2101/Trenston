@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, PenLine, Sparkles } from "lucide-react";
+import { Plus, PenLine, Sparkles } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -490,14 +491,10 @@ export default function Telemetry() {
                           />
                         </label>
                       </div>
-                      <button
-                        type="button"
-                        aria-label="Remove risk"
+                      <CirDeleteBtn
+                        title="Remove risk"
                         onClick={() => setRisks((prev) => (prev.length <= 1 ? [{ ...emptyRisk() }] : prev.filter((_, j) => j !== i)))}
-                        className="shrink-0 text-helm-muted hover:text-helm-status-negative p-1.5 rounded-md hover:bg-helm-fg/5"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-1 border-t border-helm-line">

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, X, Package } from "lucide-react";
+import { Plus, X, Package } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import {
@@ -1028,15 +1029,14 @@ export default function Procurement() {
               </button>
             )}
             {canDeleteSelected && (
-              <button
-                type="button"
+              <CirDeleteBtn
                 disabled={busy}
                 data-testid="procurement-delete-btn"
                 onClick={() => setConfirmDelete(true)}
-                className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-3 py-2 hover:bg-helm-status-negative/10 disabled:opacity-50 ml-auto"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
+                size="md"
+                title="Delete request"
+                className="ml-auto"
+              />
             )}
           </div>
         </GlassCard>

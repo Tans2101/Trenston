@@ -5,7 +5,8 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Plus, Trash2, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet } from "lucide-react";
+import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList } from "@/components/kit";
@@ -875,7 +876,7 @@ export default function Financials() {
                           <span className="text-[10px] font-mono text-helm-muted">{e.source}</span>
                         )}
                       </td>
-                      <td className="py-2.5 text-right">{canWrite && <button onClick={() => del(e.id)} data-testid={`del-${e.id}`} className="text-helm-muted hover:text-helm-status-negative"><Trash2 className="w-3.5 h-3.5" /></button>}</td>
+                      <td className="py-2.5 text-right">{canWrite && <CirDeleteBtn onClick={() => del(e.id)} data-testid={`del-${e.id}`} title="Delete entry" />}</td>
                     </tr>
                   ))}
                 </tbody>

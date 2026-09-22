@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, RefreshCw, X, Sparkles } from "lucide-react";
+import { Plus, RefreshCw, X, Sparkles } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { AnimatePresence } from "motion/react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
@@ -174,7 +175,7 @@ export default function Decisions() {
                     <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status])}>{d.status}</span>
                     <span className="text-sm text-helm-fg flex-1">{d.title}</span>
                     <span className="text-xs text-helm-muted">{d.owner ? `→ ${d.owner}` : ""}</span>
-                    {canAct && <button onClick={() => del(d.id)} className="text-helm-muted hover:text-helm-status-negative"><Trash2 className="w-3.5 h-3.5" /></button>}
+                    {canAct && <CirDeleteBtn onClick={() => del(d.id)} title="Delete decision" />}
                   </div>
                 ))}
               </div>

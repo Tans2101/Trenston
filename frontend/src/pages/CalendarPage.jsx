@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, CalendarPlus, Clock, Users, Plus, X, RefreshCw, Link2,
 } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useNavigate } from "react-router-dom";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
@@ -799,7 +800,7 @@ export default function CalendarPage() {
             </div>
             <div className="flex gap-2 mt-5">
               {editing && (
-                <button type="button" onClick={deleteEvent} disabled={busy} className="rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-4 py-2.5 hover:bg-helm-status-negative/10 disabled:opacity-60">Delete</button>
+                <CirDeleteBtn onClick={deleteEvent} disabled={busy} size="md" title="Delete event" data-testid="calendar-delete-event" />
               )}
               <button data-testid="submit-event-btn" onClick={submitEvent} disabled={busy} className="flex-1 rounded-md bg-helm-gold text-helm-navy font-medium py-2.5 text-sm hover:bg-helm-gold-hover disabled:opacity-60">{busy ? "Saving…" : editing ? "Save event" : "Add event"}</button>
             </div>

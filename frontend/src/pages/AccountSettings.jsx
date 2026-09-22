@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Download, Trash2, AlertTriangle, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2 } from "lucide-react";
+import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useFetch, blobErrorDetail } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { PageHeader, GlassCard } from "@/components/kit";
+import DangerConfirmCard from "@/components/DangerConfirmCard";
 import DepartmentsSettings from "@/components/DepartmentsSettings";
 import DocumentsLibrarySettings from "@/components/DocumentsLibrarySettings";
 import InviteCeoCard from "@/components/InviteCeoCard";
@@ -139,6 +140,10 @@ export default function AccountSettings() {
   };
 
   const deleteAccount = async () => {
+    if (!emailConfirm) {
+      toast.error("Your account needs an email before it can be deleted");
+      return;
+    }
     if (!showAccountConfirm) {
       setShowAccountConfirm(true);
       return;
@@ -161,6 +166,10 @@ export default function AccountSettings() {
   };
 
   const deleteWorkspace = async () => {
+    if (!workspaceConfirm) {
+      toast.error("Set a company name before deleting the workspace");
+      return;
+    }
     if (!showWorkspaceConfirm) {
       setShowWorkspaceConfirm(true);
       return;
@@ -377,100 +386,52 @@ export default function AccountSettings() {
         </GlassCard>
       )}
 
-      <GlassCard id="delete-account" className="p-5 mb-4 fade-up scroll-mt-24 border-helm-status-negative/35">
-        <div className="flex items-center gap-1.5 mb-2 text-helm-status-negative">
-          <Trash2 className="w-4 h-4" />
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Delete account</span>
-        </div>
-        <p className="text-sm text-helm-muted mb-4 leading-relaxed">
-          Permanently remove your user account. You will be signed out.
-        </p>
-        {showAccountConfirm && (
-          <div className="mb-4">
-            <label className="block text-xs text-helm-muted mb-1.5">
-              Type <span className="text-helm-fg">{user?.email}</span> to confirm
-            </label>
-            <input
-              data-testid="confirm-account-input"
-              value={confirmAccount}
-              onChange={(e) => setConfirmAccount(e.target.value)}
-              disabled={!!busy}
-              className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-60"
-              placeholder={user?.email}
-            />
-          </div>
-        )}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            data-testid="delete-account-btn"
-            onClick={deleteAccount}
-            disabled={!!busy}
-            className="rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm font-medium px-4 py-2.5 transition-colors hover:bg-helm-status-negative/10 disabled:opacity-60"
-          >
-            {busy === "account" ? "Deleting…" : showAccountConfirm ? "Confirm delete account" : "Delete account"}
-          </button>
-          {showAccountConfirm && (
-            <button
-              type="button"
-              data-testid="cancel-delete-account-btn"
-              onClick={cancelAccountConfirm}
-              disabled={!!busy}
-              className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </GlassCard>
+      <DangerConfirmCard
+        id="delete-account"
+        className="mb-4 fade-up"
+        title="Delete account"
+        message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+        confirmLabel="Delete"
+        confirmingLabel="Delete"
+        icon="alert"
+        showConfirm={showAccountConfirm}
+        confirmHint={user?.email}
+        confirmValue={confirmAccount}
+        onConfirmValueChange={setConfirmAccount}
+        confirmPlaceholder={user?.email}
+        busy={busy === "account"}
+        disabled={Boolean(busy) && busy !== "account"}
+        busyLabel="Deleting…"
+        onAction={deleteAccount}
+        onCancel={cancelAccountConfirm}
+        actionTestId="delete-account-btn"
+        cancelTestId="cancel-delete-account-btn"
+        inputTestId="confirm-account-input"
+      />
 
       {isOwner && (
-        <GlassCard id="delete-workspace" className="p-5 fade-up scroll-mt-24 border-helm-status-negative/35">
-          <div className="flex items-center gap-1.5 mb-2 text-helm-status-negative">
-            <AlertTriangle className="w-4 h-4" />
-            <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Delete workspace</span>
-          </div>
-          <p className="text-sm text-helm-muted mb-4 leading-relaxed">
-            As owner, you can permanently delete the current company workspace and all of its data for every member.
-          </p>
-          {showWorkspaceConfirm && (
-            <div className="mb-4">
-              <label className="block text-xs text-helm-muted mb-1.5">
-                Type <span className="text-helm-fg">{company?.name || "workspace name"}</span> to confirm
-              </label>
-              <input
-                data-testid="confirm-workspace-input"
-                value={confirmWorkspace}
-                onChange={(e) => setConfirmWorkspace(e.target.value)}
-                disabled={!!busy}
-                className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-60"
-                placeholder={company?.name}
-              />
-            </div>
-          )}
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              data-testid="delete-workspace-btn"
-              onClick={deleteWorkspace}
-              disabled={!!busy}
-              className="rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm font-medium px-4 py-2.5 transition-colors hover:bg-helm-status-negative/10 disabled:opacity-60"
-            >
-              {busy === "workspace" ? "Deleting…" : showWorkspaceConfirm ? "Confirm delete workspace" : "Delete workspace"}
-            </button>
-            {showWorkspaceConfirm && (
-              <button
-                type="button"
-                data-testid="cancel-delete-workspace-btn"
-                onClick={cancelWorkspaceConfirm}
-                disabled={!!busy}
-                className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
-              >
-                Cancel
-              </button>
-            )}
-          </div>
-        </GlassCard>
+        <DangerConfirmCard
+          id="delete-workspace"
+          className="fade-up"
+          title="Delete workspace"
+          message="Are you sure you want to delete this workspace? All company data for every member will be permanently removed. This action cannot be undone."
+          confirmLabel="Delete"
+          confirmingLabel="Delete"
+          icon="alert"
+          showConfirm={showWorkspaceConfirm}
+          confirmHint={workspaceConfirm || undefined}
+          confirmValue={confirmWorkspace}
+          onConfirmValueChange={setConfirmWorkspace}
+          confirmPlaceholder={company?.name || ""}
+          busy={busy === "workspace"}
+          disabled={Boolean(busy) && busy !== "workspace"}
+          busyLabel="Deleting…"
+          onAction={deleteWorkspace}
+          onCancel={cancelWorkspaceConfirm}
+          actionTestId="delete-workspace-btn"
+          cancelTestId="cancel-delete-workspace-btn"
+          inputTestId="confirm-workspace-input"
+        />
       )}
     </div>
   );

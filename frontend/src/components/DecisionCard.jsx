@@ -1,4 +1,5 @@
-import { Check, X, Sparkles, PenLine, Trash2 } from "lucide-react";
+import { Check, X, Sparkles, PenLine } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { motion, useReducedMotion } from "motion/react";
 import { GlassCard } from "@/components/kit";
 import { cn } from "@/lib/utils";
@@ -74,7 +75,7 @@ export default function DecisionCard({
                   <button onClick={() => onEdit(d)} data-testid={`edit-decision-${d.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
                 )}
                 {onDelete && (
-                  <button onClick={() => onDelete(d.id)} data-testid={`del-decision-${d.id}`} className="text-helm-muted hover:text-helm-status-negative p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <CirDeleteBtn onClick={() => onDelete(d.id)} data-testid={`del-decision-${d.id}`} title="Delete decision" />
                 )}
               </span>
             )}

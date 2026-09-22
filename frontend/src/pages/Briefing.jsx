@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { toastError } from "@/lib/notify";
 import { useNavigate } from "react-router-dom";
 import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
@@ -403,7 +404,7 @@ export default function Briefing() {
                             subject: t.subject,
                           });
                         } catch (e) {
-                          toast.error(e?.response?.data?.detail || "Reconnect Google to create drafts");
+                          toastError(e, "Reconnect Google to create drafts");
                         }
                       }}
                       className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover"

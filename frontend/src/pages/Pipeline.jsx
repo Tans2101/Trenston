@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, PenLine, Trash2, X, TrendingUp } from "lucide-react";
+import { Plus, PenLine, X, TrendingUp } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { api } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -352,7 +353,7 @@ export default function Pipeline() {
                       {canWrite && (
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEdit(d)} data-testid={`edit-deal-${d.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => setConfirmDeleteDeal(d)} data-testid={`del-deal-${d.id}`} className="text-helm-muted hover:text-helm-status-negative p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <CirDeleteBtn onClick={() => setConfirmDeleteDeal(d)} data-testid={`del-deal-${d.id}`} title="Delete deal" />
                         </div>
                       )}
                     </GlassCard>

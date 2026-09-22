@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Building2, Trash2, UserPlus, User } from "lucide-react";
+import { Building2, UserPlus, User } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
 import { api } from "@/lib/api";
@@ -246,16 +247,12 @@ export default function DepartmentsSettings() {
                               )}
                               <span className="flex-1 truncate text-helm-fg">{m.name || m.email}</span>
                               <span className="text-[10px] font-mono uppercase text-helm-muted">{m.role}</span>
-                              <button
-                                type="button"
+                              <CirDeleteBtn
                                 data-testid={`dept-remove-${dept.type}-${m.user_id}`}
                                 disabled={memberBusy}
                                 onClick={() => removeMember(dept.department_id, m.user_id)}
-                                className="text-helm-muted hover:text-helm-status-negative p-1"
                                 title="Remove"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              />
                             </li>
                           ))}
                         </ul>

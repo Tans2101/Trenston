@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, X, Factory, Trash2 } from "lucide-react";
+import { Plus, X, Factory } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import {
@@ -227,6 +228,7 @@ export default function Production() {
   const [completing, setCompleting] = useState(false);
   const [completeQty, setCompleteQty] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeleteLogId, setConfirmDeleteLogId] = useState(null);
   const [dailyLogs, setDailyLogs] = useState([]);
   const [dailyRollup, setDailyRollup] = useState(null);
   const [logForm, setLogForm] = useState(emptyDailyLog);
@@ -299,6 +301,7 @@ export default function Production() {
   }, [selected]);
 
   useEffect(() => {
+    setConfirmDeleteLogId(null);
     if (!selectedId) return undefined;
     let cancelled = false;
     setLogsLoading(true);
@@ -531,6 +534,24 @@ export default function Production() {
       await reload();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not delete");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteDailyLog = async () => {
+    if (!confirmDeleteLogId || !selected) return;
+    setBusy(true);
+    try {
+      await api.delete(`/production/daily-logs/${confirmDeleteLogId}`);
+      toast.success("Daily log deleted");
+      setConfirmDeleteLogId(null);
+      const { data: res } = await api.get(`/production/work-orders/${selected.id}/daily-logs`);
+      setDailyLogs(res?.logs || []);
+      setDailyRollup(res?.rollup || null);
+      await reload();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not delete daily log");
     } finally {
       setBusy(false);
     }
@@ -1227,6 +1248,7 @@ export default function Production() {
                       <th className="py-1.5 pr-2 font-medium">Actual</th>
                       <th className="py-1.5 pr-2 font-medium">OT</th>
                       {draft.yield_tracking_enabled && <th className="py-1.5 pr-2 font-medium">Yield</th>}
+                      <th className="py-1.5 pl-2 font-medium text-right w-10"><span className="sr-only">Delete</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1265,6 +1287,17 @@ export default function Production() {
                             )}
                           </td>
                         )}
+                        <td className="py-1.5 pl-2 text-right">
+                          {log.id ? (
+                            <CirDeleteBtn
+                              disabled={busy}
+                              data-testid={`delete-daily-log-${log.id}`}
+                              onClick={() => setConfirmDeleteLogId(log.id)}
+                              title="Delete daily log"
+                              aria-label={`Delete daily log for ${log.date}`}
+                            />
+                          ) : null}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1428,15 +1461,14 @@ export default function Production() {
               Save changes
             </button>
             <StatusBadge status={selected.status} />
-            <button
-              type="button"
+            <CirDeleteBtn
               disabled={busy}
               data-testid="delete-work-order-btn"
               onClick={() => setConfirmDelete(true)}
-              className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-3 py-2 hover:bg-helm-status-negative/10 disabled:opacity-50 ml-auto"
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete
-            </button>
+              size="md"
+              title="Delete work order"
+              className="ml-auto"
+            />
           </div>
         </GlassCard>
       )}
@@ -1450,6 +1482,17 @@ export default function Production() {
         onCancel={() => setConfirmDelete(false)}
         onConfirm={deleteOrder}
         testId="delete-work-order-confirm"
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteLogId)}
+        title="Delete daily log?"
+        description="This removes the logged target, actual, overtime, and yield for that day."
+        confirmLabel="Delete daily log"
+        busy={busy}
+        onCancel={() => setConfirmDeleteLogId(null)}
+        onConfirm={deleteDailyLog}
+        testId="delete-daily-log-confirm"
       />
 
       {adding && (

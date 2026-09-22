@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
-import { Send, CheckCircle2, Circle, AlertTriangle, Plus, Users, Lock, PenLine, Trash2, Briefcase } from "lucide-react";
+import { Send, CheckCircle2, Circle, AlertTriangle, Plus, Users, Lock, PenLine, Briefcase } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
 import { api } from "@/lib/api";
@@ -329,7 +330,7 @@ export default function MyDay() {
                   <p className="text-sm leading-relaxed pr-6 whitespace-pre-wrap">{n.text}</p>
                   <div className="absolute top-2 right-2 flex gap-1">
                     <button onClick={() => startEdit(n)} className="opacity-60 hover:opacity-100 p-0.5"><PenLine className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => delNote(n)} data-testid={`del-note-${n.note_id}`} className="opacity-60 hover:opacity-100 p-0.5"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <CirDeleteBtn onClick={() => delNote(n)} data-testid={`del-note-${n.note_id}`} title="Delete note" />
                   </div>
                 </div>
               ))}

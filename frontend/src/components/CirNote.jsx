@@ -81,9 +81,10 @@ export function toastCirNote({
 export function toastGmailDraftNote({ recipient, url, subject } = {}) {
   const who = (recipient || "").trim() || "your contact";
   const title = `Reply drafted for ${who}`;
+  // Honest product copy: drafts are short and style-matched; Trenston never sends.
   const description = subject
-    ? `Three lines, tone-matched · ${subject}`
-    : "Three lines, tone-matched to your last 90 days of sent messages.";
+    ? `Short draft ready in Gmail · ${subject}`
+    : "Short tone-matched draft ready in Gmail. Trenston did not send it.";
   return toastCirNote({
     id: `gmail-draft-${Date.now()}`,
     title,

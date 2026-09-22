@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, X, Users, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, X, Users, ChevronUp, ChevronDown } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useSearchParams } from "react-router-dom";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
@@ -661,15 +662,14 @@ export default function HR() {
                   {selected.progress?.done || 0}/{selected.progress?.total || 0} steps done
                 </span>
                 {isLead && (
-                  <button
-                    type="button"
+                  <CirDeleteBtn
                     disabled={busy}
                     data-testid="hr-delete-btn"
                     onClick={() => setConfirmDeleteOnboarding(true)}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-3 py-1.5 hover:bg-helm-status-negative/10 disabled:opacity-50 ml-auto"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
-                  </button>
+                    size="md"
+                    title="Delete onboarding"
+                    className="ml-auto"
+                  />
                 )}
               </div>
             </GlassCard>
@@ -1041,15 +1041,13 @@ export default function HR() {
               </div>
 
               {isLead && (
-                <button
-                  type="button"
+                <CirDeleteBtn
                   disabled={busy}
                   data-testid="hr-delete-offboarding-btn"
                   onClick={() => setConfirmDeleteOffboarding(true)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-negative/35 text-helm-status-negative text-sm px-3 py-1.5 hover:bg-helm-status-negative/10 disabled:opacity-50"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Delete
-                </button>
+                  size="md"
+                  title="Delete offboarding"
+                />
               )}
             </GlassCard>
           )}
@@ -1255,13 +1253,10 @@ export default function HR() {
                   <button type="button" disabled={idx === tmplDraft.length - 1} onClick={() => moveTmplStep(tmplDraft, setTmplDraft, idx, 1)} className="p-1 text-helm-muted hover:text-helm-fg disabled:opacity-30">
                     <ChevronDown className="w-4 h-4" />
                   </button>
-                  <button
-                    type="button"
+                  <CirDeleteBtn
                     onClick={() => setTmplDraft((d) => d.filter((_, i) => i !== idx))}
-                    className="p-1 text-helm-status-negative hover:text-helm-status-negative"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    title="Remove step"
+                  />
                 </div>
               ))}
             </div>
@@ -1320,13 +1315,10 @@ export default function HR() {
                   <button type="button" disabled={idx === offTmplDraft.length - 1} onClick={() => moveTmplStep(offTmplDraft, setOffTmplDraft, idx, 1)} className="p-1 text-helm-muted hover:text-helm-fg disabled:opacity-30">
                     <ChevronDown className="w-4 h-4" />
                   </button>
-                  <button
-                    type="button"
+                  <CirDeleteBtn
                     onClick={() => setOffTmplDraft((d) => d.filter((_, i) => i !== idx))}
-                    className="p-1 text-helm-status-negative"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    title="Remove step"
+                  />
                 </div>
               ))}
             </div>

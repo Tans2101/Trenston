@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, PenLine, Trash2, X, AlertTriangle } from "lucide-react";
+import { Plus, PenLine, X, AlertTriangle } from "lucide-react";
+import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -280,7 +281,7 @@ export default function People() {
                 {canWrite && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(p)} data-testid={`edit-person-${p.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => del(p)} data-testid={`del-person-${p.id}`} className="text-helm-muted hover:text-helm-status-negative p-1" title={p.has_access ? "Has Team & Access login — remove there first, or confirm to try roster remove" : "Remove"}><Trash2 className="w-3.5 h-3.5" /></button>
+                    <CirDeleteBtn onClick={() => del(p)} data-testid={`del-person-${p.id}`} title={p.has_access ? "Has Team & Access login — remove there first, or confirm to try roster remove" : "Remove"} />
                   </div>
                 )}
               </div>
