@@ -75,6 +75,9 @@ function TrenstonToaster() {
           border: `1px solid ${light ? palette.navy : palette.cream}29`,
           color: light ? palette.navy : palette.cream,
         },
+        classNames: {
+          toast: "group",
+        },
       }}
     />
   );
