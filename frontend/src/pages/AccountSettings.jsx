@@ -382,10 +382,10 @@ export default function AccountSettings() {
         id="delete-account"
         className="mb-4 fade-up"
         title="Delete account"
-        message="Permanently remove your user account. You will be signed out. This cannot be undone."
-        confirmLabel="Delete account"
-        confirmingLabel="Confirm delete account"
-        icon="trash"
+        message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+        confirmLabel="Delete"
+        confirmingLabel="Delete"
+        icon="alert"
         showConfirm={showAccountConfirm}
         confirmHint={user?.email}
         confirmValue={confirmAccount}
@@ -404,9 +404,9 @@ export default function AccountSettings() {
           id="delete-workspace"
           className="fade-up"
           title="Delete workspace"
-          message="Permanently delete this company workspace and all of its data for every member. This cannot be undone."
-          confirmLabel="Delete workspace"
-          confirmingLabel="Confirm delete workspace"
+          message="Are you sure you want to delete this workspace? All company data for every member will be permanently removed. This action cannot be undone."
+          confirmLabel="Delete"
+          confirmingLabel="Delete"
           icon="alert"
           showConfirm={showWorkspaceConfirm}
           confirmHint={company?.name || "workspace name"}

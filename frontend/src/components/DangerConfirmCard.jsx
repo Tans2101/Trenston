@@ -2,7 +2,7 @@ import { Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * Danger confirm card — Uiverse-style (Yaya12085), adapted for Trenston.
+ * Danger confirm card — Uiverse Yaya12085 (grumpy-fox-39), adapted for Trenston.
  * Use for irreversible deletes (account, workspace, etc.).
  */
 export default function DangerConfirmCard({
@@ -13,7 +13,7 @@ export default function DangerConfirmCard({
   confirmingLabel,
   cancelLabel = "Cancel",
   busyLabel = "Deleting…",
-  icon = "trash",
+  icon = "alert",
   confirmHint,
   confirmValue = "",
   onConfirmValueChange,
@@ -27,11 +27,11 @@ export default function DangerConfirmCard({
   cancelTestId,
   inputTestId,
 }) {
-  const Icon = icon === "alert" ? AlertTriangle : Trash2;
+  const Icon = icon === "trash" ? Trash2 : AlertTriangle;
   const primaryLabel = busy
     ? busyLabel
     : showConfirm
-      ? (confirmingLabel || `Confirm ${confirmLabel.toLowerCase()}`)
+      ? (confirmingLabel || confirmLabel)
       : confirmLabel;
 
   return (
@@ -42,7 +42,7 @@ export default function DangerConfirmCard({
     >
       <div className="cir-danger__header">
         <div className="cir-danger__image" aria-hidden>
-          <Icon />
+          <Icon strokeWidth={1.75} />
         </div>
         <div className="cir-danger__content">
           <h3 className="cir-danger__title">{title}</h3>
@@ -62,6 +62,7 @@ export default function DangerConfirmCard({
             disabled={busy}
             className="cir-danger__input"
             placeholder={confirmPlaceholder || confirmHint}
+            autoComplete="off"
           />
         </div>
       ) : null}
@@ -76,17 +77,15 @@ export default function DangerConfirmCard({
         >
           {primaryLabel}
         </button>
-        {showConfirm ? (
-          <button
-            type="button"
-            data-testid={cancelTestId}
-            onClick={onCancel}
-            disabled={busy}
-            className="cir-danger__cancel"
-          >
-            {cancelLabel}
-          </button>
-        ) : null}
+        <button
+          type="button"
+          data-testid={cancelTestId}
+          onClick={onCancel}
+          disabled={busy}
+          className="cir-danger__cancel"
+        >
+          {cancelLabel}
+        </button>
       </div>
     </div>
   );

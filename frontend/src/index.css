@@ -495,7 +495,7 @@ html[data-theme="dark"] #root {
 }
 .fade-up { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* cir-danger — irreversible delete confirm card (Uiverse Yaya12085, adapted) */
+/* cir-danger — irreversible delete confirm card (Uiverse Yaya12085) */
 .cir-danger {
   --cir-cloud: #ffffff;
   --cir-ink: #111827;
@@ -508,10 +508,9 @@ html[data-theme="dark"] #root {
   overflow: hidden;
   position: relative;
   width: 100%;
-  max-width: 100%;
+  max-width: 290px;
   text-align: left;
   background-color: var(--cir-cloud);
-  border: 1px solid color-mix(in srgb, var(--cir-danger) 22%, var(--cir-edge));
   border-radius: 0.5rem;
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -538,6 +537,7 @@ html[data-theme="dark"] #root {
 }
 
 .cir-danger__image svg {
+  color: var(--cir-danger);
   width: 1.5rem;
   height: 1.5rem;
 }
@@ -563,7 +563,7 @@ html[data-theme="dark"] #root {
 }
 
 .cir-danger__confirm {
-  padding: 0 1rem 0.25rem;
+  padding: 0 1rem 0.5rem;
 }
 
 .cir-danger__label {
@@ -581,10 +581,12 @@ html[data-theme="dark"] #root {
 }
 
 .cir-danger__input {
+  display: block;
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--cir-edge);
   border-radius: 0.375rem;
-  background: color-mix(in srgb, var(--cir-ink) 3%, var(--cir-cloud));
+  background: var(--cir-cloud);
   color: var(--cir-ink);
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -596,9 +598,6 @@ html[data-theme="dark"] #root {
 }
 
 .cir-danger__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
   margin: 0.75rem 1rem 1rem;
   padding: 0.75rem;
   background-color: var(--cir-panel);
