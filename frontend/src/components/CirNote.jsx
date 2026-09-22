@@ -77,13 +77,13 @@ export function toastCirNote({
   );
 }
 
-/** Gmail AI draft ready — primary action opens the Gmail compose URL. */
+/** Gmail AI draft ready — primary action opens the Gmail draft URL. */
 export function toastGmailDraftNote({ recipient, url, subject } = {}) {
   const who = (recipient || "").trim() || "your contact";
   const title = `Reply drafted for ${who}`;
   const description = subject
-    ? `Ready in Gmail · ${subject}`
-    : "Tone-matched draft ready in Gmail. Trenston did not send it.";
+    ? `Three lines, tone-matched · ${subject}`
+    : "Three lines, tone-matched to your last 90 days of sent messages.";
   return toastCirNote({
     id: `gmail-draft-${Date.now()}`,
     title,
