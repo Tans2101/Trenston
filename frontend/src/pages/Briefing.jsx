@@ -222,10 +222,12 @@ export default function Briefing() {
   const hasTeam = company?.has_team !== false;
   const setupHeadline = /start by logging your financials/i.test(data.headline || "");
   const financeMetrics = metrics.filter((m) => /mrr|revenue|^burn|runway/i.test(m.label || ""));
-  const allFinanceMissing =
+  // Nothing logged on Financials yet (every finance KPI is still missing).
+  const financeEmpty =
     financeMetrics.length > 0 && financeMetrics.every((m) => m.missing);
-  // Hero empty-state card already covers the CTA when every finance KPI is missing.
-  const showSetupPrompt = setupHeadline && !allFinanceMissing;
+  // "Ready when you are" only while Financials has no real entries.
+  const showSetupPrompt = financeEmpty;
+  const showHeadline = !setupHeadline && !showSetupPrompt;
 
   return (
     <div className="max-w-6xl">
@@ -266,12 +268,16 @@ export default function Briefing() {
               ) : null}
             </div>
           </div>
-        ) : setupHeadline ? null : (
+        ) : showHeadline ? (
           <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">{data.headline}</p>
-        )}
+        ) : null}
       </header>
 
-      <BriefingCockpitHero metrics={metrics} decisions={whatToDecide} />
+      <BriefingCockpitHero
+        metrics={metrics}
+        decisions={whatToDecide}
+        suppressFinanceEmpty={showSetupPrompt}
+      />
 
       {showSampleBanner && (
         <section

@@ -52,7 +52,12 @@ function decisionQueueStatus(count) {
  * Briefing top viewport: Revenue / Burn / Runway side by side,
  * period comparison chart, and Assistant / Spending / Decisions columns.
  */
-export default function BriefingCockpitHero({ metrics = [], decisions = [], loading = false }) {
+export default function BriefingCockpitHero({
+  metrics = [],
+  decisions = [],
+  loading = false,
+  suppressFinanceEmpty = false,
+}) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
@@ -86,7 +91,11 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
     });
   }, [metrics]);
 
-  const financeEmpty = heroMetrics.length > 0 && heroMetrics.every((m) => m.missing);
+  const allFinanceMissing =
+    heroMetrics.length > 0 && heroMetrics.every((m) => m.missing);
+  // Parent Briefing "Ready when you are" already covers the empty CTA — skip duplicate.
+  const financeEmpty = allFinanceMissing && !suppressFinanceEmpty;
+  const showFinanceKpis = !allFinanceMissing;
 
   const chartData = useMemo(() => {
     const series = fin?.revenue_series || [];
@@ -169,7 +178,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
             </button>
           </div>
         </div>
-      ) : (
+      ) : showFinanceKpis ? (
         <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
           <div className="flex items-center justify-end mb-4">
             <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
@@ -211,7 +220,7 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* B. Chart */}
       <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
