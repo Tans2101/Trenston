@@ -4,12 +4,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ChevronLeft, ChevronRight, Info, Plus, Sparkles,
+  ChevronLeft, ChevronRight, Info, Plus, Sparkles, ArrowRight, Wallet, Users,
 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { formatAxisMoney } from "@/lib/formatAxisMoney";
 import palette from "@/design/palette.json";
 
 const ASSISTANT_PROMPTS = [
@@ -20,10 +21,10 @@ const ASSISTANT_PROMPTS = [
 ];
 
 const METRIC_KEYS = [
-  { id: "mrr", label: "Revenue", match: /mrr|revenue/i },
-  { id: "burn", label: "Burn", match: /^burn/i },
-  { id: "runway", label: "Runway", match: /runway/i },
-  { id: "cash", label: "Cash", match: /cash/i },
+  { id: "mrr", label: "Revenue", match: /mrr|revenue/i, href: "/app/financials#log-mrr" },
+  { id: "burn", label: "Burn", match: /^burn/i, href: "/app/financials#log-entry" },
+  { id: "runway", label: "Runway", match: /runway/i, href: "/app/financials#cash" },
+  { id: "cash", label: "Cash", match: /cash/i, href: "/app/financials#cash" },
 ];
 
 const SPEND_COLORS = [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember];
@@ -41,6 +42,12 @@ function formatRangeLabel() {
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
+function decisionQueueStatus(count) {
+  if (count === 0) return { body: "Nothing waiting", badge: "Clear", tone: "positive" };
+  if (count <= 2) return { body: `${count} open`, badge: "Good", tone: "positive" };
+  return { body: `${count} open`, badge: "Busy", tone: "warning" };
+}
+
 /**
  * Briefing top viewport: Revenue / Burn / Runway side by side,
  * period comparison chart, and Assistant / Spending / Decisions columns.
@@ -53,13 +60,14 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
   const { data: fin } = useFetch(canFin ? "/financials" : null);
   const [chartOffset, setChartOffset] = useState(0);
   const dark = resolvedTheme === "dark";
-  const currentBar = dark ? palette.gold : palette.navy;
+  // Brand accent for current period in both themes (navy only as text/chrome elsewhere)
+  const currentBar = palette.gold;
   const lastBar = dark ? "rgba(245, 240, 230, 0.35)" : `${palette.slate}66`;
   const axisStroke = dark ? "rgba(245, 240, 230, 0.55)" : palette.slate;
   const tooltipFg = dark ? palette.cream : "#111111";
   const tooltipBg = dark ? palette.inkCard : "#FFFFFF";
   const tooltipBorder = dark ? "rgba(245, 240, 230, 0.22)" : "rgba(17, 17, 17, 0.2)";
-  const cursorFill = dark ? "rgba(245, 240, 230, 0.06)" : "rgba(20,33,61,0.04)";
+  const cursorFill = dark ? "rgba(245, 240, 230, 0.06)" : "rgba(201,162,75,0.08)";
 
   const heroMetrics = useMemo(() => {
     const order = ["mrr", "burn", "runway"];
@@ -72,10 +80,13 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
         value: match?.value,
         delta: match?.delta,
         missing: match?.missing ?? !match,
+        href: match?.href || def?.href || "/app/financials",
         tone: match?.tone,
       };
     });
   }, [metrics]);
+
+  const financeEmpty = heroMetrics.length > 0 && heroMetrics.every((m) => m.missing);
 
   const chartData = useMemo(() => {
     const series = fin?.revenue_series || [];
@@ -100,6 +111,9 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
   }, [fin]);
 
   const decisionRows = (decisions || []).slice(0, 5);
+  const queueStatus = decisionQueueStatus(decisionRows.length);
+  // Decisions is today's priority surface when anything is open
+  const decisionsPriority = decisionRows.length > 0;
 
   if (loading) {
     return (
@@ -117,32 +131,87 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
 
   return (
     <div className="mb-8 space-y-4 fade-up" data-testid="briefing-cockpit-hero">
-      {/* A. Revenue / Burn / Runway — equal tiles side by side */}
-      <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
-        <div className="flex items-center justify-end mb-4">
-          <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
-            {formatRangeLabel()}
-          </span>
+      {/* A. Revenue / Burn / Runway — or empty setup when no finance data */}
+      {financeEmpty ? (
+        <div
+          className="rounded-xl border border-helm-gold/35 bg-helm-gold/10 p-5 md:p-6 shadow-sm"
+          data-testid="briefing-finance-empty"
+        >
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-helm-muted mb-2">
+            Get started
+          </p>
+          <h2 className="font-display text-xl md:text-2xl text-helm-fg tracking-tight">
+            Add your numbers to unlock Briefing
+          </h2>
+          <p className="mt-2 text-sm text-helm-muted max-w-xl leading-relaxed">
+            Revenue, burn, and runway stay empty until you log financials. Invite your team when you are ready to share the cockpit.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {canFin ? (
+              <button
+                type="button"
+                data-testid="briefing-empty-add-financials"
+                onClick={() => navigate("/app/financials#log-mrr")}
+                className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                Add financial entry
+              </button>
+            ) : null}
+            <button
+              type="button"
+              data-testid="briefing-empty-invite-team"
+              onClick={() => navigate("/app/people")}
+              className="inline-flex items-center gap-2 rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/[0.04] transition-colors"
+            >
+              <Users className="w-4 h-4" />
+              Invite your team
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" data-testid="briefing-hero-metrics">
-          {heroMetrics.map((m) => (
-            <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
-              <p className="text-sm font-medium text-helm-fg">{m.label}</p>
-              <p className="mt-2 font-display text-3xl md:text-4xl text-helm-fg tracking-tight tabular-nums">
-                {m.value || "—"}
-              </p>
-              <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
-                {m.missing
-                  ? "Add data on Financials"
-                  : m.delta != null
-                    ? `${m.delta > 0 ? "+" : ""}${m.delta}% vs last period`
-                    : "vs last period"}
-                <Info className="w-3.5 h-3.5" aria-hidden />
-              </p>
-            </div>
-          ))}
+      ) : (
+        <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
+          <div className="flex items-center justify-end mb-4">
+            <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
+              {formatRangeLabel()}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" data-testid="briefing-hero-metrics">
+            {heroMetrics.map((m) => (
+              <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
+                <p className="text-sm font-medium text-helm-fg">{m.label}</p>
+                {m.missing ? (
+                  <>
+                    <p className="mt-2 font-display text-3xl md:text-4xl text-helm-muted/50 tracking-tight tabular-nums">
+                      —
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(m.href)}
+                      className="mt-2 inline-flex items-center gap-1 text-sm text-helm-gold hover:text-helm-gold-hover transition-colors"
+                    >
+                      Add data
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-2 font-display text-3xl md:text-4xl text-helm-fg tracking-tight tabular-nums">
+                      {m.value || "—"}
+                    </p>
+                    <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
+                      {m.delta != null
+                        ? `${m.delta > 0 ? "+" : ""}${m.delta}% vs last period`
+                        : "vs last period"}
+                      <Info className="w-3.5 h-3.5" aria-hidden />
+                    </p>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* B. Chart */}
       <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
@@ -176,7 +245,15 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
               <BarChart data={visibleChart} margin={{ left: -8, right: 8, top: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--helm-line)" vertical={false} />
                 <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tick={{ fill: axisStroke }} />
-                <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tick={{ fill: axisStroke }} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+                <YAxis
+                  stroke={axisStroke}
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: axisStroke }}
+                  tickFormatter={(v) => formatAxisMoney(v)}
+                  width={48}
+                />
                 <Tooltip
                   cursor={{ fill: cursorFill }}
                   contentStyle={{
@@ -285,7 +362,15 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
           )}
         </section>
 
-        <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
+        <section
+          data-testid="briefing-decisions-card"
+          className={cn(
+            "rounded-xl border bg-helm-card p-5 shadow-sm",
+            decisionsPriority
+              ? "border-helm-gold/40 border-l-[3px] border-l-helm-gold bg-helm-gold/[0.06]"
+              : "border-helm-line",
+          )}
+        >
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Decisions</h3>
             <button
@@ -297,20 +382,27 @@ export default function BriefingCockpitHero({ metrics = [], decisions = [], load
               <Plus className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="mb-3 rounded-lg border border-helm-status-positive/35 bg-helm-status-positive/12 px-3 py-2.5 flex items-center justify-between">
+          <div
+            className={cn(
+              "mb-3 rounded-lg border px-3 py-2.5 flex items-center justify-between",
+              queueStatus.tone === "positive"
+                ? "border-helm-status-positive/35 bg-helm-status-positive/12"
+                : "border-helm-status-warning/35 bg-helm-status-warning/12",
+            )}
+          >
             <div>
               <p className="font-mono text-[10px] uppercase tracking-wider text-helm-muted">Decision queue</p>
-              <p className="text-sm text-helm-fg mt-0.5">
-                {decisionRows.length === 0 ? "Clear" : decisionRows.length <= 2 ? "Good" : "Needs attention"}
-              </p>
+              <p className="text-sm text-helm-fg mt-0.5">{queueStatus.body}</p>
             </div>
-            <span className={cn(
-              "rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider",
-              decisionRows.length <= 2
-                ? "bg-helm-status-positive/12 text-helm-status-positive"
-                : "bg-helm-status-warning/12 text-helm-status-warning",
-            )}>
-              {decisionRows.length <= 2 ? "Good" : "Busy"}
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider",
+                queueStatus.tone === "positive"
+                  ? "bg-helm-status-positive/12 text-helm-status-positive"
+                  : "bg-helm-status-warning/12 text-helm-status-warning",
+              )}
+            >
+              {queueStatus.badge}
             </span>
           </div>
           {decisionRows.length > 0 ? (

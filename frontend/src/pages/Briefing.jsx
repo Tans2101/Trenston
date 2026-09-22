@@ -165,8 +165,13 @@ export default function Briefing() {
   const whatChanged = data.what_changed || [];
   const whatToDecide = data.what_to_decide || [];
   const whatToDelegate = data.what_to_delegate || [];
-  // Missing has_team on older company docs → treat as team (matches GET /company default).
   const hasTeam = company?.has_team !== false;
+  const setupHeadline = /start by logging your financials/i.test(data.headline || "");
+  const financeMetrics = metrics.filter((m) => /mrr|revenue|^burn|runway/i.test(m.label || ""));
+  const allFinanceMissing =
+    financeMetrics.length > 0 && financeMetrics.every((m) => m.missing);
+  // Hero empty-state card already covers the CTA when every finance KPI is missing.
+  const showSetupPrompt = setupHeadline && !allFinanceMissing;
 
   return (
     <div className="max-w-6xl">
@@ -175,7 +180,41 @@ export default function Briefing() {
           {data.date} · {briefingLabel}
         </p>
         <h1 className="font-display text-3xl md:text-4xl font-normal tracking-tight text-helm-fg">{greeting}.</h1>
-        <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">{data.headline}</p>
+        {showSetupPrompt ? (
+          <div
+            className="mt-5 rounded-xl border border-helm-gold/35 bg-helm-gold/10 p-5 max-w-2xl"
+            data-testid="briefing-setup-prompt"
+          >
+            <p className="font-display text-lg text-helm-fg tracking-tight">Ready when you are</p>
+            <p className="mt-1.5 text-sm text-helm-muted leading-relaxed">
+              Log a financial entry and invite your team so Briefing can show real numbers instead of placeholders.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                data-testid="briefing-setup-financials"
+                onClick={() => navigate("/app/financials#log-mrr")}
+                className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+              >
+                Add financial entry
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+              {hasTeam ? (
+                <button
+                  type="button"
+                  data-testid="briefing-setup-people"
+                  onClick={() => navigate("/app/people")}
+                  className="inline-flex items-center gap-2 rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/[0.04] transition-colors"
+                >
+                  Invite your team
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : setupHeadline ? null : (
+          <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">{data.headline}</p>
+        )}
       </header>
 
       <BriefingCockpitHero metrics={metrics} decisions={whatToDecide} />

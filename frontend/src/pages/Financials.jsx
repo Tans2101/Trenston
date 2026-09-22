@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList } from "@/components/kit";
 import { Gauge } from "@/components/charts/gauge";
 import { cn } from "@/lib/utils";
+import { formatAxisMoney } from "@/lib/formatAxisMoney";
 import palette from "@/design/palette.json";
 
 const GOLD = palette.gold;
@@ -753,7 +754,7 @@ export default function Financials() {
                   <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GOLD} stopOpacity={0.35} /><stop offset="100%" stopColor={GOLD} stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                   <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v / 1000}k`} />
+                  <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
                   <Tooltip content={<ChartTooltip symbol={sym} />} />
                   <Area type="monotone" dataKey="revenue" name="Revenue" stroke={GOLD} strokeWidth={2} fill="url(#rev)" />
                   <Area type="monotone" dataKey="expenses" name="Expenses" stroke={palette.slate} strokeWidth={1.5} fill="none" strokeDasharray="4 4" />
@@ -789,7 +790,7 @@ export default function Financials() {
                   <BarChart data={data.burn_series} margin={{ left: -8, right: 8 }}>
                     <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v / 1000}k`} />
+                    <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
                     <Tooltip content={<ChartTooltip symbol={sym} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
                     <Bar dataKey="burn" name="Net burn" fill={GOLD} radius={[4, 4, 0, 0]} />
                   </BarChart>

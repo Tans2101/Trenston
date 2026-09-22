@@ -540,16 +540,36 @@ html[data-theme="dark"] #root {
   color: var(--cir-ink) !important;
 }
 
-.app-shell .cir-rail__link .cir-rail__icon,
-.app-shell .cir-rail__link .cir-rail__shortcut {
+.app-shell .cir-rail__link .cir-rail__icon {
   color: inherit !important;
+}
+
+/* Digit shortcuts (1–9, 0) — muted hints, not notification badges */
+.app-shell .cir-rail__link .cir-rail__shortcut {
+  color: var(--cir-mist) !important;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+  min-width: 0.75rem;
+  text-align: right;
+}
+
+.app-shell .cir-rail__link:hover .cir-rail__shortcut,
+.app-shell .cir-rail__link:focus-visible .cir-rail__shortcut,
+.app-shell .cir-rail__link--active .cir-rail__shortcut {
+  opacity: 0.55;
 }
 
 .app-shell .cir-rail__link--active,
 .app-shell .cir-rail__link--active .cir-rail__icon,
-.app-shell .cir-rail__link--active .cir-rail__label,
+.app-shell .cir-rail__link--active .cir-rail__label {
+  color: var(--cir-cloud) !important;
+}
+
 .app-shell .cir-rail__link--active .cir-rail__shortcut {
   color: var(--cir-cloud) !important;
+  opacity: 0.45;
 }
 
 .app-shell .cir-rail__section {
@@ -614,9 +634,13 @@ html[data-theme="dark"] .app-shell .cir-rail {
 html[data-theme="dark"] .app-shell .cir-rail__link--active,
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__icon,
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__label,
-html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__shortcut,
 html[data-theme="dark"] .app-shell .cir-rail__theme-btn[aria-pressed="true"] {
   color: #09090b !important;
+}
+
+html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__shortcut {
+  color: #09090b !important;
+  opacity: 0.45;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__indicator {

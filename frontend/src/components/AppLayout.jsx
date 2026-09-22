@@ -176,7 +176,13 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
         </div>
         <div className="min-w-0 text-left">
           <p className="text-xs text-helm-fg truncate">{active.name}</p>
-          <p className="text-[10px] text-helm-muted uppercase font-mono tracking-wide">{active.role} · {helmWorkspacePlanLabel(active.plan, billingEnforced)}</p>
+          <p className="text-[10px] text-helm-muted uppercase font-mono tracking-wide">
+            {(() => {
+              const plan = helmWorkspacePlanLabel(active.plan, billingEnforced);
+              // "Active" is reserved for the top-bar pill — show role (and real plan names) here.
+              return plan === "Active" ? active.role : `${active.role} · ${plan}`;
+            })()}
+          </p>
         </div>
         <ChevronDown className={cn("w-4 h-4 text-helm-muted shrink-0 transition-transform", open && "rotate-180")} />
       </button>
@@ -343,6 +349,7 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
                       {shortcut ? (
                         <span
                           className="cir-rail__shortcut ml-auto font-mono text-[10px] tabular-nums shrink-0"
+                          title={`Keyboard shortcut: ${shortcut}`}
                           aria-hidden
                         >
                           {shortcut}
@@ -393,7 +400,14 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
         <ProfileDropdown
           name={user?.name || "CEO"}
           picture={user?.picture}
-          planLabel={helmPlanLabel(company?.plan, isPro, billingEnforced)}
+          planLabel={(() => {
+            const plan = helmPlanLabel(company?.plan, isPro, billingEnforced);
+            // Keep "Active" only on the top-bar pill; profile shows role instead.
+            if (plan === "Active") {
+              return (user?.role || user?.pack || "Member").replace(/_/g, " ");
+            }
+            return plan;
+          })()}
           showBilling={canBilling}
           onBilling={() => { navigate("/app/billing"); onNavigate?.(); }}
           onIntegrations={() => { navigate("/app/integrations"); onNavigate?.(); }}
@@ -619,6 +633,11 @@ export default function AppLayout() {
   const canBilling = canManageBilling(user);
   const needsCompanySetup = company?.role === "owner" && company?.company_setup_done === false;
   const planLabel = helmPlanLabel(company?.plan, isPro, billingEnforced);
+  // Profile subtitles: role when plan would just repeat the top-bar "Active" pill.
+  const profilePlanLabel =
+    planLabel === "Active"
+      ? (user?.role || user?.pack || "Member").replace(/_/g, " ")
+      : planLabel;
   const trialDaysLeft = (() => {
     if (!trialing) return null;
     const end = billing?.trial_ends_at || billing?.current_period_end;
@@ -746,7 +765,7 @@ export default function AppLayout() {
             <ProfileDropdown
               name={user?.name || "CEO"}
               picture={user?.picture}
-              planLabel={planLabel}
+              planLabel={profilePlanLabel}
               showBilling={canBilling}
               onBilling={() => navigate("/app/billing")}
               onIntegrations={() => navigate("/app/integrations")}
