@@ -489,6 +489,143 @@ html[data-theme="dark"] #root {
   color: var(--helm-cream);
 }
 
+/* Vertical cir-tabs rail (Uiverse-style pill nav as sidebar) */
+.app-shell .cir-rail {
+  --cir-cloud: #ffffff;
+  --cir-edge: #e3e8ee;
+  --cir-mist: #5b6472;
+  --cir-ink: #0e1116;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 1.5rem);
+  margin: 0.75rem 0.5rem;
+  padding: 0.5rem;
+  background: var(--cir-cloud);
+  border: 1px solid var(--cir-edge);
+  border-radius: 1.75rem;
+  box-shadow:
+    0 1px 1px rgba(14, 17, 22, 0.04),
+    0 20px 40px -24px rgba(14, 17, 22, 0.18);
+  overflow: hidden;
+}
+
+.app-shell .cir-rail__track {
+  gap: 4px;
+}
+
+.app-shell .cir-rail__indicator {
+  background: var(--cir-ink) !important;
+  box-shadow:
+    0 1px 1px rgba(14, 17, 22, 0.06),
+    0 8px 18px -10px rgba(14, 17, 22, 0.5);
+}
+
+.app-shell .cir-rail__link {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 36px;
+  padding: 0.5rem 0.875rem;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cir-mist) !important;
+  transition:
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell .cir-rail__link:hover {
+  color: var(--cir-ink) !important;
+}
+
+.app-shell .cir-rail__link .cir-rail__icon,
+.app-shell .cir-rail__link .cir-rail__shortcut {
+  color: inherit !important;
+}
+
+.app-shell .cir-rail__link--active,
+.app-shell .cir-rail__link--active .cir-rail__icon,
+.app-shell .cir-rail__link--active .cir-rail__label,
+.app-shell .cir-rail__link--active .cir-rail__shortcut {
+  color: var(--cir-cloud) !important;
+}
+
+.app-shell .cir-rail__section {
+  padding: 1rem 0.875rem 0.25rem;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cir-mist);
+}
+
+.app-shell .cir-rail__theme {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--cir-edge);
+  background: var(--cir-cloud);
+}
+
+.app-shell .cir-rail__theme-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 32px;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cir-mist);
+  transition:
+    color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell .cir-rail__theme-btn:hover {
+  color: var(--cir-ink);
+}
+
+.app-shell .cir-rail__theme-btn[aria-pressed="true"] {
+  background: var(--cir-ink);
+  color: var(--cir-cloud);
+  box-shadow:
+    0 1px 1px rgba(14, 17, 22, 0.06),
+    0 8px 18px -10px rgba(14, 17, 22, 0.5);
+}
+
+html[data-theme="dark"] .app-shell .cir-rail {
+  --cir-cloud: #121214;
+  --cir-edge: color-mix(in srgb, #f5f0e6 16%, transparent);
+  --cir-mist: #8b93a1;
+  --cir-ink: #f5f0e6;
+}
+
+html[data-theme="dark"] .app-shell .cir-rail__link--active,
+html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__icon,
+html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__label,
+html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__shortcut,
+html[data-theme="dark"] .app-shell .cir-rail__theme-btn[aria-pressed="true"] {
+  color: #09090b !important;
+}
+
+html[data-theme="dark"] .app-shell .cir-rail__indicator {
+  background: #f5f0e6 !important;
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.2),
+    0 8px 18px -10px rgba(245, 240, 230, 0.35);
+}
+
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }

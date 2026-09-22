@@ -112,7 +112,7 @@ function SidebarThemeControl() {
       role="group"
       aria-label="Color theme"
       data-testid="sidebar-theme-control"
-      className="flex w-full items-center rounded-full border border-helm-line p-0.5"
+      className="cir-rail__theme"
     >
       {options.map(({ id, label, icon: Icon }) => {
         const active = theme === id;
@@ -123,12 +123,7 @@ function SidebarThemeControl() {
             data-testid={`sidebar-theme-${id === "system" ? "auto" : id}`}
             aria-pressed={active}
             onClick={() => apply(id)}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[10px] font-mono uppercase tracking-wide transition-colors",
-              active
-                ? "bg-helm-fg/[0.08] text-helm-fg"
-                : "text-helm-muted hover:text-helm-fg",
-            )}
+            className="cir-rail__theme-btn"
           >
             <Icon className="h-3 w-3 shrink-0" />
             <span className="truncate">{label}</span>
@@ -292,12 +287,7 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
     : (mainNav.find((item) => pathMatches(item.to, location.pathname, item.end))?.id || null);
 
   const navBtn = ({ isActive }) =>
-    cn(
-      "group relative flex w-full items-center gap-2.5 rounded-full px-3 py-2 text-sm transition-colors duration-200",
-      isActive
-        ? "text-helm-navy"
-        : "text-helm-muted hover:text-helm-fg",
-    );
+    cn("cir-rail__link group relative", isActive && "cir-rail__link--active");
 
   useEffect(() => {
     if (!enableNavShortcuts) return undefined;
@@ -316,20 +306,23 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
   }, [enableNavShortcuts, mainNav, navigate]);
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2.5 px-3 pt-4 pb-2" data-testid="sidebar-brand">
+    <div className="cir-rail" data-testid="app-sidebar-rail">
+      <div className="flex items-center gap-2.5 px-3 pt-2 pb-2" data-testid="sidebar-brand">
         <TrenstonMark size={28} className="rounded-md" />
-        <span className="text-helm-fg font-semibold text-sm tracking-tight">Trenston</span>
+        <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--cir-ink)" }}>
+          Trenston
+        </span>
       </div>
 
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
 
-      <nav className="flex-1 overflow-y-auto px-1 py-3" aria-label="App">
+      <nav className="flex-1 overflow-y-auto py-2" aria-label="App">
         <SmoothTab
           orientation="vertical"
           variant="pill"
           activeId={activeDeptId ? `dept-${activeDeptId}` : activeMainId}
-          className="gap-1"
+          className="cir-rail__track"
+          indicatorClassName="cir-rail__indicator"
         >
           {mainNav.map((item, index) => {
             const shortcut = navShortcutLabel(index);
@@ -345,14 +338,11 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
                 >
                   {({ isActive }) => (
                     <>
-                      <item.icon className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-helm-navy" : "text-helm-muted group-hover:text-helm-fg")} />
-                      <span className="truncate flex-1 text-left">{item.label}</span>
+                      <item.icon className={cn("cir-rail__icon w-[18px] h-[18px] shrink-0")} />
+                      <span className="cir-rail__label truncate flex-1 text-left">{item.label}</span>
                       {shortcut ? (
                         <span
-                          className={cn(
-                            "ml-auto font-mono text-[10px] tabular-nums shrink-0",
-                            isActive ? "text-helm-navy/70" : "text-helm-muted/70",
-                          )}
+                          className="cir-rail__shortcut ml-auto font-mono text-[10px] tabular-nums shrink-0"
                           aria-hidden
                         >
                           {shortcut}
@@ -365,9 +355,7 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
             );
           })}
           {deptNav.length > 0 ? (
-            <p className="px-3 pt-4 pb-1 text-[10px] font-mono uppercase tracking-[0.18em] text-helm-muted">
-              Departments
-            </p>
+            <p className="cir-rail__section">Departments</p>
           ) : null}
           {deptNav.map((dept) => {
             const Icon = departmentIcon(dept.icon);
@@ -381,10 +369,10 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
                   data-testid={`sidebar-dept-${dept.type}`}
                   className={navBtn}
                 >
-                  {({ isActive }) => (
+                  {() => (
                     <>
-                      <Icon className={cn("w-[18px] h-[18px] shrink-0", isActive ? "text-helm-navy" : "text-helm-muted group-hover:text-helm-fg")} />
-                      <span className="truncate">{dept.name}</span>
+                      <Icon className="cir-rail__icon w-[18px] h-[18px] shrink-0" />
+                      <span className="cir-rail__label truncate">{dept.name}</span>
                     </>
                   )}
                 </NavLink>
@@ -394,7 +382,7 @@ function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = fals
         </SmoothTab>
       </nav>
 
-      <div className="px-1 pb-4 space-y-2">
+      <div className="px-1 pb-2 space-y-2">
         <SidebarPromoCard
           billingEnforced={billingEnforced}
           isPaid={isPaid}
@@ -670,12 +658,12 @@ export default function AppLayout() {
   return (
     <div className="app-shell min-h-screen">
       {pastDue && (
-        <div className="lg:pl-[220px] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
+        <div className="lg:pl-[240px] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
           Payment past due: <button type="button" onClick={() => window.location.href = "/app/billing"} className="underline font-medium text-helm-status-warning">update billing</button> to keep Trenston access.
         </div>
       )}
-      {/* Desktop nav rail — same surface as the page, no enclosed panel */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[220px] flex-col z-40 px-2">
+      {/* Desktop nav rail — cir-tabs pill shell */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col z-40">
         <SidebarContent billingEnforced={billingEnforced} enableNavShortcuts />
       </aside>
 
@@ -704,8 +692,8 @@ export default function AppLayout() {
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-[280px] bg-helm-bg px-2 pt-10">
-            <button onClick={() => setMobileOpen(false)} className="absolute top-4 right-4 text-helm-muted z-10">
+          <div className="absolute inset-y-0 left-0 w-[300px] bg-transparent px-1 pt-2 pb-2">
+            <button onClick={() => setMobileOpen(false)} className="absolute top-5 right-5 text-helm-muted z-10">
               <X className="w-5 h-5" />
             </button>
             <SidebarContent
@@ -726,7 +714,7 @@ export default function AppLayout() {
         />
       </div>
 
-      <main className="lg:pl-[220px] relative z-10">
+      <main className="lg:pl-[240px] relative z-10">
         {/* Desktop persistent top bar */}
         <div
           className="hidden lg:flex sticky top-0 z-40 h-14 items-center gap-3 px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"
