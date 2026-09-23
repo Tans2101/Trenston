@@ -251,7 +251,7 @@ html[data-theme="light"] .app-shell {
   --helm-fg: #111111;
   --helm-bg: #FFFFFF;
   --helm-card: #FAFAF9;
-  --helm-muted: #111111;
+  --helm-muted: #6B7280;
   --helm-line: color-mix(in srgb, #111111 22%, transparent);
   background: #FFFFFF;
   color: #111111;
@@ -299,13 +299,13 @@ html[data-theme="light"] .app-shell .text-helm-muted,
 html[data-theme="light"] .app-shell .text-helm-slate,
 html[data-theme="light"] .app-shell [class*="text-helm-muted"],
 html[data-theme="light"] .app-shell [class*="text-helm-slate"] {
-  color: #111111 !important;
+  color: #6B7280 !important;
 }
 
-/* Gold as copy color → near-black in light; gold stays for bars/icons via non-text fills */
+/* Keep gold text links readable as gold in light (buttons stay navy-on-gold below). */
 html[data-theme="light"] .app-shell .text-gold,
 html[data-theme="light"] .app-shell .text-helm-gold {
-  color: #111111 !important;
+  color: #C9A24B !important;
 }
 
 html[data-theme="light"] .app-shell .bg-gold .text-helm-navy,

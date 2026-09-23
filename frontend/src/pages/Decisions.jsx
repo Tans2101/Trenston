@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Plus, RefreshCw, X, Sparkles } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { AnimatePresence } from "motion/react";
@@ -17,11 +18,21 @@ export default function Decisions() {
   const { data, loading, error, reload } = useFetch("/decisions");
   const { data: membersData } = useFetch("/members");
   const { busy, act, approveSuggestion, dismissSuggestion } = useDecisionActions(reload);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
+
+  useEffect(() => {
+    if (!location.state?.openAdd) return;
+    setEditing(null);
+    setForm(emptyForm());
+    setShowForm(true);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, location.pathname, navigate]);
 
   if (loading) {
     return (

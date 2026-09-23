@@ -4,13 +4,18 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import {
-  ChevronLeft, ChevronRight, Info, Plus, Sparkles, ArrowRight, Wallet, Users,
+  ChevronLeft, ChevronRight, Plus, Sparkles, ArrowRight, Wallet, Users,
 } from "lucide-react";
 import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
+import {
+  allFinanceKpisMissing,
+  financialsPanelState,
+  shouldShowFinanceEmptyCta,
+} from "@/lib/briefingCockpit";
 import palette from "@/design/palette.json";
 
 const ASSISTANT_PROMPTS = [
@@ -27,19 +32,16 @@ const METRIC_KEYS = [
   { id: "cash", label: "Cash", match: /cash/i, href: "/app/financials#cash" },
 ];
 
-const SPEND_COLORS = [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember];
+function spendColors(dark) {
+  // Avoid cream-on-card washout in light theme (SPEND_COLORS[1] was palette.cream).
+  return dark
+    ? [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember]
+    : [palette.gold, palette.slate, palette.navy, palette.statusWarning, palette.ember];
+}
 
 function pickMetric(metrics, key) {
   const def = METRIC_KEYS.find((m) => m.id === key) || METRIC_KEYS[0];
   return (metrics || []).find((m) => def.match.test(m.label || "")) || null;
-}
-
-function formatRangeLabel() {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(end.getDate() - 30);
-  const fmt = (d) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
-  return `${fmt(start)} – ${fmt(end)}`;
 }
 
 function decisionQueueStatus(count) {
@@ -62,10 +64,14 @@ export default function BriefingCockpitHero({
   const { resolvedTheme } = useTheme();
   const navigate = useNavigate();
   const canFin = (user?.granted_sections || []).includes("financials");
-  const { data: fin } = useFetch(canFin ? "/financials" : null);
+  const {
+    data: fin,
+    loading: finLoading,
+    error: finError,
+    reload: reloadFin,
+  } = useFetch(canFin ? "/financials" : null);
   const [chartOffset, setChartOffset] = useState(0);
   const dark = resolvedTheme === "dark";
-  // Brand accent for current period in both themes (navy only as text/chrome elsewhere)
   const currentBar = palette.gold;
   const lastBar = dark ? "rgba(245, 240, 230, 0.35)" : `${palette.slate}66`;
   const axisStroke = dark ? "rgba(245, 240, 230, 0.55)" : palette.slate;
@@ -73,8 +79,10 @@ export default function BriefingCockpitHero({
   const tooltipBg = dark ? palette.inkCard : "#FFFFFF";
   const tooltipBorder = dark ? "rgba(245, 240, 230, 0.22)" : "rgba(17, 17, 17, 0.2)";
   const cursorFill = dark ? "rgba(245, 240, 230, 0.06)" : "rgba(201,162,75,0.08)";
+  const swatches = spendColors(dark);
 
   const heroMetrics = useMemo(() => {
+    if (!canFin) return [];
     const order = ["mrr", "burn", "runway"];
     return order.map((id) => {
       const def = METRIC_KEYS.find((k) => k.id === id);
@@ -89,13 +97,15 @@ export default function BriefingCockpitHero({
         tone: match?.tone,
       };
     });
-  }, [metrics]);
+  }, [metrics, canFin]);
 
-  const allFinanceMissing =
-    heroMetrics.length > 0 && heroMetrics.every((m) => m.missing);
-  // Parent Briefing "Ready when you are" already covers the empty CTA — skip duplicate.
-  const financeEmpty = allFinanceMissing && !suppressFinanceEmpty;
-  const showFinanceKpis = !allFinanceMissing;
+  const financeEmpty = shouldShowFinanceEmptyCta({
+    canFin,
+    metrics,
+    suppressFinanceEmpty,
+  });
+  // When parent suppresses the empty CTA (Ready-when-you-are), skip the KPI strip too.
+  const renderKpis = canFin && !financeEmpty && !allFinanceKpisMissing(metrics);
 
   const chartData = useMemo(() => {
     const series = fin?.revenue_series || [];
@@ -103,7 +113,8 @@ export default function BriefingCockpitHero({
     return series.map((row, i) => ({
       month: row.month,
       current: Number(row.revenue) || 0,
-      last: i > 0 ? Number(series[i - 1].revenue) || 0 : 0,
+      // First month has no prior period — omit rather than fake $0.
+      last: i > 0 ? Number(series[i - 1].revenue) || 0 : null,
     }));
   }, [fin]);
 
@@ -119,10 +130,23 @@ export default function BriefingCockpitHero({
     return rows.slice(0, 5);
   }, [fin]);
 
+  const chartState = financialsPanelState({
+    canFin,
+    loading: finLoading,
+    error: finError,
+    hasRows: visibleChart.length > 0,
+  });
+  const spendState = financialsPanelState({
+    canFin,
+    loading: finLoading,
+    error: finError,
+    hasRows: spendRows.length > 0,
+  });
+
   const decisionRows = (decisions || []).slice(0, 5);
   const queueStatus = decisionQueueStatus(decisionRows.length);
-  // Decisions is today's priority surface when anything is open
   const decisionsPriority = decisionRows.length > 0;
+  const openDecisionsTotal = (decisions || []).length;
 
   if (loading) {
     return (
@@ -156,17 +180,15 @@ export default function BriefingCockpitHero({
             Revenue, burn, and runway stay empty until you log financials. Invite your team when you are ready to share the cockpit.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {canFin ? (
-              <button
-                type="button"
-                data-testid="briefing-empty-add-financials"
-                onClick={() => navigate("/app/financials#log-mrr")}
-                className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
-              >
-                <Wallet className="w-4 h-4" />
-                Add financial entry
-              </button>
-            ) : null}
+            <button
+              type="button"
+              data-testid="briefing-empty-add-financials"
+              onClick={() => navigate("/app/financials#log-mrr")}
+              className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+            >
+              <Wallet className="w-4 h-4" />
+              Add financial entry
+            </button>
             <button
               type="button"
               data-testid="briefing-empty-invite-team"
@@ -178,13 +200,15 @@ export default function BriefingCockpitHero({
             </button>
           </div>
         </div>
-      ) : showFinanceKpis ? (
+      ) : renderKpis ? (
         <div className="rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
-          <div className="flex items-center justify-end mb-4">
-            <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
-              {formatRangeLabel()}
-            </span>
-          </div>
+          {fin?.data_as_of ? (
+            <div className="flex items-center justify-end mb-4">
+              <span className="inline-flex items-center rounded-full border border-helm-line px-3 py-1.5 text-xs text-helm-muted">
+                As of {new Date(fin.data_as_of).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </span>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" data-testid="briefing-hero-metrics">
             {heroMetrics.map((m) => (
               <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
@@ -212,7 +236,6 @@ export default function BriefingCockpitHero({
                       {m.delta != null
                         ? `${m.delta > 0 ? "+" : ""}${m.delta}% vs last period`
                         : "vs last period"}
-                      <Info className="w-3.5 h-3.5" aria-hidden />
                     </p>
                   </>
                 )}
@@ -248,7 +271,24 @@ export default function BriefingCockpitHero({
             </span>
           </div>
         </div>
-        {visibleChart.length > 0 ? (
+        {chartState === "loading" ? (
+          <div
+            className="h-[220px] rounded-lg bg-helm-fg/[0.04] animate-pulse"
+            data-testid="briefing-chart-loading"
+            aria-hidden
+          />
+        ) : chartState === "error" ? (
+          <div className="py-12 text-center" data-testid="briefing-chart-error">
+            <p className="text-sm text-helm-muted">Could not load revenue chart.</p>
+            <button
+              type="button"
+              onClick={() => reloadFin()}
+              className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover underline underline-offset-2"
+            >
+              Retry
+            </button>
+          </div>
+        ) : chartState === "ready" ? (
           <>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={visibleChart} margin={{ left: -8, right: 8, top: 4 }}>
@@ -274,10 +314,13 @@ export default function BriefingCockpitHero({
                   }}
                   labelStyle={{ color: tooltipFg, fontWeight: 500 }}
                   itemStyle={{ color: tooltipFg }}
-                  formatter={(value, name) => [
-                    typeof value === "number" ? `$${Math.round(value).toLocaleString()}` : value,
-                    name === "current" ? "Current month" : "Prior month",
-                  ]}
+                  formatter={(value, name) => {
+                    if (value == null) return ["—", name === "current" ? "Current month" : "Prior month"];
+                    return [
+                      typeof value === "number" ? `$${Math.round(value).toLocaleString()}` : value,
+                      name === "current" ? "Current month" : "Prior month",
+                    ];
+                  }}
                   labelFormatter={(label) => `${label} revenue`}
                 />
                 <Bar dataKey="current" name="current" fill={currentBar} radius={[4, 4, 0, 0]} />
@@ -341,15 +384,32 @@ export default function BriefingCockpitHero({
         <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Spending</h3>
-            <span className="text-xs text-helm-muted">Last 30 days</span>
+            <span className="text-xs text-helm-muted">Share of expenses</span>
           </div>
-          {spendRows.length > 0 ? (
+          {spendState === "loading" ? (
+            <div className="space-y-3 py-2 animate-pulse" data-testid="briefing-spend-loading">
+              <div className="h-4 rounded bg-helm-fg/[0.06]" />
+              <div className="h-4 rounded bg-helm-fg/[0.06]" />
+              <div className="h-4 rounded bg-helm-fg/[0.06]" />
+            </div>
+          ) : spendState === "error" ? (
+            <div className="py-6 text-center" data-testid="briefing-spend-error">
+              <p className="text-sm text-helm-muted">Could not load spending.</p>
+              <button
+                type="button"
+                onClick={() => reloadFin()}
+                className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover underline underline-offset-2"
+              >
+                Retry
+              </button>
+            </div>
+          ) : spendState === "ready" ? (
             <ul className="space-y-3">
               {spendRows.map((row, i) => (
                 <li key={row.name} className="flex items-center gap-2.5">
                   <span
                     className="h-2.5 w-2.5 rounded-sm shrink-0"
-                    style={{ background: SPEND_COLORS[i % SPEND_COLORS.length] }}
+                    style={{ background: swatches[i % swatches.length] }}
                   />
                   <span className="text-sm text-helm-fg truncate flex-1">{row.name}</span>
                   <div className="w-20 h-1.5 rounded-full bg-helm-fg/[0.06] overflow-hidden">
@@ -385,7 +445,7 @@ export default function BriefingCockpitHero({
             <button
               type="button"
               aria-label="Add decision"
-              onClick={() => navigate("/app/decisions")}
+              onClick={() => navigate("/app/decisions", { state: { openAdd: true } })}
               className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -415,19 +475,36 @@ export default function BriefingCockpitHero({
             </span>
           </div>
           {decisionRows.length > 0 ? (
-            <ul className="space-y-2 max-h-40 overflow-y-auto">
-              {decisionRows.map((d, i) => (
-                <li key={d.id || i} className="flex items-start justify-between gap-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="text-helm-fg truncate leading-snug">{d.title || d.label || "Open decision"}</p>
-                    <p className="text-[11px] text-helm-muted mt-0.5">{d.urgency || d.source || "Pending"}</p>
-                  </div>
-                  <span className="shrink-0 rounded-full bg-helm-status-warning/12 px-2 py-0.5 text-[10px] text-helm-status-warning">
-                    Open
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="space-y-2 max-h-40 overflow-y-auto">
+                {decisionRows.map((d, i) => (
+                  <li key={d.id || i}>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/app/decisions")}
+                      className="w-full flex items-start justify-between gap-2 text-sm text-left rounded-md px-1 py-0.5 -mx-1 hover:bg-helm-fg/[0.04] transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-helm-fg truncate leading-snug">{d.title || d.label || "Open decision"}</p>
+                        <p className="text-[11px] text-helm-muted mt-0.5">{d.urgency || d.source || "Pending"}</p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-helm-status-warning/12 px-2 py-0.5 text-[10px] text-helm-status-warning">
+                        Open
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {openDecisionsTotal >= 5 ? (
+                <button
+                  type="button"
+                  onClick={() => navigate("/app/decisions")}
+                  className="mt-3 text-xs text-helm-gold hover:text-helm-gold-hover"
+                >
+                  View all decisions
+                </button>
+              ) : null}
+            </>
           ) : (
             <p className="text-sm text-helm-muted text-center py-4">No open decisions right now.</p>
           )}

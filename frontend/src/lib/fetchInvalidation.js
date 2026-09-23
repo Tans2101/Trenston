@@ -7,7 +7,8 @@
 import { getAppQueryClient } from "./queryClient";
 
 const MUTATION_INVALIDATIONS = [
-  { match: "/production/work-orders", paths: ["/production/work-orders", "/me/work-items", "/calendar"] },
+  { match: "/production/work-orders", paths: ["/production/work-orders", "/me/work-items", "/calendar", "/briefing"] },
+  { match: "/production/daily-logs", paths: ["/production/work-orders", "/briefing"] },
   { match: "/procurement/requests", paths: ["/procurement/requests", "/me/work-items", "/calendar", "/production/work-orders", "/financials", "/briefing"] },
   { match: "/procurement/settings", paths: ["/procurement/requests", "/procurement/settings", "/briefing"] },
   { match: "/maintenance/settings", paths: ["/maintenance/tickets", "/maintenance/settings", "/briefing"] },
@@ -23,7 +24,7 @@ const MUTATION_INVALIDATIONS = [
   { match: "/tasks", paths: ["/tasks", "/tasks/me", "/me/work-items"] },
   { match: "/decisions", paths: ["/decisions", "/briefing", "/me/work-items"] },
   { match: "/notes", paths: ["/notes"] },
-  { match: "/updates", paths: ["/updates/me", "/updates/today"] },
+  { match: "/updates", paths: ["/updates/me", "/updates/today", "/briefing"] },
   { match: "/calendar", paths: ["/calendar"] },
   { match: "/people", paths: ["/people", "/members"] },
   { match: "/reports", paths: ["/reports"] },

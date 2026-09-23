@@ -8,6 +8,7 @@ import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { hasPerm } from "@/lib/access";
+import { isFatalBriefingLoad } from "@/lib/briefingCockpit";
 import { GlassCard, ErrorScreen, PageHeaderSkeleton, SkeletonKPIRow, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import Onboarding from "@/pages/Onboarding";
@@ -44,6 +45,7 @@ export default function Briefing() {
   const [integDismissBusy, setIntegDismissBusy] = useState(false);
   const [sampleBannerDismissed, setSampleBannerDismissed] = useState(false);
   const [clearSampleBusy, setClearSampleBusy] = useState(false);
+  const [gmailDraftBusy, setGmailDraftBusy] = useState(null);
   const navigate = useNavigate();
 
   const canClearSample = hasPerm(user, "workspace:edit");
@@ -60,9 +62,23 @@ export default function Briefing() {
     }
   }, [sampleBannerKey]);
 
-  const loading = briefingLoading || companyLoading;
-  const error = briefingError || companyError;
+  // Only block on first load — keep cached UI when a background refetch fails.
+  const loading = (briefingLoading && !data) || (companyLoading && !company);
+  const fatalError = isFatalBriefingLoad({
+    briefingError,
+    companyError,
+    data,
+    company,
+  });
+  const softRefreshError = Boolean((briefingError || companyError) && data && company);
   const reload = () => { reloadBriefing(); reloadCompany(); };
+
+  useEffect(() => {
+    if (!softRefreshError) return;
+    toast.error(
+      fetchErrorMessage(briefingError || companyError, "Could not refresh briefing. Showing last loaded data."),
+    );
+  }, [softRefreshError, briefingError, companyError]);
 
   if (loading) {
     return (
@@ -78,11 +94,11 @@ export default function Briefing() {
       </div>
     );
   }
-  if (error || !data || !company) {
+  if (fatalError) {
     return (
       <ErrorScreen
         label="Could not load briefing"
-        message={fetchErrorMessage(error, "Briefing data is unavailable right now.")}
+        message={fetchErrorMessage(briefingError || companyError, "Briefing data is unavailable right now.")}
         onRetry={reload}
       />
     );
@@ -231,6 +247,22 @@ export default function Briefing() {
 
   return (
     <div className="max-w-6xl">
+      {softRefreshError ? (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-helm-status-warning/35 bg-helm-status-warning/12 px-4 py-3 text-sm text-helm-fg"
+          data-testid="briefing-refresh-error"
+          role="status"
+        >
+          <span>Could not refresh. Showing the last loaded briefing.</span>
+          <button
+            type="button"
+            onClick={reload}
+            className="text-xs text-helm-gold hover:text-helm-gold-hover underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
       <header className="mb-8 fade-up">
         <p className="text-xs uppercase tracking-[0.18em] text-helm-muted mb-3">
           {data.date} · {briefingLabel}
@@ -415,7 +447,7 @@ export default function Briefing() {
             </button>
           </div>
           <p className="text-sm text-helm-muted leading-relaxed mb-4">
-            Link Google, QuickBooks, Xero, SAP Business One, HubSpot, or Slack so Briefing and Financials stay current.
+            Link Google, QuickBooks, Xero, SAP Business One, or HubSpot so Briefing and Financials stay current. Slack is for alerts only.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -461,7 +493,7 @@ export default function Briefing() {
         {data.ai_summary ? (
           <>
             <AiSummaryMeta
-              asOf={data.data_as_of || data.ai_summary_data_as_of}
+              asOf={data.ai_summary_data_as_of || data.data_as_of}
               detailHref="/app/decisions"
               detailLabel="Decisions"
               className="mb-3"
@@ -546,7 +578,11 @@ export default function Briefing() {
                     <button
                       type="button"
                       data-testid={`gmail-draft-${i}`}
+                      disabled={gmailDraftBusy === (t.id || i)}
                       onClick={async () => {
+                        const draftKey = t.id || i;
+                        if (gmailDraftBusy != null) return;
+                        setGmailDraftBusy(draftKey);
                         try {
                           const { data: res } = await api.post("/integrations/google/gmail-draft", {
                             thread_id: t.id,
@@ -561,11 +597,13 @@ export default function Briefing() {
                           });
                         } catch (e) {
                           toastError(e, "Reconnect Google to create drafts");
+                        } finally {
+                          setGmailDraftBusy(null);
                         }
                       }}
-                      className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover"
+                      className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover disabled:opacity-50"
                     >
-                      Draft reply in Gmail
+                      {gmailDraftBusy === (t.id || i) ? "Creating draft…" : "Draft reply in Gmail"}
                     </button>
                   )}
                 </div>
@@ -588,7 +626,7 @@ export default function Briefing() {
             )}
             {whatChanged.map((c, i) => (
               <div key={i} className="flex gap-3" data-testid={`changed-${i}`}>
-                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone])} />
+                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone] || toneDot.neutral)} />
                 <div>
                   <p className="text-sm text-helm-fg leading-snug">{c.title}</p>
                   <p className="text-xs text-helm-muted mt-1 leading-relaxed">{c.detail}</p>

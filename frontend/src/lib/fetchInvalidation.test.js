@@ -13,6 +13,25 @@ describe("fetchPathsToInvalidate", () => {
     expect(paths).toContain("/production/work-orders");
     expect(paths).toContain("/me/work-items");
     expect(paths).toContain("/calendar");
+    expect(paths).toContain("/briefing");
+  });
+
+  test("maps production daily-log write to briefing", () => {
+    const paths = fetchPathsToInvalidate("POST", "/production/daily-logs");
+    expect(paths).toContain("/briefing");
+    expect(paths).toContain("/production/work-orders");
+  });
+
+  test("maps daily-log delete to briefing", () => {
+    const paths = fetchPathsToInvalidate("DELETE", "/production/daily-logs/log_1");
+    expect(paths).toContain("/briefing");
+  });
+
+  test("maps updates write to briefing", () => {
+    const paths = fetchPathsToInvalidate("POST", "/updates");
+    expect(paths).toContain("/updates/me");
+    expect(paths).toContain("/updates/today");
+    expect(paths).toContain("/briefing");
   });
 
   test("maps deal patch", () => {
