@@ -68,10 +68,13 @@ describe("marketing claim verification log", () => {
     expect(slack.description.toLowerCase()).not.toMatch(/slash command/);
   });
 
-  test("homepage Briefing acknowledges Gmail draft replies", () => {
+  test("homepage Briefing stays high-level; Gmail drafts live on integrations", () => {
     const briefing = CEO_DAY.find((s) => s.title === "Briefing");
-    expect(briefing.body).toMatch(/Gmail/i);
-    expect(briefing.body).toMatch(/draft/i);
+    expect(briefing.body).toMatch(/what changed/i);
+    expect(briefing.body).toMatch(/decision/i);
+    expect(briefing.body).toMatch(/hand off|live data/i);
+    expect(briefing.body).not.toMatch(/Gmail/i);
+    expect(briefing.body).not.toMatch(/draft/i);
     const google = PUBLIC_INTEGRATIONS.find((i) => i.id === "google");
     expect(google.description).toMatch(/draft/i);
   });

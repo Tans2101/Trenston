@@ -784,7 +784,7 @@ def _invite_email_html(inviter_name: str, workspace_name: str, role: str, app_ur
 </tr></table>
 <p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:22px 0 0 0;">You've been added</p>
 <h1 style="color:#ffffff;font-size:24px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">{inviter_name} invited you to<br><span style="color:#c9a962;">{workspace_name}</span></h1>
-<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the CEO & Founder Operating System. Sign in with Google to see the briefing, decisions, financials and more.</p>
+<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the CEO Operating System. Sign in with Google to see the briefing, decisions, financials and more.</p>
 <table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
 <td style="background:#c9a962;border-radius:8px;">
 <a href="{app_url}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Trenston &rarr;</a>
@@ -15765,7 +15765,7 @@ async def health():
 
 @api_router.get("/")
 async def root():
-    return {"service": "Trenston CEO & Founder Operating System"}
+    return {"service": "Trenston CEO Operating System"}
 
 
 _serve_static = should_serve_static()
@@ -15775,7 +15775,7 @@ if not _serve_static:
     async def api_root():
         """Friendly response when someone opens the Render host directly (API-only)."""
         return {
-            "service": "Trenston CEO & Founder Operating System API",
+            "service": "Trenston CEO Operating System API",
             "message": "This URL is the API backend. Open your Vercel app to use Trenston.",
             "health": "/api/health",
             "auth": "/api/auth/config",

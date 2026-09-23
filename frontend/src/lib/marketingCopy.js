@@ -1,7 +1,7 @@
 /** Shared marketing copy — keep Landing, About, Features, and auth pages aligned. */
 
 export const TAGLINE = "Run the business. Don't chase it.";
-export const CATEGORY = "CEO & Founder Operating System";
+export const CATEGORY = "CEO Operating System";
 export const AUDIENCE = "Built for founders and owners running real operations — however lean the team.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
@@ -35,7 +35,7 @@ export const ABOUT_DIFFERENTIATOR =
   "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the morning picture is company-wide, not one lane at a time.";
 
 export const ABOUT_STORY =
-  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is a CEO & founder operating system — Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales — synthesized into what needs the owner's attention.";
+  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is a CEO operating system — Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales — synthesized into what needs the owner's attention.";
 
 export const VALUES = [
   {
@@ -68,7 +68,7 @@ export const WHO_HELM_IS_FOR = [
 ];
 
 export const CEO_DAY = [
-  { title: "Briefing", body: "Three columns: what changed, what to decide, what to delegate, plus AI synthesis from your live data, and important Gmail threads with AI draft replies you review before sending." },
+  { title: "Briefing", body: "What changed, what needs a decision, and what you can hand off — synthesized from your live data every time you open it." },
   { title: "Decision Center", body: "Pending approvals ranked by impact. Trenston recommends which to tackle first and why." },
   { title: "Ask Trenston", body: "\"What's our biggest risk this quarter?\" answered from your financials and pipeline, not the internet." },
   { title: "CEO Pack", body: "A summary of growth, cash, team pulse, and open decisions, generated in one click, ready to share with your leadership team." },
@@ -346,15 +346,15 @@ export const PROBLEMS = [
 ];
 
 export const HOW_IT_WORKS = [
-  { n: "01", title: "Your team updates the work", body: "Finance, sales, operations, and other departments use their own simple queues. Connect QuickBooks, Xero, SAP Business One, or Google where useful." },
+  { n: "01", title: "Your team updates the work", body: "Finance, sales, operations, and other departments use their own simple queues. Connect the tools you already use, or enter it by hand — whatever's easiest." },
   { n: "02", title: "Trenston prepares your briefing", body: "Money, work, blockers, and open decisions are put in one short briefing. Missing information is called out plainly." },
   { n: "03", title: "You decide and hand off", body: "Approve, follow up, or assign the next step. Trenston keeps the owner and outcome visible so decisions do not disappear." },
 ];
 
 export const FEATURE_HIGHLIGHTS = [
   { title: "Briefing", body: "What changed, what to decide, what to delegate, synthesized from your live company data." },
-  { title: "Decision Center", body: "Approvals with AI recommendations and confidence scores, plus a recently resolved list so calls do not disappear." },
-  { title: "Runway & Burn", body: "Revenue, expenses, and cash tracking. Always know where the money stands." },
+  { title: "Decision Center", body: "Approvals with AI recommendations on what to tackle first, plus a recently resolved list so calls do not disappear." },
+  { title: "Cash & Spending", body: "Revenue, expenses, and cash tracking. Always know where the money stands." },
   { title: "Ask Trenston", body: "Your executive AI chief-of-staff, grounded in your live company data." },
 ];
 
