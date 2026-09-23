@@ -23,8 +23,10 @@ export const ABOUT_PROBLEM =
 export const FOUNDER_NOTE =
   "Tansher Dhawan builds and ships Trenston himself — writing the code and handling day-to-day product work. There is no separate product team. What you see in the cockpit is what he is actively shipping.";
 
+export const HERO_OUTCOME =
+  "Open Trenston and see what changed, what needs a decision, and what you can hand off — synthesized from your live company data.";
 export const HERO_SUB =
-  "Trenston gives owners one clear view of money, people, work, and decisions. Open it whenever you need signal: see what changed, make the call, and get back to running the business.";
+  "One clear view of money, people, work, and decisions — so you can make the call and get back to running the business.";
 
 export const MISSION =
   "Trenston exists so an owner can open one place and see what the business is actually saying today: money, pipeline, people, and the work in motion, without reconstructing that picture from inboxes, spreadsheets, and status chases every morning.";
@@ -324,10 +326,10 @@ export const PRO_FEATURES = PLANS.find((p) => p.id === "starter").includes;
 export const HELM_FEATURES = PRO_FEATURES;
 
 export const PRODUCT_FACTS = [
-  { v: "3 users", l: "included on the free plan" },
-  { v: "7", l: "department workflows included" },
-  { v: "1", l: "weekly leadership update" },
-  { v: "PDF + Excel", l: "financial exports for your accountant" },
+  { v: "One open", l: "what changed, what to decide, what to hand off" },
+  { v: "Ranked calls", l: "Decision Center puts the highest-impact approval first" },
+  { v: "Live answers", l: "Ask Trenston from your financials and pipeline, not the internet" },
+  { v: "Honest numbers", l: "missing cash shows as Add data — never a fake $0" },
 ];
 
 export const PROBLEMS = [
