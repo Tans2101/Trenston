@@ -157,21 +157,48 @@ export default function Billing() {
         cfg.client_token,
         cfg.environment,
         (ev) => {
-        if (ev?.name !== "checkout.completed") return;
-        toast.success("Payment received. Activating your plan…");
-        setBusy(planId);
-        void (async () => {
-          const activated = await waitForBillingPlan(cfg.plan || planId);
-          if (activated) {
-            toast.success("Plan activated");
-            window.location.reload();
+          const name = ev?.name || "";
+          if (name === "checkout.error" || name === "checkout.warning") {
+            const detail =
+              ev?.error?.detail ||
+              ev?.data?.error?.detail ||
+              ev?.error?.message ||
+              ev?.data?.message ||
+              (typeof ev?.error === "string" ? ev.error : null);
+            const code = ev?.error?.code || ev?.data?.error?.code || "";
+            // Domain cutover: most common live failure after switching to trenston.com
+            if (
+              String(code).includes("default_checkout_url") ||
+              String(detail || "").toLowerCase().includes("default payment link") ||
+              String(detail || "").toLowerCase().includes("approved")
+            ) {
+              toast.error(
+                "Paddle checkout isn’t approved for this domain yet. In Paddle → Checkout: set Default payment link to https://www.trenston.com/app/billing and approve trenston.com / www.trenston.com.",
+              );
+              return;
+            }
+            if (name === "checkout.error") {
+              toast.error(detail || "Paddle checkout failed. Check the browser console for details.");
+              return;
+            }
+            if (detail) toast.message(detail);
             return;
           }
-          setBusy(null);
-          toast.message("Payment received — this can take a minute to reflect. Refresh shortly.");
-          reload();
-        })();
-      },
+          if (name !== "checkout.completed") return;
+          toast.success("Payment received. Activating your plan…");
+          setBusy(planId);
+          void (async () => {
+            const activated = await waitForBillingPlan(cfg.plan || planId);
+            if (activated) {
+              toast.success("Plan activated");
+              window.location.reload();
+              return;
+            }
+            setBusy(null);
+            toast.message("Payment received — this can take a minute to reflect. Refresh shortly.");
+            reload();
+          })();
+        },
         cfg.paddle_customer_id,
       );
       Paddle.Checkout.open({

@@ -175,9 +175,12 @@ Then go back to Render and set `FRONTEND_URL`, `APP_URL`, `CORS_ORIGINS` to that
 
 1. In Paddle, create **three** products/prices (Starter / Growth / Business), each with a **7-day free trial**.
 2. Copy each price ID into Render env vars listed above.
-3. Set webhook URL to:
+3. **Checkout domains (live):** under Checkout → Website approval, approve `trenston.com` and `www.trenston.com`. Under Checkout → Checkout settings, set **Default payment link** to `https://www.trenston.com/app/billing`. Missing either of these produces Paddle’s “Something went wrong / Contact support” overlay even when Trenston’s `/billing/paddle/config` succeeds.
+4. Set webhook URL to:
 
-`https://YOUR-API.onrender.com/api/webhook/paddle`
+`https://www.trenston.com/api/webhook/paddle`
+
+(or the Render hostname directly — same route).
 
 **Done when:** checkout for a tier completes and the workspace `plan` becomes `starter` / `growth` / `business` (not `pro`).
 
