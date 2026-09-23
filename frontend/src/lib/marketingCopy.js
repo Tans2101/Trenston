@@ -24,9 +24,9 @@ export const FOUNDER_NOTE =
   "Tansher Dhawan builds and ships Trenston himself — writing the code and handling day-to-day product work. There is no separate product team. What you see in the cockpit is what he is actively shipping.";
 
 export const HERO_OUTCOME =
-  "Open Trenston and see what changed, what needs a decision, and what you can hand off — synthesized from your live company data.";
+  "Open Trenston and see what changed, what needs a decision, and what you can hand off, synthesized from your live company data.";
 export const HERO_SUB =
-  "One clear view of money, people, work, and decisions — so you can make the call and get back to running the business.";
+  "One clear view of money, people, work, and decisions, so you can make the call and get back to running the business.";
 
 export const MISSION =
   "Trenston exists so an owner can open one place and see what the business is actually saying today: money, pipeline, people, and the work in motion, without reconstructing that picture from inboxes, spreadsheets, and status chases every morning.";
