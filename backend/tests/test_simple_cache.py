@@ -58,10 +58,44 @@ def test_expired_entry_reloads(monkeypatch):
     async def run():
         await simple_cache.get_or_set("exp", 0.01, loader)
         # Overwrite expiry into the past
-        val, _exp = simple_cache._store["exp"]
-        simple_cache._store["exp"] = (val, 0.0)
+        val, _exp, _gen = simple_cache._store["exp"]
+        simple_cache._store["exp"] = (val, 0.0, _gen)
         return await simple_cache.get_or_set("exp", 60, loader)
 
     out = asyncio.run(run())
     assert out == 2
     assert calls["n"] == 2
+
+
+def test_get_or_set_discards_stale_after_invalidate():
+    """Concurrent invalidate while loader runs must not put stale financials."""
+    gate = {"release": False}
+    values = {"n": 0}
+
+    async def slow_loader():
+        values["n"] += 1
+        # Wait until invalidate bumps generation
+        for _ in range(100):
+            if gate["release"]:
+                break
+            await asyncio.sleep(0.01)
+        return {"stale": True, "n": values["n"]}
+
+    async def run():
+        task = asyncio.create_task(simple_cache.get_or_set("financials:ws", 60, slow_loader))
+        await asyncio.sleep(0.02)
+        simple_cache.invalidate("financials:ws")
+        gate["release"] = True
+        out = await task
+        # Value returned to caller, but must not be cached
+        assert out["stale"] is True
+        assert "financials:ws" not in simple_cache._store
+
+        async def fresh():
+            return {"stale": False}
+
+        fresh_out = await simple_cache.get_or_set("financials:ws", 60, fresh)
+        assert fresh_out == {"stale": False}
+        assert simple_cache._store["financials:ws"][0] == {"stale": False}
+
+    asyncio.run(run())
