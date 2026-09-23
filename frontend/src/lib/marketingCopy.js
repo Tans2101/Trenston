@@ -2,7 +2,7 @@
 
 export const TAGLINE = "Run the business. Don't chase it.";
 export const CATEGORY = "CEO Operating System";
-export const AUDIENCE = "Built for founders and owners running real operations — however lean the team.";
+export const AUDIENCE = "Built for founders and owners running real operations, however lean the team.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
 export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
@@ -70,7 +70,7 @@ export const WHO_HELM_IS_FOR = [
 ];
 
 export const CEO_DAY = [
-  { title: "Briefing", body: "What changed, what needs a decision, and what you can hand off — synthesized from your live data every time you open it." },
+  { title: "Briefing", body: "What changed, what needs a decision, and what you can hand off, synthesized from your live data every time you open it." },
   { title: "Decision Center", body: "Pending approvals ranked by impact. Trenston recommends which to tackle first and why." },
   { title: "Ask Trenston", body: "\"What's our biggest risk this quarter?\" answered from your financials and pipeline, not the internet." },
   { title: "CEO Pack", body: "A summary of growth, cash, team pulse, and open decisions, generated in one click, ready to share with your leadership team." },
@@ -81,7 +81,7 @@ export const PRICING_FAQ = [
   { q: "Is there a free trial?", a: "Yes. Starter, Growth, and Business include a 7-day free trial. Cancel before it ends and you will not be charged." },
   {
     q: "Can my leadership team use Trenston?",
-    a: "Yes. Free supports up to 3 Trenston users, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston users are logins to the product — separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of users.",
+    a: "Yes. Free supports up to 3 Trenston users, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston users are logins to the product, separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of users.",
   },
   {
     q: "What integrations are included?",
@@ -329,7 +329,7 @@ export const PRODUCT_FACTS = [
   { v: "One open", l: "what changed, what to decide, what to hand off" },
   { v: "Ranked calls", l: "Decision Center puts the highest-impact approval first" },
   { v: "Live answers", l: "Ask Trenston from your financials and pipeline, not the internet" },
-  { v: "Honest numbers", l: "missing cash shows as Add data — never a fake $0" },
+  { v: "Honest numbers", l: "missing cash shows as Add data, never a fake $0" },
 ];
 
 export const PROBLEMS = [
@@ -348,7 +348,7 @@ export const PROBLEMS = [
 ];
 
 export const HOW_IT_WORKS = [
-  { n: "01", title: "Your team updates the work", body: "Finance, sales, operations, and other departments use their own simple queues. Connect the tools you already use, or enter it by hand — whatever's easiest." },
+  { n: "01", title: "Your team updates the work", body: "Finance, sales, operations, and other departments use their own simple queues. Connect the tools you already use, or enter it by hand, whatever's easiest." },
   { n: "02", title: "Trenston prepares your briefing", body: "Money, work, blockers, and open decisions are put in one short briefing. Missing information is called out plainly." },
   { n: "03", title: "You decide and hand off", body: "Approve, follow up, or assign the next step. Trenston keeps the owner and outcome visible so decisions do not disappear." },
 ];

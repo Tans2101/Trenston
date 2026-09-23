@@ -27,7 +27,7 @@ export default function IntegrationsShowcase({ compact = false }) {
             Tools your team already uses.
           </h2>
           <p className="mt-3 text-sm text-helm-slate max-w-xl leading-relaxed">
-            Connect what you run today. Nothing requires an integration — manual entry stays available.
+            Connect what you run today. Nothing requires an integration. Manual entry stays available.
           </p>
         </motion.div>
         <ul className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-10 list-none p-0 m-0">
