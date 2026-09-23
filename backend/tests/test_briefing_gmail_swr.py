@@ -129,3 +129,48 @@ async def test_briefing_runs_gmail_concurrently_with_other_loads():
     # Sequential would be ~0.30s+; parallel should stay near max(~0.15).
     assert elapsed < 0.28, f"briefing looks sequential ({elapsed:.2f}s)"
     assert result.get("headline") == "Hello"
+
+
+@pytest.mark.asyncio
+async def test_gmail_timeout_writes_cache_so_reload_does_not_restall():
+    ws = {"workspace_id": "ws_to"}
+    principal = {"user_id": "u_to", "workspace_id": "ws_to"}
+
+    async def boom_wait_for(coro, timeout=None):
+        if asyncio.iscoroutine(coro):
+            coro.close()
+        raise asyncio.TimeoutError
+
+    with patch.object(server, "_user_google_tokens_present", new=AsyncMock(return_value=True)), \
+            patch.object(server.asyncio, "wait_for", side_effect=boom_wait_for):
+        threads, meta = await server._briefing_gmail_swr(ws, principal)
+    assert threads == []
+    assert meta["connected"] is True
+    key = server._gmail_briefing_cache_key(ws, principal)
+    assert key in server._gmail_briefing_cache
+
+    with patch.object(server, "_briefing_email_threads", new=AsyncMock(side_effect=AssertionError("no live"))):
+        threads2, _meta2 = await server._briefing_gmail_swr(ws, principal)
+    assert threads2 == []
+
+
+@pytest.mark.asyncio
+async def test_gmail_cold_miss_single_flight():
+    ws = {"workspace_id": "ws_sf"}
+    principal = {"user_id": "u_sf", "workspace_id": "ws_sf"}
+    calls = {"n": 0}
+
+    async def slow_fetch(*_a, **_k):
+        calls["n"] += 1
+        await asyncio.sleep(0.05)
+        return [{"id": "one"}], {"connected": True, "needs_reconnect": False, "compose": False}
+
+    with patch.object(server, "_briefing_email_threads", side_effect=slow_fetch), \
+            patch.object(server, "_user_google_tokens_present", new=AsyncMock(return_value=True)):
+        a, b = await asyncio.gather(
+            server._briefing_gmail_swr(ws, principal),
+            server._briefing_gmail_swr(ws, principal),
+        )
+    assert a[0][0]["id"] == "one"
+    assert b[0][0]["id"] == "one"
+    assert calls["n"] == 1

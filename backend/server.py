@@ -3677,6 +3677,8 @@ async def briefing(principal=Depends(get_principal)):
     b["metrics"] = metrics
     act_items = [{"title": a["summary"], "detail": f"{a['actor_name']} · {_rel_time(a['created_at'])}", "tone": "neutral"} for a in acts]
     b["what_changed"] = act_items + list(b.get("what_changed", []))
+    # Prefer calendar weekday over static seed strings ("Monday" / "Today").
+    b["date"] = datetime.now(timezone.utc).strftime("%A")
     b["team_updates"] = [{"user_name": u.get("user_name"), "text": u.get("text"),
                           "blocker": u.get("blocker", False),
                           "ago": _rel_time(u.get("updated_at", ""))} for u in ups]
@@ -3710,6 +3712,7 @@ GMAIL_BRIEFING_HARD_TTL_SECONDS = 1800.0
 _gmail_briefing_cache: dict[str, tuple[list, dict, float]] = {}
 _gmail_briefing_refresh_inflight: set[str] = set()
 _gmail_briefing_refresh_tasks: set[asyncio.Task] = set()
+_gmail_briefing_cold_inflight: dict[str, asyncio.Future] = {}
 
 
 def _gmail_briefing_cache_key(workspace: dict, principal: dict | None) -> str:
@@ -3730,6 +3733,18 @@ def clear_gmail_briefing_cache() -> None:
     """Tests / process recycle."""
     _gmail_briefing_cache.clear()
     _gmail_briefing_refresh_inflight.clear()
+    for fut in list(_gmail_briefing_cold_inflight.values()):
+        if not fut.done():
+            fut.cancel()
+    _gmail_briefing_cold_inflight.clear()
+
+
+def invalidate_gmail_briefing_cache_for_user(workspace_id: str, user_id: str) -> None:
+    """Drop SWR entry for one user (Google connect / disconnect / token rotate)."""
+    if not workspace_id or not user_id:
+        return
+    key = f"{workspace_id}:{user_id}"
+    _gmail_briefing_cache.pop(key, None)
 
 
 async def _briefing_gmail_fetch_and_store(
@@ -3748,7 +3763,10 @@ async def _briefing_gmail_fetch_and_store(
         )
     except asyncio.TimeoutError:
         logger.warning("Gmail briefing fetch timed out for %s", workspace.get("workspace_id"))
-        return _gmail_timeout_fallback(connected=connected_hint)
+        threads, meta = _gmail_timeout_fallback(connected=connected_hint)
+        # Cache briefly so repeated cold loads do not each wait ~3s.
+        _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
+        return threads, meta
     _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
     return threads, meta
 
@@ -3782,6 +3800,7 @@ async def _briefing_gmail_swr(
     """Serve cached Gmail threads immediately; refresh in the background when soft-stale.
 
     Cold miss (first load / no cache): wait on the live fetch (same 3s timeout).
+    Concurrent cold misses for the same key share one in-flight future.
     """
     cache_key = _gmail_briefing_cache_key(workspace, principal)
     cached = _gmail_briefing_cache.get(cache_key)
@@ -3794,7 +3813,29 @@ async def _briefing_gmail_swr(
                 _schedule_gmail_briefing_refresh(workspace, principal, cache_key)
             return threads, meta
         _gmail_briefing_cache.pop(cache_key, None)
-    return await _briefing_gmail_fetch_and_store(workspace, principal, cache_key)
+
+    existing = _gmail_briefing_cold_inflight.get(cache_key)
+    if existing is not None and not existing.done():
+        return await existing
+
+    loop = asyncio.get_running_loop()
+    fut: asyncio.Future = loop.create_future()
+    # setdefault wins the race so concurrent cold misses share one fetch.
+    prev = _gmail_briefing_cold_inflight.setdefault(cache_key, fut)
+    if prev is not fut:
+        return await prev
+    try:
+        result = await _briefing_gmail_fetch_and_store(workspace, principal, cache_key)
+        if not fut.done():
+            fut.set_result(result)
+        return result
+    except Exception as exc:
+        if not fut.done():
+            fut.set_exception(exc)
+        raise
+    finally:
+        if _gmail_briefing_cold_inflight.get(cache_key) is fut:
+            _gmail_briefing_cold_inflight.pop(cache_key, None)
 
 
 async def _briefing_email_threads(workspace: dict, principal: dict | None = None) -> tuple[list, dict]:
@@ -4302,14 +4343,54 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     if not helm_llm.anthropic_configured():
         raise HTTPException(status_code=503, detail="AI is not configured (ANTHROPIC_API_KEY)")
     b = c["briefing"]
-    fin = await compute_financials(c["workspace_id"])
-    # Use the same live builders as GET /briefing — stored lists are often empty seeds.
+    has_fin_access = await can_access_financials(principal)
+
+    async def _load_acts():
+        return await db.activities.find(
+            {"workspace_id": c["workspace_id"]}, {"_id": 0},
+        ).sort("created_at", -1).to_list(5)
+
+    async def _load_ops():
+        try:
+            return await _briefing_ops_metrics(c["workspace_id"])
+        except Exception:
+            logger.exception("briefing generate ops metrics failed for %s", c.get("workspace_id"))
+            return []
+
+    # Always load ledger for synthesis; metrics cards still respect financials access.
+    fin, acts, ops_metrics = await asyncio.gather(
+        compute_financials(c["workspace_id"]),
+        _load_acts(),
+        _load_ops(),
+    )
+    # Same live feed builders as GET /briefing — do not ground on seed alone.
+    act_items = [
+        {
+            "title": a["summary"],
+            "detail": f"{a['actor_name']} · {_rel_time(a['created_at'])}",
+            "tone": "neutral",
+        }
+        for a in acts
+    ]
+    what_changed = act_items + list(b.get("what_changed") or [])
     what_to_decide = _briefing_what_to_decide(c)
-    what_changed = b.get("what_changed") or []
+    metrics = []
+    if has_fin_access:
+        metrics = _briefing_finance_metrics(fin)
+        nrr = b.get("nrr")
+        if nrr:
+            metrics.append({
+                "label": "NRR",
+                "value": nrr["value"],
+                "delta": nrr["delta"],
+                "tone": nrr["tone"],
+                "section": "finance",
+            })
+    metrics.extend(ops_metrics or [])
     cal_snap = await _google_calendar_snapshot(c, principal=principal)
     context = {
         "company": c["name"],
-        "metrics": what_to_decide,
+        "metrics": metrics,
         "what_changed": what_changed,
         "decisions": what_to_decide,
         "financials": financials_for_synthesis(fin),
@@ -13217,6 +13298,8 @@ async def _store_user_google_tokens(
     """Upsert or clear this user's Google OAuth tokens (Calendar + Gmail)."""
     if not workspace_id or not user_id:
         return
+    # Drop Gmail Briefing SWR so disconnect/reconnect cannot serve stale threads.
+    invalidate_gmail_briefing_cache_for_user(workspace_id, user_id)
     if tokens:
         sealed = cred_crypto.seal_credentials(tokens)
         await db.user_google_tokens.update_one(

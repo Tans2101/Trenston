@@ -60,7 +60,7 @@ def test_briefing_returns_ai_summary_for_free_workspace(client):
          patch.object(server.helm_freshness, "resolve_workspace_data_as_of", new=AsyncMock(return_value={
              "data_as_of": "2026-09-18T10:00:00+00:00", "sources": {},
          })), \
-         patch.object(server, "_briefing_email_threads", new=AsyncMock(return_value=([], {
+         patch.object(server, "_briefing_gmail_swr", new=AsyncMock(return_value=([], {
              "connected": False, "needs_reconnect": False, "compose": False,
          }))), \
          patch.object(server.db, "activities", MagicMock()), \
