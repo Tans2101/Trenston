@@ -39,9 +39,12 @@ Zero customers today — still treat this as a cutover sequence. **Do not expect
 - [ ] **HubSpot** — same
 - [ ] **SAP B1** — usually customer-hosted; confirm no central OAuth redirect (likely no change)
 
-### 7. Paddle
-- [ ] Add `trenston.com` / `www.trenston.com` to checkout approved domains
-- [ ] Point webhook at `https://www.trenston.com/api/webhook/paddle` (or current path)
+### 7. Paddle (required before live checkout / trials work)
+Without these, overlay checkout opens then shows Paddle’s “Something went wrong / Contact support” modal — that is a **dashboard** issue, not app code.
+- [ ] **Website approval:** add `trenston.com` and `www.trenston.com` under Paddle → Checkout → Website approval (wait until approved)
+- [ ] **Default payment link:** Paddle → Checkout → Checkout settings → set to `https://www.trenston.com/app/billing` (must be an approved domain; do not leave `helmcontrol.online` or blank)
+- [ ] **Webhook:** `https://www.trenston.com/api/webhook/paddle` (Vercel rewrites `/api` to Render)
+- [ ] Confirm live `PADDLE_CLIENT_TOKEN` + `PADDLE_PRICE_ID_{STARTER,GROWTH,BUSINESS}` on Render match the **live** (not sandbox) catalog
 
 ### 8. Resend
 - [ ] Verify `trenston.com` for sending (does **not** inherit helmcontrol verification)
