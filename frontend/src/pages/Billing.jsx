@@ -398,16 +398,16 @@ export default function Billing() {
             )}
           >
             {seatsOver
-              ? `Seats ${seatsUsed} / ${seatsLimit} (over limit)`
-              : `Seats ${seatsUsed}/${seatsLimit ?? "—"}`}
+              ? `Users ${seatsUsed} / ${seatsLimit} (over limit)`
+              : `Users ${seatsUsed}/${seatsLimit ?? "—"}`}
           </p>
         </div>
         {(seatsLimit > 0 || extractsLimit > 0 || askLimit > 0) && (
           <div className="flex flex-wrap items-center gap-6 pt-1" data-testid="usage-rings">
             {seatsLimit > 0 && (
               <UsageRing
-                label="Seats"
-                unit="seats"
+                label="Users"
+                unit="users"
                 used={seatsUsed}
                 limit={seatsLimit}
                 testId="seats-usage-ring"

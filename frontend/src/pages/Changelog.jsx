@@ -79,7 +79,7 @@ export default function Changelog() {
             ))}
           </ol>
           <p className="mx-auto mt-12 max-w-3xl text-sm text-helm-slate">
-            Looking for plans and seats?{" "}
+            Looking for plans and users?{" "}
             <Link to="/pricing" className="text-helm-navy hover:text-helm-gold transition-colors">
               See pricing
             </Link>

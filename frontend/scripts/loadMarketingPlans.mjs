@@ -49,7 +49,7 @@ export function formatPlanPrice(plan) {
 
 export function plansPlainLines(plans) {
   return plans.map((p) => {
-    const seats = p.seats != null ? `${p.seats} seats` : "";
+    const seats = p.seats != null ? `${p.seats} users` : "";
     const forWhom = p.for ? ` — ${p.for}` : "";
     return `- ${p.label}: ${formatPlanPrice(p)}${seats ? ` (${seats})` : ""}${forWhom}`;
   });

@@ -1409,7 +1409,7 @@ async def _enforce_seat_available(workspace_id: str, plan: str | None = None) ->
     if not ok:
         raise HTTPException(
             status_code=403,
-            detail=f"Upgrade to add more members. Your plan allows {limit} seat{'s' if limit != 1 else ''} ({used}/{limit} used).",
+            detail=f"Upgrade to add more members. Your plan allows {limit} user{'s' if limit != 1 else ''} ({used}/{limit} used).",
         )
 
 

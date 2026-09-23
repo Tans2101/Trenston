@@ -24,10 +24,10 @@ Maintenance, Sales).
 Source of truth in the product repo: frontend/src/lib/marketingCopy.js (PLANS).
 Do not use older docs (e.g. memory/PRD.md) or guessed figures.
 
-- Free: $0 (3 seats) — Small teams trying Trenston
-- Starter: $15/mo (7 seats) — Small businesses
-- Growth: $39/mo (20 seats) — Growing businesses
-- Business: $99/mo (35 seats) — Larger companies
+- Free: $0 (3 users) — Small teams trying Trenston
+- Starter: $15/mo (7 users) — Small businesses
+- Growth: $39/mo (20 users) — Growing businesses
+- Business: $99/mo (35 users) — Larger companies
 
 Paid plans (Starter, Growth, Business) include a 7-day free trial.
 Billing is via Paddle. Cancel anytime from Billing.

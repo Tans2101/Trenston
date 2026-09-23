@@ -22,9 +22,9 @@
     },
     "/pricing": {
       "title": "Pricing · Trenston",
-      "description": "Trenston plans: Free $0 (3 seats), Starter $15/mo (7 seats), Growth $39/mo (20 seats), Business $99/mo (35 seats). 7-day free trials on paid plans.",
+      "description": "Trenston plans: Free $0 (3 users), Starter $15/mo (7 users), Growth $39/mo (20 users), Business $99/mo (35 users). 7-day free trials on paid plans.",
       "ogTitle": "Trenston Pricing",
-      "ogDescription": "Free, Starter ($15/mo), Growth ($39/mo), and Business ($99/mo) — seats and AI quotas that scale with your company."
+      "ogDescription": "Free, Starter ($15/mo), Growth ($39/mo), and Business ($99/mo) — users and AI quotas that scale with your company."
     },
     "/integrations": {
       "title": "Integrations · Trenston",

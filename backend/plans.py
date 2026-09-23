@@ -75,7 +75,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: False,
         },
         "includes": [
-            "Up to 3 Trenston seats",
+            "Up to 3 Trenston users",
             "5 AI document extracts to try it, then upgrade",
             "Ask Trenston (10 messages/month)",
             "AI briefing",
@@ -104,7 +104,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: False,
         },
         "includes": [
-            "Up to 7 Trenston seats",
+            "Up to 7 Trenston users",
             "AI document extracts (65/month)",
             "Ask Trenston (100 messages/month)",
             "Integrations: Google, QuickBooks, Xero, SAP Business One",
@@ -133,7 +133,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: False,
         },
         "includes": [
-            "Up to 20 Trenston seats",
+            "Up to 20 Trenston users",
             "AI document extracts (150/month)",
             "Ask Trenston (200 messages/month)",
             "Everything in Starter",
@@ -163,7 +163,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_PRIORITY_SUPPORT: True,
         },
         "includes": [
-            "Up to 35 Trenston seats",
+            "Up to 35 Trenston users",
             "AI document extracts (500/month)",
             "Ask Trenston (500 messages/month)",
             "Everything in Growth",

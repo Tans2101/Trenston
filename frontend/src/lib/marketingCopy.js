@@ -75,11 +75,11 @@ export const CEO_DAY = [
 ];
 
 export const PRICING_FAQ = [
-  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston seats, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), Google (Gmail & Calendar), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more seats, and accounting integrations." },
+  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), Google (Gmail & Calendar), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more users, and accounting integrations." },
   { q: "Is there a free trial?", a: "Yes. Starter, Growth, and Business include a 7-day free trial. Cancel before it ends and you will not be charged." },
   {
     q: "Can my leadership team use Trenston?",
-    a: "Yes. Free supports up to 3 Trenston seats, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston seats are logins to the product — separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of seats.",
+    a: "Yes. Free supports up to 3 Trenston users, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston users are logins to the product — separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of users.",
   },
   {
     q: "What integrations are included?",
@@ -238,7 +238,7 @@ export const PLANS = [
     trialDays: 0,
     highlighted: false,
     includes: [
-      "Up to 3 Trenston seats",
+      "Up to 3 Trenston users",
       "5 AI document extracts to try it, then upgrade",
       "Ask Trenston (10 messages/month)",
       "AI briefing",
@@ -255,7 +255,7 @@ export const PLANS = [
     trialDays: 7,
     highlighted: true,
     includes: [
-      "Up to 7 Trenston seats",
+      "Up to 7 Trenston users",
       "AI document extracts (65/month)",
       "Ask Trenston (100 messages/month)",
       "Integrations: Google, QuickBooks, Xero, SAP Business One",
@@ -272,7 +272,7 @@ export const PLANS = [
     trialDays: 7,
     highlighted: false,
     includes: [
-      "Up to 20 Trenston seats",
+      "Up to 20 Trenston users",
       "AI document extracts (150/month)",
       "Ask Trenston (200 messages/month)",
       "Everything in Starter",
@@ -290,7 +290,7 @@ export const PLANS = [
     trialDays: 7,
     highlighted: false,
     includes: [
-      "Up to 35 Trenston seats",
+      "Up to 35 Trenston users",
       "AI document extracts (500/month)",
       "Ask Trenston (500 messages/month)",
       "Everything in Growth",
@@ -324,7 +324,7 @@ export const PRO_FEATURES = PLANS.find((p) => p.id === "starter").includes;
 export const HELM_FEATURES = PRO_FEATURES;
 
 export const PRODUCT_FACTS = [
-  { v: "3 seats", l: "included on the free plan" },
+  { v: "3 users", l: "included on the free plan" },
   { v: "7", l: "department workflows included" },
   { v: "1", l: "weekly leadership update" },
   { v: "PDF + Excel", l: "financial exports for your accountant" },

@@ -147,8 +147,8 @@ def test_public_plan_list_shape():
     assert growth["seats"] == 20
     assert starter["integration_providers"] == ["quickbooks", "xero", "sap_b1"]
     assert "hubspot" in growth["integration_providers"]
-    assert any("Up to 7 Trenston seats" in line for line in starter["includes"])
-    assert any("Up to 20 Trenston seats" in line for line in growth["includes"])
+    assert any("Up to 7 Trenston users" in line for line in starter["includes"])
+    assert any("Up to 20 Trenston users" in line for line in growth["includes"])
     assert any("QuickBooks" in line and "Xero" in line and "SAP" in line for line in starter["includes"])
     assert any("HubSpot" in line for line in starter["includes"]) is False
     assert any("CEO Pack" in line for line in starter["includes"])

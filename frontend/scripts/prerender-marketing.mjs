@@ -137,7 +137,7 @@ function pricingStaticHtml(plans) {
   <h2>${escapeHtml(p.label)}</h2>
   <p><strong>${escapeHtml(price)}</strong>${Number(p.price) > 0 ? "" : " (free)"}</p>
   <p>${escapeHtml(p.for || "")}</p>
-  <p>Up to ${escapeHtml(String(p.seats))} seats</p>
+  <p>Up to ${escapeHtml(String(p.seats))} users</p>
   ${trial}
   <ul>${features}</ul>
 </article>`;

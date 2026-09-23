@@ -57,7 +57,7 @@ export default function Pricing() {
             custom={2}
             className="mt-6 text-lg text-helm-slate leading-relaxed"
           >
-            Start free. Paid plans include a 7-day free trial. Cancel anytime. Plans scale with Trenston seats
+            Start free. Paid plans include a 7-day free trial. Cancel anytime. Plans scale with Trenston users
             (your team&apos;s product logins, separate from total company headcount) and how much AI document
             processing and Ask Trenston usage you need each month.
           </motion.p>
@@ -88,7 +88,7 @@ export default function Pricing() {
                 </p>
                 <p className="text-sm text-helm-slate mt-2 min-h-[2.5rem]">{plan.for}</p>
                 <p className="text-[11px] font-mono text-helm-slate mt-1">
-                  Up to {plan.seats} Trenston seats
+                  Up to {plan.seats} Trenston users
                   {plan.trialDays > 0 ? ` · ${plan.trialDays}-day free trial` : ""}
                 </p>
                 <ul className="mt-6 space-y-2.5 flex-1">

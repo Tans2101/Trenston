@@ -223,7 +223,7 @@ function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
   const pitch = !isPaid && billingEnforced && canBilling
     ? {
         title: "Upgrade your plan",
-        body: "More seats, higher Ask Trenston limits, and accounting sync.",
+        body: "More users, higher Ask Trenston limits, and accounting sync.",
         cta: "See plans",
         to: "/app/billing",
         testId: "sidebar-promo-upgrade",
