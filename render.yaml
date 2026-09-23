@@ -114,7 +114,7 @@ services:
       - key: PADDLE_ENV
         value: production
       - key: BILLING_ENFORCED
-        value: "false"
+        value: "true"
       - key: RESEND_API_KEY
         sync: false
       - key: SENDER_EMAIL
