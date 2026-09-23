@@ -270,3 +270,81 @@ async def test_login_never_requests_private_url(monkeypatch):
             password="secret",
         )
     assert called["n"] == 0
+
+
+@pytest.mark.asyncio
+async def test_fetch_collection_revalidates_url_each_page(monkeypatch):
+    """Stored service_layer_url must be re-checked on outbound sync (DNS rebinding)."""
+    calls = {"n": 0}
+    original = sap_b1.normalize_service_layer_url
+
+    def counting_normalize(url):
+        calls["n"] += 1
+        return original(url)
+
+    class FakeResp:
+        status_code = 200
+        text = ""
+
+        def json(self):
+            return {"value": []}
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, *a, **k):
+            return FakeResp()
+
+    monkeypatch.setattr(sap_b1.socket, "getaddrinfo", _public_addrinfo)
+    monkeypatch.setattr(sap_b1, "normalize_service_layer_url", counting_normalize)
+    monkeypatch.setattr(sap_b1.httpx, "AsyncClient", FakeClient)
+    creds = {
+        "service_layer_url": "https://erp.example:50000/b1s/v1",
+        "session_id": "sess",
+        "route_id": None,
+    }
+    rows, complete = await sap_b1._fetch_collection(creds, "Invoices")
+    assert rows == []
+    assert complete is True
+    assert calls["n"] >= 1
+
+
+@pytest.mark.asyncio
+async def test_ensure_session_rejects_rebinding_to_private(monkeypatch):
+    def _private_dns(host, *a, **k):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("10.1.2.3", 0))]
+
+    called = {"n": 0}
+
+    class FakeClient:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, *a, **k):
+            called["n"] += 1
+            raise AssertionError("must not contact rebinding host")
+
+    monkeypatch.setattr(sap_b1.socket, "getaddrinfo", _private_dns)
+    monkeypatch.setattr(sap_b1.httpx, "AsyncClient", FakeClient)
+    with pytest.raises(ValueError, match="private or internal"):
+        await sap_b1.ensure_session({
+            "service_layer_url": "https://evil.example/b1s/v1",
+            "session_id": "sess",
+            "company_db": "DB",
+            "username": "u",
+            "password": "p",
+        })
+    assert called["n"] == 0

@@ -132,6 +132,31 @@ async def test_can_section_write_honors_legacy_department_grants():
 
 
 @pytest.mark.asyncio
+async def test_can_section_write_casefold_grants_and_departments():
+    import server
+
+    principal = {
+        "user_id": "u_member",
+        "workspace_id": "ws_1",
+        "pack": "member",
+    }
+    membership = {
+        "user_id": "u_member",
+        "workspace_id": "ws_1",
+        "status": "active",
+        "department": "engineering",
+        "section_grants": ["Decisions"],
+    }
+    ws = {"section_access": {"Tasks": ["ENGINEERING"]}}
+
+    with patch.object(server, "_membership_for", new=AsyncMock(return_value=membership)):
+        with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)):
+            assert await server.can_section_write(principal, "decisions", "decisions:act") is True
+            assert await server.can_section_write(principal, "tasks", "tasks:assign") is True
+            assert await server.can_section_write(principal, "TASKS", "tasks:assign") is True
+
+
+@pytest.mark.asyncio
 async def test_can_section_write_pack_perm_short_circuits():
     import server
 

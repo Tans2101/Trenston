@@ -283,10 +283,23 @@ async def login(
     }
 
 
+def _revalidate_service_layer_url(creds: dict) -> str:
+    """Re-check stored Service Layer URL on every outbound call (DNS rebinding TOCTOU).
+
+    Connect-time allowlisting is not enough — hostname resolution can change between
+    connect and later sync/logout requests.
+    """
+    return normalize_service_layer_url(creds.get("service_layer_url") or "")
+
+
 async def logout(creds: dict) -> None:
-    base = creds.get("service_layer_url") or ""
     session_id = creds.get("session_id") or ""
-    if not base or not session_id:
+    if not session_id or not (creds.get("service_layer_url") or ""):
+        return
+    try:
+        base = _revalidate_service_layer_url(creds)
+    except ValueError:
+        logger.warning("SAP B1 logout skipped — stored service_layer_url failed revalidation")
         return
     url = urljoin(base.rstrip("/") + "/", "Logout")
     try:
@@ -301,8 +314,11 @@ async def logout(creds: dict) -> None:
 
 async def ensure_session(creds: dict) -> dict:
     """Return credentials with a live session (re-login when needed)."""
-    if creds.get("session_id") and creds.get("service_layer_url"):
-        ping = urljoin(creds["service_layer_url"].rstrip("/") + "/", "$metadata")
+    # Always re-validate before any outbound call — including session ping / re-login.
+    base = _revalidate_service_layer_url(creds)
+    creds = {**creds, "service_layer_url": base}
+    if creds.get("session_id"):
+        ping = urljoin(base.rstrip("/") + "/", "$metadata")
         try:
             async with httpx.AsyncClient(timeout=20.0, follow_redirects=False) as hc:
                 resp = await hc.get(
@@ -316,7 +332,7 @@ async def ensure_session(creds: dict) -> dict:
         except httpx.HTTPError:
             pass
     return await login(
-        service_layer_url=creds["service_layer_url"],
+        service_layer_url=base,
         company_db=creds["company_db"],
         username=creds["username"],
         password=creds["password"],
@@ -329,12 +345,13 @@ async def _fetch_collection(
     *,
     since: Optional[str] = None,
 ) -> tuple[list[dict], bool]:
-    base = creds["service_layer_url"].rstrip("/") + "/"
     select = "DocEntry,DocNum,DocDate,DocTotal,CardName,Comments,Cancelled,DocumentLines"
     filt = f"Cancelled eq 'tNO'{_since_filter(since)}"
     rows: list[dict] = []
     skip = 0
     for _ in range(MAX_PAGES):
+        # Re-resolve on every page — DNS can flip mid-pagination (TOCTOU).
+        base = _revalidate_service_layer_url(creds).rstrip("/") + "/"
         url = (
             f"{urljoin(base, collection)}"
             f"?$select={select}&$filter={filt}"

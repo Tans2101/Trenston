@@ -1,6 +1,7 @@
 /** User-facing plan labels and entitlement helpers. */
 
 const PAID = new Set(["starter", "growth", "business", "pro"]);
+const BLOCKED_SUB_STATUS = new Set(["past_due", "paused", "canceled", "cancelled"]);
 
 export function normalizePlan(plan) {
   if (!plan) return "free";
@@ -30,7 +31,15 @@ export function helmHasFullAccess(plan, billingEnforced = true) {
   return true; // Free tier is a real plan; feature gates handle upgrades
 }
 
-export function helmIsPaidPlan(plan, billingEnforced = true) {
+/**
+ * True when the workspace should show paid-tier UI.
+ * Aligns with backend workspace_allows / workspace_is_pro: past_due and similar
+ * statuses block paid entitlements even when plan id is still Starter+.
+ */
+export function helmIsPaidPlan(plan, billingEnforced = true, subscriptionStatus = null) {
   if (!billingEnforced) return true;
-  return PAID.has(normalizePlan(plan));
+  if (!PAID.has(normalizePlan(plan))) return false;
+  const status = String(subscriptionStatus || "").toLowerCase();
+  if (status && BLOCKED_SUB_STATUS.has(status)) return false;
+  return true;
 }

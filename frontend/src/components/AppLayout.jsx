@@ -274,14 +274,14 @@ function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
   );
 }
 
-function SidebarContent({ onNavigate, billingEnforced, enableNavShortcuts = false }) {
+function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null, enableNavShortcuts = false }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: company } = useCompanyQuery();
   const { data: deptData } = useDepartmentsQuery();
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
-  const isPaid = helmIsPaidPlan(company?.plan, billingEnforced);
+  const isPaid = helmIsPaidPlan(company?.plan, billingEnforced, subscriptionStatus);
   const mainNav = useMemo(() => NAV.filter((item) => navItemVisible(item, user)), [user]);
   const deptNav = (deptData?.departments || []).filter((d) => departmentNavVisible(d));
   const canBilling = canManageBilling(user);
@@ -710,7 +710,11 @@ export default function AppLayout() {
       )}
       {/* Desktop nav rail — cir-tabs pill shell */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col z-40">
-        <SidebarContent billingEnforced={billingEnforced} enableNavShortcuts />
+        <SidebarContent
+          billingEnforced={billingEnforced}
+          subscriptionStatus={billing?.subscription_status}
+          enableNavShortcuts
+        />
       </aside>
 
       {/* Mobile top bar */}
@@ -749,6 +753,7 @@ export default function AppLayout() {
             <SidebarContent
               onNavigate={() => setMobileOpen(false)}
               billingEnforced={billingEnforced}
+              subscriptionStatus={billing?.subscription_status}
             />
           </div>
         </div>

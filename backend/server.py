@@ -611,14 +611,21 @@ async def can_section_write(
     if pack_perm in perms_for(principal["pack"]):
         return True
     membership = membership if membership is not None else await _membership_for(principal)
-    # Per-member grants (preferred)
-    if section_id in sec_access.normalize_section_grants(membership.get("section_grants")):
+    sid = str(section_id or "").strip().casefold()
+    # Per-member grants (preferred) — casefold both sides
+    granted = {g.casefold() for g in sec_access.normalize_section_grants(membership.get("section_grants"))}
+    if sid in granted:
         return True
-    # Legacy department grants
+    # Legacy department grants — casefold section key + department labels
     ws = workspace if workspace is not None else await get_ws(principal["workspace_id"])
-    dept = (membership.get("department") or "General").strip()
-    allowed = (ws.get("section_access") or {}).get(section_id) or []
-    return dept in allowed
+    dept = (membership.get("department") or "General").strip().casefold()
+    section_access = ws.get("section_access") or {}
+    allowed = []
+    for key, depts in section_access.items():
+        if str(key or "").strip().casefold() == sid and isinstance(depts, list):
+            allowed = depts
+            break
+    return dept in {str(a or "").strip().casefold() for a in allowed}
 
 
 async def can_access_financials(
@@ -1234,10 +1241,20 @@ def workspace_plan_id(ws_or_plan) -> str:
 
 
 def workspace_is_pro(ws_or_plan) -> bool:
-    """True when billing is off, or workspace is on a paid tier (Starter+). Legacy name kept for API fields."""
+    """True when billing is off, or workspace is on a paid tier (Starter+) with an active subscription.
+
+    Aligns display helpers with workspace_allows: past_due / paused / canceled lose paid UI.
+    Legacy name kept for API fields.
+    """
     if not BILLING_ENFORCED:
         return True
-    return helm_plans.is_paid_plan(workspace_plan_id(ws_or_plan))
+    if not helm_plans.is_paid_plan(workspace_plan_id(ws_or_plan)):
+        return False
+    if isinstance(ws_or_plan, dict):
+        status = (ws_or_plan.get("subscription_status") or ws_or_plan.get("billing_status") or "").lower()
+        if status in ("past_due", "paused", "canceled", "cancelled"):
+            return False
+    return True
 
 
 def workspace_allows(ws_or_plan, feature: str) -> bool:
@@ -3416,6 +3433,9 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
 
 class TemplateInput(BaseModel):
     template: str  # sample | clean | clear-sample
+    # Required when applying sample to an already-onboarded non-empty workspace —
+    # sample apply deletes financial_entries and overwrites workspace seed fields.
+    confirm_destructive: bool = False
 
 
 _PRESERVE_WS_FIELDS = frozenset({
@@ -3430,6 +3450,17 @@ _CLEAR_SAMPLE_PRESERVE_PROFILE = frozenset({
     "name", "industry", "stage", "founded", "mission", "founder_title",
     "employees", "has_team", "company_setup_done",
 })
+
+
+async def _sample_apply_needs_confirm(ws_id: str, current: dict) -> bool:
+    """True when sample apply would wipe live data outside onboarding / empty template."""
+    if not current.get("onboarding_done"):
+        return False
+    tmpl = (current.get("template") or "empty").strip().lower()
+    if tmpl not in ("empty", ""):
+        return True
+    # Empty template after onboarding can still hold a live ledger.
+    return await db.financial_entries.count_documents({"workspace_id": ws_id}, limit=1) > 0
 
 
 async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
@@ -3458,6 +3489,14 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
     ws_id = principal["workspace_id"]
     if payload.template == "sample":
         current = await get_ws(ws_id)
+        if await _sample_apply_needs_confirm(ws_id, current) and not payload.confirm_destructive:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Applying sample data replaces workspace content and financial entries. "
+                    "Pass confirm_destructive=true to proceed."
+                ),
+            )
         fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=False)
         update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
@@ -4431,6 +4470,10 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     return {"ai_summary": text, "data_as_of": freshness.get("data_as_of")}
 
 
+_DECISION_ACTIONS = frozenset({"approved", "rejected", "delegated"})
+_DECISION_TERMINAL = frozenset({"approved", "rejected"})
+
+
 class DecisionAction(BaseModel):
     action: str
     owner: Optional[str] = None
@@ -4482,27 +4525,52 @@ async def decisions(principal=Depends(get_principal)):
 
 @api_router.post("/decisions/{decision_id}/action")
 async def decision_action(decision_id: str, payload: DecisionAction, principal=Depends(require_section("decisions", "decisions:act"))):
+    action = (payload.action or "").strip().lower()
+    if action not in _DECISION_ACTIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid action. Allowed: approved, rejected, delegated",
+        )
     c = await get_ws(principal["workspace_id"])
-    decisions = c["decisions"]
-    found = False
-    for d in decisions:
-        if d["id"] == decision_id:
-            # "Delegate to Myself" is claim ownership, not a terminal resolution —
-            # keep status pending so approve/reject remain available.
-            if payload.action == "delegated" and _decision_owner_is_self(principal, payload.owner):
-                d["status"] = "pending"
-                d["owner"] = (payload.owner or "").strip() or (
-                    principal.get("name") or principal.get("email") or "Myself"
-                )
-            else:
-                d["status"] = payload.action
-                if payload.owner:
-                    d["owner"] = payload.owner
-            found = True
-            break
-    if not found:
+    decisions = list(c.get("decisions") or [])
+    target = next((d for d in decisions if d.get("id") == decision_id), None)
+    if not target:
         raise HTTPException(status_code=404, detail="Not found")
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"decisions": decisions}})
+    current_status = (target.get("status") or "pending").strip().lower()
+    if current_status in _DECISION_TERMINAL:
+        raise HTTPException(status_code=400, detail="Decision is already resolved")
+
+    # "Delegate to Myself" is claim ownership, not a terminal resolution —
+    # keep status pending so approve/reject remain available.
+    set_fields: dict[str, Any] = {}
+    if action == "delegated" and _decision_owner_is_self(principal, payload.owner):
+        set_fields["decisions.$[d].status"] = "pending"
+        set_fields["decisions.$[d].owner"] = (payload.owner or "").strip() or (
+            principal.get("name") or principal.get("email") or "Myself"
+        )
+    else:
+        set_fields["decisions.$[d].status"] = action
+        if payload.owner:
+            set_fields["decisions.$[d].owner"] = payload.owner
+
+    result = await db.workspaces.update_one(
+        {
+            "workspace_id": c["workspace_id"],
+            "decisions": {
+                "$elemMatch": {
+                    "id": decision_id,
+                    "status": {"$nin": list(_DECISION_TERMINAL)},
+                }
+            },
+        },
+        {"$set": set_fields},
+        array_filters=[{"d.id": decision_id}],
+    )
+    if result.matched_count == 0:
+        # Race: another writer resolved it between read and write.
+        raise HTTPException(status_code=400, detail="Decision is already resolved")
+    c = await get_ws(principal["workspace_id"])
+    decisions = list(c.get("decisions") or [])
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     return {"ok": True, "decisions": decisions}
 
@@ -4541,8 +4609,10 @@ async def create_decision(payload: DecisionInput, principal=Depends(require_sect
     # Manual form never sends a meaningful confidence — drop empty/zero noise
     if payload.confidence is None:
         d["confidence"] = None
-    decisions = c["decisions"] + [d]
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"decisions": decisions}})
+    await db.workspaces.update_one(
+        {"workspace_id": c["workspace_id"]},
+        {"$push": {"decisions": d}},
+    )
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     await log_activity(principal, "decisions", "decision.create", f"New decision: {d['title']}")
     return {"ok": True, "decision": d}
@@ -4703,16 +4773,15 @@ async def dismiss_delegate_suggestion(suggestion_id: str, principal=Depends(requ
 @api_router.patch("/decisions/{decision_id}")
 async def edit_decision(decision_id: str, payload: DecisionInput, principal=Depends(require_section("decisions", "decisions:act"))):
     c = await get_ws(principal["workspace_id"])
-    decisions = c["decisions"]
-    found = None
-    for d in decisions:
-        if d["id"] == decision_id:
-            d.update(_decision_fields(payload))
-            found = d
-            break
-    if not found:
+    fields = _decision_fields(payload)
+    set_fields = {f"decisions.$[d].{k}": v for k, v in fields.items()}
+    result = await db.workspaces.update_one(
+        {"workspace_id": c["workspace_id"], "decisions.id": decision_id},
+        {"$set": set_fields},
+        array_filters=[{"d.id": decision_id}],
+    )
+    if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Decision not found")
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"decisions": decisions}})
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     return {"ok": True}
 
@@ -4720,8 +4789,12 @@ async def edit_decision(decision_id: str, payload: DecisionInput, principal=Depe
 @api_router.delete("/decisions/{decision_id}")
 async def delete_decision(decision_id: str, principal=Depends(require_section("decisions", "decisions:act"))):
     c = await get_ws(principal["workspace_id"])
-    decisions = [d for d in c["decisions"] if d["id"] != decision_id]
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"decisions": decisions}})
+    result = await db.workspaces.update_one(
+        {"workspace_id": c["workspace_id"]},
+        {"$pull": {"decisions": {"id": decision_id}}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     return {"ok": True}
 
@@ -14058,7 +14131,17 @@ async def _upsert_accounting_sync_entries(
                 "created_at": now_iso,
                 **fields,
             }
-            await db.financial_entries.insert_one(entry)
+            try:
+                await db.financial_entries.insert_one(entry)
+            except Exception as exc:
+                # Concurrent sync of the same qb_txn_id — fall back to update.
+                from pymongo.errors import DuplicateKeyError
+                if not isinstance(exc, DuplicateKeyError):
+                    raise
+                await db.financial_entries.update_one(
+                    {"workspace_id": ws_id, "qb_txn_id": qb_txn_id},
+                    {"$set": fields},
+                )
         synced_count += 1
     if synced_count:
         invalidate_financials_cache(ws_id)
@@ -14710,6 +14793,57 @@ def _paddle_price_id_from_event(data: dict | None) -> Optional[str]:
     return None
 
 
+async def _paddle_apply_checkout_entitlements(
+    *,
+    workspace_id: str,
+    user_id: str | None,
+    sub_id,
+    data: dict,
+    status: str,
+    now_iso: str,
+    plan: str,
+    event_price_id: Optional[str] = None,
+) -> None:
+    """Idempotent paid entitlement write for a known workspace_id."""
+    plan = helm_plans.normalize_plan(plan)
+    if plan == helm_plans.PLAN_FREE:
+        # Prefer live event price when the caller only had a stale/missing intent plan.
+        plan = helm_plans.plan_for_paddle_price(event_price_id) or helm_plans.PLAN_STARTER
+        plan = helm_plans.normalize_plan(plan)
+        if plan == helm_plans.PLAN_FREE:
+            plan = helm_plans.PLAN_STARTER
+    set_fields = {
+        "plan": plan, "billing_provider": "paddle",
+        "paddle_subscription_id": sub_id,
+        "paddle_customer_id": data.get("customer_id"),
+        "paddle_last_event_at": now_iso,
+        "subscription_status": status, "billing_status": status,
+        "subscription_started_at": now_iso,
+    }
+    existing = await db.workspaces.find_one(
+        {"workspace_id": workspace_id},
+        {"_id": 0, "billing_period_start": 1, "trial_ends_at": 1, "subscription_status": 1, "workspace_id": 1},
+    )
+    if not existing:
+        # Signature-valid paid event for a workspace that is not ready yet —
+        # raise so the webhook handler can drop the event id and allow retry.
+        raise HTTPException(status_code=503, detail="Workspace not ready for Paddle provisioning")
+    if not existing.get("billing_period_start"):
+        set_fields["billing_period_start"] = now_iso
+    set_fields.update(_paddle_trial_fields(data, status, existing))
+    await db.workspaces.update_one({"workspace_id": workspace_id}, {"$set": set_fields, "$unset": {
+        "canceled_at": "", "pending_plan": "", "pending_plan_effective_at": "",
+    }})
+    invalidate_plan_cache(workspace_id)
+    await helm_analytics.emit_billing_funnel(
+        db, workspace_id, user_id,
+        existing.get("subscription_status"),
+        status,
+        plan,
+    )
+    await _maybe_mark_referral_converted(workspace_id, status)
+
+
 async def _paddle_provision(event, status: str = "active"):
     data = event.get("data") or {}
     custom = data.get("custom_data") or {}
@@ -14756,12 +14890,50 @@ async def _paddle_provision(event, status: str = "active"):
             await _maybe_mark_referral_converted(prev.get("workspace_id"), status)
         return
 
-    intent = await db.paddle_intents.find_one({"_id": nonce})
-    if not intent or intent.get("workspace_id") != workspace_id or intent.get("user_id") != user_id:
+    from pymongo import ReturnDocument
+
+    # Atomically claim unused intent before entitlements (P2 #11 / checkout race).
+    intent = await db.paddle_intents.find_one_and_update(
+        {
+            "_id": nonce,
+            "workspace_id": workspace_id,
+            "user_id": user_id,
+            "used": False,
+        },
+        {"$set": {"used": True}},
+        return_document=ReturnDocument.AFTER,
+    )
+    if intent is None:
+        existing_intent = await db.paddle_intents.find_one({"_id": nonce})
+        if existing_intent:
+            if existing_intent.get("used"):
+                # Replay / reused checkout nonce — do not re-provision entitlements.
+                return
+            # Binding mismatch (nonce belongs to another workspace/user).
+            logger.warning(
+                "paddle intent binding mismatch nonce=%s ws=%s user=%s",
+                nonce, workspace_id, user_id,
+            )
+            return
+        # Intent expired/TTL'd away after payment — still provision from signature-valid
+        # custom_data so the workspace is not left on Free. Prefer event price, else Starter.
+        logger.warning(
+            "paddle intent missing for paid checkout nonce=%s workspace=%s — provisioning from custom_data",
+            nonce, workspace_id,
+        )
+        plan = helm_plans.plan_for_paddle_price(event_price_id) or helm_plans.PLAN_STARTER
+        await _paddle_apply_checkout_entitlements(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            sub_id=sub_id,
+            data=data,
+            status=status,
+            now_iso=now_iso,
+            plan=plan,
+            event_price_id=event_price_id,
+        )
         return
-    if intent.get("used"):
-        # Replay / reused checkout nonce — do not re-provision entitlements.
-        return
+
     # Prefer the live event price when present (covers mid-checkout price changes),
     # then the intent, then Starter.
     plan = (
@@ -14770,37 +14942,16 @@ async def _paddle_provision(event, status: str = "active"):
         or helm_plans.plan_for_paddle_price(intent.get("price_id"))
         or helm_plans.PLAN_STARTER
     )
-    plan = helm_plans.normalize_plan(plan)
-    if plan == helm_plans.PLAN_FREE:
-        plan = helm_plans.PLAN_STARTER
-    set_fields = {
-        "plan": plan, "billing_provider": "paddle",
-        "paddle_subscription_id": sub_id,
-        "paddle_customer_id": data.get("customer_id"),
-        "paddle_last_event_at": now_iso,
-        "subscription_status": status, "billing_status": status,
-        "subscription_started_at": now_iso,
-    }
-    # Anchor usage periods on first provision only
-    existing = await db.workspaces.find_one(
-        {"workspace_id": workspace_id},
-        {"_id": 0, "billing_period_start": 1, "trial_ends_at": 1, "subscription_status": 1},
+    await _paddle_apply_checkout_entitlements(
+        workspace_id=workspace_id,
+        user_id=user_id,
+        sub_id=sub_id,
+        data=data,
+        status=status,
+        now_iso=now_iso,
+        plan=plan,
+        event_price_id=event_price_id,
     )
-    if not (existing or {}).get("billing_period_start"):
-        set_fields["billing_period_start"] = now_iso
-    set_fields.update(_paddle_trial_fields(data, status, existing))
-    await db.workspaces.update_one({"workspace_id": workspace_id}, {"$set": set_fields, "$unset": {
-        "canceled_at": "", "pending_plan": "", "pending_plan_effective_at": "",
-    }})
-    invalidate_plan_cache(workspace_id)
-    await db.paddle_intents.update_one({"_id": nonce}, {"$set": {"used": True}})
-    await helm_analytics.emit_billing_funnel(
-        db, workspace_id, user_id,
-        (existing or {}).get("subscription_status"),
-        status,
-        plan,
-    )
-    await _maybe_mark_referral_converted(workspace_id, status)
 
 
 async def _paddle_downgrade(event, status: str):
@@ -14892,18 +15043,28 @@ async def paddle_webhook(request: Request):
         if "e11000" in str(e).lower() or "duplicate key" in str(e).lower():
             return {"received": True}
         raise
-    if event_type == "transaction.completed":
-        await _paddle_provision(event, status="active")
-    elif event_type in ("subscription.created", "subscription.activated", "subscription.updated", "subscription.trialing"):
-        status = (event.get("data") or {}).get("status") or "active"
-        if status in ("active", "trialing"):
-            await _paddle_provision(event, status=status)
-    elif event_type in ("subscription.canceled", "subscription.cancelled"):
-        await _paddle_downgrade(event, "canceled")
-    elif event_type == "subscription.paused":
-        await _paddle_downgrade(event, "paused")
-    elif event_type in ("subscription.past_due", "subscription.past-due"):
-        await _paddle_downgrade(event, "past_due")
+    try:
+        if event_type == "transaction.completed":
+            await _paddle_provision(event, status="active")
+        elif event_type in ("subscription.created", "subscription.activated", "subscription.updated", "subscription.trialing"):
+            status = (event.get("data") or {}).get("status") or "active"
+            if status in ("active", "trialing"):
+                await _paddle_provision(event, status=status)
+        elif event_type in ("subscription.canceled", "subscription.cancelled"):
+            await _paddle_downgrade(event, "canceled")
+        elif event_type == "subscription.paused":
+            await _paddle_downgrade(event, "paused")
+        elif event_type in ("subscription.past_due", "subscription.past-due"):
+            await _paddle_downgrade(event, "past_due")
+    except HTTPException:
+        # Drop the event id so Paddle redelivery can retry after a transient failure
+        # (e.g. workspace not ready). Signature-valid paid events must not ACK-and-drop.
+        await db.paddle_events.delete_one({"_id": event_id})
+        raise
+    except Exception:
+        await db.paddle_events.delete_one({"_id": event_id})
+        logger.exception("paddle webhook handler failed event_id=%s type=%s", event_id, event_type)
+        raise HTTPException(status_code=503, detail="Paddle webhook processing failed")
     return {"received": True}
 
 
@@ -15373,12 +15534,16 @@ async def setup_status(request: Request):
         except Exception:
             clerk_ok = False
     r2 = await asyncio.to_thread(doc_storage.probe_r2)
+    indexes_done = bool(_index_ensure_state.get("done"))
+    indexes_ok = _index_ensure_state.get("critical_ok") if indexes_done else None
     return {
-        "ok": bool(mongo_ok and clerk_auth.clerk_configured()),
+        "ok": bool(mongo_ok and clerk_auth.clerk_configured() and (indexes_ok is not False)),
         "mongo": bool(mongo_ok),
         "clerk_configured": clerk_auth.clerk_configured(),
         "clerk_api_ok": clerk_ok,
         "r2": r2,
+        "indexes_ok": indexes_ok,
+        "index_errors": list(_index_ensure_state.get("errors") or [])[:10] if indexes_ok is False else [],
     }
 
 
@@ -15836,14 +16001,26 @@ async def internal_analytics_summary(principal=Depends(require_analytics_admin))
 
 @api_router.get("/health")
 async def health():
-    """Liveness probe for Render — must return 200 within 5s even when Mongo is down."""
+    """Liveness probe for Render — must return 200 within 5s even when Mongo is down.
+
+    When ENVIRONMENT=production and critical unique indexes failed to ensure, return
+    503 so ops notice (indexes_ok=false). Still-running ensure reports indexes_ok=null.
+    """
     mongo_ok = await _mongo_ping()
-    return {
+    indexes_done = bool(_index_ensure_state.get("done"))
+    indexes_ok = _index_ensure_state.get("critical_ok") if indexes_done else None
+    payload = {
         "status": "ok",
         "mongo": mongo_ok,
         "mongo_source": MONGO_SOURCE,
         "cache": simple_cache.stats(),
+        "indexes_ok": indexes_ok,
     }
+    if ENVIRONMENT == "production" and indexes_done and indexes_ok is False:
+        payload["status"] = "degraded"
+        payload["index_errors"] = list(_index_ensure_state.get("errors") or [])[:10]
+        return JSONResponse(status_code=503, content=payload)
+    return payload
 
 
 @api_router.get("/")
@@ -15916,6 +16093,21 @@ if _serve_static:
     mount_static_frontend(app)
 
 
+_index_ensure_state = {
+    "done": False,
+    "critical_ok": True,
+    "errors": [],
+}
+
+
+def _index_spec_label(collection, keys, opts) -> str:
+    name = opts.get("name")
+    if name:
+        return f"{collection.name}.{name}"
+    key_part = "_".join(f"{k}_{d}" for k, d in keys)
+    return f"{collection.name}.{key_part}"
+
+
 async def _ensure_indexes():
     # Scrub legacy null external ids before (re)creating unique indexes.
     await _scrub_null_financial_external_ids()
@@ -15932,7 +16124,9 @@ async def _ensure_indexes():
         (db.user_sessions, [("user_id", 1)], {}),
         (db.paddle_events, [("_id", 1)], {"unique": True}),
         (db.paddle_intents, [("_id", 1)], {"unique": True}),
-        (db.paddle_intents, [("created_at", 1)], {"expireAfterSeconds": 3600}),
+        # 7d TTL — paid webhooks can arrive after the old 1h window; missing-intent
+        # path still provisions from custom_data, but keeping the intent helps binding checks.
+        (db.paddle_intents, [("created_at", 1)], {"expireAfterSeconds": 604800}),
         (db.deals, [("workspace_id", 1)], {}),
         (db.deals, [("workspace_id", 1), ("department_id", 1)], {}),
         (db.deals, [("workspace_id", 1), ("updated_at", -1), ("id", -1)], {}),
@@ -16070,11 +16264,40 @@ async def _ensure_indexes():
         (db.referrals, [("referred_workspace_id", 1)], {"sparse": True}),
         (db.workspaces, [("referred_by", 1)], {"sparse": True}),
     ]
+    critical_errors: list[str] = []
+    critical_collections = frozenset({
+        "users", "workspaces", "user_sessions", "paddle_events", "paddle_intents",
+        "oauth_states", "financial_entries",
+    })
     for collection, keys, opts in specs:
-        try:
-            await asyncio.wait_for(collection.create_index(keys, **opts), timeout=1.5)
-        except Exception:
-            logger.debug("index ensure skipped for %s", keys, exc_info=True)
+        label = _index_spec_label(collection, keys, opts)
+        is_critical = bool(opts.get("unique")) and collection.name in critical_collections
+        attempts = 5 if is_critical else 1
+        timeout = 8.0 if is_critical else 1.5
+        last_exc: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                await asyncio.wait_for(collection.create_index(keys, **opts), timeout=timeout)
+                last_exc = None
+                break
+            except Exception as exc:
+                last_exc = exc
+                if attempt < attempts:
+                    await asyncio.sleep(min(0.5 * attempt, 4.0))
+        if last_exc is not None:
+            if is_critical:
+                critical_errors.append(f"{label}: {last_exc}")
+                logger.error("critical index ensure failed for %s", label, exc_info=last_exc)
+            else:
+                logger.debug("index ensure skipped for %s", keys, exc_info=True)
+    _index_ensure_state["done"] = True
+    _index_ensure_state["critical_ok"] = not critical_errors
+    _index_ensure_state["errors"] = critical_errors
+    if critical_errors and ENVIRONMENT == "production":
+        logger.error(
+            "CRITICAL unique indexes missing after retries (%d): %s",
+            len(critical_errors), "; ".join(critical_errors[:5]),
+        )
 
 
 async def _connect_mongo_at_startup() -> None:
