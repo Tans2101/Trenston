@@ -9,7 +9,7 @@ import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
-  TAGLINE, CATEGORY, AUDIENCE, HERO_SUB,
+  TAGLINE, CATEGORY, AUDIENCE, HERO_OUTCOME, HERO_SUB,
   PLANS, PRODUCT_FACTS, HOW_IT_WORKS, FEATURE_HIGHLIGHTS, CEO_DAY, PRICING_FAQ,
   paidPlanRenewalDisclosure,
 } from "@/lib/marketingCopy";
@@ -31,7 +31,7 @@ function BriefingPreview() {
       <div className="relative z-[1] rounded-lg border border-helm-navy/40 bg-helm-ink-card p-5 md:p-7 shadow-xl shadow-black/15">
         <div className="flex items-center justify-between border-b border-helm-cream/[0.06] pb-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
-          <span className="text-[10px] text-helm-slate">Sample briefing</span>
+          <span className="text-[10px] text-helm-slate">Sample briefing — illustrative data</span>
         </div>
         <p className="font-display text-helm-cream text-2xl md:text-3xl font-medium mt-6 leading-snug tracking-tight">Welcome back, Alex.</p>
         <p className="text-helm-cream/85 text-sm mt-3 leading-relaxed">Revenue is ahead of plan. Engineering capacity needs a decision today.</p>
@@ -112,8 +112,10 @@ export default function Landing() {
               ))}
             </motion.h1>
             <motion.p variants={fade} initial="hidden" animate="show" custom={2}
-              className="mt-8 text-lg text-helm-slate leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
-            <motion.div variants={fade} initial="hidden" animate="show" custom={3} className="mt-10 flex flex-wrap items-center gap-3 relative z-10">
+              className="mt-8 text-xl md:text-2xl text-helm-navy leading-snug max-w-xl font-medium tracking-tight">{HERO_OUTCOME}</motion.p>
+            <motion.p variants={fade} initial="hidden" animate="show" custom={3}
+              className="mt-4 text-base text-helm-slate leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
+            <motion.div variants={fade} initial="hidden" animate="show" custom={4} className="mt-10 flex flex-wrap items-center gap-3 relative z-10">
               <button data-testid="hero-cta-btn" onClick={enter} type="button"
                 className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
                 {authed ? "Open your cockpit" : "Start free"}
@@ -123,8 +125,8 @@ export default function Landing() {
                 See the 3-minute workflow
               </a>
             </motion.div>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={4} className="mt-8 text-xs text-helm-slate">{AUDIENCE}</motion.p>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={5} className="mt-3 text-xs text-helm-slate">
+            <motion.p variants={fade} initial="hidden" animate="show" custom={5} className="mt-8 text-xs text-helm-slate">{AUDIENCE}</motion.p>
+            <motion.p variants={fade} initial="hidden" animate="show" custom={6} className="mt-3 text-xs text-helm-slate">
               <Link to="/security" className="text-helm-slate hover:text-helm-navy transition-colors">
                 How Trenston protects company data →
               </Link>
@@ -187,7 +189,6 @@ export default function Landing() {
         </div>
       </section>
 
-      <IntegrationsShowcase />
 
       <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
@@ -218,6 +219,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      <IntegrationsShowcase />
 
       <DepartmentsShowcase />
 
