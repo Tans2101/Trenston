@@ -105,7 +105,7 @@ async def test_notify_debounce_and_slack_failure_non_blocking():
         email_calls.append(kwargs)
         return {"sent": True, "id": "em_1", "to": kwargs.get("to")}
 
-    async def fake_slack(url, text):
+    async def fake_slack(url, text, **kwargs):
         slack_calls.append((url, text))
         return {"ok": False, "reason": "http_error", "status": 500}
 
@@ -162,7 +162,7 @@ async def test_notify_does_not_debounce_when_both_channels_fail():
     async def fake_email(**kwargs):
         return {"sent": False, "reason": "no_key"}
 
-    async def fake_slack(url, text):
+    async def fake_slack(url, text, **kwargs):
         return {"ok": False, "reason": "http_error"}
 
     async def fake_recipients(_ws):
