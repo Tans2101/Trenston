@@ -46,6 +46,7 @@ class FakeDB:
         self.memberships = Collection()
         self.referrals = Collection()
         self.workspaces = Collection()
+        self.user_google_tokens = Collection()
         self.collections.update({
             "documents": self.documents,
             "report_documents": self.report_documents,
@@ -73,6 +74,7 @@ def test_delete_workspace_purges_r2_and_workspace_collections():
         {"department_id": {"$in": ["dept_1"]}},
     )
     fake_db.departments.delete_many.assert_awaited_once_with({"workspace_id": "ws_1"})
+    fake_db.user_google_tokens.delete_many.assert_awaited_once_with({"workspace_id": "ws_1"})
     fake_db.memberships.delete_many.assert_awaited_once_with({"workspace_id": "ws_1"})
     fake_db.referrals.delete_many.assert_awaited_once_with({"referred_workspace_id": "ws_1"})
     fake_db.workspaces.delete_one.assert_awaited_once_with({"workspace_id": "ws_1"})

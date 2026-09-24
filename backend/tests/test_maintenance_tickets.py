@@ -172,6 +172,15 @@ def maint_api():
     mock_db.maintenance_tickets = store
     mock_db.production_work_orders = work_orders
     mock_db.users = users
+    # list_maintenance_tickets also rolls up spares/schedules/contracts/overhead
+    # inline — empty stores so those awaited find(...).to_list(...) calls succeed.
+    mock_db.maintenance_spares = TicketStore()
+    mock_db.maintenance_schedules = TicketStore()
+    mock_db.maintenance_contracts = TicketStore()
+    mock_db.maintenance_costs = TicketStore()
+    mock_db.workspaces.find_one = AsyncMock(return_value={
+        "timezone": "Asia/Manila", "financial_settings": {"currency": "usd"},
+    })
 
     async def as_ceo():
         return CEO

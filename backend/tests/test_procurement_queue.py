@@ -378,8 +378,15 @@ def test_blocking_badge_clears_when_link_removed_or_completed(proc_api):
     assert first[0]["id"] == rid
     assert first[0]["blocking_production_orders"][0]["reference"] == "WO-9"
 
+    # /api/procurement/requests has a short-TTL read cache (simple_cache), busted
+    # by the production work-order write endpoints. This test pokes work_orders.rows
+    # directly instead of going through those endpoints, so it clears the cache
+    # itself to get the "next fetch" behaviour those endpoints' invalidation calls
+    # give a real caller (see tests/test_dept_list_cache.py for the same pattern).
+
     # Completing the work order clears the badge on next fetch.
     work_orders.rows[0]["status"] = "completed"
+    server.simple_cache.clear()
     mid = client.get("/api/procurement/requests").json()["requests"]
     widget = next(r for r in mid if r["id"] == rid)
     assert widget["blocking_production_orders"] == []
@@ -387,11 +394,13 @@ def test_blocking_badge_clears_when_link_removed_or_completed(proc_api):
     # Re-block via blocked flag, then unlink — badge disappears again.
     work_orders.rows[0]["status"] = "in_production"
     work_orders.rows[0]["blocked"] = True
+    server.simple_cache.clear()
     again = client.get("/api/procurement/requests").json()["requests"]
     assert again[0]["id"] == rid
     assert again[0]["blocking_production_orders"][0]["reference"] == "WO-9"
 
     work_orders.rows[0]["linked_procurement_request_id"] = None
+    server.simple_cache.clear()
     final = client.get("/api/procurement/requests").json()["requests"]
     widget = next(r for r in final if r["id"] == rid)
     assert widget["blocking_production_orders"] == []

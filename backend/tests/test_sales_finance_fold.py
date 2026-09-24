@@ -270,6 +270,9 @@ def fold_api():
     mock_db.financial_entries = fins
     mock_db.users = FakeColl([])
     mock_db.product_events = FakeColl([])
+    # /financials looks up the caller's Google connection for the Sheets-export
+    # capability flag — no rows needed here, just an awaitable find_one.
+    mock_db.user_google_tokens = FakeColl([])
     mock_db.workspaces.find_one = AsyncMock(return_value={
         "workspace_id": "ws_fold",
         "financial_settings": {"cash": 10000, "currency": "usd"},

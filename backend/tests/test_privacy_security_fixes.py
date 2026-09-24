@@ -80,8 +80,14 @@ def test_setup_status_is_boolean_health_only(monkeypatch):
     res = client.get("/api/setup/status", headers={"X-Setup-Secret": "setup-secret"})
     assert res.status_code == 200
     body = res.json()
-    assert set(body.keys()) == {"ok", "mongo", "clerk_configured", "clerk_api_ok", "r2"}
+    # indexes_ok/index_errors (added for background index-health monitoring) are
+    # still "boolean health only" — a bool/null flag and a capped list of short
+    # error strings, gated behind the same setup secret. No infra inventory.
+    assert set(body.keys()) == {
+        "ok", "mongo", "clerk_configured", "clerk_api_ok", "r2", "indexes_ok", "index_errors",
+    }
     assert body["r2"] == {"configured": False, "ok": False}
+    assert body["index_errors"] == []
     assert "integrations_configured" not in body
     assert "git_commit" not in body
 

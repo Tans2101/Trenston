@@ -52,6 +52,12 @@ def client():
         return_value={"_id": "ws_doc_test:upload", "count": 1},
     )
     mock_db.workspaces = MagicMock()
+    # Default: room under the lifetime AI-extract cap (a test that wants the cap
+    # already hit, e.g. test_free_lifetime_extract_quota_asks_to_upgrade, overrides
+    # this to return None so acquire_lifetime_extract_slot() reports False).
+    mock_db.workspaces.find_one_and_update = AsyncMock(return_value={
+        "workspace_id": "ws_doc_test", "ai_extracts_lifetime_used": 1,
+    })
     mock_db.workspaces.find_one = AsyncMock(return_value={
         "workspace_id": "ws_doc_test",
         "plan": "business",
@@ -449,6 +455,9 @@ def test_free_lifetime_extract_quota_asks_to_upgrade(client):
         "plan": "free",
         "ai_extracts_lifetime_used": 5,
     }
+    # At the free-plan lifetime cap: the atomic $lt guard matches nothing, so
+    # find_one_and_update returns None and acquire_lifetime_extract_slot() is False.
+    server.db.workspaces.find_one_and_update = AsyncMock(return_value=None)
     with patch.object(server, "BILLING_ENFORCED", True), patch.object(
         server, "get_ws", new_callable=AsyncMock, return_value=free_ws
     ), patch.object(server.helm_llm, "anthropic_configured", return_value=True):

@@ -10035,7 +10035,7 @@ async def create_production_work_order(payload: ProductionWorkOrderCreate, princ
             raise HTTPException(status_code=400, detail="expected_yield_pct must be 0–100")
         order["expected_yield_pct"] = ey
     await db.production_work_orders.insert_one(dict(order))
-    invalidate_workspace_list_cache(principal["workspace_id"], "production", "me_work", "calendar")
+    invalidate_workspace_list_cache(principal["workspace_id"], "procurement", "production", "me_work", "calendar")
     return {"ok": True, "work_order": await _enrich_work_order(order)}
 
 
@@ -10183,7 +10183,7 @@ async def patch_production_work_order(
         {"id": work_order_id, "department_id": dept["department_id"]},
         {"$set": upd},
     )
-    invalidate_workspace_list_cache(principal["workspace_id"], "production", "me_work", "calendar")
+    invalidate_workspace_list_cache(principal["workspace_id"], "procurement", "production", "me_work", "calendar")
     return {"ok": True, "work_order": await _enrich_work_order({**order, **upd})}
 
 
@@ -10196,7 +10196,7 @@ async def delete_production_work_order(work_order_id: str, principal=Depends(get
     )
     if not _can_update_production_order(principal, membership, order):
         raise HTTPException(status_code=403, detail="You are not assigned to this work order")
-    invalidate_workspace_list_cache(principal["workspace_id"], "production", "me_work", "calendar")
+    invalidate_workspace_list_cache(principal["workspace_id"], "procurement", "production", "me_work", "calendar")
     await db.production_work_orders.delete_one(
         {"id": work_order_id, "department_id": dept["department_id"]},
     )

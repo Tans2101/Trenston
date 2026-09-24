@@ -103,6 +103,11 @@ def _users_find_factory(users_by_id):
 
 @pytest.fixture
 def owner_api():
+    # Every test in this file reuses the same workspace_id/user_id/department,
+    # so GET /api/deals's simple_cache entry from one test would otherwise leak
+    # into the next (each gets its own fresh DealStore, but the cache key is
+    # identical) — clear it so each test starts from a fresh fetch.
+    server.simple_cache.clear()
     deals = DealStore()
     members = [
         {"department_id": "dept_sales", "user_id": "u_lead", "role": "lead"},
