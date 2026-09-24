@@ -202,6 +202,15 @@ def merge_integrations(
                 item["needs_tenant_select"] = xero_pending
                 if xero_tokens and xero_tokens.get("tenant_name"):
                     item["tenant_name"] = xero_tokens.get("tenant_name")
+                granted = _token_scope(xero_tokens)
+                if xero_connected and granted:
+                    import xero as xero_mod
+
+                    missing = [sc for sc in xero_mod.XERO_SCOPES.split() if sc not in granted.split()]
+                    if missing:
+                        # Older grants lack newer read scopes (e.g. accounting.settings.read).
+                        item["needs_reconsent"] = True
+                        item["connect_label"] = "Reconnect Xero"
             elif provider == "hubspot":
                 item["connected"] = hubspot_connected
                 item["last_synced_at"] = hubspot_last_synced

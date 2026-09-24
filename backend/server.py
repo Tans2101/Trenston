@@ -14538,8 +14538,10 @@ async def xero_sync_endpoint(principal=Depends(require_integration_provider("xer
     except xero_sync.XeroTransientError as exc:
         logger.warning("Xero temporarily unavailable for %s: %s", ws_id, exc)
         raise HTTPException(status_code=503, detail="Xero is temporarily unavailable. Try again in a few minutes.") from exc
-    except xero_sync.XeroPermissionsError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except xero_sync.XeroPermissionError as exc:
+        # Tenant still connected — keep tokens; the owner re-approves scopes.
+        logger.warning("Xero permissions insufficient for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=403, detail=xero_sync.XERO_PERMISSION_MESSAGE) from exc
     except xero_sync.XeroAuthError as exc:
         logger.warning("Xero auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
@@ -14635,7 +14637,7 @@ async def run_accounting_auto_sync() -> dict:
                 except xero_sync.XeroTransientError as exc:
                     stats["xero_errors"] += 1
                     logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc)
-                except xero_sync.XeroPermissionsError as exc:
+                except xero_sync.XeroPermissionError as exc:
                     stats["xero_errors"] += 1
                     logger.warning("Xero auto-sync permissions error for %s: %s", ws_id, exc)
                 except xero_sync.XeroAuthError as exc:

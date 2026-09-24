@@ -211,7 +211,7 @@ def test_map_manual_journal_pl_only():
             {"AccountType": "BANK", "LineAmount": 100, "Description": "Bank", "AccountCode": "090"},
             {"AccountType": "EXPENSE", "LineAmount": 40, "Description": "Office", "AccountCode": "400"},
         ],
-    })
+    }, {"200": "REVENUE", "090": "ASSET", "400": "EXPENSE"})
     assert len(rows) == 2
     assert {r["type"] for r in rows} == {"revenue", "expense"}
 

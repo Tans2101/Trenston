@@ -39,9 +39,10 @@ API_BASE = "https://api.xero.com/api.xro/2.0"
 XERO_SCOPES = (
     "offline_access "
     "openid profile email "
-    "accounting.invoices.read "
+    "accounting.invoices.read "          # Invoices + CreditNotes
     "accounting.banktransactions.read "
-    "accounting.manualjournals.read"
+    "accounting.manualjournals.read "
+    "accounting.settings.read"           # /Accounts (Class) for manual journal lines
 )
 
 _DATE_MS_RE = re.compile(r"/Date\((-?\d+)")
@@ -64,8 +65,17 @@ class XeroTransientError(IntegrationRetryableError):
 XeroRetryableError = XeroTransientError
 
 
-class XeroPermissionsError(Exception):
+class XeroPermissionError(Exception):
     """Tenant still connected but the call lacks permission — do not wipe tokens."""
+
+
+# Back-compat alias.
+XeroPermissionsError = XeroPermissionError
+
+XERO_PERMISSION_MESSAGE = (
+    "Trenston doesn't have permission to read this data in Xero. "
+    "Reconnect and approve all permissions."
+)
 
 
 def _token_needs_refresh(tokens: dict) -> bool:
@@ -287,10 +297,12 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
     import accounting_map as amap
 
     status = (txn.get("Status") or "").upper()
-    if status in ("DELETED", "VOIDED", "DRAFT"):
+    if status != "AUTHORISED":
         return None
     txn_type = (txn.get("Type") or "").upper()
-    # Skip overpayments/prepayments (balance sheet until applied to invoices).
+    # Overpayments and prepayments sit on the balance sheet until Xero applies them
+    # to invoices/bills via allocations — the allocated invoice is what hits P&L,
+    # so counting the bank line too would double-count. Transfers are not P&L.
     if txn_type in (
         "RECEIVE-OVERPAYMENT", "SPEND-OVERPAYMENT",
         "RECEIVE-PREPAYMENT", "SPEND-PREPAYMENT",
@@ -362,21 +374,21 @@ def map_xero_credit_note(cn: dict) -> Optional[dict]:
     }
 
 
-_XERO_PL_ACCOUNT_TYPES = frozenset({
-    "REVENUE", "SALES", "OTHERINCOME",
-    "EXPENSE", "OVERHEADS", "DIRECTCOSTS", "DEPRECIATN",
-})
+def map_xero_manual_journal(mj: dict, account_classes: Optional[dict[str, str]] = None) -> list[dict]:
+    """Map POSTED ManualJournal lines on REVENUE / EXPENSE class accounts only.
 
-
-def map_xero_manual_journal(mj: dict) -> list[dict]:
-    """Map ManualJournal P&L lines only (posted journals)."""
+    ``account_classes`` maps AccountID and AccountCode -> Class, from one /Accounts
+    read per sync. Xero LineAmount: debits are positive, credits are negative.
+    Revenue: credit (negative) adds revenue, debit reduces it (is_credit).
+    Expense: debit (positive) adds expense, credit reduces it (is_credit).
+    """
     import accounting_map as amap
 
     status = (mj.get("Status") or "").upper()
     if status not in ("POSTED",):
         return []
     mid = str(mj.get("ManualJournalID") or "")
-    if not mid:
+    if not mid or not account_classes:
         return []
     date_full = _parse_xero_date(mj)
     month = date_full[:7]
@@ -385,29 +397,26 @@ def map_xero_manual_journal(mj: dict) -> list[dict]:
     for idx, line in enumerate(mj.get("JournalLines") or []):
         if not isinstance(line, dict):
             continue
-        acct_type = str(line.get("AccountType") or "").upper().replace(" ", "")
-        # Also accept AccountCode-only lines tagged via LineAmount + common type field.
-        if acct_type and acct_type not in _XERO_PL_ACCOUNT_TYPES:
-            # Some payloads use Account.Type nested
-            nested = ((line.get("Account") or {}) if isinstance(line.get("Account"), dict) else {})
-            acct_type = str(nested.get("Type") or acct_type).upper().replace(" ", "")
-        if acct_type and acct_type not in _XERO_PL_ACCOUNT_TYPES:
+        acct_class = (
+            account_classes.get(str(line.get("AccountID") or ""))
+            or account_classes.get(str(line.get("AccountCode") or ""))
+            or ""
+        ).upper()
+        if acct_class not in ("REVENUE", "EXPENSE"):
             continue
-        if not acct_type:
-            # Without account type we cannot safely classify — skip.
+        try:
+            raw = float(line.get("LineAmount") or 0)
+        except (TypeError, ValueError):
             continue
-        amount, _ = amap.normalize_mapped_amount(line.get("LineAmount"))
+        amount = round(abs(raw), 2)
         if amount <= 0:
             continue
-        is_income = acct_type in ("REVENUE", "SALES", "OTHERINCOME")
-        # Positive LineAmount is debit in Xero manual journals; credit is negative.
-        raw = float(line.get("LineAmount") or 0)
-        if is_income:
+        if acct_class == "REVENUE":
             entry_type = "revenue"
-            is_credit = raw > 0  # debit to income reduces revenue
+            is_credit = raw > 0
         else:
             entry_type = "expense"
-            is_credit = raw < 0  # credit to expense reduces expense
+            is_credit = raw < 0
         category = amap.fallback_category(
             line.get("AccountCode") or line.get("Description") or ""
         )
@@ -494,8 +503,11 @@ async def _fetch_collection_once(
     where: str,
     since: Optional[str],
     include_voided: bool = False,
+    hc: Optional[httpx.AsyncClient] = None,
 ) -> tuple[list[dict], bool, Optional[int]]:
     """Page through a Xero collection. Returns (rows, complete, failing_status).
+
+    ``hc`` is the sync's shared client; one is opened only when none is passed.
 
     Incremental sync uses If-Modified-Since (not Date filters). When include_voided
     is True, VOIDED/DELETED rows are returned so callers can delete matching entries.
@@ -513,35 +525,40 @@ async def _fetch_collection_once(
     if since:
         # RFC 1123 or ISO — Xero accepts ISO-8601.
         headers["If-Modified-Since"] = since.replace("Z", "") if "T" in since else f"{since[:10]}T00:00:00"
+    if hc is None:
+        async with httpx.AsyncClient(timeout=60.0) as own:
+            return await _fetch_collection_once(
+                access_token, tenant_id, path=path, result_key=result_key, where=where,
+                since=since, include_voided=include_voided, hc=own,
+            )
     all_rows: list[dict] = []
-    async with httpx.AsyncClient(timeout=60.0) as hc:
-        for page in range(1, XERO_MAX_PAGES + 1):
-            params: dict = {"page": page}
-            if where_full:
-                params["where"] = where_full
-                params["order"] = "Date ASC"
-            if include_voided:
-                params["includeArchived"] = "true"
-            resp = await _xero_get(hc, url, headers=headers, params=params)
-            if resp.status_code == 401:
-                return [], False, 401
-            if resp.status_code == 403:
-                return [], False, 403
-            if resp.status_code == 304:
-                return [], True, None
-            if resp.status_code >= 500:
-                raise XeroTransientError(
-                    f"Xero {path} temporarily unavailable ({resp.status_code})"
-                )
-            if resp.status_code != 200:
-                raise RuntimeError(f"Xero {path} failed ({resp.status_code}): {resp.text[:300]}")
-            rows = resp.json().get(result_key) or []
-            if not isinstance(rows, list):
-                rows = []
-            all_rows.extend(rows)
-            if len(rows) < XERO_PAGE_SIZE:
-                return all_rows, True, None
-        return all_rows, False, None
+    for page in range(1, XERO_MAX_PAGES + 1):
+        params: dict = {"page": page}
+        if where_full:
+            params["where"] = where_full
+            params["order"] = "Date ASC"
+        if include_voided:
+            params["includeArchived"] = "true"
+        resp = await _xero_get(hc, url, headers=headers, params=params)
+        if resp.status_code == 401:
+            return [], False, 401
+        if resp.status_code == 403:
+            return [], False, 403
+        if resp.status_code == 304:
+            return [], True, None
+        if resp.status_code >= 500:
+            raise XeroTransientError(
+                f"Xero {path} temporarily unavailable ({resp.status_code})"
+            )
+        if resp.status_code != 200:
+            raise RuntimeError(f"Xero {path} failed ({resp.status_code}): {resp.text[:300]}")
+        rows = resp.json().get(result_key) or []
+        if not isinstance(rows, list):
+            rows = []
+        all_rows.extend(rows)
+        if len(rows) < XERO_PAGE_SIZE:
+            return all_rows, True, None
+    return all_rows, False, None
 
 
 async def _handle_xero_403(tokens: dict, tenant_id: str) -> None:
@@ -550,9 +567,7 @@ async def _handle_xero_403(tokens: dict, tenant_id: str) -> None:
     tenant_ids = {c["tenant_id"] for c in connections}
     if tenant_id not in tenant_ids:
         raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
-    raise XeroPermissionsError(
-        "Xero permissions are insufficient for this organisation. Check app scopes."
-    )
+    raise XeroPermissionError(XERO_PERMISSION_MESSAGE)
 
 
 async def _fetch_collection(
@@ -565,12 +580,13 @@ async def _fetch_collection(
     since: Optional[str],
     label: str,
     include_voided: bool = False,
+    hc: Optional[httpx.AsyncClient] = None,
 ) -> tuple[list[dict], bool, dict]:
     """Fetch a collection; on 401 force one refresh and retry once."""
     access_token = tokens.get("access_token") or ""
     rows, complete, status = await _fetch_collection_once(
         access_token, tenant_id, path=path, result_key=result_key, where=where,
-        since=since, include_voided=include_voided,
+        since=since, include_voided=include_voided, hc=hc,
     )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
@@ -581,13 +597,55 @@ async def _fetch_collection(
     rows, complete, status = await _fetch_collection_once(
         tokens.get("access_token") or "", tenant_id,
         path=path, result_key=result_key, where=where, since=since,
-        include_voided=include_voided,
+        include_voided=include_voided, hc=hc,
     )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
     if status == 401:
         raise XeroAuthError("Xero access token rejected")
     return rows, complete, tokens
+
+
+async def _fetch_account_classes(
+    tokens: dict, tenant_id: str, hc: httpx.AsyncClient,
+) -> tuple[Optional[dict[str, str]], dict]:
+    """One /Accounts read per sync: AccountID and Code -> Class (REVENUE, EXPENSE, ...).
+
+    Returns (None, tokens) when the grant lacks accounting.settings.read (403 with the
+    tenant still connected) so older connections keep syncing everything else.
+    """
+    url = f"{API_BASE}/Accounts"
+
+    async def _once(access: str) -> httpx.Response:
+        return await _xero_get(hc, url, headers={
+            "Authorization": f"Bearer {access}",
+            "Xero-tenant-id": tenant_id,
+            "Accept": "application/json",
+        })
+
+    resp = await _once(tokens.get("access_token") or "")
+    if resp.status_code == 401:
+        tokens = await refresh_xero_token(force_token_refresh(tokens), force=True)
+        resp = await _once(tokens.get("access_token") or "")
+        if resp.status_code == 401:
+            raise XeroAuthError("Xero access token rejected")
+    if resp.status_code == 403:
+        connections = await fetch_xero_connections(tokens.get("access_token") or "")
+        if tenant_id not in {c["tenant_id"] for c in connections}:
+            raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
+        logger.warning("Xero /Accounts forbidden — skipping manual journals until reconnect")
+        return None, tokens
+    if resp.status_code >= 500:
+        raise XeroTransientError(f"Xero Accounts temporarily unavailable ({resp.status_code})")
+    if resp.status_code != 200:
+        raise RuntimeError(f"Xero Accounts failed ({resp.status_code}): {resp.text[:300]}")
+    classes: dict[str, str] = {}
+    for acct in resp.json().get("Accounts") or []:
+        cls = str(acct.get("Class") or "").upper()
+        for key in (acct.get("AccountID"), acct.get("Code")):
+            if key:
+                classes[str(key)] = cls
+    return classes, tokens
 
 
 async def fetch_xero_transactions(
@@ -617,68 +675,67 @@ async def fetch_xero_transactions(
                 if rid:
                     deleted.append(f"{prefix}{rid}")
 
-    # Active docs — exclude voided/deleted/draft/submitted at query for full sync;
-    # for incremental, loosen filters so modified voided rows still arrive via IMS.
-    inv_where = (
-        'Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"'
-        if not since else ""
-    )
-    for inv_type in ("ACCREC", "ACCPAY"):
-        where = f'Type=="{inv_type}"' + (f" AND {inv_where}" if inv_where else "")
-        rows, ok, tokens = await _fetch_collection(
+    # Full sync asks Xero for P&L-relevant statuses only. Incremental drops the status
+    # filter (If-Modified-Since + includeArchived) so VOIDED/DELETED edits come back
+    # and their entries are removed; mappers still keep only the counted statuses.
+    authorised_or_paid = '(Status=="AUTHORISED" OR Status=="PAID")'
+    async with httpx.AsyncClient(timeout=60.0) as hc:
+        for inv_type in ("ACCREC", "ACCPAY"):
+            where = f'Type=="{inv_type}"' + ("" if since else f" AND {authorised_or_paid}")
+            rows, ok, tokens = await _fetch_collection(
+                tokens, tenant_id,
+                path="Invoices", result_key="Invoices", where=where, since=since,
+                label=f"Invoices:{inv_type}", include_voided=bool(since), hc=hc,
+            )
+            all_ok = all_ok and ok
+            _collect_deletes(rows, "InvoiceID", "xero_invoice_")
+            for inv in rows:
+                row = map_xero_invoice(inv)
+                if row:
+                    mapped.append(row)
+
+        banks, b_ok, tokens = await _fetch_collection(
             tokens, tenant_id,
-            path="Invoices", result_key="Invoices", where=where, since=since,
-            label=f"Invoices:{inv_type}", include_voided=bool(since),
+            path="BankTransactions", result_key="BankTransactions",
+            where="" if since else 'Status=="AUTHORISED"',
+            since=since, label="BankTransactions", include_voided=bool(since), hc=hc,
         )
-        all_ok = all_ok and ok
-        _collect_deletes(rows, "InvoiceID", "xero_invoice_")
-        for inv in rows:
-            row = map_xero_invoice(inv)
+        all_ok = all_ok and b_ok
+        _collect_deletes(banks, "BankTransactionID", "xero_bank_")
+        for txn in banks:
+            row = map_xero_bank_transaction(txn)
             if row:
                 mapped.append(row)
 
-    banks, b_ok, tokens = await _fetch_collection(
-        tokens, tenant_id,
-        path="BankTransactions", result_key="BankTransactions",
-        where='Status!="DELETED" AND Status!="VOIDED"' if not since else "",
-        since=since, label="BankTransactions", include_voided=bool(since),
-    )
-    all_ok = all_ok and b_ok
-    _collect_deletes(banks, "BankTransactionID", "xero_bank_")
-    for txn in banks:
-        row = map_xero_bank_transaction(txn)
-        if row:
-            mapped.append(row)
+        notes, n_ok, tokens = await _fetch_collection(
+            tokens, tenant_id,
+            path="CreditNotes", result_key="CreditNotes",
+            where="" if since else authorised_or_paid,
+            since=since, label="CreditNotes", include_voided=bool(since), hc=hc,
+        )
+        all_ok = all_ok and n_ok
+        _collect_deletes(notes, "CreditNoteID", "xero_cn_")
+        for cn in notes:
+            row = map_xero_credit_note(cn)
+            if row:
+                mapped.append(row)
 
-    notes, n_ok, tokens = await _fetch_collection(
-        tokens, tenant_id,
-        path="CreditNotes", result_key="CreditNotes",
-        where=(
-            'Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"'
-            if not since else ""
-        ),
-        since=since, label="CreditNotes", include_voided=bool(since),
-    )
-    all_ok = all_ok and n_ok
-    _collect_deletes(notes, "CreditNoteID", "xero_cn_")
-    for cn in notes:
-        row = map_xero_credit_note(cn)
-        if row:
-            mapped.append(row)
-
-    journals, j_ok, tokens = await _fetch_collection(
-        tokens, tenant_id,
-        path="ManualJournals", result_key="ManualJournals",
-        where='Status=="POSTED"' if not since else "",
-        since=since, label="ManualJournals", include_voided=bool(since),
-    )
-    all_ok = all_ok and j_ok
-    for mj in journals:
-        status = (mj.get("Status") or "").upper()
-        mid = str(mj.get("ManualJournalID") or "")
-        if status in ("DELETED", "VOIDED", "DRAFT") and mid:
-            deleted.append(f"xero_mj_{mid}_")
-            continue
-        mapped.extend(map_xero_manual_journal(mj))
+        journals, j_ok, tokens = await _fetch_collection(
+            tokens, tenant_id,
+            path="ManualJournals", result_key="ManualJournals",
+            where="" if since else 'Status=="POSTED"',
+            since=since, label="ManualJournals", include_voided=bool(since), hc=hc,
+        )
+        all_ok = all_ok and j_ok
+        account_classes: Optional[dict[str, str]] = None
+        if journals:
+            account_classes, tokens = await _fetch_account_classes(tokens, tenant_id, hc)
+        for mj in journals:
+            status = (mj.get("Status") or "").upper()
+            mid = str(mj.get("ManualJournalID") or "")
+            if status in ("DELETED", "VOIDED", "DRAFT") and mid:
+                deleted.append(f"xero_mj_{mid}_")
+                continue
+            mapped.extend(map_xero_manual_journal(mj, account_classes))
 
     return mapped, all_ok, tokens, deleted

@@ -1,0 +1,42 @@
+{
+  "Invoices": [
+    {"InvoiceID": "inv-a", "Type": "ACCREC", "Status": "AUTHORISED", "DateString": "2026-08-01T00:00:00",
+     "Total": 1120, "SubTotal": 1000, "TotalTax": 120, "CurrencyCode": "PHP", "CurrencyRate": 1,
+     "Contact": {"Name": "SM Retail"}},
+    {"InvoiceID": "inv-b", "Type": "ACCREC", "Status": "SUBMITTED", "DateString": "2026-08-02T00:00:00",
+     "Total": 500, "Contact": {"Name": "Pending"}},
+    {"InvoiceID": "bill-a", "Type": "ACCPAY", "Status": "PAID", "DateString": "2026-08-03T00:00:00",
+     "Total": 110, "SubTotal": 100, "TotalTax": 10, "CurrencyCode": "USD", "CurrencyRate": 0.02,
+     "Contact": {"Name": "AWS"}}
+  ],
+  "BankTransactions": [
+    {"BankTransactionID": "bt-r", "Type": "RECEIVE", "Status": "AUTHORISED", "DateString": "2026-08-04T00:00:00",
+     "Total": 300, "SubTotal": 300, "Contact": {"Name": "Cash sale"}},
+    {"BankTransactionID": "bt-s", "Type": "SPEND", "Status": "AUTHORISED", "DateString": "2026-08-05T00:00:00",
+     "Total": 80, "SubTotal": 80, "Contact": {"Name": "Grab"}},
+    {"BankTransactionID": "bt-o", "Type": "RECEIVE-OVERPAYMENT", "Status": "AUTHORISED",
+     "DateString": "2026-08-06T00:00:00", "Total": 999},
+    {"BankTransactionID": "bt-p", "Type": "SPEND-PREPAYMENT", "Status": "AUTHORISED",
+     "DateString": "2026-08-06T00:00:00", "Total": 999}
+  ],
+  "CreditNotes": [
+    {"CreditNoteID": "cn-r", "Type": "ACCRECCREDIT", "Status": "AUTHORISED", "DateString": "2026-08-07T00:00:00",
+     "Total": 50, "SubTotal": 45, "TotalTax": 5, "Contact": {"Name": "SM Retail"}},
+    {"CreditNoteID": "cn-p", "Type": "ACCPAYCREDIT", "Status": "PAID", "DateString": "2026-08-08T00:00:00",
+     "Total": 20, "Contact": {"Name": "AWS"}}
+  ],
+  "ManualJournals": [
+    {"ManualJournalID": "mj-1", "Status": "POSTED", "DateString": "2026-08-09T00:00:00", "Narration": "Accruals",
+     "JournalLines": [
+       {"AccountID": "acc-rev", "LineAmount": -700, "Description": "Accrued sales"},
+       {"AccountID": "acc-exp", "LineAmount": 200, "Description": "Accrued rent"},
+       {"AccountID": "acc-exp", "LineAmount": -25, "Description": "Rent rebate"},
+       {"AccountID": "acc-bank", "LineAmount": 525, "Description": "Clearing"}
+     ]}
+  ],
+  "Accounts": [
+    {"AccountID": "acc-rev", "Code": "200", "Class": "REVENUE"},
+    {"AccountID": "acc-exp", "Code": "400", "Class": "EXPENSE"},
+    {"AccountID": "acc-bank", "Code": "090", "Class": "ASSET"}
+  ]
+}
