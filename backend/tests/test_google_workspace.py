@@ -50,12 +50,10 @@ def test_catalog_reconnect_when_write_scopes_missing():
     ints = cat.merge_integrations(
         ws, google_configured=True, qb_configured=False, user_google_tokens=user_google,
     )
-    gcal_card = next(i for i in ints if i["id"] == "google_calendar")
-    gmail = next(i for i in ints if i["id"] == "gmail")
-    assert gcal_card["connected"] is True
-    assert gcal_card.get("needs_reconsent") is True
-    assert gmail["connected"] is True
-    assert gmail.get("needs_reconsent") is True
+    google = next(i for i in ints if i["id"] == "google")
+    assert google["connected"] is True
+    assert google.get("needs_reconsent") is True
+    assert google["capabilities"]["gmail"] is True
 
 
 def test_spreadsheet_body_has_two_sheets():

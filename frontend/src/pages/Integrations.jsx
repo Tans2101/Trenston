@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Calendar, Mail, Building2, Check, ExternalLink, RefreshCw,
+  Calendar, Building2, Check, ExternalLink, RefreshCw,
   Cloud, Github, MessageSquare, Clock, ArrowRight, Link2, Unlink,
 } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
@@ -11,8 +11,7 @@ import { PageHeader, GlassCard, ErrorScreen, SkeletonCardList } from "@/componen
 import { cn } from "@/lib/utils";
 
 const ICONS = {
-  google_calendar: Calendar,
-  gmail: Mail,
+  google: Calendar,
   quickbooks: Building2,
   xero: Building2,
   sap_b1: Building2,
@@ -20,6 +19,15 @@ const ICONS = {
   github: Github,
   slack: MessageSquare,
 };
+
+// Google Workspace capabilities (backend google_oauth.google_capabilities keys).
+const GOOGLE_CAPABILITY_LABELS = [
+  ["calendar_write", "Calendar"],
+  ["gmail", "Gmail threads"],
+  ["gmail_compose", "Gmail drafts"],
+  ["sheets", "Sheets export"],
+  ["drive_file", "Drive import"],
+];
 
 const STATUS_LABELS = {
   connected: { text: "Connected", className: "text-helm-fg bg-helm-status-positive/12" },
@@ -63,7 +71,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
   const isCredentials = it.kind === "credentials";
   const syncBusy = syncingProvider === it.provider;
   const isGoogle = it.provider === "google";
-  // Google Calendar/Gmail is per-user — any teammate can connect their own account.
+  // Google Workspace is per-user — any teammate can connect their own account.
   const canAct = isGoogle ? Boolean(canConnectGoogle ?? true) : canManage;
 
   const handleConnect = () => {
@@ -97,6 +105,29 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
           {it.provider === "sap_b1" ? "Company DB" : "Organisation"}:{" "}
           <span className="text-helm-fg">{it.tenant_name}</span>
         </p>
+      )}
+
+      {isGoogle && it.connected && it.capabilities && (
+        <ul className="mt-3 flex flex-wrap gap-1.5" data-testid={`${it.id}-capabilities`}>
+          {GOOGLE_CAPABILITY_LABELS.map(([key, label]) => {
+            const on = Boolean(it.capabilities[key]);
+            return (
+              <li
+                key={key}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] border",
+                  on
+                    ? "border-helm-status-positive/30 text-helm-fg bg-helm-status-positive/10"
+                    : "border-helm-line text-helm-muted",
+                )}
+              >
+                {on && <Check className="w-3 h-3" />}
+                {label}
+                {!on && <span className="sr-only"> (not enabled)</span>}
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {isUnavailable && (
@@ -168,7 +199,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
         </button>
       )}
 
-      {!isComingSoon && !(it.id === "gmail" && it.connected) && (
+      {!isComingSoon && (
         <button
           data-testid={`action-${it.id}`}
           onClick={handleConnect}
@@ -216,7 +247,7 @@ export default function Integrations() {
     if (params.get("connected")) {
       const connected = params.get("connected");
       const name = connected === "google"
-        ? "Google (Calendar & Gmail)"
+        ? "Google Workspace"
         : connected === "quickbooks"
           ? "QuickBooks"
           : connected === "xero"

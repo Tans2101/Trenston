@@ -8,36 +8,32 @@ from __future__ import annotations
 from typing import Any
 
 import credential_crypto as cred_crypto
+import google_oauth
+
+# One Google grant powers every Google feature; a missing fragment means reconsent.
+GOOGLE_REQUIRED_SCOPE_FRAGMENTS = (
+    "calendar.events",
+    "gmail.readonly",
+    "gmail.compose",
+    "spreadsheets",
+    "drive.file",
+)
 
 # kind: oauth | credentials | coming_soon
 USER_INTEGRATIONS: list[dict[str, Any]] = [
     {
-        "id": "google_calendar",
-        "name": "Google Calendar",
-        "category": "Calendar",
+        "id": "google",
+        "name": "Google Workspace",
+        "category": "Calendar & Email",
         "provider": "google",
         "kind": "oauth",
         "oauth": True,
         "pro": True,
-        "description": "Sync your Google Calendar meetings into Trenston Calendar and your briefing. Connecting also enables your Gmail threads, Sheets export, calendar write, Gmail drafts, and Drive bill import.",
-        "value": "See today's schedule, prep time, and deadlines in one place, with no tab switching.",
-        "cta_route": "/app/calendar",
-        "cta_label": "Open calendar",
-        "connect_label": "Connect your Google",
-    },
-    {
-        "id": "gmail",
-        "name": "Gmail",
-        "category": "Email",
-        "provider": "google",
-        "kind": "oauth",
-        "oauth": True,
-        "pro": True,
-        "description": "Surface important threads from your Gmail in your briefing, and draft replies without Trenston sending mail as you. Same Google connect as Calendar — personal to you.",
-        "value": "Stay on top of customer and investor email without living in your inbox.",
+        "description": "Connect your Google account once to bring your Calendar, important Gmail threads, Gmail draft replies, Sheets export and Drive bill import into Trenston. Personal to you — teammates never see your Google data.",
+        "value": "Your schedule and important email in your morning briefing, with no tab switching.",
         "cta_route": "/app",
         "cta_label": "Open briefing",
-        "connect_label": "Connect your Gmail",
+        "connect_label": "Connect Google",
     },
     {
         "id": "quickbooks",
@@ -138,7 +134,7 @@ def merge_integrations(
 ) -> list[dict]:
     """Build user integration cards with live connection status.
 
-    Google Calendar/Gmail status comes from ``user_google_tokens`` (the calling
+    Google Workspace (Calendar + Gmail + Sheets + Drive) status comes from ``user_google_tokens`` (the calling
     user's sealed or plaintext blob), not from the workspace document. Company
     ledgers (QuickBooks, Xero, HubSpot, SAP) remain workspace-scoped.
     """
@@ -171,7 +167,6 @@ def merge_integrations(
         except cred_crypto.CredentialCryptoError:
             google_tokens = None
     google_scope = _token_scope(google_tokens)
-    gmail_connected = bool(google_tokens and "gmail.readonly" in google_scope)
 
     oauth_configured = {
         "google": google_configured,
@@ -189,20 +184,15 @@ def merge_integrations(
         if kind == "oauth":
             provider = item.get("provider")
             item["configured"] = oauth_configured.get(provider, False)
-            if item.get("id") == "gmail":
-                item["connected"] = gmail_connected
-                if google_connected and not gmail_connected:
-                    item["connect_label"] = "Enable Gmail"
-                    item["needs_reconsent"] = True
-                elif gmail_connected and "gmail.compose" not in google_scope:
-                    item["needs_reconsent"] = True
-                    item["connect_label"] = "Enable drafts"
-            elif provider == "google":
+            if provider == "google":
                 item["connected"] = google_connected
-                write_missing = [s for s in ("calendar.events", "spreadsheets", "drive.file") if s not in google_scope]
-                if google_connected and write_missing:
+                missing = [frag for frag in GOOGLE_REQUIRED_SCOPE_FRAGMENTS if frag not in google_scope]
+                if google_connected and missing:
                     item["needs_reconsent"] = True
                     item["connect_label"] = "Reconnect Google"
+                item["capabilities"] = google_oauth.google_capabilities(
+                    {"scope": google_scope} if google_tokens else None,
+                )
             elif provider == "quickbooks":
                 item["connected"] = qb_connected
                 item["last_synced_at"] = qb_last_synced
