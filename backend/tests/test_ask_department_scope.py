@@ -17,7 +17,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import departments_catalog as dept_catalog  # noqa: E402
-import server  # noqa: E402
+import server
+from tests.mongo_mocks import FakeCollection  # noqa: E402
 from server import ask_context_for_synthesis  # noqa: E402
 
 
@@ -249,6 +250,7 @@ async def test_ask_helm_scopes_each_department_by_membership():
     ws = _company()
     mock_db = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
+    mock_db.chat_messages.find = FakeCollection().find
 
     deals_find, _ = _mock_coll([
         {"id": "d1", "stage": "negotiation", "value": 12000, "department_id": "dept_sales"},
@@ -266,7 +268,7 @@ async def test_ask_helm_scopes_each_department_by_membership():
 
     captured = {}
 
-    async def _capture_stream(system, message, **kwargs):
+    async def _capture_stream(system, message=None, **kwargs):
         captured["system"] = _system_text(system)
         captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ok"
@@ -332,9 +334,10 @@ async def test_ask_helm_member_of_production_gets_production_counts():
     ws = _company()
     mock_db = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
+    mock_db.chat_messages.find = FakeCollection().find
     captured = {}
 
-    async def _capture_stream(system, message, **kwargs):
+    async def _capture_stream(system, message=None, **kwargs):
         captured["system"] = _system_text(system)
         captured["max_tokens"] = kwargs.get("max_tokens")
         yield "prod-ok"
@@ -389,6 +392,7 @@ async def test_ask_helm_ceo_sees_all_department_slices_unfiltered():
     ws = _company()
     mock_db = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
+    mock_db.chat_messages.find = FakeCollection().find
 
     slice_calls = []
 
@@ -410,7 +414,7 @@ async def test_ask_helm_ceo_sees_all_department_slices_unfiltered():
 
     captured = {}
 
-    async def _capture_stream(system, message, **kwargs):
+    async def _capture_stream(system, message=None, **kwargs):
         captured["system"] = _system_text(system)
         captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ceo-ok"
@@ -552,6 +556,7 @@ async def test_ask_helm_calls_membership_slice_for_every_non_finance_dept():
     ws = _company()
     mock_db = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
+    mock_db.chat_messages.find = FakeCollection().find
     called = []
     access_mock = AsyncMock(return_value=_access_by_type())
     enabled_mock = AsyncMock(return_value=_enabled_by_type())
@@ -562,7 +567,7 @@ async def test_ask_helm_calls_membership_slice_for_every_non_finance_dept():
 
     captured = {}
 
-    async def _capture_stream(system, message, **kwargs):
+    async def _capture_stream(system, message=None, **kwargs):
         captured["system"] = _system_text(system)
         captured["max_tokens"] = kwargs.get("max_tokens")
         yield "ok"

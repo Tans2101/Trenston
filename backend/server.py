@@ -13268,6 +13268,54 @@ class AskInput(BaseModel):
     message: str
 
 
+ASK_HISTORY_TURNS = 10
+ASK_HISTORY_MAX_CHARS = 12_000
+
+
+def build_ask_messages(history: list[dict], current: str) -> list[dict]:
+    """Chronological chat_messages docs + the new question -> Anthropic messages.
+
+    Merges consecutive same-role turns, starts on a user turn, keeps the newest
+    history within ASK_HISTORY_MAX_CHARS, and ends with ``current`` as the user turn.
+    """
+    turns: list[dict] = []
+    for doc in history:
+        role = doc.get("role")
+        text = str(doc.get("content") or "").strip()
+        if role not in ("user", "assistant") or not text:
+            continue
+        if turns and turns[-1]["role"] == role:
+            turns[-1]["content"] += "\n\n" + text
+        else:
+            turns.append({"role": role, "content": text})
+
+    def _trim(ts: list[dict]) -> list[dict]:
+        while ts and ts[0]["role"] != "user":
+            ts = ts[1:]
+        return ts
+
+    turns = _trim(turns)
+    while turns and sum(len(t["content"]) for t in turns) > ASK_HISTORY_MAX_CHARS:
+        turns = _trim(turns[1:])
+
+    current = (current or "").strip()
+    if turns and turns[-1]["role"] == "user":
+        turns[-1]["content"] += "\n\n" + current
+    else:
+        turns.append({"role": "user", "content": current})
+    return turns
+
+
+async def _ask_history(workspace_id: str, user_id: str) -> list[dict]:
+    """Last ASK_HISTORY_TURNS chat messages (oldest first), excluding error replies."""
+    rows = await db.chat_messages.find(
+        {"workspace_id": workspace_id, "user_id": user_id, "is_error": {"$ne": True}},
+        {"_id": 0, "role": 1, "content": 1, "created_at": 1},
+    ).sort("created_at", -1).limit(ASK_HISTORY_TURNS).to_list(ASK_HISTORY_TURNS)
+    rows.reverse()
+    return rows
+
+
 @api_router.get("/ask/history")
 async def ask_history(principal=Depends(get_principal)):
     msgs = await db.chat_messages.find({"workspace_id": principal["workspace_id"], "user_id": principal["user_id"]}, {"_id": 0}).sort("created_at", 1).to_list(200)
@@ -13283,6 +13331,8 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
     period = plan_usage.current_usage_period(c)
     # Enforce after we know the message will consume a real model turn (see below).
     now = datetime.now(timezone.utc)
+    # Load prior turns before storing this question so it is not duplicated.
+    prior_turns = await _ask_history(c["workspace_id"], principal["user_id"])
     await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "user", "content": payload.message, "created_at": now.isoformat(), "day": tz_utils.workspace_today_iso(c)})
     has_fin_access = await can_access_financials(principal)
 
@@ -13438,7 +13488,9 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
         collected = ""
         try:
             async for chunk in helm_llm.stream_text(
-                system, payload.message, max_tokens=ASK_TRENSTON_MAX_TOKENS,
+                system,
+                messages=build_ask_messages(prior_turns, payload.message),
+                max_tokens=ASK_TRENSTON_MAX_TOKENS,
             ):
                 collected += chunk
                 yield chunk

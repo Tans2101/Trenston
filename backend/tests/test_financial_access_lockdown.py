@@ -16,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import server  # noqa: E402
+import server
+from tests.mongo_mocks import FakeCollection  # noqa: E402
 from server import (  # noqa: E402
     FINANCIALS_ACCESS_DENIED_MESSAGE,
     ask_context_for_synthesis,
@@ -138,6 +139,7 @@ async def test_ask_helm_finance_deny_streams_without_model():
     }
     mock_db = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock(return_value=None)
+    mock_db.chat_messages.find = FakeCollection().find
 
     async def _never_stream(*_a, **_k):
         raise AssertionError("model must not be called")

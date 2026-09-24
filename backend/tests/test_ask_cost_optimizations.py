@@ -12,6 +12,7 @@ os.environ.setdefault("DB_NAME", "test_ask_cost")
 os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
 
 import server
+from tests.mongo_mocks import FakeCollection
 
 
 def _period():
@@ -43,7 +44,7 @@ async def test_ask_helm_uses_compact_json_cached_system_and_capped_tokens():
     }
     captured = {}
 
-    async def _capture(system, message, **kwargs):
+    async def _capture(system, message=None, **kwargs):
         captured["system"] = system
         captured["message"] = message
         captured["max_tokens"] = kwargs.get("max_tokens")
@@ -52,6 +53,7 @@ async def test_ask_helm_uses_compact_json_cached_system_and_capped_tokens():
     mock_db = MagicMock()
     mock_db.chat_messages = MagicMock()
     mock_db.chat_messages.insert_one = AsyncMock()
+    mock_db.chat_messages.find = FakeCollection().find
 
     with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
             patch.object(server, "can_access_financials", new=AsyncMock(return_value=True)), \

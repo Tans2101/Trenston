@@ -77,20 +77,27 @@ async def complete(system: SystemPrompt, user: str, *, max_tokens: int = 1200, m
 
 async def stream_text(
     system: SystemPrompt,
-    user: str,
+    user: Optional[str] = None,
     *,
+    messages: Optional[list[dict]] = None,
     max_tokens: int = 1600,
 ) -> AsyncIterator[str]:
     """Stream a completion. ``system`` may be a plain string or a list of
-    Anthropic system content blocks (for prompt caching). Other callers that
-    pass a string are unchanged.
+    Anthropic system content blocks (for prompt caching).
+
+    Pass ``messages`` (alternating user/assistant, ending with user) for a
+    multi-turn conversation; ``user`` alone keeps the single-turn behaviour.
     """
+    if messages is None:
+        if user is None:
+            raise ValueError("stream_text needs user or messages")
+        messages = [{"role": "user", "content": user}]
     client = get_client()
     async with client.messages.stream(
         model=ANTHROPIC_MODEL,
         max_tokens=max_tokens,
         system=system,
-        messages=[{"role": "user", "content": user}],
+        messages=messages,
     ) as stream:
         async for text in stream.text_stream:
             if text:
