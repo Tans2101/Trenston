@@ -96,3 +96,5 @@ graphify-out/cost.json
 graphify-out/cache/
 graphify-out/.graphify_labels.json
 graphify-out/.graphify_labels.json.sig
+# Dated local snapshots graphify writes on some runs (e.g. graphify-out/2026-09-24/)
+graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/

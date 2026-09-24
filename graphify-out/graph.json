@@ -2820,7 +2820,7 @@
       "file_type": "code",
       "norm_label": "gen_join_code()",
       "source_file": "backend/seed_data.py",
-      "source_location": "L18"
+      "source_location": "L19"
     },
     {
       "id": "backend_server_activate_invites",
@@ -7104,7 +7104,7 @@
       "file_type": "code",
       "norm_label": "test_expected_delivery_date_create_and_patch()",
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L401"
+      "source_location": "L410"
     },
     {
       "id": "backend_tests_test_procurement_queue_test_independent_statuses",
@@ -7224,7 +7224,7 @@
       "file_type": "code",
       "norm_label": "test_priority_and_unified_queue_sort()",
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L471"
+      "source_location": "L480"
     },
     {
       "id": "backend_tests_test_procurement_queue_test_procurement_not_placeholder",
@@ -7248,7 +7248,7 @@
       "file_type": "code",
       "norm_label": "test_vendor_suggestions_and_price_change_flag()",
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L427"
+      "source_location": "L436"
     },
     {
       "id": "frontend_src_components_kit_delta",
@@ -8748,7 +8748,7 @@
       "file_type": "code",
       "norm_label": "test_filter_owner_user_id_me()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L233"
+      "source_location": "L238"
     },
     {
       "id": "backend_tests_test_deal_owner_test_lead_can_reassign",
@@ -8760,7 +8760,7 @@
       "file_type": "code",
       "norm_label": "test_lead_can_reassign()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L279"
+      "source_location": "L284"
     },
     {
       "id": "backend_tests_test_deal_owner_test_migrate_ambiguous_name_left_alone",
@@ -8772,7 +8772,7 @@
       "file_type": "code",
       "norm_label": "test_migrate_ambiguous_name_left_alone()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L211"
+      "source_location": "L216"
     },
     {
       "id": "backend_tests_test_deal_owner_test_migrate_confident_name_match",
@@ -8784,7 +8784,7 @@
       "file_type": "code",
       "norm_label": "test_migrate_confident_name_match()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L186"
+      "source_location": "L191"
     },
     {
       "id": "backend_tests_test_deal_owner_test_non_lead_cannot_reassign",
@@ -8796,7 +8796,7 @@
       "file_type": "code",
       "norm_label": "test_non_lead_cannot_reassign()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L253"
+      "source_location": "L258"
     },
     {
       "id": "backend_tests_test_department_decision_signals_test_dept_specs_cover_all_five_queues",
@@ -9096,7 +9096,7 @@
       "file_type": "code",
       "norm_label": "test_workspace_collections_include_document_ai_usage()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L134"
+      "source_location": "L140"
     },
     {
       "id": "backend_tests_test_procurement_settings_test_ceo_can_set_budget",
@@ -9912,7 +9912,7 @@
       "file_type": "code",
       "norm_label": "as_ceo()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L176"
+      "source_location": "L185"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_maint_api_as_lead",
@@ -9924,7 +9924,7 @@
       "file_type": "code",
       "norm_label": "as_lead()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L185"
+      "source_location": "L194"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_maint_api_as_member",
@@ -9936,7 +9936,7 @@
       "file_type": "code",
       "norm_label": "as_member()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L179"
+      "source_location": "L188"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_maint_api_as_outsider",
@@ -9948,7 +9948,7 @@
       "file_type": "code",
       "norm_label": "as_outsider()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L188"
+      "source_location": "L197"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_maint_api_as_tech",
@@ -9960,7 +9960,7 @@
       "file_type": "code",
       "norm_label": "as_tech()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L182"
+      "source_location": "L191"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_maint_api_member_find_one",
@@ -11436,7 +11436,7 @@
       "file_type": "code",
       "norm_label": "as_ceo()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L278"
+      "source_location": "L281"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_fold_api_as_member",
@@ -11448,7 +11448,7 @@
       "file_type": "code",
       "norm_label": "as_member()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L281"
+      "source_location": "L284"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_fold_api_as_outsider",
@@ -11460,7 +11460,7 @@
       "file_type": "code",
       "norm_label": "as_outsider()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L284"
+      "source_location": "L287"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_apply_department_filter",
@@ -11484,7 +11484,7 @@
       "file_type": "code",
       "norm_label": "test_ceo_sees_all_deals_and_finance()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L296"
+      "source_location": "L299"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_create_deal_auto_department_id_unit",
@@ -11496,7 +11496,7 @@
       "file_type": "code",
       "norm_label": "test_create_deal_auto_department_id_unit()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L345"
+      "source_location": "L348"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_create_deal_sets_sales_department_id",
@@ -11508,7 +11508,7 @@
       "file_type": "code",
       "norm_label": "test_create_deal_sets_sales_department_id()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L337"
+      "source_location": "L340"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_ensure_enabled_department_handles_insert_race",
@@ -11520,7 +11520,7 @@
       "file_type": "code",
       "norm_label": "test_ensure_enabled_department_handles_insert_race()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L360"
+      "source_location": "L363"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_ensure_enabled_department_handles_insert_race_find_one",
@@ -11532,7 +11532,7 @@
       "file_type": "code",
       "norm_label": "find_one()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L374"
+      "source_location": "L377"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_ensure_enabled_department_handles_insert_race_insert_one",
@@ -11544,7 +11544,7 @@
       "file_type": "code",
       "norm_label": "insert_one()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L380"
+      "source_location": "L383"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_ensure_enabled_department_handles_insert_race_update_one",
@@ -11556,7 +11556,7 @@
       "file_type": "code",
       "norm_label": "update_one()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L384"
+      "source_location": "L387"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_member_sees_only_enrolled_department_records",
@@ -11568,7 +11568,7 @@
       "file_type": "code",
       "norm_label": "test_member_sees_only_enrolled_department_records()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L309"
+      "source_location": "L312"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_member_without_dept_membership_sees_nothing",
@@ -11580,7 +11580,7 @@
       "file_type": "code",
       "norm_label": "test_member_without_dept_membership_sees_nothing()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L323"
+      "source_location": "L326"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_test_migration_idempotent_creates_enrolls_backfills",
@@ -11604,7 +11604,7 @@
       "file_type": "code",
       "norm_label": "test_placeholder_types_exclude_sales_finance()",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L397"
+      "source_location": "L400"
     },
     {
       "id": "backend_tests_test_sales_finance_fold_updateresult_init",
@@ -13392,7 +13392,7 @@
       "file_type": "code",
       "norm_label": "test_blocking_production_orders_enrichment_and_sort()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L283"
+      "source_location": "L292"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_create_sets_reported_by_unassigned",
@@ -13404,7 +13404,7 @@
       "file_type": "code",
       "norm_label": "test_create_sets_reported_by_unassigned()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L210"
+      "source_location": "L219"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_delete_lead_only",
@@ -13416,7 +13416,7 @@
       "file_type": "code",
       "norm_label": "test_delete_lead_only()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L370"
+      "source_location": "L379"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_equipment_history_and_chronic_badge_on_list",
@@ -13428,7 +13428,7 @@
       "file_type": "code",
       "norm_label": "test_equipment_history_and_chronic_badge_on_list()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L392"
+      "source_location": "L401"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_filter_status_priority",
@@ -13440,7 +13440,7 @@
       "file_type": "code",
       "norm_label": "test_filter_status_priority()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L347"
+      "source_location": "L356"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_independent_tickets",
@@ -13452,7 +13452,7 @@
       "file_type": "code",
       "norm_label": "test_independent_tickets()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L358"
+      "source_location": "L367"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_lead_assigns_then_tech_updates",
@@ -13464,7 +13464,7 @@
       "file_type": "code",
       "norm_label": "test_lead_assigns_then_tech_updates()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L236"
+      "source_location": "L245"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_lead_can_assign_on_create",
@@ -13476,7 +13476,7 @@
       "file_type": "code",
       "norm_label": "test_lead_can_assign_on_create()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L380"
+      "source_location": "L389"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_maint_not_placeholder",
@@ -13488,7 +13488,7 @@
       "file_type": "code",
       "norm_label": "test_maint_not_placeholder()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L199"
+      "source_location": "L208"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_member_cannot_assign",
@@ -13500,7 +13500,7 @@
       "file_type": "code",
       "norm_label": "test_member_cannot_assign()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L228"
+      "source_location": "L237"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_non_assignee_cannot_update",
@@ -13512,7 +13512,7 @@
       "file_type": "code",
       "norm_label": "test_non_assignee_cannot_update()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L255"
+      "source_location": "L264"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_outsider_403",
@@ -13524,7 +13524,7 @@
       "file_type": "code",
       "norm_label": "test_outsider_403()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L203"
+      "source_location": "L212"
     },
     {
       "id": "backend_tests_test_maintenance_tickets_test_sort_open_high_first",
@@ -13536,7 +13536,7 @@
       "file_type": "code",
       "norm_label": "test_sort_open_high_first()",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L264"
+      "source_location": "L273"
     },
     {
       "id": "frontend_src_components_charts_chart_loading_label_chartloadinglabel",
@@ -17952,7 +17952,7 @@
       "file_type": "code",
       "norm_label": "_company()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L44"
+      "source_location": "L46"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_company_patch_rejects_unknown_currency",
@@ -17964,7 +17964,7 @@
       "file_type": "code",
       "norm_label": "test_company_patch_rejects_unknown_currency()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L73"
+      "source_location": "L75"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_company_patch_sets_currency",
@@ -17976,7 +17976,7 @@
       "file_type": "code",
       "norm_label": "test_company_patch_sets_currency()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L63"
+      "source_location": "L65"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_company_payload_includes_currency",
@@ -17988,7 +17988,7 @@
       "file_type": "code",
       "norm_label": "test_company_payload_includes_currency()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L49"
+      "source_location": "L51"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_company_payload_legacy_workspace_is_usd",
@@ -18000,7 +18000,7 @@
       "file_type": "code",
       "norm_label": "test_company_payload_legacy_workspace_is_usd()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L56"
+      "source_location": "L58"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_currency_fields_helper",
@@ -18012,7 +18012,7 @@
       "file_type": "code",
       "norm_label": "test_currency_fields_helper()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L79"
+      "source_location": "L81"
     },
     {
       "id": "backend_tests_test_workspace_currency_test_legacy_default_currency_unchanged",
@@ -18024,7 +18024,7 @@
       "file_type": "code",
       "norm_label": "test_legacy_default_currency_unchanged()",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L39"
+      "source_location": "L41"
     },
     {
       "id": "backend_tests_test_deal_created_by_client_and_store",
@@ -22284,7 +22284,7 @@
       "file_type": "code",
       "norm_label": "as_principal()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L169"
+      "source_location": "L174"
     },
     {
       "id": "backend_tests_test_deal_owner_owner_api_member_find_one",
@@ -22296,7 +22296,7 @@
       "file_type": "code",
       "norm_label": "member_find_one()",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L143"
+      "source_location": "L148"
     },
     {
       "id": "backend_tests_test_deal_owner_users_find_factory",
@@ -22404,7 +22404,7 @@
       "file_type": "code",
       "norm_label": "test_export_workspace_package_strips_tokens_and_includes_collections()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L89"
+      "source_location": "L95"
     },
     {
       "id": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_find",
@@ -22416,7 +22416,7 @@
       "file_type": "code",
       "norm_label": "find()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L101"
+      "source_location": "L107"
     },
     {
       "id": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_getitem",
@@ -22428,7 +22428,7 @@
       "file_type": "code",
       "norm_label": "getitem()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L119"
+      "source_location": "L125"
     },
     {
       "id": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_init",
@@ -22440,7 +22440,7 @@
       "file_type": "code",
       "norm_label": "__init__()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L91"
+      "source_location": "L97"
     },
     {
       "id": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_to_list",
@@ -22452,7 +22452,7 @@
       "file_type": "code",
       "norm_label": "to_list()",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L94"
+      "source_location": "L100"
     },
     {
       "id": "backend_tests_test_workspace_deletion_cursor_init",
@@ -23280,7 +23280,7 @@
       "file_type": "code",
       "norm_label": "build_workspace()",
       "source_file": "backend/seed_data.py",
-      "source_location": "L64"
+      "source_location": "L65"
     },
     {
       "id": "backend_seed_data_sample_financial_entries",
@@ -23292,7 +23292,7 @@
       "file_type": "code",
       "norm_label": "sample_financial_entries()",
       "source_file": "backend/seed_data.py",
-      "source_location": "L35"
+      "source_location": "L36"
     },
     {
       "id": "backend_server_apply_template",
@@ -23523,14 +23523,14 @@
       "source_location": "L69"
     },
     {
-      "id": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_php",
-      "label": "test_new_workspace_defaults_to_php()",
+      "id": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_usd",
+      "label": "test_new_workspace_defaults_to_usd()",
       "_callable": true,
       "_origin": "ast",
       "community": 24,
       "community_name": "build_workspace",
       "file_type": "code",
-      "norm_label": "test_new_workspace_defaults_to_php()",
+      "norm_label": "test_new_workspace_defaults_to_usd()",
       "source_file": "backend/tests/test_workspace_currency.py",
       "source_location": "L27"
     },
@@ -28236,7 +28236,7 @@
       "file_type": "code",
       "norm_label": "last_n_months()",
       "source_file": "backend/seed_data.py",
-      "source_location": "L22"
+      "source_location": "L23"
     },
     {
       "id": "backend_tests_test_company_setup_test_company_stages_have_no_funding_rounds",
@@ -29772,7 +29772,7 @@
       "file_type": "code",
       "norm_label": ".__getitem__()",
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L55"
+      "source_location": "L56"
     },
     {
       "id": "backend_tests_test_workspace_deletion_fakedb_init",
@@ -29796,7 +29796,7 @@
       "file_type": "code",
       "norm_label": "test_delete_workspace_purges_r2_and_workspace_collections()",
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "backend_tests_test_calendar_gmail_hardening_test_gmail_draft_401_refreshes_once",
@@ -41736,7 +41736,7 @@
       "file_type": "code",
       "norm_label": "test_cleanup_deletes_old_uncommitted_documents()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L314"
+      "source_location": "L320"
     },
     {
       "id": "backend_tests_test_documents_test_cleanup_deletes_old_uncommitted_documents_delete_one",
@@ -41748,7 +41748,7 @@
       "file_type": "code",
       "norm_label": "delete_one()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L342"
+      "source_location": "L348"
     },
     {
       "id": "backend_tests_test_documents_test_cleanup_deletes_old_uncommitted_documents_find_to_list",
@@ -41760,7 +41760,7 @@
       "file_type": "code",
       "norm_label": "find_to_list()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L333"
+      "source_location": "L339"
     },
     {
       "id": "backend_tests_test_documents_test_cleanup_skips_committed_documents",
@@ -41772,7 +41772,7 @@
       "file_type": "code",
       "norm_label": "test_cleanup_skips_committed_documents()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L366"
+      "source_location": "L372"
     },
     {
       "id": "backend_tests_test_documents_test_extract_not_financial_returns_error_json",
@@ -41784,7 +41784,7 @@
       "file_type": "code",
       "norm_label": "test_extract_not_financial_returns_error_json()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L114"
+      "source_location": "L120"
     },
     {
       "id": "backend_tests_test_documents_test_extract_returns_cached_result_without_second_claude_call",
@@ -41796,7 +41796,7 @@
       "file_type": "code",
       "norm_label": "test_extract_returns_cached_result_without_second_claude_call()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L222"
+      "source_location": "L228"
     },
     {
       "id": "backend_tests_test_documents_test_extract_returns_cached_result_without_second_claude_call_update_one",
@@ -41808,7 +41808,7 @@
       "file_type": "code",
       "norm_label": "update_one()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L242"
+      "source_location": "L248"
     },
     {
       "id": "backend_tests_test_documents_test_extract_skips_document_ai_when_daily_cap_hit",
@@ -41820,7 +41820,7 @@
       "file_type": "code",
       "norm_label": "test_extract_skips_document_ai_when_daily_cap_hit()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L462"
+      "source_location": "L471"
     },
     {
       "id": "backend_tests_test_documents_test_extract_unparseable_amount_returns_error_json",
@@ -41832,7 +41832,7 @@
       "file_type": "code",
       "norm_label": "test_extract_unparseable_amount_returns_error_json()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L199"
+      "source_location": "L205"
     },
     {
       "id": "backend_tests_test_documents_test_financial_entry_commits_its_source_document",
@@ -41844,7 +41844,7 @@
       "file_type": "code",
       "norm_label": "test_financial_entry_commits_its_source_document()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L398"
+      "source_location": "L404"
     },
     {
       "id": "backend_tests_test_documents_test_free_lifetime_extract_quota_asks_to_upgrade",
@@ -41856,7 +41856,7 @@
       "file_type": "code",
       "norm_label": "test_free_lifetime_extract_quota_asks_to_upgrade()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L437"
+      "source_location": "L443"
     },
     {
       "id": "backend_tests_test_documents_test_rate_limit_scoped_per_workspace",
@@ -41868,7 +41868,7 @@
       "file_type": "code",
       "norm_label": "test_rate_limit_scoped_per_workspace()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L282"
+      "source_location": "L288"
     },
     {
       "id": "backend_tests_test_documents_test_rate_limit_scoped_per_workspace_count_documents",
@@ -41880,7 +41880,7 @@
       "file_type": "code",
       "norm_label": "count_documents()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L289"
+      "source_location": "L295"
     },
     {
       "id": "backend_tests_test_documents_test_rate_limit_scoped_per_workspace_insert_one",
@@ -41892,7 +41892,7 @@
       "file_type": "code",
       "norm_label": "insert_one()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L295"
+      "source_location": "L301"
     },
     {
       "id": "backend_tests_test_documents_test_rate_limit_scoped_per_workspace_run",
@@ -41904,7 +41904,7 @@
       "file_type": "code",
       "norm_label": "run()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L305"
+      "source_location": "L311"
     },
     {
       "id": "backend_tests_test_documents_test_upload_oversized_rejected",
@@ -41916,7 +41916,7 @@
       "file_type": "code",
       "norm_label": "test_upload_oversized_rejected()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L96"
+      "source_location": "L102"
     },
     {
       "id": "backend_tests_test_documents_test_upload_rate_limit_returns_429",
@@ -41928,7 +41928,7 @@
       "file_type": "code",
       "norm_label": "test_upload_rate_limit_returns_429()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L267"
+      "source_location": "L273"
     },
     {
       "id": "backend_tests_test_documents_test_upload_valid_pdf",
@@ -41940,7 +41940,7 @@
       "file_type": "code",
       "norm_label": "test_upload_valid_pdf()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L85"
+      "source_location": "L91"
     },
     {
       "id": "backend_tests_test_documents_test_upload_wrong_content_type_rejected",
@@ -41952,7 +41952,7 @@
       "file_type": "code",
       "norm_label": "test_upload_wrong_content_type_rejected()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L105"
+      "source_location": "L111"
     },
     {
       "id": "backend_tests_test_documents_test_validate_currency_formatted_amount",
@@ -41964,7 +41964,7 @@
       "file_type": "code",
       "norm_label": "test_validate_currency_formatted_amount()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L136"
+      "source_location": "L142"
     },
     {
       "id": "backend_tests_test_documents_test_validate_garbage_amount_returns_unparseable_error",
@@ -41976,7 +41976,7 @@
       "file_type": "code",
       "norm_label": "test_validate_garbage_amount_returns_unparseable_error()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L186"
+      "source_location": "L192"
     },
     {
       "id": "backend_tests_test_documents_test_validate_invalid_type_coerces_to_expense_with_low_confidence",
@@ -41988,7 +41988,7 @@
       "file_type": "code",
       "norm_label": "test_validate_invalid_type_coerces_to_expense_with_low_confidence()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L154"
+      "source_location": "L160"
     },
     {
       "id": "backend_tests_test_documents_test_validate_prefers_extracted_name_over_vendor",
@@ -42000,7 +42000,7 @@
       "file_type": "code",
       "norm_label": "test_validate_prefers_extracted_name_over_vendor()",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L169"
+      "source_location": "L175"
     },
     {
       "id": "frontend_src_components_charts_chart_child_passthrough_foreachchartchild",
@@ -54980,7 +54980,7 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_tests_test_sales_finance_fold_rationale_346",
+      "id": "backend_tests_test_sales_finance_fold_rationale_349",
       "label": "Unit-level: sales_department_id helper returns Sales dept id.",
       "_origin": "ast",
       "community": 132,
@@ -54988,10 +54988,10 @@
       "file_type": "rationale",
       "norm_label": "unit-level: sales_department_id helper returns sales dept id.",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L346"
+      "source_location": "L349"
     },
     {
-      "id": "backend_tests_test_sales_finance_fold_rationale_361",
+      "id": "backend_tests_test_sales_finance_fold_rationale_364",
       "label": "Concurrent first-enable must not 500 on unique (workspace_id, type).",
       "_origin": "ast",
       "community": 132,
@@ -54999,7 +54999,7 @@
       "file_type": "rationale",
       "norm_label": "concurrent first-enable must not 500 on unique (workspace_id, type).",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L361"
+      "source_location": "L364"
     },
     {
       "id": "backend_tests_test_sales_order_book_py_fixture",
@@ -56141,7 +56141,7 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_tests_test_maintenance_tickets_rationale_284",
+      "id": "backend_tests_test_maintenance_tickets_rationale_293",
       "label": "Tickets linked to blocked work orders float to the top with badges.",
       "_origin": "ast",
       "community": 141,
@@ -56149,7 +56149,7 @@
       "file_type": "rationale",
       "norm_label": "tickets linked to blocked work orders float to the top with badges.",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L284"
+      "source_location": "L293"
     },
     {
       "id": "frontend_src_components_charts_chart_loading_label",
@@ -60246,12 +60246,12 @@
     },
     {
       "id": "backend_tests_test_workspace_currency_rationale_1",
-      "label": "T8: PHP default for new workspaces; currency on /company and page payloads.",
+      "label": "T8: USD default for new workspaces; currency on /company and page payloads.",
       "_origin": "ast",
       "community": 174,
       "community_name": "test_tz_utils.py",
       "file_type": "rationale",
-      "norm_label": "t8: php default for new workspaces; currency on /company and page payloads.",
+      "norm_label": "t8: usd default for new workspaces; currency on /company and page payloads.",
       "source_file": "backend/tests/test_workspace_currency.py",
       "source_location": "L1"
     },
@@ -68682,7 +68682,7 @@
       "source_location": ""
     },
     {
-      "id": "backend_seed_data_rationale_36",
+      "id": "backend_seed_data_rationale_37",
       "label": "6 months of recurring revenue + categorized expenses (in USD).",
       "_origin": "ast",
       "community": 24,
@@ -68690,7 +68690,7 @@
       "file_type": "rationale",
       "norm_label": "6 months of recurring revenue + categorized expenses (in usd).",
       "source_file": "backend/seed_data.py",
-      "source_location": "L36"
+      "source_location": "L37"
     },
     {
       "id": "backend_server_rationale_3552",
@@ -107367,6 +107367,18 @@
       "type": "external"
     },
     {
+      "id": "email_header",
+      "label": "email_header",
+      "_origin": "semantic",
+      "community": 207,
+      "community_name": "test_gmail_draft_headers.py",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "email_header",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "ref_http_proxy_middleware",
       "label": "ref_http_proxy_middleware",
       "_origin": "semantic",
@@ -107543,6 +107555,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "email",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "zoneinfo",
+      "label": "zoneinfo",
+      "_origin": "semantic",
+      "community": 39,
+      "community_name": "test_calendar_gmail_hardening.py",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "zoneinfo",
       "source_file": "",
       "type": "external"
     },
@@ -107867,28 +107891,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "openpyxl",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "email_header",
-      "label": "email_header",
-      "community": 207,
-      "community_name": "test_gmail_draft_headers.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "email_header",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "zoneinfo",
-      "label": "zoneinfo",
-      "community": 39,
-      "community_name": "test_calendar_gmail_hardening.py",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "zoneinfo",
       "source_file": "",
       "type": "external"
     }
@@ -117371,7 +117373,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/seed_data.py",
-      "source_location": "L185",
+      "source_location": "L186",
       "weight": 1.0
     },
     {
@@ -117383,7 +117385,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/seed_data.py",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -139583,7 +139585,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L106",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -139595,7 +139597,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L154",
+      "source_location": "L159",
       "weight": 1.0
     },
     {
@@ -141359,7 +141361,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L409",
+      "source_location": "L415",
       "weight": 1.0
     },
     {
@@ -141371,7 +141373,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L425",
+      "source_location": "L431",
       "weight": 1.0
     },
     {
@@ -146447,7 +146449,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L125",
+      "source_location": "L131",
       "weight": 1.0
     },
     {
@@ -148871,7 +148873,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L347",
+      "source_location": "L350",
       "weight": 1.0
     },
     {
@@ -148883,7 +148885,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L356",
+      "source_location": "L359",
       "weight": 1.0
     },
     {
@@ -148895,7 +148897,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L389",
+      "source_location": "L392",
       "weight": 1.0
     },
     {
@@ -148907,7 +148909,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L394",
+      "source_location": "L397",
       "weight": 1.0
     },
     {
@@ -151619,7 +151621,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L46",
+      "source_location": "L48",
       "weight": 1.0
     },
     {
@@ -151631,7 +151633,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L75",
+      "source_location": "L77",
       "weight": 1.0
     },
     {
@@ -151643,7 +151645,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L75",
+      "source_location": "L77",
       "weight": 1.0
     },
     {
@@ -151655,7 +151657,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L67",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -151667,7 +151669,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L67",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -151679,7 +151681,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L50",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -151691,24 +151693,12 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L51",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
       "source": "backend_tests_test_workspace_currency_test_company_payload_legacy_workspace_is_usd",
       "target": "backend_seed_data_build_workspace",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L57",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_tests_test_workspace_currency_test_company_payload_legacy_workspace_is_usd",
-      "target": "backend_tests_test_workspace_currency_company",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -151716,6 +151706,18 @@
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
       "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_tests_test_workspace_currency_test_company_payload_legacy_workspace_is_usd",
+      "target": "backend_tests_test_workspace_currency_company",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/tests/test_workspace_currency.py",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -151727,7 +151729,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L83",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -151739,11 +151741,11 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L41",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_php",
+      "source": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_usd",
       "target": "backend_seed_data_build_workspace",
       "relation": "calls",
       "_origin": "ast",
@@ -151799,7 +151801,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -151811,7 +151813,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L67",
+      "source_location": "L68",
       "weight": 1.0
     },
     {
@@ -164207,7 +164209,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L305",
+      "source_location": "L311",
       "weight": 1.0
     },
     {
@@ -169031,7 +169033,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L344",
+      "source_location": "L347",
       "weight": 1.0
     },
     {
@@ -169043,7 +169045,7 @@
       "confidence_score": 1.0,
       "context": "decorator",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L359",
+      "source_location": "L362",
       "weight": 1.0
     },
     {
@@ -252805,7 +252807,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/seed_data.py",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -252816,7 +252818,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/seed_data.py",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0
     },
     {
@@ -252827,7 +252829,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/seed_data.py",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -252838,7 +252840,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/seed_data.py",
-      "source_location": "L64",
+      "source_location": "L65",
       "weight": 1.0
     },
     {
@@ -262606,7 +262608,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L186",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -262628,7 +262630,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L211",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -262639,7 +262641,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L233",
+      "source_location": "L238",
       "weight": 1.0
     },
     {
@@ -262650,7 +262652,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L253",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -262661,7 +262663,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L279",
+      "source_location": "L284",
       "weight": 1.0
     },
     {
@@ -264206,13 +264208,24 @@
     },
     {
       "source": "backend_tests_test_documents",
+      "target": "backend_tests_test_documents_test_upload_oversized_rejected",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_documents.py",
+      "source_location": "L102",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_tests_test_documents",
       "target": "backend_tests_test_documents_test_upload_wrong_content_type_rejected",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L105",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -264223,7 +264236,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L114",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -264234,7 +264247,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L136",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -264245,7 +264258,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L154",
+      "source_location": "L160",
       "weight": 1.0
     },
     {
@@ -264256,7 +264269,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L169",
+      "source_location": "L175",
       "weight": 1.0
     },
     {
@@ -264267,7 +264280,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L186",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -264278,7 +264291,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L199",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -264289,7 +264302,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L222",
+      "source_location": "L228",
       "weight": 1.0
     },
     {
@@ -264300,7 +264313,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L267",
+      "source_location": "L273",
       "weight": 1.0
     },
     {
@@ -264311,7 +264324,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L282",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -264322,7 +264335,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L314",
+      "source_location": "L320",
       "weight": 1.0
     },
     {
@@ -264344,7 +264357,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L366",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -264355,7 +264368,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L398",
+      "source_location": "L404",
       "weight": 1.0
     },
     {
@@ -264366,7 +264379,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L437",
+      "source_location": "L443",
       "weight": 1.0
     },
     {
@@ -264377,7 +264390,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L462",
+      "source_location": "L471",
       "weight": 1.0
     },
     {
@@ -264388,18 +264401,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L85",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_tests_test_documents",
-      "target": "backend_tests_test_documents_test_upload_oversized_rejected",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "backend/tests/test_documents.py",
-      "source_location": "L96",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -267853,7 +267855,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L199",
+      "source_location": "L208",
       "weight": 1.0
     },
     {
@@ -267864,7 +267866,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L203",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -267875,7 +267877,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L210",
+      "source_location": "L219",
       "weight": 1.0
     },
     {
@@ -267886,7 +267888,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L228",
+      "source_location": "L237",
       "weight": 1.0
     },
     {
@@ -267897,7 +267899,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L236",
+      "source_location": "L245",
       "weight": 1.0
     },
     {
@@ -267908,7 +267910,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L255",
+      "source_location": "L264",
       "weight": 1.0
     },
     {
@@ -267919,7 +267921,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L264",
+      "source_location": "L273",
       "weight": 1.0
     },
     {
@@ -267930,7 +267932,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L283",
+      "source_location": "L292",
       "weight": 1.0
     },
     {
@@ -267941,7 +267943,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L347",
+      "source_location": "L356",
       "weight": 1.0
     },
     {
@@ -267952,7 +267954,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L358",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -267963,7 +267965,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L370",
+      "source_location": "L379",
       "weight": 1.0
     },
     {
@@ -267974,7 +267976,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L380",
+      "source_location": "L389",
       "weight": 1.0
     },
     {
@@ -267985,7 +267987,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L392",
+      "source_location": "L401",
       "weight": 1.0
     },
     {
@@ -268007,7 +268009,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L176",
+      "source_location": "L185",
       "weight": 1.0
     },
     {
@@ -268018,7 +268020,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L182",
+      "source_location": "L191",
       "weight": 1.0
     },
     {
@@ -268029,7 +268031,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L185",
+      "source_location": "L194",
       "weight": 1.0
     },
     {
@@ -268040,7 +268042,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L188",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -269844,7 +269846,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L134",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -269910,18 +269912,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L89",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections",
-      "target": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_find",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L101",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -269932,7 +269923,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L94",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -269943,7 +269934,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L98",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections",
+      "target": "backend_tests_test_privacy_security_fixes_test_export_workspace_package_strips_tokens_and_includes_collections_find",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/tests/test_privacy_security_fixes.py",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -270372,7 +270374,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L401",
+      "source_location": "L410",
       "weight": 1.0
     },
     {
@@ -270383,7 +270385,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L427",
+      "source_location": "L436",
       "weight": 1.0
     },
     {
@@ -270394,7 +270396,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_procurement_queue.py",
-      "source_location": "L471",
+      "source_location": "L480",
       "weight": 1.0
     },
     {
@@ -271967,7 +271969,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L296",
+      "source_location": "L299",
       "weight": 1.0
     },
     {
@@ -271978,7 +271980,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L309",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -271989,7 +271991,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L323",
+      "source_location": "L326",
       "weight": 1.0
     },
     {
@@ -272000,7 +272002,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L337",
+      "source_location": "L340",
       "weight": 1.0
     },
     {
@@ -272011,7 +272013,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L345",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -272022,7 +272024,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L360",
+      "source_location": "L363",
       "weight": 1.0
     },
     {
@@ -272033,7 +272035,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L397",
+      "source_location": "L400",
       "weight": 1.0
     },
     {
@@ -272066,7 +272068,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L281",
+      "source_location": "L284",
       "weight": 1.0
     },
     {
@@ -272077,7 +272079,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L284",
+      "source_location": "L287",
       "weight": 1.0
     },
     {
@@ -272088,7 +272090,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L374",
+      "source_location": "L377",
       "weight": 1.0
     },
     {
@@ -272099,7 +272101,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L380",
+      "source_location": "L383",
       "weight": 1.0
     },
     {
@@ -272110,7 +272112,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L384",
+      "source_location": "L387",
       "weight": 1.0
     },
     {
@@ -275151,7 +275153,7 @@
     },
     {
       "source": "backend_tests_test_workspace_currency",
-      "target": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_php",
+      "target": "backend_tests_test_workspace_currency_test_new_workspace_defaults_to_usd",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -275179,7 +275181,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L39",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -275190,7 +275192,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L44",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -275201,7 +275203,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L49",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -275212,7 +275214,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L56",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -275223,7 +275225,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L63",
+      "source_location": "L65",
       "weight": 1.0
     },
     {
@@ -275234,7 +275236,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L73",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -275245,7 +275247,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_currency.py",
-      "source_location": "L79",
+      "source_location": "L81",
       "weight": 1.0
     },
     {
@@ -275289,7 +275291,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -297193,7 +297195,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_workspace_deletion.py",
-      "source_location": "L55",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -301278,14 +301280,14 @@
       "weight": 1.0
     },
     {
-      "source": "backend_seed_data_rationale_36",
+      "source": "backend_seed_data_rationale_37",
       "target": "backend_seed_data_sample_financial_entries",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/seed_data.py",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1.0
     },
     {
@@ -305535,14 +305537,14 @@
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_maintenance_tickets_rationale_284",
+      "source": "backend_tests_test_maintenance_tickets_rationale_293",
       "target": "backend_tests_test_maintenance_tickets_test_blocking_production_orders_enrichment_and_sort",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L284",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -306008,25 +306010,25 @@
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_sales_finance_fold_rationale_346",
+      "source": "backend_tests_test_sales_finance_fold_rationale_349",
       "target": "backend_tests_test_sales_finance_fold_test_create_deal_auto_department_id_unit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L346",
+      "source_location": "L349",
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_sales_finance_fold_rationale_361",
+      "source": "backend_tests_test_sales_finance_fold_rationale_364",
       "target": "backend_tests_test_sales_finance_fold_test_ensure_enabled_department_handles_insert_race",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L361",
+      "source_location": "L364",
       "weight": 1.0
     },
     {
@@ -313423,7 +313425,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L149",
+      "source_location": "L154",
       "weight": 1.0
     },
     {
@@ -313627,7 +313629,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L350",
+      "source_location": "L356",
       "weight": 1.0
     },
     {
@@ -313639,7 +313641,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L351",
+      "source_location": "L357",
       "weight": 1.0
     },
     {
@@ -313651,7 +313653,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L246",
+      "source_location": "L252",
       "weight": 1.0
     },
     {
@@ -313663,7 +313665,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L298",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -313675,7 +313677,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/tests/test_documents.py",
-      "source_location": "L299",
+      "source_location": "L305",
       "weight": 1.0
     },
     {
@@ -314851,7 +314853,7 @@
       "confidence_score": 0.85,
       "context": "assignment",
       "source_file": "backend/tests/test_deal_owner.py",
-      "source_location": "L172",
+      "source_location": "L177",
       "weight": 1.0
     },
     {
@@ -315175,7 +315177,7 @@
       "confidence_score": 0.85,
       "context": "assignment",
       "source_file": "backend/tests/test_maintenance_tickets.py",
-      "source_location": "L191",
+      "source_location": "L200",
       "weight": 1.0
     },
     {
@@ -315247,7 +315249,7 @@
       "confidence_score": 0.85,
       "context": "assignment",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L122",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -315535,7 +315537,7 @@
       "confidence_score": 0.85,
       "context": "assignment",
       "source_file": "backend/tests/test_sales_finance_fold.py",
-      "source_location": "L287",
+      "source_location": "L290",
       "weight": 1.0
     },
     {
@@ -316195,7 +316197,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L110",
+      "source_location": "L116",
       "weight": 1.0
     },
     {
@@ -316207,7 +316209,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L115",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -316219,7 +316221,7 @@
       "confidence_score": 0.85,
       "context": "call",
       "source_file": "backend/tests/test_privacy_security_fixes.py",
-      "source_location": "L102",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -316780,5 +316782,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "84c30eead69bbe11a2fbba59993d8214d52fa8ab"
+  "built_at_commit": "dc54ac61049d21e90004bd9e300322278017f8c8"
 }
