@@ -68,8 +68,11 @@ def test_sap_currency_vat_and_stable_id():
         {
             "DocEntry": 5,
             "DocDate": "2026-09-01",
-            "DocTotal": 112,
-            "VatSum": 12,
+            # SAP: DocTotal/VatSum are local currency; *Fc are document currency.
+            "DocTotal": 123.2,
+            "VatSum": 13.2,
+            "DocTotalFc": 112,
+            "VatSumFc": 12,
             "DocCurrency": "EUR",
             "DocRate": 1.1,
             "CardName": "Customer",
@@ -80,8 +83,10 @@ def test_sap_currency_vat_and_stable_id():
     assert mapped["qb_txn_id"] == "sap_b1_ar_5"
     assert mapped["currency"] == "eur"
     assert mapped["amount_net"] == 100
+    assert mapped["amount"] == 112
     assert mapped["tax_amount"] == 12
-    assert mapped["amount_home"] == round(112 * 1.1, 2)
+    assert mapped["amount_home"] == 123.2
+    assert mapped["amount_net_home"] == 110
 
 
 def test_entry_amount_for_totals_prefers_net_home():

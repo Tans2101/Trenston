@@ -1,0 +1,25 @@
+{
+  "Invoices": [
+    {"DocEntry": 11, "DocNum": 5001, "DocDate": "2026-08-01", "UpdateDate": "2026-08-01", "UpdateTime": "10:00:00",
+     "DocTotal": 1120, "VatSum": 120, "DocTotalFc": 0, "VatSumFc": 0, "DocTotalSys": 20, "VatSumSys": 2.14,
+     "DocCurrency": "PHP", "DocRate": 1, "CardName": "Robinsons", "Cancelled": "tNO"},
+    {"DocEntry": 12, "DocNum": 5002, "DocDate": "2026-08-02", "DocTotal": 5600, "VatSum": 600,
+     "DocTotalFc": 100, "VatSumFc": 10.71, "DocCurrency": "USD", "DocRate": 56,
+     "CardName": "Export Co", "Cancelled": "tNO"},
+    {"DocEntry": 13, "DocDate": "2026-08-03", "DocTotal": 0, "CardName": "Zero", "Cancelled": "tNO"}
+  ],
+  "PurchaseInvoices": [
+    {"DocEntry": 21, "DocNum": 7001, "DocDate": "2026-08-04", "DocTotal": 336, "VatSum": 36,
+     "DocCurrency": "PHP", "CardName": "Meralco", "Cancelled": "tNO"},
+    {"DocEntry": 22, "DocDate": "2026-08-05", "DocTotal": -50, "VatSum": 0,
+     "DocCurrency": "PHP", "CardName": "Adjustment", "Cancelled": "tNO"}
+  ],
+  "CreditNotes": [
+    {"DocEntry": 31, "DocDate": "2026-08-06", "DocTotal": 112, "VatSum": 12,
+     "DocCurrency": "PHP", "CardName": "Robinsons", "Cancelled": "tNO"}
+  ],
+  "PurchaseCreditNotes": [
+    {"DocEntry": 41, "DocDate": "2026-08-07", "DocTotal": 56, "VatSum": 6,
+     "DocCurrency": "PHP", "CardName": "Meralco", "Cancelled": "tNO"}
+  ]
+}

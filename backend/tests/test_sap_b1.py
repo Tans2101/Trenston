@@ -187,6 +187,8 @@ async def test_fetch_sap_transactions_maps_collections(monkeypatch):
                 "CardName": "Customer",
                 "Cancelled": "tNO",
             }], True, c
+        if collection != "PurchaseInvoices":
+            return [], True, c
         return [{
             "DocEntry": 2,
             "DocDate": "2026-09-02",

@@ -169,22 +169,86 @@ def _line_category(doc: dict) -> str:
     return ""
 
 
-def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
-    """Map an Invoices or PurchaseInvoices document to financial_entries fields.
+# kind -> (entry type, is a credit document, source_entity)
+SAP_DOC_KINDS: dict[str, tuple[str, bool, str]] = {
+    "ar": ("revenue", False, "invoice"),
+    "ap": ("expense", False, "purchase_invoice"),
+    "ar_cn": ("revenue", True, "credit_memo"),
+    "ap_cn": ("expense", True, "purchase_credit_memo"),
+}
 
-    kind: \"ar\" (customer invoice → revenue) or \"ap\" (purchase invoice → expense).
+# Service Layer collection -> kind
+SAP_COLLECTIONS: tuple[tuple[str, str], ...] = (
+    ("Invoices", "ar"),
+    ("PurchaseInvoices", "ap"),
+    ("CreditNotes", "ar_cn"),
+    ("PurchaseCreditNotes", "ap_cn"),
+)
+
+
+def _is_cancelled(doc: dict) -> bool:
+    return str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1")
+
+
+def _num(value) -> Optional[float]:
+    try:
+        return None if value in (None, "") else float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _sap_money(doc: dict) -> tuple[float, bool, dict]:
+    """(amount in document currency, negative?, money contract).
+
+    SAP B1 totals: DocTotal/VatSum are LOCAL currency, DocTotalFc/VatSumFc are the
+    document (foreign) currency and are 0 for local-currency documents, and
+    DocTotalSys/VatSumSys are the separate SYSTEM (reporting) currency. The
+    workspace home currency is the company's local currency, so home amounts come
+    from DocTotal/VatSum; DocRate is local units per one document-currency unit.
     """
     import accounting_map as amap
 
-    if kind not in ("ar", "ap"):
+    local_total = _num(doc.get("DocTotal")) or 0.0
+    local_vat = abs(_num(doc.get("VatSum")) or 0.0)
+    fc_total = _num(doc.get("DocTotalFc")) or 0.0
+    foreign = abs(fc_total) > 0
+    doc_total = fc_total if foreign else local_total
+    doc_vat = abs(_num(doc.get("VatSumFc")) or 0.0) if foreign else local_vat
+    amount, negative = amap.normalize_mapped_amount(doc_total)
+    rate = _num(doc.get("DocRate")) if foreign else 1.0
+    if foreign and not rate and amount:
+        rate = abs(local_total) / amount
+    money = amap.money_fields(
+        amount,
+        currency=doc.get("DocCurrency"),
+        fx_rate=rate or 1.0,
+        tax_amount=doc_vat,
+        amount_home=abs(local_total),
+        amount_net_home=max(abs(local_total) - local_vat, 0.0),
+    )
+    return amount, negative, money
+
+
+def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
+    """Map an A/R or A/P invoice or credit memo to financial_entries fields.
+
+    kind: "ar" (Invoices -> revenue), "ap" (PurchaseInvoices -> expense),
+    "ar_cn" (CreditNotes -> revenue credit), "ap_cn" (PurchaseCreditNotes -> expense credit).
+    Negative totals flip polarity; only a zero total is skipped.
+    """
+    import accounting_map as amap
+
+    spec = SAP_DOC_KINDS.get(kind)
+    if not spec:
         return None
-    if str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1"):
+    entry_type, credit_doc, source_entity = spec
+    if _is_cancelled(doc):
         return None
 
     date_full = _parse_doc_date(doc)
     month = date_full[:7]
-    amount, is_credit = amap.normalize_mapped_amount(doc.get("DocTotal"))
-    if amount <= 0:
+    amount, negative, money = _sap_money(doc)
+    if amount == 0:
         return None
 
     doc_entry = doc.get("DocEntry")
@@ -200,48 +264,18 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
     extras = [p for p in [f"Doc #{doc_num}" if doc_num is not None else "", comments] if p and p != name]
     note = " · ".join(extras)
 
-    try:
-        vat = abs(float(doc.get("VatSum") or 0))
-    except (TypeError, ValueError):
-        vat = 0.0
-    # DocTotalSys is local/system currency total when present; else DocRate conversion.
-    amount_home = None
-    if doc.get("DocTotalSys") is not None:
-        amount_home, _ = amap.normalize_mapped_amount(doc.get("DocTotalSys"))
-    money = amap.money_fields(
-        amount,
-        currency=doc.get("DocCurrency"),
-        fx_rate=doc.get("DocRate"),
-        tax_amount=vat,
-        amount_home=amount_home,
-    )
-
-    if kind == "ap":
-        return {
-            "type": "expense",
-            "category": category,
-            "name": name,
-            "amount": amount,
-            "is_credit": is_credit,
-            "month": month,
-            "note": note[:500],
-            "qb_txn_id": qb_txn_id,
-            "recurring": False,
-            "_sap_raw_type": "purchase_invoice",
-            **money,
-        }
-
     return {
-        "type": "revenue",
+        "type": entry_type,
         "category": category,
         "name": name,
         "amount": amount,
-        "is_credit": is_credit,
+        # Credit memos reduce their bucket; a negative total flips that again.
+        "is_credit": credit_doc != negative,
         "month": month,
         "note": note[:500],
         "qb_txn_id": qb_txn_id,
         "recurring": False,
-        "_sap_raw_type": "invoice",
+        "_sap_raw_type": source_entity,
         **money,
     }
 
@@ -411,7 +445,10 @@ async def _fetch_collection(
     since: Optional[str] = None,
     _retried: bool = False,
 ) -> tuple[list[dict], bool, dict]:
-    select = "DocEntry,DocNum,DocDate,UpdateDate,DocTotal,DocTotalSys,DocCurrency,DocRate,VatSum,CardName,Comments,Cancelled,DocumentLines"
+    select = (
+        "DocEntry,DocNum,DocDate,UpdateDate,UpdateTime,DocTotal,DocTotalFc,DocTotalSys,"
+        "DocCurrency,DocRate,VatSum,VatSumFc,VatSumSys,CardName,Comments,Cancelled,DocumentLines"
+    )
     # Include cancelled docs on incremental so we can delete matching entries.
     if since:
         filt = f"(Cancelled eq 'tNO' or Cancelled eq 'tYES'){_since_filter(since)}"
@@ -455,35 +492,28 @@ async def _fetch_collection(
 
 
 async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> tuple[list[dict], bool, dict, list[str]]:
-    """Pull A/R Invoices + A/P PurchaseInvoices and map to financial_entries rows.
+    """Pull A/R + A/P invoices and credit memos and map to financial_entries rows.
 
     Returns (mapped_rows, complete, creds, deleted_qb_txn_ids).
     Do not advance sap_b1_last_synced_at when complete is False.
     """
     live = await ensure_session(creds)
-    ar_docs, ar_ok, live = await _fetch_collection(live, "Invoices", since=since)
-    ap_docs, ap_ok, live = await _fetch_collection(live, "PurchaseInvoices", since=since)
     out: list[dict] = []
     deleted: list[str] = []
-    for doc in ar_docs:
-        if str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1"):
-            de = doc.get("DocEntry")
-            if de is not None:
-                deleted.append(f"sap_b1_ar_{de}")
-            continue
-        mapped = map_sap_document(doc, kind="ar")
-        if mapped:
-            out.append(mapped)
-    for doc in ap_docs:
-        if str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1"):
-            de = doc.get("DocEntry")
-            if de is not None:
-                deleted.append(f"sap_b1_ap_{de}")
-            continue
-        mapped = map_sap_document(doc, kind="ap")
-        if mapped:
-            out.append(mapped)
-    return out, ar_ok and ap_ok, live, deleted
+    all_ok = True
+    for collection, kind in SAP_COLLECTIONS:
+        docs, ok, live = await _fetch_collection(live, collection, since=since)
+        all_ok = all_ok and ok
+        for doc in docs:
+            if _is_cancelled(doc):
+                de = doc.get("DocEntry")
+                if de is not None:
+                    deleted.append(f"sap_b1_{kind}_{de}")
+                continue
+            mapped = map_sap_document(doc, kind=kind)
+            if mapped:
+                out.append(mapped)
+    return out, all_ok, live, deleted
 
 
 def public_connection_info(creds: dict | None) -> dict:
