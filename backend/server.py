@@ -35,6 +35,7 @@ import quickbooks as qb_sync
 import xero as xero_sync
 import sap_b1 as sap_b1_sync
 import hubspot as hubspot_sync
+import accounting_map as amap
 import google_oauth as gcal
 import tz_utils
 import paddle_ips
@@ -14355,6 +14356,14 @@ async def _upsert_accounting_sync_entries(
     from scripts.migrate_qb_txn_ids import legacy_dated_patterns_for_stable
 
     for txn in txns:
+        # Internal raw-type hints become the public source_entity, then are dropped.
+        source_entity = (
+            txn.get("source_entity")
+            or txn.get("_qb_raw_type")
+            or txn.get("_xero_raw_type")
+            or txn.get("_sap_raw_type")
+            or None
+        )
         txn.pop("_qb_raw_type", None)
         txn.pop("_xero_raw_type", None)
         txn.pop("_sap_raw_type", None)
@@ -14364,23 +14373,30 @@ async def _upsert_accounting_sync_entries(
                 {"workspace_id": ws_id, "qb_txn_id": {"$regex": pat}},
             )
         existing = existing_by_id.get(qb_txn_id)
-        currency = (txn.get("currency") or home_currency or "").upper() or home_currency
+        currency = (txn.get("currency") or home_currency or "").lower() or home_currency
         amount = txn["amount"]
-        amount_net = txn.get("amount_net") if txn.get("amount_net") is not None else amount
-        amount_home = txn.get("amount_home") if txn.get("amount_home") is not None else amount
+        money = amap.money_fields(
+            amount,
+            currency=currency,
+            fx_rate=txn.get("fx_rate"),
+            tax_amount=txn.get("tax_amount") or 0,
+            amount_net=txn.get("amount_net"),
+            amount_home=txn.get("amount_home"),
+            amount_net_home=txn.get("amount_net_home"),
+        )
         fields = {
             "type": txn["type"],
             "category": txn["category"],
             "name": normalize_entry_name(txn.get("name"), txn.get("category")),
             "amount": amount,
-            "amount_net": amount_net,
-            "amount_home": amount_home,
-            "currency": currency,
+            **money,
+            "source_entity": source_entity,
             "is_credit": bool(txn.get("is_credit") or txn.get("is_refund")),
             "month": txn["month"],
             "note": txn.get("note", ""),
             "recurring": txn.get("recurring", False),
             "source": source,
+            "updated_at": now_iso,
         }
         if existing:
             await db.financial_entries.update_one(

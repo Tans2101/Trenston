@@ -43,6 +43,61 @@ def apply_exchange_rate(amount: float, exchange_rate: Any) -> float:
     return round(float(amount) * rate, 2)
 
 
+def _float_or(value: Any, default: Optional[float]) -> Optional[float]:
+    try:
+        if value is None or value == "":
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def fx_rate_home_per_foreign(rate: Any) -> float:
+    """Normalize a home-units-per-foreign-unit rate; missing/invalid -> 1.0."""
+    val = _float_or(rate, 1.0)
+    return val if val and val > 0 else 1.0
+
+
+def money_fields(
+    amount: float,
+    *,
+    currency: Any = None,
+    fx_rate: Any = 1.0,
+    tax_amount: Any = 0.0,
+    amount_net: Any = None,
+    amount_home: Any = None,
+    amount_net_home: Any = None,
+) -> dict[str, Any]:
+    """Shared money contract for every accounting row.
+
+    - currency: lowercase ISO code (None when the source does not say)
+    - fx_rate: home-currency units per one document-currency unit (1.0 = home)
+    - amount_home: amount * fx_rate unless the source supplies it
+    - tax_amount: absolute tax on the document
+    - amount_net: amount excluding tax (>= 0) unless the source supplies it
+    - amount_net_home: amount_net * fx_rate unless the source supplies it
+    All magnitudes are non-negative; polarity lives in ``is_credit``.
+    """
+    amt = abs(_float_or(amount, 0.0) or 0.0)
+    rate = fx_rate_home_per_foreign(fx_rate)
+    tax = abs(_float_or(tax_amount, 0.0) or 0.0)
+    net = _float_or(amount_net, None)
+    net = abs(net) if net is not None else max(amt - tax, 0.0)
+    home = _float_or(amount_home, None)
+    home = abs(home) if home is not None else amt * rate
+    net_home = _float_or(amount_net_home, None)
+    net_home = abs(net_home) if net_home is not None else net * rate
+    code = str(currency or "").strip().lower() or None
+    return {
+        "currency": code,
+        "fx_rate": round(rate, 8),
+        "amount_home": round(home, 2),
+        "amount_net": round(net, 2),
+        "amount_net_home": round(net_home, 2),
+        "tax_amount": round(tax, 2),
+    }
+
+
 def _raw_amount(entry: dict[str, Any]) -> float:
     try:
         return float(entry.get("amount") or 0)

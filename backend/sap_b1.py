@@ -201,17 +201,20 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
     note = " · ".join(extras)
 
     try:
-        vat = float(doc.get("VatSum") or 0)
+        vat = abs(float(doc.get("VatSum") or 0))
     except (TypeError, ValueError):
         vat = 0.0
-    amount_net = round(max(amount - abs(vat), 0), 2)
     # DocTotalSys is local/system currency total when present; else DocRate conversion.
+    amount_home = None
     if doc.get("DocTotalSys") is not None:
         amount_home, _ = amap.normalize_mapped_amount(doc.get("DocTotalSys"))
-    else:
-        amount_home = amap.apply_exchange_rate(amount, doc.get("DocRate"))
-    currency = str(doc.get("DocCurrency") or "").upper() or None
-    money = {"currency": currency, "amount_net": amount_net, "amount_home": amount_home}
+    money = amap.money_fields(
+        amount,
+        currency=doc.get("DocCurrency"),
+        fx_rate=doc.get("DocRate"),
+        tax_amount=vat,
+        amount_home=amount_home,
+    )
 
     if kind == "ap":
         return {

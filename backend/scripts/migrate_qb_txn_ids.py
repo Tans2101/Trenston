@@ -12,8 +12,11 @@ delete the duplicates.
 
 Do NOT run against production from this agent. Invoke manually after backup:
 
-  cd backend && python -m scripts.migrate_qb_txn_ids --mongo-url "$MONGO_URL" --db "$DB_NAME" --dry-run
-  cd backend && python -m scripts.migrate_qb_txn_ids --mongo-url "$MONGO_URL" --db "$DB_NAME"
+  cd backend && python -m scripts.migrate_accounting_txn_ids --mongo-url "$MONGO_URL" --db "$DB_NAME"
+  cd backend && python -m scripts.migrate_accounting_txn_ids --mongo-url "$MONGO_URL" --db "$DB_NAME" --apply
+
+This module keeps the rewrite helpers (also used by the sync upsert safety net);
+its CLI now delegates to migrate_accounting_txn_ids (dry-run by default).
 """
 from __future__ import annotations
 
@@ -294,13 +297,10 @@ async def migrate(mongo_url: str, db_name: str, *, dry_run: bool) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mongo-url", required=True)
-    parser.add_argument("--db", required=True)
-    parser.add_argument("--dry-run", action="store_true")
-    args = parser.parse_args()
-    stats = asyncio.run(migrate(args.mongo_url, args.db, dry_run=args.dry_run))
-    print(stats)
+    # Superseded by scripts.migrate_accounting_txn_ids (dry-run by default, --apply to write).
+    from scripts.migrate_accounting_txn_ids import main as accounting_main
+
+    accounting_main()
 
 
 if __name__ == "__main__":

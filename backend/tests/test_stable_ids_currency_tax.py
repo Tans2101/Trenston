@@ -33,10 +33,13 @@ def test_qb_stable_id_and_currency_tax():
         "purchase",
     )
     assert mapped["qb_txn_id"] == "qb_purchase_99"
-    assert mapped["currency"] == "USD"
+    assert mapped["currency"] == "usd"
     assert mapped["amount"] == 110
     assert mapped["amount_net"] == 100
     assert mapped["amount_home"] == 110
+    assert mapped["tax_amount"] == 10
+    assert mapped["fx_rate"] == 1.0
+    assert mapped["amount_net_home"] == 100
 
 
 def test_xero_currency_and_subtotal():
@@ -52,9 +55,12 @@ def test_xero_currency_and_subtotal():
         "Contact": {"Name": "Acme"},
     })
     assert mapped["qb_txn_id"] == "xero_invoice_inv-1"
-    assert mapped["currency"] == "AUD"
+    assert mapped["currency"] == "aud"
     assert mapped["amount_net"] == 100
-    assert mapped["amount_home"] == round(115 * 0.65, 2)
+    assert mapped["tax_amount"] == 0  # no TotalTax in fixture
+    # Xero CurrencyRate is document currency PER base currency -> divide.
+    assert mapped["amount_home"] == round(115 / 0.65, 2)
+    assert mapped["amount_net_home"] == round(100 / 0.65, 2)
 
 
 def test_sap_currency_vat_and_stable_id():
@@ -72,8 +78,9 @@ def test_sap_currency_vat_and_stable_id():
         kind="ar",
     )
     assert mapped["qb_txn_id"] == "sap_b1_ar_5"
-    assert mapped["currency"] == "EUR"
+    assert mapped["currency"] == "eur"
     assert mapped["amount_net"] == 100
+    assert mapped["tax_amount"] == 12
     assert mapped["amount_home"] == round(112 * 1.1, 2)
 
 

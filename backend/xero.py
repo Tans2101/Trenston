@@ -186,6 +186,30 @@ def _line_description(inv: dict) -> str:
     return ""
 
 
+def _xero_money(doc: dict, amount: float) -> dict:
+    """Money contract for a Xero document.
+
+    Xero CurrencyRate is [document currency] PER [base currency]
+    (https://developer.xero.com/documentation/best-practices/data-integrity/multicurrency/),
+    so home = amount / CurrencyRate. tax_amount = TotalTax, amount_net = SubTotal.
+    """
+    import accounting_map as amap
+
+    try:
+        rate = float(doc.get("CurrencyRate") or 0)
+    except (TypeError, ValueError):
+        rate = 0.0
+    fx_home_per_doc = (1.0 / rate) if rate > 0 else 1.0
+    sub_total = doc.get("SubTotal")
+    return amap.money_fields(
+        amount,
+        currency=doc.get("CurrencyCode"),
+        fx_rate=fx_home_per_doc,
+        tax_amount=doc.get("TotalTax") or 0,
+        amount_net=abs(float(sub_total)) if sub_total not in (None, "") else None,
+    )
+
+
 def map_xero_invoice(inv: dict) -> Optional[dict]:
     """Map a Xero Invoice (ACCREC/ACCPAY) to financial_entries fields (QB-compatible).
 
@@ -222,10 +246,7 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
     extras = [p for p in [number, ref, line_desc] if p and p != name]
     note = " · ".join(extras)
 
-    currency = str(inv.get("CurrencyCode") or "").upper() or None
-    amount_net, _ = amap.normalize_mapped_amount(inv.get("SubTotal") if inv.get("SubTotal") is not None else amount)
-    amount_home = amap.apply_exchange_rate(amount, inv.get("CurrencyRate"))
-    money = {"currency": currency, "amount_net": amount_net, "amount_home": amount_home}
+    money = _xero_money(inv, amount)
 
     if inv_type == "ACCPAY":
         return {
@@ -289,9 +310,6 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
     ref = txn.get("Reference") or ""
     category = amap.fallback_category(_line_category(txn))
     name = (contact or ref or category).strip()[:120]
-    amount_net, _ = amap.normalize_mapped_amount(
-        txn.get("SubTotal") if txn.get("SubTotal") is not None else amount
-    )
     return {
         "type": "revenue" if txn_type == "RECEIVE" else "expense",
         "category": category,
@@ -303,9 +321,7 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
         "qb_txn_id": f"xero_bank_{tid}",
         "recurring": False,
         "_xero_raw_type": "bank_receive" if txn_type == "RECEIVE" else "bank_spend",
-        "currency": str(txn.get("CurrencyCode") or "").upper() or None,
-        "amount_net": amount_net,
-        "amount_home": amap.apply_exchange_rate(amount, txn.get("CurrencyRate")),
+        **_xero_money(txn, amount),
     }
 
 
@@ -342,11 +358,7 @@ def map_xero_credit_note(cn: dict) -> Optional[dict]:
         "qb_txn_id": f"xero_cn_{cid}",
         "recurring": False,
         "_xero_raw_type": "credit_note",
-        "currency": str(cn.get("CurrencyCode") or "").upper() or None,
-        "amount_net": amap.normalize_mapped_amount(
-            cn.get("SubTotal") if cn.get("SubTotal") is not None else amount
-        )[0],
-        "amount_home": amap.apply_exchange_rate(amount, cn.get("CurrencyRate")),
+        **_xero_money(cn, amount),
     }
 
 
@@ -411,9 +423,8 @@ def map_xero_manual_journal(mj: dict) -> list[dict]:
             "qb_txn_id": f"xero_mj_{mid}_{idx}",
             "recurring": False,
             "_xero_raw_type": "manual_journal",
-            "currency": str(mj.get("CurrencyCode") or "").upper() or None,
-            "amount_net": amount,
-            "amount_home": amap.apply_exchange_rate(amount, 1.0),
+            # Manual journals post in base currency with no document tax.
+            **amap.money_fields(amount, currency=mj.get("CurrencyCode")),
         })
     return out
 

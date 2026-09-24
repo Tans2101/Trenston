@@ -204,28 +204,31 @@ def _qb_entity_slug(txn_type: str) -> str:
     }.get(txn_type, txn_type.replace("_", ""))
 
 
-def _qb_currency_fields(txn: dict, amount: float, amount_net: float) -> dict:
+def _qb_tax_amount(txn: dict) -> float:
+    """TxnTaxDetail.TotalTax (default 0).
+
+    Intuit: TotalAmt always includes tax for both TaxExcluded and TaxInclusive
+    (GlobalTaxCalculation only changes whether line amounts include tax), so
+    net = TotalAmt - TotalTax in every mode; NotApplicable has no TotalTax.
+    """
+    tax_detail = txn.get("TxnTaxDetail") or {}
+    try:
+        return abs(float(tax_detail.get("TotalTax") or 0))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _qb_currency_fields(txn: dict, amount: float, *, tax_amount: float) -> dict:
+    """ExchangeRate = home-currency units per one CurrencyRef unit (Intuit)."""
     import accounting_map as amap
 
     currency_ref = txn.get("CurrencyRef") or {}
-    currency = str(currency_ref.get("value") or currency_ref.get("name") or "").upper() or None
-    rate = txn.get("ExchangeRate")
-    amount_home = amap.apply_exchange_rate(amount, rate)
-    return {
-        "currency": currency,
-        "amount_home": amount_home,
-        "amount_net": round(float(amount_net), 2),
-    }
-
-
-def _qb_tax_net(txn: dict, gross: float) -> float:
-    tax_detail = txn.get("TxnTaxDetail") or {}
-    try:
-        tax = float(tax_detail.get("TotalTax") or 0)
-    except (TypeError, ValueError):
-        tax = 0.0
-    net = round(max(gross - abs(tax), 0), 2)
-    return net
+    return amap.money_fields(
+        amount,
+        currency=currency_ref.get("value"),
+        fx_rate=txn.get("ExchangeRate"),
+        tax_amount=tax_amount,
+    )
 
 
 def _base_mapped_fields(
@@ -235,14 +238,13 @@ def _base_mapped_fields(
     month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
     slug = _qb_entity_slug(txn_type)
     provider_id = f"{qb_id}{line_suffix}"
-    amount_net = _qb_tax_net(txn, amount)
     return {
         "amount": amount,
         "is_credit": is_credit,
         "month": month,
         "qb_txn_id": f"qb_{slug}_{provider_id}",
         "recurring": False,
-        **_qb_currency_fields(txn, amount, amount_net),
+        **_qb_currency_fields(txn, amount, tax_amount=_qb_tax_amount(txn)),
     }
 
 
@@ -350,8 +352,8 @@ def map_qb_journal_entry(txn: dict) -> list[dict]:
         line_id = str(line.get("Id") or len(out))
         category = amap.fallback_category(account.get("name") or line.get("Description") or "")
         name = (line.get("Description") or account.get("name") or category).strip()[:120]
-        # Journal lines rarely carry TxnTaxDetail — net equals line amount.
-        currency_fields = _qb_currency_fields(txn, amount, amount)
+        # Journal lines carry no document tax — net equals line amount.
+        currency_fields = _qb_currency_fields(txn, amount, tax_amount=0.0)
         out.append({
             "type": entry_type,
             "category": category,
