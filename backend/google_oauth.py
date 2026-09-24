@@ -482,6 +482,47 @@ def _map_gmail_message(msg: dict, *, own_domain: str = "") -> Optional[dict]:
     }
 
 
+class _GoogleUnauthorized(GoogleAuthError):
+    """A data endpoint returned 401 — caller may force one refresh and retry."""
+
+
+async def _google_request(
+    tokens: dict,
+    client_id: str,
+    client_secret: str,
+    method: str,
+    url: str,
+    *,
+    label: str,
+    timeout: float = 30.0,
+    **kwargs,
+) -> tuple[httpx.Response, dict]:
+    """Send one authorised request; on 401 force a token refresh and retry exactly once.
+
+    Returns (response, tokens). A second 401 is left for the caller to turn into
+    GoogleAuthError. Network failures become GoogleTransientError.
+    """
+
+    async def _once(access: str) -> httpx.Response:
+        headers = {**(kwargs.get("headers") or {}), "Authorization": f"Bearer {access}"}
+        rest = {k: v for k, v in kwargs.items() if k != "headers"}
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as hc:
+                send = getattr(hc, method.lower())
+                return await send(url, headers=headers, **rest)
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise GoogleTransientError(f"{label} temporarily unavailable") from exc
+
+    resp = await _once(tokens.get("access_token") or "")
+    if resp.status_code == 401:
+        logger.info("%s 401 — forcing token refresh and retrying once", label)
+        tokens = await refresh_google_token(
+            force_token_refresh(tokens), client_id, client_secret, force=True,
+        )
+        resp = await _once(tokens.get("access_token") or "")
+    return resp, tokens
+
+
 async def _gmail_list_ids(hc: httpx.AsyncClient, access_token: str, query: str, *, max_results: int) -> list[dict]:
     resp = await hc.get(
         GMAIL_MESSAGES_URL,
@@ -489,9 +530,11 @@ async def _gmail_list_ids(hc: httpx.AsyncClient, access_token: str, query: str, 
         params={"q": query, "maxResults": max_results},
     )
     if resp.status_code == 401:
-        raise GoogleAuthError("Google access token rejected. Reconnect Google")
+        raise _GoogleUnauthorized("Google access token rejected. Reconnect Google")
     if resp.status_code == 403:
         raise GoogleAuthError("Gmail access not granted. Reconnect Google to enable Gmail")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Gmail temporarily unavailable ({resp.status_code})")
     if resp.status_code != 200:
         raise RuntimeError(f"Gmail list failed ({resp.status_code}): {resp.text[:300]}")
     return list(resp.json().get("messages") or [])
@@ -508,9 +551,11 @@ async def _gmail_get_message(hc: httpx.AsyncClient, access_token: str, message_i
         },
     )
     if resp.status_code == 401:
-        raise GoogleAuthError("Google access token rejected. Reconnect Google")
+        raise _GoogleUnauthorized("Google access token rejected. Reconnect Google")
     if resp.status_code == 403:
         raise GoogleAuthError("Gmail access not granted. Reconnect Google to enable Gmail")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Gmail temporarily unavailable ({resp.status_code})")
     if resp.status_code != 200:
         raise RuntimeError(f"Gmail message failed ({resp.status_code}): {resp.text[:300]}")
     return resp.json()
@@ -546,44 +591,59 @@ async def fetch_important_threads(
             since = since.replace(tzinfo=timezone.utc)
         query = f"{_IMPORTANT_QUERY} after:{int(since.timestamp())}"
 
-    async with httpx.AsyncClient(timeout=45.0) as hc:
-        profile = await hc.get(
-            GMAIL_PROFILE_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-        own_email = ""
-        if profile.status_code == 200:
-            own_email = (profile.json().get("emailAddress") or "").strip().lower()
-        own_domain = _email_domain(own_email)
-
-        refs = await _gmail_list_ids(hc, access_token, query, max_results=max(limit * 3, 12))
-        prefer_external = False
-        if len(refs) < limit:
-            prefer_external = True
-            refs = await _gmail_list_ids(
-                hc, access_token, _INBOX_FALLBACK_QUERY, max_results=max(limit * 4, 16),
+    async def _collect(access_token: str) -> list[dict]:
+        async with httpx.AsyncClient(timeout=45.0) as hc:
+            profile = await hc.get(
+                GMAIL_PROFILE_URL,
+                headers={"Authorization": f"Bearer {access_token}"},
             )
+            own_email = ""
+            if profile.status_code == 200:
+                own_email = (profile.json().get("emailAddress") or "").strip().lower()
+            own_domain = _email_domain(own_email)
 
-        threads: list[dict] = []
-        seen_threads: set[str] = set()
-        for ref in refs:
-            mid = ref.get("id")
-            if not mid:
-                continue
-            raw = await _gmail_get_message(hc, access_token, mid)
-            mapped = _map_gmail_message(
-                raw,
-                own_domain=own_domain if prefer_external else "",
+            refs = await _gmail_list_ids(hc, access_token, query, max_results=max(limit * 3, 12))
+            prefer_external = False
+            if len(refs) < limit:
+                prefer_external = True
+                refs = await _gmail_list_ids(
+                    hc, access_token, _INBOX_FALLBACK_QUERY, max_results=max(limit * 4, 16),
+                )
+
+            threads: list[dict] = []
+            seen_threads: set[str] = set()
+            for ref in refs:
+                mid = ref.get("id")
+                if not mid:
+                    continue
+                raw = await _gmail_get_message(hc, access_token, mid)
+                mapped = _map_gmail_message(
+                    raw,
+                    own_domain=own_domain if prefer_external else "",
+                )
+                if not mapped:
+                    continue
+                tid = mapped["id"]
+                if tid in seen_threads:
+                    continue
+                seen_threads.add(tid)
+                threads.append(mapped)
+                if len(threads) >= limit:
+                    break
+
+        return threads
+
+    try:
+        try:
+            threads = await _collect(access_token)
+        except _GoogleUnauthorized:
+            logger.info("Gmail 401 — forcing token refresh and retrying once")
+            tokens = await refresh_google_token(
+                force_token_refresh(tokens), client_id, client_secret, force=True,
             )
-            if not mapped:
-                continue
-            tid = mapped["id"]
-            if tid in seen_threads:
-                continue
-            seen_threads.add(tid)
-            threads.append(mapped)
-            if len(threads) >= limit:
-                break
+            threads = await _collect(tokens.get("access_token") or "")
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        raise GoogleTransientError("Gmail temporarily unavailable") from exc
 
     threads.sort(key=lambda t: t.get("last_message_at") or "", reverse=True)
     return threads[:limit], tokens
@@ -617,14 +677,14 @@ async def create_calendar_event(
             "start": {"dateTime": start_iso, "timeZone": "UTC"},
             "end": {"dateTime": end_iso, "timeZone": "UTC"},
         }
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            CALENDAR_EVENTS_URL,
-            headers={"Authorization": f"Bearer {tokens.get('access_token')}", "Content-Type": "application/json"},
-            json=body,
-        )
+    resp, tokens = await _google_request(
+        tokens, client_id, client_secret, "POST", CALENDAR_EVENTS_URL,
+        label="Google Calendar insert", headers={"Content-Type": "application/json"}, json=body,
+    )
     if resp.status_code in (401, 403):
         raise GoogleAuthError("Calendar write failed. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Google Calendar temporarily unavailable ({resp.status_code})")
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Calendar insert failed ({resp.status_code}): {resp.text[:300]}")
     return (resp.json() or {}).get("id") or "", tokens
@@ -659,12 +719,14 @@ async def patch_calendar_event(
             "start": {"dateTime": start_iso, "timeZone": "UTC"},
             "end": {"dateTime": end_iso, "timeZone": "UTC"},
         }
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.patch(
-            f"{CALENDAR_EVENTS_URL}/{google_event_id}",
-            headers={"Authorization": f"Bearer {tokens.get('access_token')}", "Content-Type": "application/json"},
-            json=body,
-        )
+    resp, tokens = await _google_request(
+        tokens, client_id, client_secret, "PATCH", f"{CALENDAR_EVENTS_URL}/{google_event_id}",
+        label="Google Calendar patch", headers={"Content-Type": "application/json"}, json=body,
+    )
+    if resp.status_code == 401:
+        raise GoogleAuthError("Calendar write failed. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Google Calendar temporarily unavailable ({resp.status_code})")
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Calendar patch failed ({resp.status_code}): {resp.text[:300]}")
     return tokens
@@ -679,11 +741,14 @@ async def delete_calendar_event(
     if not google_event_id or not has_scope(tokens, "calendar.events"):
         return tokens
     tokens = await refresh_google_token(tokens, client_id, client_secret)
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.delete(
-            f"{CALENDAR_EVENTS_URL}/{google_event_id}",
-            headers={"Authorization": f"Bearer {tokens.get('access_token')}"},
-        )
+    resp, tokens = await _google_request(
+        tokens, client_id, client_secret, "DELETE", f"{CALENDAR_EVENTS_URL}/{google_event_id}",
+        label="Google Calendar delete",
+    )
+    if resp.status_code == 401:
+        raise GoogleAuthError("Calendar write failed. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Google Calendar temporarily unavailable ({resp.status_code})")
     if resp.status_code not in (200, 204, 404, 410):
         raise RuntimeError(f"Calendar delete failed ({resp.status_code}): {resp.text[:300]}")
     return tokens
