@@ -3525,6 +3525,44 @@ async def _sample_apply_needs_confirm(ws_id: str, current: dict) -> bool:
     return await db.financial_entries.count_documents({"workspace_id": ws_id}, limit=1) > 0
 
 
+# Financial entry sources written by accounting/CRM syncs — never touched by sample data.
+_SYNCED_ENTRY_SOURCE_RE = "quickbooks|xero|sap_b1|hubspot"
+
+
+def _synced_entry_filter(ws_id: str) -> dict:
+    return {
+        "workspace_id": ws_id,
+        "$or": [
+            {"source": {"$regex": _SYNCED_ENTRY_SOURCE_RE, "$options": "i"}},
+            {"qb_txn_id": {"$exists": True, "$nin": [None, ""]}},
+        ],
+    }
+
+
+async def _real_data_started_at(ws_id: str, current: dict) -> Optional[str]:
+    """Earliest sign of real use: first non-seed financial entry or integration connection.
+
+    Returns an ISO timestamp, or None when the workspace only ever held sample data.
+    """
+    candidates: list[str] = []
+    first_entry = await db.financial_entries.find(
+        {"workspace_id": ws_id, "created_by": {"$ne": "seed"}, "created_at": {"$exists": True}},
+        {"_id": 0, "created_at": 1},
+    ).sort("created_at", 1).limit(1).to_list(1)
+    if first_entry and first_entry[0].get("created_at"):
+        candidates.append(str(first_entry[0]["created_at"]))
+    for at_field in _INTEGRATION_CONNECTED_AT.values():
+        if current.get(at_field):
+            candidates.append(str(current[at_field]))
+    first_google = await db.user_google_tokens.find(
+        {"workspace_id": ws_id, "connected_at": {"$exists": True}},
+        {"_id": 0, "connected_at": 1},
+    ).sort("connected_at", 1).limit(1).to_list(1)
+    if first_google and first_google[0].get("connected_at"):
+        candidates.append(str(first_google[0]["connected_at"]))
+    return min(candidates) if candidates else None
+
+
 async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
     """Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept)."""
     current = await get_ws(ws_id)
@@ -3538,10 +3576,16 @@ async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
     update["onboarding_done"] = True
     update["company_setup_done"] = True
     update["template"] = "empty"
+    real_started_at = await _real_data_started_at(ws_id, current)
     await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
-    await db.financial_entries.delete_many({"workspace_id": ws_id})
-    # Drop demo-era activity so Telemetry heatmap starts blank with the rest.
-    await db.activities.delete_many({"workspace_id": ws_id})
+    # Only the Northwind seed rows — manual and synced entries are real data.
+    await db.financial_entries.delete_many({"workspace_id": ws_id, "created_by": "seed"})
+    # Drop demo-era activity so the Telemetry heatmap starts blank, but keep
+    # everything logged once real data (own entry or integration) arrived.
+    activity_filter: dict = {"workspace_id": ws_id}
+    if real_started_at:
+        activity_filter["created_at"] = {"$lt": real_started_at}
+    await db.activities.delete_many(activity_filter)
     invalidate_financials_cache(ws_id)
     invalidate_workspace_list_cache(ws_id, "people")
 
@@ -3551,6 +3595,11 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
     ws_id = principal["workspace_id"]
     if payload.template == "sample":
         current = await get_ws(ws_id)
+        if await db.financial_entries.find_one(_synced_entry_filter(ws_id), {"_id": 1}):
+            raise HTTPException(
+                status_code=400,
+                detail="Disconnect accounting integrations before loading sample data",
+            )
         if await _sample_apply_needs_confirm(ws_id, current) and not payload.confirm_destructive:
             raise HTTPException(
                 status_code=400,
@@ -3562,7 +3611,17 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
         fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=False)
         update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
-        await db.financial_entries.delete_many({"workspace_id": ws_id})
+        # Replace only seed + manual rows; synced ledgers are never touched.
+        await db.financial_entries.delete_many({
+            "workspace_id": ws_id,
+            "$or": [
+                {"created_by": "seed"},
+                {"source": "manual"},
+                {"source": {"$exists": False}},
+            ],
+            "source": {"$not": re.compile(_SYNCED_ENTRY_SOURCE_RE, re.IGNORECASE)},
+            "qb_txn_id": {"$in": [None, ""]},
+        })
         await dept_migrate.migrate_workspace_sales_finance(db, ws_id)
         finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
         samples = sample_financial_entries(ws_id)

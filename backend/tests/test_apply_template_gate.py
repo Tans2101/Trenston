@@ -20,6 +20,7 @@ async def test_sample_apply_allowed_during_onboarding():
     mock_db.financial_entries.delete_many = fin_delete
     mock_db.financial_entries.insert_many = fin_insert
     mock_db.financial_entries.count_documents = AsyncMock(return_value=0)
+    mock_db.financial_entries.find_one = AsyncMock(return_value=None)
 
     with (
         patch.object(server, "get_ws", AsyncMock(return_value=ws)),
@@ -44,6 +45,7 @@ async def test_sample_apply_blocked_on_live_workspace_without_confirm():
     ws["template"] = "sample"
     mock_db = MagicMock()
     mock_db.financial_entries.count_documents = AsyncMock(return_value=5)
+    mock_db.financial_entries.find_one = AsyncMock(return_value=None)
     mock_db.financial_entries.delete_many = AsyncMock()
 
     with (
@@ -73,6 +75,7 @@ async def test_sample_apply_confirm_destructive_allows_wipe():
     mock_db.financial_entries.delete_many = fin_delete
     mock_db.financial_entries.insert_many = fin_insert
     mock_db.financial_entries.count_documents = AsyncMock(return_value=5)
+    mock_db.financial_entries.find_one = AsyncMock(return_value=None)
 
     with (
         patch.object(server, "get_ws", AsyncMock(return_value=ws)),
