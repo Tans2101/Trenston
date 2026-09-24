@@ -233,6 +233,7 @@ export default function Integrations() {
   const [slackUrl, setSlackUrl] = useState("");
   const [slackBusy, setSlackBusy] = useState(false);
   const [slackEditing, setSlackEditing] = useState(false);
+  const [oauthError, setOauthError] = useState(null);
   const [xeroTenantBusy, setXeroTenantBusy] = useState(false);
   const [sapModalOpen, setSapModalOpen] = useState(false);
   const [sapBusy, setSapBusy] = useState(false);
@@ -275,25 +276,18 @@ export default function Integrations() {
             ? "HubSpot"
             : provider === "google"
               ? "Google"
-              : "The provider";
-      let message = "Could not complete the connection. Try again or use a different account.";
+              : provider === "sap_b1"
+                ? "SAP Business One"
+                : "the app";
+      // Customer-facing copy never includes hosting/config instructions; the raw
+      // reason is kept for workspace managers under "Technical details".
+      let message = `We couldn't finish connecting ${providerName}. Please try again. If it keeps happening, contact support.`;
       if (err === "xero_org") {
         message = "No Xero organisations were available on that account.";
-      } else if (err === "save") {
-        message = reason === "seal"
-          ? `${providerName} accepted the grant, but Trenston could not encrypt tokens. Set INTEGRATION_ENCRYPTION_KEY on Render (Fernet key), redeploy, then Connect again.`
-          : `${providerName} accepted the grant, but Trenston could not save the connection. Check Render logs, then try Connect again.`;
-      } else if (err === "token") {
-        if (reason === "invalid_client") {
-          message = `${providerName} rejected Trenston's app keys. On Render, set the matching ${provider === "quickbooks" ? "sandbox Development" : "OAuth"} Client ID/Secret, redeploy, then Connect again.`;
-        } else if (reason === "invalid_grant") {
-          message = `${providerName} rejected the auth code (expired or redirect URI mismatch). Confirm the Redirect URI is exact, then Connect again (codes are single-use).`;
-        } else if (reason === "network") {
-          message = `${providerName} accepted the grant, but Trenston could not reach the token server. Try Connect again in a minute.`;
-        } else {
-          message = `${providerName} accepted the grant, but Trenston could not finish the connection${reason ? ` (${reason})` : ""}. Check OAuth keys and redirect URI on Render, then try Connect again.`;
-        }
+      } else if (err === "token" && reason === "network") {
+        message = `${providerName} accepted the grant, but Trenston could not reach the token server. Try Connect again in a minute.`;
       }
+      setOauthError({ provider: provider || "", error: err || "", reason: params.get("reason") || "" });
       toast.error(message);
       setParams({});
     }
@@ -503,6 +497,27 @@ export default function Integrations() {
             ? ` · QB redirect: ${data.oauth_redirect_uris.quickbooks}`
             : ""}
         </p>
+      )}
+      {oauthError && data.can_manage && (
+        <GlassCard className="p-4 mb-4 fade-up" data-testid="oauth-error-details">
+          <div className="flex items-start justify-between gap-3">
+            <details className="text-xs text-helm-muted">
+              <summary className="cursor-pointer select-none">Technical details</summary>
+              <p className="mt-2 font-mono break-all">
+                provider={oauthError.provider || "unknown"} · error={oauthError.error || "unknown"}
+                {oauthError.reason ? ` · reason=${oauthError.reason}` : ""}
+              </p>
+            </details>
+            <button
+              type="button"
+              onClick={() => setOauthError(null)}
+              className="text-xs text-helm-muted hover:text-helm-fg"
+              aria-label="Dismiss technical details"
+            >
+              Dismiss
+            </button>
+          </div>
+        </GlassCard>
       )}
       <div className="grid md:grid-cols-2 gap-4 mb-10">
         {data.can_manage && (
