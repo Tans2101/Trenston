@@ -185,15 +185,58 @@ def _is_pl_account_type(account_type: str) -> bool:
     return _norm_account_type(account_type) in _PL_ACCOUNT_TYPES
 
 
-def _base_mapped_fields(txn: dict, *, qb_id: str, amount: float, is_credit: bool) -> dict:
+def _qb_entity_slug(txn_type: str) -> str:
+    return {
+        "invoice": "invoice",
+        "sales_receipt": "salesreceipt",
+        "credit_memo": "creditmemo",
+        "refund_receipt": "refundreceipt",
+        "purchase": "purchase",
+        "bill": "bill",
+        "vendor_credit": "vendorcredit",
+        "journal_entry": "journal",
+    }.get(txn_type, txn_type.replace("_", ""))
+
+
+def _qb_currency_fields(txn: dict, amount: float, amount_net: float) -> dict:
+    import accounting_map as amap
+
+    currency_ref = txn.get("CurrencyRef") or {}
+    currency = str(currency_ref.get("value") or currency_ref.get("name") or "").upper() or None
+    rate = txn.get("ExchangeRate")
+    amount_home = amap.apply_exchange_rate(amount, rate)
+    return {
+        "currency": currency,
+        "amount_home": amount_home,
+        "amount_net": round(float(amount_net), 2),
+    }
+
+
+def _qb_tax_net(txn: dict, gross: float) -> float:
+    tax_detail = txn.get("TxnTaxDetail") or {}
+    try:
+        tax = float(tax_detail.get("TotalTax") or 0)
+    except (TypeError, ValueError):
+        tax = 0.0
+    net = round(max(gross - abs(tax), 0), 2)
+    return net
+
+
+def _base_mapped_fields(
+    txn: dict, *, qb_id: str, txn_type: str, amount: float, is_credit: bool, line_suffix: str = "",
+) -> dict:
     txn_date_full = str(txn.get("TxnDate") or "")
     month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
+    slug = _qb_entity_slug(txn_type)
+    provider_id = f"{qb_id}{line_suffix}"
+    amount_net = _qb_tax_net(txn, amount)
     return {
         "amount": amount,
         "is_credit": is_credit,
         "month": month,
-        "qb_txn_id": f"{qb_id}_{txn_date_full}",
+        "qb_txn_id": f"qb_{slug}_{provider_id}",
         "recurring": False,
+        **_qb_currency_fields(txn, amount, amount_net),
     }
 
 
@@ -228,7 +271,7 @@ def map_qb_transaction(txn: dict, txn_type: str) -> Optional[dict]:
     category = amap.fallback_category(_line_category(txn))
     memo = txn.get("PrivateNote") or ""
     doc = txn.get("DocNumber") or ""
-    base = _base_mapped_fields(txn, qb_id=qb_id, amount=amount, is_credit=is_credit)
+    base = _base_mapped_fields(txn, qb_id=qb_id, txn_type=txn_type, amount=amount, is_credit=is_credit)
 
     if txn_type in ("purchase", "bill", "vendor_credit"):
         vendor = (
@@ -301,6 +344,8 @@ def map_qb_journal_entry(txn: dict) -> list[dict]:
         line_id = str(line.get("Id") or len(out))
         category = amap.fallback_category(account.get("name") or line.get("Description") or "")
         name = (line.get("Description") or account.get("name") or category).strip()[:120]
+        # Journal lines rarely carry TxnTaxDetail — net equals line amount.
+        currency_fields = _qb_currency_fields(txn, amount, amount)
         out.append({
             "type": entry_type,
             "category": category,
@@ -309,9 +354,10 @@ def map_qb_journal_entry(txn: dict) -> list[dict]:
             "is_credit": is_credit,
             "month": month,
             "note": "",
-            "qb_txn_id": f"{je_id}_line_{line_id}_{txn_date_full}",
+            "qb_txn_id": f"qb_journal_{je_id}_{line_id}",
             "recurring": False,
             "_qb_raw_type": "journal_entry",
+            **currency_fields,
         })
     return out
 
@@ -332,9 +378,12 @@ async def _query_qb_once(
     start = 1
     for _ in range(QB_MAX_PAGES):
         if since:
-            since_date = since[:10]
+            # Incremental by last-modified time (not TxnDate).
+            since_iso = since.replace("Z", "")
+            if "T" not in since_iso:
+                since_iso = f"{since_iso[:10]}T00:00:00"
             q = (
-                f"SELECT * FROM {entity} WHERE TxnDate >= '{since_date}' "
+                f"SELECT * FROM {entity} WHERE MetaData.LastUpdatedTime >= '{since_iso}' "
                 f"STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
             )
         else:
@@ -388,13 +437,82 @@ async def _query_qb(
     return rows, complete, tokens
 
 
+async def _cdc_deleted_ids(
+    tokens: dict, realm_id: str, since: Optional[str],
+) -> tuple[list[str], dict]:
+    """Use ChangeDataCapture to find Deleted/Voided entities since last sync."""
+    if not since:
+        return [], tokens
+    entities = ",".join(name for name, _ in QB_SYNC_ENTITIES)
+    since_iso = since.replace("Z", "+00:00")
+    url = f"{_api_base()}/v3/company/{realm_id}/cdc"
+    access = tokens.get("access_token") or ""
+
+    async def _once(token: str) -> httpx.Response:
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as hc:
+                return await hc.get(
+                    url,
+                    params={
+                        "entities": entities,
+                        "changedSince": since_iso,
+                        "minorversion": str(QB_MINOR_VERSION),
+                    },
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise QuickBooksRetryableError("QuickBooks CDC temporarily unavailable") from exc
+
+    resp = await _once(access)
+    if resp.status_code == 401:
+        tokens = await refresh_qb_token(force_token_refresh(tokens), force=True)
+        resp = await _once(tokens.get("access_token") or "")
+        if resp.status_code == 401:
+            raise QuickBooksAuthError("QuickBooks access token rejected")
+    if resp.status_code >= 500:
+        raise QuickBooksRetryableError(f"QuickBooks CDC temporarily unavailable ({resp.status_code})")
+    if resp.status_code != 200:
+        # CDC window may be >30 days — log and skip deletes rather than fail the sync.
+        logger.warning("QuickBooks CDC skipped (%s): %s", resp.status_code, (resp.text or "")[:200])
+        return [], tokens
+
+    deleted: list[str] = []
+    payload = resp.json() or {}
+    for block in payload.get("CDCResponse") or []:
+        for qr in (block.get("QueryResponse") or []):
+            if not isinstance(qr, dict):
+                continue
+            for ent_name, kind in QB_SYNC_ENTITIES:
+                rows = qr.get(ent_name) or []
+                if isinstance(rows, dict):
+                    rows = [rows]
+                for row in rows:
+                    if not isinstance(row, dict):
+                        continue
+                    status = str(row.get("status") or row.get("statusCode") or "").lower()
+                    # Intuit marks deletions with status=Deleted; voided docs often have PrivateNote/TxnStatus.
+                    txn_status = str(row.get("TxnStatus") or "").lower()
+                    if status == "deleted" or txn_status == "voided" or bool(row.get("sparse") and status == "deleted"):
+                        eid = str(row.get("Id") or "")
+                        if not eid:
+                            continue
+                        if kind == "journal_entry":
+                            # Without line detail, delete any journal line prefix.
+                            deleted.append(f"qb_journal_{eid}_")
+                        else:
+                            deleted.append(f"qb_{_qb_entity_slug(kind)}_{eid}")
+    return deleted, tokens
+
+
 async def fetch_qb_transactions(
     tokens: dict, realm_id: str, since: Optional[str] = None,
-) -> tuple[list[dict], bool, dict]:
+) -> tuple[list[dict], bool, dict, list[str]]:
     """Fetch supported QuickBooks entities and map to financial_entries rows.
 
-    Returns (mapped_rows, complete, tokens). complete is False when a page safety cap was hit —
-    callers must not advance qb_last_synced_at in that case. tokens may be refreshed after a 401 retry.
+    Returns (mapped_rows, complete, tokens, deleted_id_prefixes).
+    complete is False when a page safety cap was hit — callers must not advance
+    qb_last_synced_at in that case. deleted_id_prefixes are qb_txn_id values (or
+    prefixes ending with _) to remove from financial_entries.
     """
     if not tokens.get("access_token"):
         raise QuickBooksAuthError("Missing access token")
@@ -406,10 +524,17 @@ async def fetch_qb_transactions(
         all_complete = all_complete and complete
         if kind == "journal_entry":
             for je in rows:
+                # Skip voided journal entries when status is present.
+                if str(je.get("TxnStatus") or "").lower() == "voided":
+                    continue
                 mapped.extend(map_qb_journal_entry(je))
             continue
         for row in rows:
+            if str(row.get("TxnStatus") or "").lower() == "voided":
+                continue
             mapped_row = map_qb_transaction(row, kind)
             if mapped_row:
                 mapped.append({**mapped_row, "_qb_raw_type": kind})
-    return mapped, all_complete, tokens
+
+    deleted, tokens = await _cdc_deleted_ids(tokens, realm_id, since)
+    return mapped, all_complete, tokens, deleted

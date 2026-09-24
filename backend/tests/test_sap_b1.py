@@ -69,7 +69,7 @@ def test_map_sap_ar_and_ap_documents():
     assert ar["type"] == "revenue"
     assert ar["amount"] == 250.5
     assert ar["month"] == "2026-09"
-    assert ar["qb_txn_id"] == "sap_b1_ar_11_2026-09-01"
+    assert ar["qb_txn_id"] == "sap_b1_ar_11"
     assert ar["category"] == "400000"
     assert "Acme" in ar["name"]
 
@@ -84,7 +84,7 @@ def test_map_sap_ar_and_ap_documents():
         kind="ap",
     )
     assert ap["type"] == "expense"
-    assert ap["qb_txn_id"] == "sap_b1_ap_22_2026-09-02"
+    assert ap["qb_txn_id"] == "sap_b1_ap_22"
     assert ap["category"] == "Other"
 
 
@@ -197,13 +197,14 @@ async def test_fetch_sap_transactions_maps_collections(monkeypatch):
 
     monkeypatch.setattr(sap_b1, "ensure_session", fake_ensure)
     monkeypatch.setattr(sap_b1, "_fetch_collection", fake_collection)
-    rows, complete, live = await sap_b1.fetch_sap_transactions(creds)
+    rows, complete, live, deleted = await sap_b1.fetch_sap_transactions(creds)
     assert complete is True
     assert live is creds
+    assert deleted == []
     assert {r["type"] for r in rows} == {"revenue", "expense"}
     assert {r["qb_txn_id"] for r in rows} == {
-        "sap_b1_ar_1_2026-09-01",
-        "sap_b1_ap_2_2026-09-02",
+        "sap_b1_ar_1",
+        "sap_b1_ap_2",
     }
 
 

@@ -123,7 +123,8 @@ def resolve_expense_horizon(
     return end
 def expense_monthly_amount(entry: dict[str, Any]) -> float:
     """Monthlyized expense amount used in burn series (absolute; polarity via is_credit)."""
-    amount = abs(float(entry.get("amount") or 0))
+    import accounting_map as amap
+    amount = amap.entry_amount_for_totals(entry)
     if not entry.get("recurring"):
         return amount
     cadence = normalize_recurrence(True, entry.get("recurrence"), "expense")
@@ -134,7 +135,8 @@ def expense_monthly_amount(entry: dict[str, Any]) -> float:
 
 def revenue_monthly_amount(entry: dict[str, Any]) -> float:
     """Monthlyized recurring revenue (absolute; polarity via is_credit)."""
-    return abs(float(entry.get("amount") or 0))
+    import accounting_map as amap
+    return amap.entry_amount_for_totals(entry)
 
 
 def _signed(entry: dict[str, Any], amount: float) -> float:
@@ -168,7 +170,10 @@ def iter_expense_month_amounts(
         return
     amount = float(entry.get("amount") or 0)
     if amount == 0:
-        return
+        # Still allow amount_home / amount_net-only rows.
+        import accounting_map as amap
+        if amap.entry_amount_for_totals(entry) == 0:
+            return
 
     if not entry.get("recurring"):
         if start <= horizon_end:
@@ -218,7 +223,8 @@ def expand_entries_by_month(
 
     for e in one_time:
         if e["month"] <= horizon_end:
-            by_month[e["month"]] += _signed(e, abs(float(e.get("amount") or 0)))
+            import accounting_map as amap
+            by_month[e["month"]] += _signed(e, amap.entry_amount_for_totals(e))
 
     # Group recurring commitments
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
@@ -276,7 +282,8 @@ def expand_expense_category_totals(
     for e in one_time:
         if e["month"] <= horizon_end:
             cat = (e.get("category") or "Other").strip() or "Other"
-            out[e["month"]][cat] += _signed(e, abs(float(e.get("amount") or 0)))
+            import accounting_map as amap
+            out[e["month"]][cat] += _signed(e, amap.entry_amount_for_totals(e))
 
     groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for e in recurring:
@@ -339,11 +346,12 @@ def line_items_for_period(
         if start != period or start > horizon_end:
             continue
         category = (e.get("category") or "Other").strip() or "Other"
+        import accounting_map as amap
         rows.append({
             "name": e.get("name"),
             "category": category,
             "type": (e.get("type") or "").strip().lower(),
-            "amount": float(e.get("amount") or 0),
+            "amount": amap.entry_amount_for_totals(e),
             "id": e.get("id"),
             "month": start,
             "recurring": False,

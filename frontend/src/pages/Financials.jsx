@@ -861,7 +861,12 @@ export default function Financials() {
                           {e.category}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-4 text-right font-mono text-helm-fg">{fmt(e.amount, sym)}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono text-helm-fg">
+                        {fmt(e.amount_net != null ? e.amount_net : e.amount, sym)}
+                        {e.amount_net != null && Number(e.amount_net) !== Number(e.amount) ? (
+                          <div className="text-[10px] text-helm-mute font-sans normal-case tracking-normal">net of tax</div>
+                        ) : null}
+                      </td>
                       <td className="py-2.5 pr-4">
                         {e.source === "ai_upload" && e.source_document_id ? (
                           <button

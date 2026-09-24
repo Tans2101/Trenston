@@ -14018,10 +14018,10 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     since = c.get("sap_b1_last_synced_at")
-    txns, complete, live = await sap_b1_sync.fetch_sap_transactions(live, since)
+    txns, complete, live, deleted = await sap_b1_sync.fetch_sap_transactions(live, since)
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
@@ -14102,11 +14102,25 @@ async def _upsert_accounting_sync_entries(
     principal: dict,
     txns: list,
     source: str,
+    deleted_ids: Optional[list[str]] = None,
 ) -> int:
     """Shared QuickBooks/Xero upsert into financial_entries (identical downstream shape)."""
     synced_count = 0
     now_iso = datetime.now(timezone.utc).isoformat()
     finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
+
+    for del_id in deleted_ids or []:
+        if not del_id:
+            continue
+        if del_id.endswith("_"):
+            await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": {"$regex": f"^{re.escape(del_id)}"}},
+            )
+        else:
+            await db.financial_entries.delete_one(
+                {"workspace_id": ws_id, "qb_txn_id": del_id},
+            )
+
     txn_ids = _unique_ids(t.get("qb_txn_id") for t in txns)
     existing_by_id = {}
     if txn_ids:
@@ -14116,17 +14130,30 @@ async def _upsert_accounting_sync_entries(
         ).to_list(len(txn_ids))
         existing_by_id = {e["qb_txn_id"]: e for e in existing_rows if e.get("qb_txn_id")}
 
+    home_currency = normalize_currency(
+        ((await db.workspaces.find_one({"workspace_id": ws_id}, {"_id": 0, "financial_settings": 1})) or {})
+        .get("financial_settings", {})
+        .get("currency")
+    ) or "usd"
+
     for txn in txns:
         txn.pop("_qb_raw_type", None)
         txn.pop("_xero_raw_type", None)
         txn.pop("_sap_raw_type", None)
         qb_txn_id = txn.pop("qb_txn_id")
         existing = existing_by_id.get(qb_txn_id)
+        currency = (txn.get("currency") or home_currency or "").upper() or home_currency
+        amount = txn["amount"]
+        amount_net = txn.get("amount_net") if txn.get("amount_net") is not None else amount
+        amount_home = txn.get("amount_home") if txn.get("amount_home") is not None else amount
         fields = {
             "type": txn["type"],
             "category": txn["category"],
             "name": normalize_entry_name(txn.get("name"), txn.get("category")),
-            "amount": txn["amount"],
+            "amount": amount,
+            "amount_net": amount_net,
+            "amount_home": amount_home,
+            "currency": currency,
             "is_credit": bool(txn.get("is_credit") or txn.get("is_refund")),
             "month": txn["month"],
             "note": txn.get("note", ""),
@@ -14190,10 +14217,10 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     since = c.get("qb_last_synced_at")
-    txns, complete, tokens = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    txns, complete, tokens, deleted = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
@@ -14215,10 +14242,10 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     since = c.get("xero_last_synced_at")
-    txns, complete, tokens = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    txns, complete, tokens, deleted = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:

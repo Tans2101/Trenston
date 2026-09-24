@@ -205,8 +205,8 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
     invoice_id = str(inv.get("InvoiceID") or inv.get("InvoiceNumber") or "")
     if not invoice_id:
         return None
-    # Same key as QuickBooks mapping so upsert/index/downstream stay identical.
-    qb_txn_id = f"xero_{invoice_id}_{date_full}"
+    # Stable dedupe key (no date).
+    qb_txn_id = f"xero_invoice_{invoice_id}"
 
     contact = ((inv.get("Contact") or {}) if isinstance(inv.get("Contact"), dict) else {}).get("Name") or ""
     number = inv.get("InvoiceNumber") or ""
@@ -217,6 +217,11 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
     name = (contact or line_desc or number or category).strip()[:120]
     extras = [p for p in [number, ref, line_desc] if p and p != name]
     note = " · ".join(extras)
+
+    currency = str(inv.get("CurrencyCode") or "").upper() or None
+    amount_net, _ = amap.normalize_mapped_amount(inv.get("SubTotal") if inv.get("SubTotal") is not None else amount)
+    amount_home = amap.apply_exchange_rate(amount, inv.get("CurrencyRate"))
+    money = {"currency": currency, "amount_net": amount_net, "amount_home": amount_home}
 
     if inv_type == "ACCPAY":
         return {
@@ -230,6 +235,7 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
             "qb_txn_id": qb_txn_id,
             "recurring": False,
             "_xero_raw_type": "bill",
+            **money,
         }
 
     return {
@@ -243,6 +249,7 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
         "qb_txn_id": qb_txn_id,
         "recurring": False,
         "_xero_raw_type": "invoice",
+        **money,
     }
 
 
@@ -278,6 +285,9 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
     ref = txn.get("Reference") or ""
     category = amap.fallback_category(_line_category(txn))
     name = (contact or ref or category).strip()[:120]
+    amount_net, _ = amap.normalize_mapped_amount(
+        txn.get("SubTotal") if txn.get("SubTotal") is not None else amount
+    )
     return {
         "type": "revenue" if txn_type == "RECEIVE" else "expense",
         "category": category,
@@ -286,9 +296,12 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
         "is_credit": is_credit,
         "month": month,
         "note": (ref or "")[:500],
-        "qb_txn_id": f"xero_bank_{tid}_{date_full}",
+        "qb_txn_id": f"xero_bank_{tid}",
         "recurring": False,
         "_xero_raw_type": "bank_receive" if txn_type == "RECEIVE" else "bank_spend",
+        "currency": str(txn.get("CurrencyCode") or "").upper() or None,
+        "amount_net": amount_net,
+        "amount_home": amap.apply_exchange_rate(amount, txn.get("CurrencyRate")),
     }
 
 
@@ -322,9 +335,14 @@ def map_xero_credit_note(cn: dict) -> Optional[dict]:
         "is_credit": True,
         "month": month,
         "note": (number or "")[:500],
-        "qb_txn_id": f"xero_cn_{cid}_{date_full}",
+        "qb_txn_id": f"xero_cn_{cid}",
         "recurring": False,
         "_xero_raw_type": "credit_note",
+        "currency": str(cn.get("CurrencyCode") or "").upper() or None,
+        "amount_net": amap.normalize_mapped_amount(
+            cn.get("SubTotal") if cn.get("SubTotal") is not None else amount
+        )[0],
+        "amount_home": amap.apply_exchange_rate(amount, cn.get("CurrencyRate")),
     }
 
 
@@ -386,9 +404,12 @@ def map_xero_manual_journal(mj: dict) -> list[dict]:
             "is_credit": is_credit,
             "month": month,
             "note": (narration or "")[:500],
-            "qb_txn_id": f"xero_mj_{mid}_{idx}_{date_full}",
+            "qb_txn_id": f"xero_mj_{mid}_{idx}",
             "recurring": False,
             "_xero_raw_type": "manual_journal",
+            "currency": str(mj.get("CurrencyCode") or "").upper() or None,
+            "amount_net": amount,
+            "amount_home": amap.apply_exchange_rate(amount, 1.0),
         })
     return out
 
@@ -457,29 +478,42 @@ async def _fetch_collection_once(
     result_key: str,
     where: str,
     since: Optional[str],
-    extra_headers: Optional[dict] = None,
+    include_voided: bool = False,
 ) -> tuple[list[dict], bool, Optional[int]]:
-    """Page through a Xero collection. Returns (rows, complete, failing_status)."""
-    where_full = where + _since_where_clause(since)
+    """Page through a Xero collection. Returns (rows, complete, failing_status).
+
+    Incremental sync uses If-Modified-Since (not Date filters). When include_voided
+    is True, VOIDED/DELETED rows are returned so callers can delete matching entries.
+    """
+    where_full = where
+    # Date filters only for full syncs; incremental relies on If-Modified-Since.
+    if not since:
+        where_full = where + _since_where_clause(since)
     url = f"{API_BASE}/{path}"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Xero-tenant-id": tenant_id,
         "Accept": "application/json",
-        **(extra_headers or {}),
     }
+    if since:
+        # RFC 1123 or ISO — Xero accepts ISO-8601.
+        headers["If-Modified-Since"] = since.replace("Z", "") if "T" in since else f"{since[:10]}T00:00:00"
     all_rows: list[dict] = []
     async with httpx.AsyncClient(timeout=60.0) as hc:
         for page in range(1, XERO_MAX_PAGES + 1):
-            resp = await _xero_get(
-                hc, url,
-                headers=headers,
-                params={"where": where_full, "page": page, "order": "Date ASC"} if where_full else {"page": page},
-            )
+            params: dict = {"page": page}
+            if where_full:
+                params["where"] = where_full
+                params["order"] = "Date ASC"
+            if include_voided:
+                params["includeArchived"] = "true"
+            resp = await _xero_get(hc, url, headers=headers, params=params)
             if resp.status_code == 401:
                 return [], False, 401
             if resp.status_code == 403:
                 return [], False, 403
+            if resp.status_code == 304:
+                return [], True, None
             if resp.status_code >= 500:
                 raise XeroRetryableError(
                     f"Xero {path} temporarily unavailable ({resp.status_code})"
@@ -515,11 +549,13 @@ async def _fetch_collection(
     where: str,
     since: Optional[str],
     label: str,
+    include_voided: bool = False,
 ) -> tuple[list[dict], bool, dict]:
     """Fetch a collection; on 401 force one refresh and retry once."""
     access_token = tokens.get("access_token") or ""
     rows, complete, status = await _fetch_collection_once(
-        access_token, tenant_id, path=path, result_key=result_key, where=where, since=since,
+        access_token, tenant_id, path=path, result_key=result_key, where=where,
+        since=since, include_voided=include_voided,
     )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
@@ -530,6 +566,7 @@ async def _fetch_collection(
     rows, complete, status = await _fetch_collection_once(
         tokens.get("access_token") or "", tenant_id,
         path=path, result_key=result_key, where=where, since=since,
+        include_voided=include_voided,
     )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
@@ -560,32 +597,57 @@ async def fetch_xero_transactions(
     tokens: dict,
     tenant_id: str,
     since: Optional[str] = None,
-) -> tuple[list[dict], bool, dict]:
+) -> tuple[list[dict], bool, dict, list[str]]:
     """Fetch invoices, bills, bank txns, credit notes, and manual journals.
 
-    Returns (mapped_rows, complete, tokens). Do not advance xero_last_synced_at when complete is False.
+    Returns (mapped_rows, complete, tokens, deleted_qb_txn_ids).
+    Do not advance xero_last_synced_at when complete is False.
+    Incremental runs use If-Modified-Since and also pull VOIDED/DELETED to remove
+    matching financial_entries.
     """
     if not tokens.get("access_token"):
         raise XeroAuthError("Missing access token")
 
     mapped: list[dict] = []
+    deleted: list[str] = []
     all_ok = True
 
-    accruals, a_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCREC", since)
-    payables, p_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCPAY", since)
-    all_ok = all_ok and a_ok and p_ok
-    for inv in accruals + payables:
-        row = map_xero_invoice(inv)
-        if row:
-            mapped.append(row)
+    def _collect_deletes(rows: list[dict], id_key: str, prefix: str) -> None:
+        for row in rows:
+            status = (row.get("Status") or "").upper()
+            if status in ("DELETED", "VOIDED"):
+                rid = str(row.get(id_key) or "")
+                if rid:
+                    deleted.append(f"{prefix}{rid}")
+
+    # Active docs — exclude voided/deleted/draft/submitted at query for full sync;
+    # for incremental, loosen filters so modified voided rows still arrive via IMS.
+    inv_where = (
+        'Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"'
+        if not since else ""
+    )
+    for inv_type in ("ACCREC", "ACCPAY"):
+        where = f'Type=="{inv_type}"' + (f" AND {inv_where}" if inv_where else "")
+        rows, ok, tokens = await _fetch_collection(
+            tokens, tenant_id,
+            path="Invoices", result_key="Invoices", where=where, since=since,
+            label=f"Invoices:{inv_type}", include_voided=bool(since),
+        )
+        all_ok = all_ok and ok
+        _collect_deletes(rows, "InvoiceID", "xero_invoice_")
+        for inv in rows:
+            row = map_xero_invoice(inv)
+            if row:
+                mapped.append(row)
 
     banks, b_ok, tokens = await _fetch_collection(
         tokens, tenant_id,
         path="BankTransactions", result_key="BankTransactions",
-        where='Status!="DELETED" AND Status!="VOIDED"',
-        since=since, label="BankTransactions",
+        where='Status!="DELETED" AND Status!="VOIDED"' if not since else "",
+        since=since, label="BankTransactions", include_voided=bool(since),
     )
     all_ok = all_ok and b_ok
+    _collect_deletes(banks, "BankTransactionID", "xero_bank_")
     for txn in banks:
         row = map_xero_bank_transaction(txn)
         if row:
@@ -594,10 +656,14 @@ async def fetch_xero_transactions(
     notes, n_ok, tokens = await _fetch_collection(
         tokens, tenant_id,
         path="CreditNotes", result_key="CreditNotes",
-        where='Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"',
-        since=since, label="CreditNotes",
+        where=(
+            'Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"'
+            if not since else ""
+        ),
+        since=since, label="CreditNotes", include_voided=bool(since),
     )
     all_ok = all_ok and n_ok
+    _collect_deletes(notes, "CreditNoteID", "xero_cn_")
     for cn in notes:
         row = map_xero_credit_note(cn)
         if row:
@@ -606,11 +672,16 @@ async def fetch_xero_transactions(
     journals, j_ok, tokens = await _fetch_collection(
         tokens, tenant_id,
         path="ManualJournals", result_key="ManualJournals",
-        where='Status=="POSTED"',
-        since=since, label="ManualJournals",
+        where='Status=="POSTED"' if not since else "",
+        since=since, label="ManualJournals", include_voided=bool(since),
     )
     all_ok = all_ok and j_ok
     for mj in journals:
+        status = (mj.get("Status") or "").upper()
+        mid = str(mj.get("ManualJournalID") or "")
+        if status in ("DELETED", "VOIDED", "DRAFT") and mid:
+            deleted.append(f"xero_mj_{mid}_")
+            continue
         mapped.extend(map_xero_manual_journal(mj))
 
-    return mapped, all_ok, tokens
+    return mapped, all_ok, tokens, deleted
