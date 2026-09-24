@@ -10,6 +10,8 @@ import {
 } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 
 const STATUS_META = {
   requested: { label: "Requested", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -180,6 +182,8 @@ function BlockingProductionBadge({ orders, requestId }) {
 
 export default function Procurement() {
   const { data, loading, error, reload } = useFetch("/procurement/requests");
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const moneySymbol = data?.currency_symbol || workspaceSymbol;
   const [showClosed, setShowClosed] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -622,15 +626,15 @@ export default function Procurement() {
                     (spend.gap || 0) > 0 ? "text-helm-status-negative" : "text-helm-fg",
                   )}
                 >
-                  ${Number(spend.actual || 0).toLocaleString()} actual vs $
-                  {Number(spend.budget || 0).toLocaleString()} budget
+                  {formatMoney(spend.actual, moneySymbol)} actual vs{" "}
+                  {formatMoney(spend.budget, moneySymbol)} budget
                   {(spend.gap || 0) > 0
-                    ? ` · overrun $${Number(spend.gap).toLocaleString()}`
+                    ? ` · overrun ${formatMoney(spend.gap, moneySymbol)}`
                     : ""}
                 </p>
               ) : (
                 <p className="font-mono text-xl text-helm-fg mt-1">
-                  ${Number(spend.actual || 0).toLocaleString()}
+                  {formatMoney(spend.actual, moneySymbol)}
                   <span className="text-sm text-helm-muted ml-2">no budget set</span>
                 </p>
               )}
@@ -690,8 +694,8 @@ export default function Procurement() {
                   {(spend.by_vendor || []).slice(0, 6).map((v) => (
                     <li key={v.vendor_name}>
                       <span className="text-helm-fg">{v.vendor_name}</span>
-                      {": $"}
-                      {Number(v.total || 0).toLocaleString()}
+                      {": "}
+                      {formatMoney(v.total, moneySymbol)}
                       {" · "}
                       {v.count}
                     </li>
@@ -704,8 +708,8 @@ export default function Procurement() {
                   {(spend.by_item || []).slice(0, 6).map((v) => (
                     <li key={v.item}>
                       <span className="text-helm-fg">{v.item}</span>
-                      {": $"}
-                      {Number(v.total || 0).toLocaleString()}
+                      {": "}
+                      {formatMoney(v.total, moneySymbol)}
                       {" · "}
                       {v.count}
                     </li>
@@ -1165,7 +1169,7 @@ export default function Procurement() {
                     <span className="font-medium">{s.vendor_name}</span>
                     <span className="text-helm-muted">
                       {" · "}
-                      {s.last_cost != null ? `last paid $${Number(s.last_cost).toFixed(2)}` : "no cost on file"}
+                      {s.last_cost != null ? `last paid ${formatMoney(s.last_cost, moneySymbol, { decimals: 2 })}` : "no cost on file"}
                       {`, ordered ${s.times_used}x`}
                       {s.last_ordered_at ? `, most recently ${String(s.last_ordered_at).slice(0, 10)}` : ""}
                     </span>

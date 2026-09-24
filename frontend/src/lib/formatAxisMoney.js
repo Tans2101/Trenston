@@ -1,12 +1,13 @@
 /**
  * Compact currency labels for chart axes.
- * Avoids the "$0k" trap: values under $1000 stay as dollars, not rounded /1000.
+ * Avoids the "0k" trap: values under 1000 stay whole, not rounded /1000.
+ * Callers must pass the workspace currency symbol explicitly.
  *
  * @param {number} value
- * @param {{ symbol?: string }} [opts]
+ * @param {{ symbol: string }} opts
  * @returns {string}
  */
-export function formatAxisMoney(value, { symbol = "$" } = {}) {
+export function formatAxisMoney(value, { symbol = "" } = {}) {
   const v = Number(value);
   if (!Number.isFinite(v)) return "";
 

@@ -11,6 +11,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
+import { formatMoney } from "@/lib/money";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import {
   allFinanceKpisMissing,
   financialsPanelState,
@@ -70,6 +72,8 @@ export default function BriefingCockpitHero({
     error: finError,
     reload: reloadFin,
   } = useFetch(canFin ? "/financials" : null);
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const moneySymbol = fin?.currency_symbol || workspaceSymbol;
   const [chartOffset, setChartOffset] = useState(0);
   const dark = resolvedTheme === "dark";
   const currentBar = palette.gold;
@@ -300,7 +304,7 @@ export default function BriefingCockpitHero({
                   tickLine={false}
                   axisLine={false}
                   tick={{ fill: axisStroke }}
-                  tickFormatter={(v) => formatAxisMoney(v)}
+                  tickFormatter={(v) => formatAxisMoney(v, { symbol: moneySymbol })}
                   width={48}
                 />
                 <Tooltip
@@ -317,7 +321,7 @@ export default function BriefingCockpitHero({
                   formatter={(value, name) => {
                     if (value == null) return ["—", name === "current" ? "Current month" : "Prior month"];
                     return [
-                      typeof value === "number" ? `$${Math.round(value).toLocaleString()}` : value,
+                      typeof value === "number" ? formatMoney(Math.round(value), moneySymbol) : value,
                       name === "current" ? "Current month" : "Prior month",
                     ];
                   }}

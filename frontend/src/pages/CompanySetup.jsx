@@ -12,6 +12,10 @@ import {
   FOUNDER_ROLES, COMPANY_STAGES, INDUSTRIES, TEAM_SIZES, SETUP_STEPS,
 } from "@/lib/companySetupCopy";
 import TrenstonMark from "@/components/HelmMark";
+import { CURRENCY_SYMBOLS } from "@/lib/money";
+
+// New companies are Philippines-first; the backend stores php on new workspaces.
+const DEFAULT_SETUP_CURRENCY = "php";
 
 const ROLE_ICONS = {
   CEO: Crown,
@@ -40,6 +44,7 @@ export default function CompanySetup({ company }) {
       : null,
     founded: /^\d{4}$/.test(company?.founded || "") ? company.founded : "",
     mission: company?.mission || "",
+    currency: CURRENCY_SYMBOLS[company?.currency] ? company.currency : DEFAULT_SETUP_CURRENCY,
   });
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
@@ -113,6 +118,7 @@ export default function CompanySetup({ company }) {
         founded: form.founded,
         mission: form.mission.trim(),
         founder_title: form.founder_title,
+        currency: form.currency,
         company_setup_done: true,
       });
       window.location.href = "/app";
@@ -281,6 +287,27 @@ export default function CompanySetup({ company }) {
                           )}
                         >
                           {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-helm-muted mb-2">Reporting currency</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(CURRENCY_SYMBOLS).map(([code, symbol]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          data-testid={`currency-${code}`}
+                          onClick={() => set("currency", code)}
+                          className={cn(
+                            "rounded-full px-3 py-1.5 text-xs transition-colors border font-mono",
+                            form.currency === code
+                              ? "border-helm-gold/35 bg-helm-gold/12 text-helm-gold"
+                              : "border-helm-line text-helm-muted hover:border-helm-fg/20 hover:text-helm-fg",
+                          )}
+                        >
+                          {code.toUpperCase()} ({symbol})
                         </button>
                       ))}
                     </div>

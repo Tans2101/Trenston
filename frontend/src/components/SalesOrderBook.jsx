@@ -8,13 +8,8 @@ import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ErrorScreen } from "@/components/kit";
 import { thisMonthISO } from "@/lib/dates";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
-
-const money = (n) => {
-  const v = Number(n) || 0;
-  if (v >= 1000000) return `$${(v / 1000000).toFixed(v >= 10000000 ? 0 : 1)}M`;
-  if (v >= 1000) return `$${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
-  return `$${v.toLocaleString()}`;
-};
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 
 const emptyEntry = () => ({
   buyer_name: "",
@@ -56,6 +51,9 @@ function formatCloseMonth(ym) {
 export default function SalesOrderBook() {
   const { data, loading, error, reload } = useFetch("/sales/order-book");
   const tz = useWorkspaceTimezone();
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const symbol = data?.currency_symbol || workspaceSymbol;
+  const money = (n) => formatMoney(n, symbol, { compact: true });
   const [filterCountry, setFilterCountry] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [adding, setAdding] = useState(false);

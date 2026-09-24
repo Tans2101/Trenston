@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 
 import integrations_catalog as integ_catalog
 import tz_utils
+from money_fmt import CURRENCY_SYMBOLS
+
+# New workspaces are Philippines-first; legacy docs without a currency stay usd.
+NEW_WORKSPACE_CURRENCY = "php"
 
 
 def gen_join_code() -> str:
@@ -57,7 +61,7 @@ def sample_financial_entries(workspace_id):
     return entries
 
 
-def build_workspace(workspace_id, name, owner_user_id, empty=False):
+def build_workspace(workspace_id, name, owner_user_id, empty=False, currency=None):
     telemetry = {
         "kpis": [
             {"label": "MRR", "value": "$248K", "unit": "", "delta": 8.4, "tone": "positive", "spark": [188, 196, 205, 214, 229, 248]},
@@ -183,7 +187,11 @@ def build_workspace(workspace_id, name, owner_user_id, empty=False):
             "cash": None if empty else 3100000,
             "cash_entered": not empty,
             "gross_margin": None if empty else 74,
-            "currency": "usd",
+            "currency": (
+                currency.strip().lower()
+                if isinstance(currency, str) and currency.strip().lower() in CURRENCY_SYMBOLS
+                else NEW_WORKSPACE_CURRENCY
+            ),
         },
         "briefing": briefing, "decisions": decisions, "telemetry": telemetry,
         "tasks": tasks, "reports": [], "manual_reports": ([] if empty else reports), "team": team, "calendar": calendar,

@@ -21,6 +21,7 @@ import decision_engine
 import maintenance_ops as maint_ops
 import procurement_spend as proc_spend
 import sales_order_book as sales_ob
+import money_fmt
 import tz_utils
 
 logger = logging.getLogger("helm.dept_ops")
@@ -151,6 +152,13 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         )
         return tz_utils.workspace_today(ws)
 
+    async def _currency_fields(principal: dict) -> dict:
+        ws = await db.workspaces.find_one(
+            {"workspace_id": principal["workspace_id"]}, {"_id": 0, "financial_settings.currency": 1},
+        ) or {}
+        code = money_fmt.normalize_currency((ws.get("financial_settings") or {}).get("currency"))
+        return {"currency": code, "currency_symbol": money_fmt.currency_symbol(code)}
+
     async def _sales_department(principal: dict) -> dict:
         doc = await dept_migrate.get_enabled_department(
             db, principal["workspace_id"], dept_catalog.TYPE_SALES,
@@ -222,6 +230,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             "is_ceo": dept_access.is_workspace_ceo(principal),
             "is_lead": is_lead,
             "my_user_id": principal["user_id"],
+            **(await _currency_fields(principal)),
         }
 
     @api_router.get("/sales/order-book/summary")
@@ -889,7 +898,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             {"_id": 0},
         ).sort("created_at", -1).to_list(500)
         overhead = await _maint_overhead(dept, principal["workspace_id"])
-        return {"costs": rows, "overhead": overhead, "month": month}
+        return {"costs": rows, "overhead": overhead, "month": month, **(await _currency_fields(principal))}
 
     @api_router.post("/maintenance/costs")
     async def create_maintenance_cost(payload: MaintCostCreate, principal=Depends(get_principal)):

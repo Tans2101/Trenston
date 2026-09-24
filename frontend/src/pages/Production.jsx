@@ -11,6 +11,8 @@ import {
 import { cn } from "@/lib/utils";
 import { todayISO } from "@/lib/dates";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 
 const STATUS_META = {
@@ -218,6 +220,8 @@ export default function Production() {
   const { data, loading, error, reload } = useFetch("/production/work-orders");
   const { data: membersData } = useFetch("/members");
   const tz = useWorkspaceTimezone();
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const moneySymbol = data?.currency_symbol || workspaceSymbol;
   const [showClosed, setShowClosed] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -751,7 +755,7 @@ export default function Production() {
           <p className={cn("font-mono text-xl mt-1", overtimeWeek?.has_data ? "text-helm-fg" : "text-helm-muted")}>
             {overtimeWeek?.has_data
               ? (overtimeWeek.overtime_cost != null
-                ? `$${Number(overtimeWeek.overtime_cost).toLocaleString()}`
+                ? formatMoney(overtimeWeek.overtime_cost, moneySymbol)
                 : `${formatQty(overtimeWeek.overtime_hours)}h`)
               : "No data logged"}
           </p>
@@ -785,7 +789,7 @@ export default function Production() {
           ) : (
             <p className={cn("font-mono text-xl mt-1", data?.overtime_rate_per_hour != null ? "text-helm-fg" : "text-helm-muted")}>
               {data?.overtime_rate_per_hour != null
-                ? `$${Number(data.overtime_rate_per_hour).toLocaleString()}`
+                ? formatMoney(data.overtime_rate_per_hour, moneySymbol)
                 : "Not set"}
             </p>
           )}
@@ -1128,7 +1132,7 @@ export default function Production() {
                     ? `Cum. ${formatQty((dailyRollup || selected.daily_rollup).cumulative_actual)} / ${formatQty((dailyRollup || selected.daily_rollup).cumulative_target)} ${(draft.unit || "").trim()}`
                     : "No data logged"}
                   {(dailyRollup || selected.daily_rollup)?.overtime_cost != null
-                    ? ` · OT $${Number((dailyRollup || selected.daily_rollup).overtime_cost).toLocaleString()}`
+                    ? ` · OT ${formatMoney((dailyRollup || selected.daily_rollup).overtime_cost, moneySymbol)}`
                     : (dailyRollup || selected.daily_rollup)?.overtime_hours != null
                       ? ` · OT ${formatQty((dailyRollup || selected.daily_rollup).overtime_hours)}h`
                       : ""}
@@ -1266,7 +1270,7 @@ export default function Production() {
                         </td>
                         <td className="py-1.5 pr-2 text-helm-muted">
                           {log.overtime_hours != null
-                            ? `${formatQty(log.overtime_hours)}h${log.overtime_cost != null ? ` · $${log.overtime_cost}` : ""}`
+                            ? `${formatQty(log.overtime_hours)}h${log.overtime_cost != null ? ` · ${formatMoney(log.overtime_cost, moneySymbol, { decimals: 2 })}` : ""}`
                             : "—"}
                         </td>
                         {draft.yield_tracking_enabled && (

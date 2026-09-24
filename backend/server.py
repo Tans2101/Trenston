@@ -3413,6 +3413,8 @@ async def company(principal=Depends(get_principal)):
         "has_team": decision_engine.workspace_has_team(c),
         "logo_url": c.get("logo_url") or None,
         "timezone": tz_utils.workspace_tz_name(c),
+        "currency": normalize_currency((c.get("financial_settings") or {}).get("currency")),
+        "currency_symbol": currency_symbol((c.get("financial_settings") or {}).get("currency")),
     }
 
 
@@ -3438,6 +3440,7 @@ class CompanySetupInput(BaseModel):
     # Separate from employees — headcount ≠ decision-makers they can delegate to.
     has_team: Optional[bool] = None
     timezone: Optional[str] = None  # IANA, default Asia/Manila
+    currency: Optional[str] = None  # money_fmt.CURRENCY_SYMBOLS code, e.g. php
     company_setup_done: bool = True
 
 
@@ -3486,11 +3489,18 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
         if not tz_utils.is_valid_timezone(tz_name):
             raise HTTPException(status_code=400, detail="Choose a valid timezone")
         updates["timezone"] = tz_name
+    if payload.currency is not None:
+        code = (payload.currency or "").strip().lower()
+        if code not in CURRENCY_SYMBOLS:
+            raise HTTPException(status_code=400, detail="Choose a supported currency")
+        updates["financial_settings.currency"] = code
     if payload.company_setup_done:
         updates["company_setup_done"] = True
     if not updates:
         raise HTTPException(status_code=400, detail="No changes provided")
     await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": updates})
+    if "financial_settings.currency" in updates:
+        invalidate_financials_cache(principal["workspace_id"])
     return {"ok": True}
 
 
@@ -3571,7 +3581,10 @@ async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
     current = await get_ws(ws_id)
     if (current.get("template") or "") != "sample":
         raise HTTPException(status_code=400, detail="This workspace is not using sample data")
-    fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=True)
+    fresh = build_workspace(
+        ws_id, current["name"], principal["user_id"], empty=True,
+        currency=(current.get("financial_settings") or {}).get("currency"),
+    )
     update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
     for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
         if key in current:
@@ -3611,7 +3624,10 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
                     "Pass confirm_destructive=true to proceed."
                 ),
             )
-        fresh = build_workspace(ws_id, current["name"], principal["user_id"], empty=False)
+        fresh = build_workspace(
+            ws_id, current["name"], principal["user_id"], empty=False,
+            currency=(current.get("financial_settings") or {}).get("currency"),
+        )
         update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
         # Replace only seed + manual rows; synced ledgers are never touched.
@@ -4127,6 +4143,15 @@ async def _workspace_tz_doc(workspace_id: str) -> dict:
     return (
         await db.workspaces.find_one({"workspace_id": workspace_id}, {"_id": 0, "timezone": 1})
     ) or {}
+
+
+async def _workspace_currency_fields(workspace_id: str) -> dict:
+    """currency + currency_symbol for page payloads (legacy docs without a currency -> usd)."""
+    ws = await db.workspaces.find_one(
+        {"workspace_id": workspace_id}, {"_id": 0, "financial_settings.currency": 1},
+    ) or {}
+    code = normalize_currency((ws.get("financial_settings") or {}).get("currency"))
+    return {"currency": code, "currency_symbol": currency_symbol(code)}
 
 
 async def _workspace_today_iso(workspace_id: str) -> str:
@@ -9902,6 +9927,7 @@ async def list_production_work_orders(
         "overtime_rate_per_hour": overtime_rate,
         "common_units": list(prod_daily.COMMON_UNITS),
     }
+    payload_out.update(await _workspace_currency_fields(principal["workspace_id"]))
     simple_cache.put(cache_key, payload_out, _DEPT_LIST_CACHE_TTL_SECONDS)
     return payload_out
 
@@ -10670,6 +10696,7 @@ async def list_procurement_requests(
         "monthly_budget": dept.get("monthly_budget"),
         "monthly_budget_entered": bool(dept.get("monthly_budget_entered")),
     }
+    payload_out.update(await _workspace_currency_fields(principal["workspace_id"]))
     simple_cache.put(cache_key, payload_out, _DEPT_LIST_CACHE_TTL_SECONDS)
     return payload_out
 
@@ -11787,6 +11814,7 @@ async def list_maintenance_tickets(
         "can_delete": is_lead,
         "my_user_id": principal["user_id"],
     }
+    payload_out.update(await _workspace_currency_fields(principal["workspace_id"]))
     simple_cache.put(cache_key, payload_out, _DEPT_LIST_CACHE_TTL_SECONDS)
     return payload_out
 

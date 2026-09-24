@@ -6,8 +6,9 @@ import { useFetch } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ConfirmDialog } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 
-const money = (n) => `$${(Number(n) || 0).toLocaleString()}`;
 
 /** equipment_names may be missing/legacy — never call .filter on a non-array. */
 function spareEquipmentLabel(s) {
@@ -47,6 +48,9 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
   const [pendingDelete, setPendingDelete] = useState(null);
 
   const overhead = ticketData?.overhead || costsQ.data?.overhead || settingsQ.data?.overhead;
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const symbol = ticketData?.currency_symbol || costsQ.data?.currency_symbol || workspaceSymbol;
+  const money = (n) => formatMoney(n, symbol);
   const canManage = Boolean(
     ticketData?.is_lead || ticketData?.is_ceo || settingsQ.data?.can_manage
     || sparesQ.data?.is_lead || sparesQ.data?.is_ceo,

@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
 import { thisMonthISO } from "@/lib/dates";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 import palette from "@/design/palette.json";
 
 const GOLD = palette.gold;
@@ -33,9 +35,9 @@ const CURRENCY_OPTIONS = [
   { code: "inr", label: "INR (₹)" },
 ];
 
-const fmt = (n, sym = "$") => `${sym}${Number(n || 0).toLocaleString()}`;
+const fmt = (n, sym) => formatMoney(n, sym);
 
-function ChartTooltip({ active, payload, label, symbol = "$" }) {
+function ChartTooltip({ active, payload, label, symbol }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md border border-helm-line bg-helm-card px-3 py-2 text-xs">
@@ -76,6 +78,7 @@ export default function Financials() {
   const { data, loading, error, reload } = useFetch("/financials");
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
   const tz = useWorkspaceTimezone();
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(() => emptyForm(tz));
   const [busy, setBusy] = useState(false);
@@ -326,7 +329,7 @@ export default function Financials() {
   const hasAccountingSync = Boolean(accounting.connected);
   const accountingLabel = accounting.label || "your accounting system";
   const finActs = (activityData?.items || activityData?.activities || []).filter((a) => a.module === "financials").slice(0, 5);
-  const sym = data.currency_symbol || "$";
+  const sym = data.currency_symbol || workspaceSymbol;
 
   const findLikelySyncedDuplicate = (payload) => {
     const amount = Number(payload.amount);

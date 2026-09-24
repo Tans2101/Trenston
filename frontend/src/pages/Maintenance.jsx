@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import MaintenanceOpsPanels from "@/components/MaintenanceOpsPanels";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 
 const STATUS_META = {
   reported: { label: "Reported", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -87,6 +89,8 @@ function formatTicketOpenHours(seconds) {
 
 export default function Maintenance() {
   const { data, loading, error, reload } = useFetch("/maintenance/tickets");
+  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const moneySymbol = data?.currency_symbol || workspaceSymbol;
   const { data: membersData } = useFetch("/members");
   const [showResolved, setShowResolved] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -375,9 +379,9 @@ export default function Maintenance() {
           <p className="text-[10px] font-mono uppercase text-helm-muted">Overhead</p>
           <p className="font-mono text-sm text-helm-fg mt-1">
             {data?.overhead?.budget_entered
-              ? `$${Number(data.overhead.actual || 0).toLocaleString()} / $${Number(data.overhead.budget || 0).toLocaleString()}`
+              ? `${formatMoney(data.overhead.actual, moneySymbol)} / ${formatMoney(data.overhead.budget, moneySymbol)}`
               : data?.overhead
-                ? `$${Number(data.overhead.actual || 0).toLocaleString()} · no budget`
+                ? `${formatMoney(data.overhead.actual, moneySymbol)} · no budget`
                 : "—"}
           </p>
         </div>

@@ -10,6 +10,7 @@ import DocumentStamp, { stampLabelForLine } from "@/components/DocumentStamp";
 import ReportsDailyDigest from "@/components/ReportsDailyDigest";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import { cn } from "@/lib/utils";
+import { currencySymbol, formatMoney } from "@/lib/money";
 
 const emptyReport = () => ({ title: "", type: "General", period: "", summary: "", metrics: [{ label: "", value: "" }, { label: "", value: "" }, { label: "", value: "" }] });
 
@@ -609,10 +610,9 @@ function InlineText({ children }) {
 }
 
 
-function formatExportMoney(n, currency = "usd") {
+function formatExportMoney(n, currency) {
   if (n === null || n === undefined) return "—";
-  const sym = currency === "gbp" ? "£" : currency === "eur" ? "€" : "$";
-  return `${sym}${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatMoney(n, currencySymbol(currency), { decimals: 2 });
 }
 
 function LedgerRow({ label, value, stamp, strong }) {

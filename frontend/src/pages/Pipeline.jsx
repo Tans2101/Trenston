@@ -12,6 +12,8 @@ import { FETCH_STALE_MS, fetchErrorMessage } from "@/hooks/useFetch";
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import SalesOrderBook from "@/components/SalesOrderBook";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
+import { formatMoney } from "@/lib/money";
 
 const stageStyle = {
   lead: "text-helm-fg bg-helm-fg/5",
@@ -21,7 +23,7 @@ const stageStyle = {
   won: "text-helm-fg bg-helm-status-positive/12",
   lost: "text-helm-status-negative bg-helm-status-negative/12",
 };
-const money = (n, sym = "$") => sym + (n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : n);
+const money = (n, sym) => formatMoney(n, sym, { compact: true });
 const emptyForm = (defaults = {}) => ({
   name: "",
   company: "",
@@ -43,6 +45,7 @@ function ownerLabel(owner) {
 
 export default function Pipeline() {
   const queryClient = useQueryClient();
+  const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
   const [extraDeals, setExtraDeals] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -88,8 +91,8 @@ export default function Pipeline() {
         sales_owners: dealsQuery.data.sales_owners || [],
         metrics: dealsQuery.data.metrics,
         stages: dealsQuery.data.stages,
-        currency: dealsQuery.data.currency || "usd",
-        currency_symbol: dealsQuery.data.currency_symbol || "$",
+        currency: dealsQuery.data.currency || workspaceCurrency,
+        currency_symbol: dealsQuery.data.currency_symbol || workspaceSymbol,
       }
     : null;
 
@@ -141,7 +144,7 @@ export default function Pipeline() {
   const myId = meta.my_user_id;
   const salesOwners = meta.sales_owners || [];
   const m = meta.metrics;
-  const sym = meta.currency_symbol || "$";
+  const sym = meta.currency_symbol || workspaceSymbol;
 
   const maybeOfferProduction = (res) => {
     if (res?.production_prompt && res?.production_prefill) {
