@@ -89,9 +89,10 @@ def warn_if_qb_env_missing_in_prod() -> Optional[str]:
     if not _is_prod_like():
         return None
     msg = (
-        "CRITICAL: QUICKBOOKS_ENV / QB_ENVIRONMENT is not set in a production-like "
-        "environment (RENDER/ENVIRONMENT/PROD). Defaulting to sandbox would hit the "
-        "wrong Intuit host — set QUICKBOOKS_ENV=production (or sandbox) explicitly."
+        "CRITICAL: QuickBooks environment not set (QUICKBOOKS_ENV / QB_ENVIRONMENT) in a "
+        "production-like environment (RENDER/ENVIRONMENT/PROD). The sandbox default is "
+        "not used for API calls here (production host is forced) — set QUICKBOOKS_ENV="
+        "production (or sandbox) explicitly."
     )
     logger.error(msg)
     return msg
@@ -105,13 +106,15 @@ def qb_env_diagnostics() -> dict:
             "QUICKBOOKS_ENV / QB_ENVIRONMENT is unset in production-like env; "
             "refusing silent sandbox default — set the variable explicitly."
         )
+    # Boolean flag for the owner diagnostics; the text stays in *_detail.
     return {
         "quickbooks_env": QB_ENVIRONMENT if QB_ENV_EXPLICITLY_SET else (
             "unset (would default to sandbox)" if _is_prod_like() else "sandbox (default)"
         ),
         "quickbooks_env_explicit": QB_ENV_EXPLICITLY_SET,
         "quickbooks_minorversion": QB_MINOR_VERSION,
-        "quickbooks_env_warning": warning,
+        "quickbooks_env_warning": bool(warning),
+        "quickbooks_env_warning_detail": warning,
         # Always report the real base used by queries (prod-like unset → production host,
         # never silent sandbox). Warning above tells ops to set the env explicitly.
         "quickbooks_api_base": _api_base(),
@@ -310,8 +313,30 @@ def map_qb_transaction(txn: dict, txn_type: str) -> Optional[dict]:
     }
 
 
-def map_qb_journal_entry(txn: dict) -> list[dict]:
-    """Map JournalEntry P&L lines only; PostingType sets credit/debit polarity."""
+def _account_classification(
+    detail: dict, account: dict, account_classes: Optional[dict[str, str]],
+) -> str:
+    """'revenue' | 'expense' | '' for a JE line.
+
+    Prefer the Account entity's Classification (looked up once per sync by Id);
+    fall back to an inline AccountType when a payload carries one.
+    """
+    acct_id = str(account.get("value") or "")
+    if account_classes and acct_id in account_classes:
+        cls = (account_classes[acct_id] or "").strip().lower()
+        return cls if cls in ("revenue", "expense") else ""
+    account_type = detail.get("AccountType") or account.get("type") or account.get("AccountType") or ""
+    if not _is_pl_account_type(str(account_type)):
+        return ""
+    return "revenue" if _norm_account_type(str(account_type)) in ("income", "otherincome") else "expense"
+
+
+def map_qb_journal_entry(txn: dict, account_classes: Optional[dict[str, str]] = None) -> list[dict]:
+    """Map JournalEntry lines on Revenue/Expense accounts only, one row per line.
+
+    Revenue accounts: Credit is +, Debit is a credit (reduces revenue).
+    Expense accounts: Debit is +, Credit is a credit (reduces expense).
+    """
     import accounting_map as amap
 
     je_id = str(txn.get("Id") or "")
@@ -327,20 +352,14 @@ def map_qb_journal_entry(txn: dict) -> list[dict]:
             continue
         detail = line.get("JournalEntryLineDetail") or {}
         account = detail.get("AccountRef") or {}
-        account_type = (
-            detail.get("AccountType")
-            or account.get("type")
-            or account.get("AccountType")
-            or ""
-        )
-        if not _is_pl_account_type(str(account_type)):
+        classification = _account_classification(detail, account, account_classes)
+        if not classification:
             continue
         amount, _ = amap.normalize_mapped_amount(line.get("Amount"))
         if amount <= 0:
             continue
         posting = (detail.get("PostingType") or "").strip().lower()
-        acct_norm = _norm_account_type(str(account_type))
-        is_income = acct_norm in ("income", "otherincome")
+        is_income = classification == "revenue"
         # Debit to expense increases expense; Credit to expense is a credit.
         # Credit to income increases revenue; Debit to income is a credit against revenue.
         if is_income:
@@ -527,15 +546,24 @@ async def fetch_qb_transactions(
 
     mapped: list[dict] = []
     all_complete = True
+    account_classes: Optional[dict[str, str]] = None
     for entity, kind in QB_SYNC_ENTITIES:
         rows, complete, tokens = await _query_qb(tokens, realm_id, entity, since)
         all_complete = all_complete and complete
         if kind == "journal_entry":
+            if rows and account_classes is None:
+                # One full Account read per sync; cached by Id for every JE line.
+                accounts, acct_complete, tokens = await _query_qb(tokens, realm_id, "Account", None)
+                all_complete = all_complete and acct_complete
+                account_classes = {
+                    str(a.get("Id")): str(a.get("Classification") or "")
+                    for a in accounts if a.get("Id") is not None
+                }
             for je in rows:
                 # Skip voided journal entries when status is present.
                 if str(je.get("TxnStatus") or "").lower() == "voided":
                     continue
-                mapped.extend(map_qb_journal_entry(je))
+                mapped.extend(map_qb_journal_entry(je, account_classes))
             continue
         for row in rows:
             if str(row.get("TxnStatus") or "").lower() == "voided":
@@ -546,3 +574,7 @@ async def fetch_qb_transactions(
 
     deleted, tokens = await _cdc_deleted_ids(tokens, realm_id, since)
     return mapped, all_complete, tokens, deleted
+
+
+# Loud at import when a production host has no explicit QuickBooks environment.
+warn_if_qb_env_missing_in_prod()
