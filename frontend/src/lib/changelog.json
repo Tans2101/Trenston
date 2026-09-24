@@ -2,6 +2,11 @@
   "intro": "What actually shipped, not a roadmap. One summary per day in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
     {
+      "date": "2026-09-24",
+      "title": "Sturdier integrations, home currency and timezone, Ask memory",
+      "description": "QuickBooks, Xero, and SAP Business One keep syncing through temporary blips instead of disconnecting you, pick up voids and deletions, and roll totals in your workspace home currency as net amounts (tax and foreign currency handled consistently, no hardcoded dollar signs). Google Calendar and Gmail are one Google Workspace connection: events follow your workspace timezone, and Gmail drafts land with cleaner headers. Slack webhooks are stored more safely, and integration errors show plain customer-safe messages. Clearing sample data no longer risks wiping real records. Ask Trenston keeps conversation memory across turns and distinguishes errors from interruptions. Leftover Helm labels in settings and integrations now say Trenston. In the same ship window: Briefing keeps what you already see when a background refetch fails and respects finance loading and access; homepage marketing copy dropped em dashes for plain commas; and billing and plan language says users instead of seats."
+    },
+    {
       "date": "2026-09-22",
       "title": "Briefing polish, light-mode surfaces, and a quieter sidebar",
       "description": "Briefing charts no longer label every y-axis tick as $0k — small ranges show real dollars, and the current-period bars use brand gold in both themes. Empty finance KPIs and “Not tracked” department cards became actionable add prompts instead of underlined fake links; status dots follow one healthy / attention / alert / empty system with a short legend. Light mode keeps a pure white page canvas while cards sit on a barely-off-white lift so panels separate without cream; Active stays only on the top-bar pill, nav digit shortcuts read as hover hints, and the selected sidebar item uses a soft gold tint instead of a solid white pill. Also shipped the vertical cir-tabs sidebar rail, CirNote toasts for Gmail AI drafts, and clearer delete / danger-confirm patterns across the app."
