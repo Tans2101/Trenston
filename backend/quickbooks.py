@@ -18,9 +18,14 @@ logger = logging.getLogger(__name__)
 
 QB_CLIENT_ID = (os.environ.get("QUICKBOOKS_CLIENT_ID") or "").strip()
 QB_CLIENT_SECRET = (os.environ.get("QUICKBOOKS_CLIENT_SECRET") or "").strip()
-QB_ENVIRONMENT = (
-    os.environ.get("QB_ENVIRONMENT") or os.environ.get("QUICKBOOKS_ENV") or "sandbox"
-).strip().lower()
+
+# Official Intuit Accounting API: minor versions 1–74 retired Aug 2025; use 75+.
+# https://developer.intuit.com/app/developer/qbo/docs/learn/explore-the-quickbooks-online-api/minor-versions
+QB_MINOR_VERSION = 75
+
+_QB_ENV_RAW = (os.environ.get("QB_ENVIRONMENT") or os.environ.get("QUICKBOOKS_ENV") or "").strip()
+QB_ENV_EXPLICITLY_SET = bool(_QB_ENV_RAW)
+QB_ENVIRONMENT = (_QB_ENV_RAW or "sandbox").strip().lower()
 
 TOKEN_URL = "https://oauth2.platform.intuit.com/oauth2/v1/tokens/bearer"
 API_BASE = (
@@ -28,6 +33,27 @@ API_BASE = (
     if QB_ENVIRONMENT == "sandbox"
     else "https://quickbooks.api.intuit.com"
 )
+
+# Entities synced into financial_entries (entity API name → mapper kind).
+QB_SYNC_ENTITIES: tuple[tuple[str, str], ...] = (
+    ("Invoice", "invoice"),
+    ("SalesReceipt", "sales_receipt"),
+    ("CreditMemo", "credit_memo"),
+    ("RefundReceipt", "refund_receipt"),
+    ("Purchase", "purchase"),
+    ("Bill", "bill"),
+    ("VendorCredit", "vendor_credit"),
+    ("JournalEntry", "journal_entry"),
+)
+
+_PL_ACCOUNT_TYPES = frozenset({
+    "income",
+    "otherincome",
+    "expense",
+    "otherexpense",
+    "costofgoodssold",
+    "cogs",
+})
 
 
 class QuickBooksAuthError(Exception):
@@ -38,7 +64,58 @@ class QuickBooksRetryableError(IntegrationRetryableError):
     """Transient Intuit/network failure — keep tokens."""
 
 
+def _is_prod_like() -> bool:
+    env = (os.environ.get("ENVIRONMENT") or "").strip().lower()
+    if env in ("production", "prod"):
+        return True
+    if os.environ.get("RENDER"):
+        return True
+    if (os.environ.get("PROD") or "").strip().lower() in ("1", "true", "yes"):
+        return True
+    return False
+
+
+def warn_if_qb_env_missing_in_prod() -> Optional[str]:
+    """Log a loud warning when production would silently default to sandbox.
+
+    Returns the warning message when applicable (also for diagnostics).
+    """
+    if QB_ENV_EXPLICITLY_SET:
+        return None
+    if not _is_prod_like():
+        return None
+    msg = (
+        "CRITICAL: QUICKBOOKS_ENV / QB_ENVIRONMENT is not set in a production-like "
+        "environment (RENDER/ENVIRONMENT/PROD). Defaulting to sandbox would hit the "
+        "wrong Intuit host — set QUICKBOOKS_ENV=production (or sandbox) explicitly."
+    )
+    logger.error(msg)
+    return msg
+
+
+def qb_env_diagnostics() -> dict:
+    """Safe fields for Integrations diagnostics."""
+    warning = None
+    if not QB_ENV_EXPLICITLY_SET and _is_prod_like():
+        warning = (
+            "QUICKBOOKS_ENV / QB_ENVIRONMENT is unset in production-like env; "
+            "refusing silent sandbox default — set the variable explicitly."
+        )
+    return {
+        "quickbooks_env": QB_ENVIRONMENT if QB_ENV_EXPLICITLY_SET else (
+            "unset (would default to sandbox)" if _is_prod_like() else "sandbox (default)"
+        ),
+        "quickbooks_env_explicit": QB_ENV_EXPLICITLY_SET,
+        "quickbooks_minorversion": QB_MINOR_VERSION,
+        "quickbooks_env_warning": warning,
+        "quickbooks_api_base": _api_base() if QB_ENV_EXPLICITLY_SET or not _is_prod_like() else "(blocked: set QUICKBOOKS_ENV)",
+    }
+
+
 def _api_base() -> str:
+    # In production-like hosts, never silently use sandbox when env is unset.
+    if not QB_ENV_EXPLICITLY_SET and _is_prod_like():
+        return "https://quickbooks.api.intuit.com"
     return API_BASE
 
 
@@ -86,7 +163,13 @@ async def refresh_qb_token(tokens: dict, *, force: bool = False) -> dict:
 
 def _line_category(txn: dict) -> str:
     for line in txn.get("Line") or []:
-        detail = line.get("AccountBasedExpenseLineDetail") or line.get("SalesItemLineDetail") or {}
+        detail = (
+            line.get("AccountBasedExpenseLineDetail")
+            or line.get("SalesItemLineDetail")
+            or line.get("ItemBasedExpenseLineDetail")
+            or line.get("JournalEntryLineDetail")
+            or {}
+        )
         account = detail.get("AccountRef") or detail.get("ItemRef") or {}
         name = account.get("name")
         if name:
@@ -94,53 +177,143 @@ def _line_category(txn: dict) -> str:
     return ""
 
 
-def map_qb_transaction(txn: dict, txn_type: str) -> dict:
-    """Map a QuickBooks Purchase or Invoice to financial_entries fields."""
-    import accounting_map as amap
+def _norm_account_type(raw: str) -> str:
+    return "".join(ch for ch in (raw or "").lower() if ch.isalnum())
 
+
+def _is_pl_account_type(account_type: str) -> bool:
+    return _norm_account_type(account_type) in _PL_ACCOUNT_TYPES
+
+
+def _base_mapped_fields(txn: dict, *, qb_id: str, amount: float, is_credit: bool) -> dict:
     txn_date_full = str(txn.get("TxnDate") or "")
     month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
+    return {
+        "amount": amount,
+        "is_credit": is_credit,
+        "month": month,
+        "qb_txn_id": f"{qb_id}_{txn_date_full}",
+        "recurring": False,
+    }
+
+
+def map_qb_transaction(txn: dict, txn_type: str) -> Optional[dict]:
+    """Map a QuickBooks transaction to financial_entries fields.
+
+    Polarity:
+    - Revenue: Invoice, SalesReceipt
+    - Credits against revenue: CreditMemo, RefundReceipt (is_credit=True)
+    - Expenses: Purchase, Bill
+    - Credits against expenses: VendorCredit; Purchase with Credit=true (refund)
+    - JournalEntry: expanded via map_qb_journal_entry (P&L lines only)
+    """
+    import accounting_map as amap
+
+    if txn_type == "journal_entry":
+        return None  # handled by map_qb_journal_entry
+
     amount, is_credit = amap.normalize_mapped_amount(txn.get("TotalAmt"))
     qb_id = str(txn.get("Id") or "")
-    qb_txn_id = f"{qb_id}_{txn_date_full}"
+    if not qb_id or amount <= 0:
+        return None
 
-    if txn_type == "purchase":
-        vendor = (txn.get("EntityRef") or {}).get("name") or ""
-        memo = txn.get("PrivateNote") or ""
-        category = amap.fallback_category(_line_category(txn))
+    # Purchase Credit:true is a vendor refund / credit card credit.
+    if txn_type == "purchase" and bool(txn.get("Credit")):
+        is_credit = True
+
+    # Explicit credit documents always reduce the related P&L bucket.
+    if txn_type in ("credit_memo", "refund_receipt", "vendor_credit"):
+        is_credit = True
+
+    category = amap.fallback_category(_line_category(txn))
+    memo = txn.get("PrivateNote") or ""
+    doc = txn.get("DocNumber") or ""
+    base = _base_mapped_fields(txn, qb_id=qb_id, amount=amount, is_credit=is_credit)
+
+    if txn_type in ("purchase", "bill", "vendor_credit"):
+        vendor = (
+            (txn.get("EntityRef") or {}).get("name")
+            or (txn.get("VendorRef") or {}).get("name")
+            or ""
+        )
         name = (vendor or memo or category).strip()[:120]
-        extras = [p for p in [memo] if p and p != name]
-        note = " · ".join(extras) if extras else ""
+        extras = [p for p in [doc, memo] if p and p != name]
         return {
+            **base,
             "type": "expense",
+            "category": category,
+            "name": name,
+            "note": " · ".join(extras)[:500],
+        }
+
+    # invoice, sales_receipt, credit_memo, refund_receipt
+    customer = (txn.get("CustomerRef") or {}).get("name") or ""
+    name = (customer or doc or category).strip()[:120]
+    extras = [p for p in [doc, memo] if p and p != name]
+    return {
+        **base,
+        "type": "revenue",
+        "category": category,
+        "name": name,
+        "note": " · ".join(extras)[:500],
+    }
+
+
+def map_qb_journal_entry(txn: dict) -> list[dict]:
+    """Map JournalEntry P&L lines only; PostingType sets credit/debit polarity."""
+    import accounting_map as amap
+
+    je_id = str(txn.get("Id") or "")
+    if not je_id:
+        return []
+    txn_date_full = str(txn.get("TxnDate") or "")
+    month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
+    out: list[dict] = []
+    for line in txn.get("Line") or []:
+        if not isinstance(line, dict):
+            continue
+        if (line.get("DetailType") or "") != "JournalEntryLineDetail":
+            continue
+        detail = line.get("JournalEntryLineDetail") or {}
+        account = detail.get("AccountRef") or {}
+        account_type = (
+            detail.get("AccountType")
+            or account.get("type")
+            or account.get("AccountType")
+            or ""
+        )
+        if not _is_pl_account_type(str(account_type)):
+            continue
+        amount, _ = amap.normalize_mapped_amount(line.get("Amount"))
+        if amount <= 0:
+            continue
+        posting = (detail.get("PostingType") or "").strip().lower()
+        acct_norm = _norm_account_type(str(account_type))
+        is_income = acct_norm in ("income", "otherincome")
+        # Debit to expense increases expense; Credit to expense is a credit.
+        # Credit to income increases revenue; Debit to income is a credit against revenue.
+        if is_income:
+            entry_type = "revenue"
+            is_credit = posting == "debit"
+        else:
+            entry_type = "expense"
+            is_credit = posting == "credit"
+        line_id = str(line.get("Id") or len(out))
+        category = amap.fallback_category(account.get("name") or line.get("Description") or "")
+        name = (line.get("Description") or account.get("name") or category).strip()[:120]
+        out.append({
+            "type": entry_type,
             "category": category,
             "name": name,
             "amount": amount,
             "is_credit": is_credit,
             "month": month,
-            "note": note[:500],
-            "qb_txn_id": qb_txn_id,
+            "note": "",
+            "qb_txn_id": f"{je_id}_line_{line_id}_{txn_date_full}",
             "recurring": False,
-        }
-
-    customer = (txn.get("CustomerRef") or {}).get("name") or ""
-    doc = txn.get("DocNumber") or ""
-    memo = txn.get("PrivateNote") or ""
-    category = amap.fallback_category(_line_category(txn))
-    name = (customer or doc or category).strip()[:120]
-    extras = [p for p in [doc, memo] if p and p != name]
-    note = " · ".join(extras) if extras else ""
-    return {
-        "type": "revenue",
-        "category": category,
-        "name": name,
-        "amount": amount,
-        "is_credit": is_credit,
-        "month": month,
-        "note": note[:500],
-        "qb_txn_id": qb_txn_id,
-        "recurring": False,
-    }
+            "_qb_raw_type": "journal_entry",
+        })
+    return out
 
 
 QB_PAGE_SIZE = 1000
@@ -172,7 +345,7 @@ async def _query_qb_once(
             async with httpx.AsyncClient(timeout=45.0) as hc:
                 resp = await hc.get(
                     url,
-                    params={"query": q, "minorversion": "65"},
+                    params={"query": q, "minorversion": str(QB_MINOR_VERSION)},
                     headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
@@ -218,7 +391,7 @@ async def _query_qb(
 async def fetch_qb_transactions(
     tokens: dict, realm_id: str, since: Optional[str] = None,
 ) -> tuple[list[dict], bool, dict]:
-    """Fetch Purchase and Invoice objects, optionally since an ISO timestamp (uses date portion).
+    """Fetch supported QuickBooks entities and map to financial_entries rows.
 
     Returns (mapped_rows, complete, tokens). complete is False when a page safety cap was hit —
     callers must not advance qb_last_synced_at in that case. tokens may be refreshed after a 401 retry.
@@ -226,12 +399,17 @@ async def fetch_qb_transactions(
     if not tokens.get("access_token"):
         raise QuickBooksAuthError("Missing access token")
 
-    purchases, purchases_complete, tokens = await _query_qb(tokens, realm_id, "Purchase", since)
-    invoices, invoices_complete, tokens = await _query_qb(tokens, realm_id, "Invoice", since)
-
-    mapped = []
-    for p in purchases:
-        mapped.append({**map_qb_transaction(p, "purchase"), "_qb_raw_type": "purchase"})
-    for inv in invoices:
-        mapped.append({**map_qb_transaction(inv, "invoice"), "_qb_raw_type": "invoice"})
-    return mapped, purchases_complete and invoices_complete, tokens
+    mapped: list[dict] = []
+    all_complete = True
+    for entity, kind in QB_SYNC_ENTITIES:
+        rows, complete, tokens = await _query_qb(tokens, realm_id, entity, since)
+        all_complete = all_complete and complete
+        if kind == "journal_entry":
+            for je in rows:
+                mapped.extend(map_qb_journal_entry(je))
+            continue
+        for row in rows:
+            mapped_row = map_qb_transaction(row, kind)
+            if mapped_row:
+                mapped.append({**mapped_row, "_qb_raw_type": kind})
+    return mapped, all_complete, tokens

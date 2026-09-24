@@ -218,7 +218,8 @@ GOOGLE_CLIENT_ID = (os.environ.get('GOOGLE_CLIENT_ID') or '').strip()
 GOOGLE_CLIENT_SECRET = (os.environ.get('GOOGLE_CLIENT_SECRET') or '').strip()
 QB_CLIENT_ID = (os.environ.get('QUICKBOOKS_CLIENT_ID') or '').strip()
 QB_CLIENT_SECRET = (os.environ.get('QUICKBOOKS_CLIENT_SECRET') or '').strip()
-QB_ENV = (os.environ.get('QUICKBOOKS_ENV') or 'sandbox').strip().lower()
+# Prefer quickbooks module resolution (also checks QB_ENVIRONMENT).
+QB_ENV = qb_sync.QB_ENVIRONMENT
 XERO_CLIENT_ID = (os.environ.get('XERO_CLIENT_ID') or '').strip()
 XERO_CLIENT_SECRET = (os.environ.get('XERO_CLIENT_SECRET') or '').strip()
 HUBSPOT_CLIENT_ID = (os.environ.get('HUBSPOT_CLIENT_ID') or '').strip()
@@ -13551,6 +13552,7 @@ async def integrations(principal=Depends(get_principal)):
             "hubspot": _oauth_callback_uri("hubspot"),
         }
         out["quickbooks_env"] = QB_ENV
+        out.update(qb_sync.qb_env_diagnostics())
     return out
 
 
@@ -16391,6 +16393,7 @@ async def _connect_mongo_at_startup() -> None:
 async def startup():
     if ENVIRONMENT == "production":
         cred_crypto.assert_encryption_ready()
+    qb_sync.warn_if_qb_env_missing_in_prod()
     await _connect_mongo_at_startup()
     # Do not block Render health checks — indexes / migrations run after listen.
     asyncio.create_task(_ensure_indexes())
