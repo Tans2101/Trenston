@@ -90,3 +90,7 @@ auth-test-screenshots/
 .pytest_cache/
 .emergent/
 test_reports/
+
+# Graphify
+graphify-out/cost.json
+graphify-out/cache/
