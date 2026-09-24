@@ -4,8 +4,10 @@ Missing logs / inputs are "not logged" — never fabricated zeros.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from typing import Any, Optional
+
+import tz_utils
 
 
 DEFAULT_OVERTIME_RATE_PER_HOUR = 0.0  # unset until CEO configures
@@ -41,8 +43,9 @@ def normalize_log_date(raw: Any) -> str:
     return d.isoformat()
 
 
-def today_iso() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
+def today_iso(ws: Optional[dict] = None) -> str:
+    """Workspace-local production day (default Asia/Manila)."""
+    return tz_utils.workspace_today_iso(ws)
 
 
 def parse_nonneg_float(raw: Any, *, field: str) -> Optional[float]:

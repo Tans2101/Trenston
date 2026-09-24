@@ -156,6 +156,7 @@ def proc_api():
     attach_users_in_find(users)
 
     mock_db = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})
     mock_db.departments = depts
     mock_db.department_members = members
     mock_db.procurement_requests = store

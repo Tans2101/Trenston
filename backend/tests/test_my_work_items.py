@@ -250,6 +250,7 @@ def work_api():
     hr_off = DocStore([])
 
     mock_db = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})
     mock_db.departments = departments
     mock_db.department_members = members
     mock_db.production_work_orders = production

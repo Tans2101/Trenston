@@ -160,6 +160,7 @@ def prod_api():
         return None
 
     mock_db = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})
     mock_db.departments.find_one = AsyncMock(side_effect=dept_find_one)
     mock_db.department_members.find_one = AsyncMock(side_effect=mem_find_one)
     mock_db.production_work_orders = orders

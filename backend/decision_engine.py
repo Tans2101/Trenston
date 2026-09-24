@@ -1397,7 +1397,7 @@ def collect_signals(
     today = (now or datetime.now(timezone.utc)).date()
     signals.extend(detect_upcoming_followups(deals, today=today))
     signals.extend(detect_missed_followups(deals, today=today))
-    signals.extend(detect_overdue_tasks(tasks))
+    signals.extend(detect_overdue_tasks(tasks, today=today))
     signals.extend(detect_recurring_blockers(updates))
     signals.extend(collect_department_signals(department_items, now=now))
     # Cap volume so one regenerate can't spawn dozens of LLM calls.

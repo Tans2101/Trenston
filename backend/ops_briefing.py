@@ -20,6 +20,7 @@ import procurement_metrics as proc_metrics
 import procurement_spend as proc_spend
 import production_daily_logs as prod_daily
 import sales_order_book as sales_ob
+import tz_utils
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,11 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
             dept_catalog.TYPE_ENGINEERING_MAINTENANCE,
         ),
     )
-    month = sales_ob.current_month()
+    ws_tz = await db.workspaces.find_one(
+        {"workspace_id": workspace_id}, {"_id": 0, "timezone": 1},
+    )
+    local_today = tz_utils.workspace_today(ws_tz)
+    month = sales_ob.current_month(local_today)
     sections: dict[str, Optional[dict]] = {
         "sales": None,
         "procurement": None,
@@ -76,7 +81,7 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
                     "expected_delivery_date": 1, "actual_delivery_date": 1, "cost": 1,
                 },
             ).to_list(2000)
-            lead = proc_metrics.department_lead_time_summary(rows)
+            lead = proc_metrics.department_lead_time_summary(rows, today=local_today)
             month_start, month_end = decision_engine.month_period_bounds()
             spend = proc_spend.spend_rollup(
                 rows,
@@ -106,8 +111,8 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
             ).to_list(1000)
             wo_ids = [o["id"] for o in orders if o.get("id")]
             logs_by_wo: dict[str, list] = {wid: [] for wid in wo_ids}
-            today = prod_daily.today_iso()
-            week_ago = (datetime.now(timezone.utc).date() - timedelta(days=7)).isoformat()
+            today = local_today.isoformat()
+            week_ago = (local_today - timedelta(days=7)).isoformat()
             if wo_ids:
                 log_rows = await db.production_daily_logs.find(
                     {
@@ -194,11 +199,11 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
             sched_rows = await db.maintenance_schedules.find(
                 {"department_id": maint_dept["department_id"]}, {"_id": 0},
             ).to_list(2000)
-            overdue = maint_ops.overdue_schedules(sched_rows)
+            overdue = maint_ops.overdue_schedules(sched_rows, today=local_today)
             contract_rows = await db.maintenance_contracts.find(
                 {"department_id": maint_dept["department_id"]}, {"_id": 0},
             ).to_list(2000)
-            renewals = maint_ops.contracts_needing_attention(contract_rows)
+            renewals = maint_ops.contracts_needing_attention(contract_rows, today=local_today)
             month_start, month_end = decision_engine.month_period_bounds()
             resolved = await db.maintenance_tickets.find(
                 {

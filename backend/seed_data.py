@@ -8,6 +8,7 @@ import secrets
 from datetime import datetime, timezone
 
 import integrations_catalog as integ_catalog
+import tz_utils
 
 
 def gen_join_code() -> str:
@@ -176,6 +177,7 @@ def build_workspace(workspace_id, name, owner_user_id, empty=False):
         # Sample template has a team; empty/new leaves has_team unset until CompanySetup.
         "has_team": True if not empty else None,
         "template": "empty" if empty else "sample",
+        "timezone": tz_utils.DEFAULT_TZ,
         "join_code": gen_join_code(),
         "financial_settings": {
             "cash": None if empty else 3100000,

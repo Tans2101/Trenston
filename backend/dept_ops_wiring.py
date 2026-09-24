@@ -21,6 +21,7 @@ import decision_engine
 import maintenance_ops as maint_ops
 import procurement_spend as proc_spend
 import sales_order_book as sales_ob
+import tz_utils
 
 logger = logging.getLogger("helm.dept_ops")
 
@@ -143,6 +144,13 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
     db = _LiveDb()
 
     # ----- Sales department gate (mirrors procurement) -----
+    async def _ws_today(principal: dict):
+        """Workspace-local calendar day (overdue flags, current month)."""
+        ws = await db.workspaces.find_one(
+            {"workspace_id": principal["workspace_id"]}, {"_id": 0, "timezone": 1},
+        )
+        return tz_utils.workspace_today(ws)
+
     async def _sales_department(principal: dict) -> dict:
         doc = await dept_migrate.get_enabled_department(
             db, principal["workspace_id"], dept_catalog.TYPE_SALES,
@@ -197,7 +205,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         )
         is_lead = _can_lead_sales(principal, membership)
         summary = sales_ob.order_book_summary(rows)
-        month = sales_ob.current_month()
+        month = sales_ob.current_month(await _ws_today(principal))
         target_row = await db.sales_targets.find_one(
             {"workspace_id": principal["workspace_id"], "month": month},
             {"_id": 0},
@@ -376,7 +384,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         rows = await db.sales_targets.find(
             {"workspace_id": principal["workspace_id"]}, {"_id": 0},
         ).sort("month", -1).to_list(36)
-        month = sales_ob.current_month()
+        month = sales_ob.current_month(await _ws_today(principal))
         current = next((r for r in rows if r.get("month") == month), None)
         return {"targets": rows, "current_month": month, "current": current}
 
@@ -566,7 +574,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         rows = await db.maintenance_schedules.find(
             {"department_id": dept["department_id"]}, {"_id": 0},
         ).sort("equipment_name", 1).to_list(2000)
-        items = [maint_ops.enrich_schedule(r) for r in rows]
+        today = await _ws_today(principal)
+        items = [maint_ops.enrich_schedule(r, today=today) for r in rows]
         overdue = [s for s in items if s["is_overdue"]]
         membership = await dept_access.get_department_membership(
             db, dept["department_id"], principal["user_id"],
@@ -608,7 +617,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         }
         await db.maintenance_schedules.insert_one(dict(doc))
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
-        return {"ok": True, "schedule": maint_ops.enrich_schedule(doc)}
+        return {"ok": True, "schedule": maint_ops.enrich_schedule(doc, today=await _ws_today(principal))}
 
     @api_router.patch("/maintenance/schedules/{schedule_id}")
     async def patch_maintenance_schedule(
@@ -642,13 +651,13 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         elif payload.last_done_at is not None:
             upd["last_done_at"] = (payload.last_done_at or "").strip() or None
         if not upd:
-            return {"ok": True, "schedule": maint_ops.enrich_schedule(row)}
+            return {"ok": True, "schedule": maint_ops.enrich_schedule(row, today=await _ws_today(principal))}
         upd["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.maintenance_schedules.update_one(
             {"id": schedule_id, "department_id": dept["department_id"]}, {"$set": upd},
         )
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
-        return {"ok": True, "schedule": maint_ops.enrich_schedule({**row, **upd})}
+        return {"ok": True, "schedule": maint_ops.enrich_schedule({**row, **upd}, today=await _ws_today(principal))}
 
     @api_router.delete("/maintenance/schedules/{schedule_id}")
     async def delete_maintenance_schedule(schedule_id: str, principal=Depends(get_principal)):
@@ -668,7 +677,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         rows = await db.maintenance_contracts.find(
             {"department_id": dept["department_id"]}, {"_id": 0},
         ).sort("coverage_end", 1).to_list(2000)
-        items = [maint_ops.enrich_contract(r) for r in rows]
+        today = await _ws_today(principal)
+        items = [maint_ops.enrich_contract(r, today=today) for r in rows]
         needing = [c for c in items if c["expired"] or c["renewal_due_soon"]]
         membership = await dept_access.get_department_membership(
             db, dept["department_id"], principal["user_id"],
@@ -727,7 +737,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         }
         await db.maintenance_contracts.insert_one(dict(doc))
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
-        return {"ok": True, "contract": maint_ops.enrich_contract(doc)}
+        return {"ok": True, "contract": maint_ops.enrich_contract(doc, today=await _ws_today(principal))}
 
     @api_router.patch("/maintenance/contracts/{contract_id}")
     async def patch_maintenance_contract(
@@ -766,13 +776,13 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         if payload.scope_notes is not None:
             upd["scope_notes"] = payload.scope_notes.strip()[:2000]
         if not upd:
-            return {"ok": True, "contract": maint_ops.enrich_contract(row)}
+            return {"ok": True, "contract": maint_ops.enrich_contract(row, today=await _ws_today(principal))}
         upd["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.maintenance_contracts.update_one(
             {"id": contract_id, "department_id": dept["department_id"]}, {"$set": upd},
         )
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
-        return {"ok": True, "contract": maint_ops.enrich_contract({**row, **upd})}
+        return {"ok": True, "contract": maint_ops.enrich_contract({**row, **upd}, today=await _ws_today(principal))}
 
     @api_router.delete("/maintenance/contracts/{contract_id}")
     async def delete_maintenance_contract(contract_id: str, principal=Depends(get_principal)):
@@ -891,7 +901,7 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             raise HTTPException(status_code=400, detail="amount must be a number")
         if amount < 0:
             raise HTTPException(status_code=400, detail="amount cannot be negative")
-        month = sales_ob.normalize_month(payload.month) or sales_ob.current_month()
+        month = sales_ob.normalize_month(payload.month) or sales_ob.current_month(await _ws_today(principal))
         now = datetime.now(timezone.utc).isoformat()
         doc = {
             "id": f"mcost_{uuid.uuid4().hex[:10]}",

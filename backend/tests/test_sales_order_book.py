@@ -157,6 +157,7 @@ def sales_api():
     members.find_one = AsyncMock(side_effect=member_find_one)
 
     mock_db = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})
     mock_db.departments = depts
     mock_db.department_members = members
     mock_db.sales_order_book = book

@@ -36,6 +36,7 @@ import xero as xero_sync
 import sap_b1 as sap_b1_sync
 import hubspot as hubspot_sync
 import google_oauth as gcal
+import tz_utils
 import paddle_ips
 import google_document_ai as gcp_docai
 import integrations_catalog as integ_catalog
@@ -3411,7 +3412,7 @@ async def company(principal=Depends(get_principal)):
         # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
         "has_team": decision_engine.workspace_has_team(c),
         "logo_url": c.get("logo_url") or None,
-        "timezone": c.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE,
+        "timezone": tz_utils.workspace_tz_name(c),
     }
 
 
@@ -3481,9 +3482,9 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
     if payload.has_team is not None:
         updates["has_team"] = bool(payload.has_team)
     if payload.timezone is not None:
-        tz_name = (payload.timezone or "").strip() or gcal.DEFAULT_WORKSPACE_TIMEZONE
-        # Validate IANA name via zoneinfo
-        gcal.resolve_timezone(tz_name)
+        tz_name = (payload.timezone or "").strip() or tz_utils.DEFAULT_TZ
+        if not tz_utils.is_valid_timezone(tz_name):
+            raise HTTPException(status_code=400, detail="Choose a valid timezone")
         updates["timezone"] = tz_name
     if payload.company_setup_done:
         updates["company_setup_done"] = True
@@ -3505,6 +3506,8 @@ _PRESERVE_WS_FIELDS = frozenset({
     "plan", "billing_provider", "paddle_subscription_id", "paddle_customer_id",
     "paddle_last_event_at", "billing_status", "subscription_status", "canceled_at",
     "workspace_id", "owner_user_id", "created_at",
+    # Company settings the owner chose — sample apply/clear must not reset them.
+    "timezone",
 })
 
 
@@ -3788,7 +3791,7 @@ async def briefing(principal=Depends(get_principal)):
         b["headline"] = "Start by logging your financials and adding your team."
     is_pro = workspace_is_pro(c)
     has_fin_access = await can_access_financials(principal)
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = tz_utils.workspace_today_iso(c)
 
     async def _load_fin():
         if not has_fin_access:
@@ -4119,8 +4122,19 @@ def _briefing_what_to_delegate(c: dict) -> list:
     return out
 
 
-async def _recent_updates(workspace_id: str, days: int = 7) -> list:
-    today = datetime.now(timezone.utc).date()
+async def _workspace_tz_doc(workspace_id: str) -> dict:
+    """Just the timezone field — enough for tz_utils without loading the whole workspace."""
+    return (
+        await db.workspaces.find_one({"workspace_id": workspace_id}, {"_id": 0, "timezone": 1})
+    ) or {}
+
+
+async def _workspace_today_iso(workspace_id: str) -> str:
+    return tz_utils.workspace_today_iso(await _workspace_tz_doc(workspace_id))
+
+
+async def _recent_updates(workspace_id: str, days: int = 7, *, ws: Optional[dict] = None) -> list:
+    today = tz_utils.workspace_today(ws if ws is not None else await _workspace_tz_doc(workspace_id))
     day_list = [(today - timedelta(days=i)).isoformat() for i in range(days)]
     return await db.updates.find(
         {"workspace_id": workspace_id, "day": {"$in": day_list}},
@@ -4310,7 +4324,7 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
     expense_by_month = decision_engine.expense_totals_by_month_category(entries)
     deals = await db.deals.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(500)
     tasks = list((c.get("tasks") or {}).get("items") or [])
-    updates = await _recent_updates(workspace_id, days=7)
+    updates = await _recent_updates(workspace_id, days=7, ws=c)
     department_items = await _department_signal_inputs(workspace_id)
     signals = decision_engine.collect_signals(
         fin=fin,
@@ -4320,6 +4334,7 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
         updates=updates,
         currency=currency,
         department_items=department_items,
+        now=tz_utils.workspace_now(c),
     )
     # Detector counts (overdue tasks, stall days, deal age) are computed — zero means
     # none matched, not "not entered". Missing-vs-zero applies to company financials
@@ -4931,7 +4946,7 @@ async def onboarding_checklist(principal=Depends(get_principal)):
     has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
     people_n = len(c["people"]["people"])
     members_n = await db.memberships.count_documents({"workspace_id": ws, "status": "active"})
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = tz_utils.workspace_today_iso(c)
     has_update = await db.updates.count_documents({"workspace_id": ws, "user_id": principal["user_id"], "day": day}) > 0
     steps = [
         {"id": "financials", "label": "Add your financials", "done": has_fin, "route": "/app/financials"},
@@ -5761,7 +5776,7 @@ async def _workspace_live_signals(
     if deals is None:
         deals = await db.deals.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(500)
     tasks = list((c.get("tasks") or {}).get("items") or [])
-    updates = await _recent_updates(workspace_id, days=7)
+    updates = await _recent_updates(workspace_id, days=7, ws=c)
     department_items = await _department_signal_inputs(workspace_id)
     return decision_engine.collect_signals(
         fin=fin,
@@ -5771,6 +5786,7 @@ async def _workspace_live_signals(
         updates=updates,
         currency=currency,
         department_items=department_items,
+        now=tz_utils.workspace_now(c),
     )
 
 
@@ -7059,14 +7075,14 @@ class UpdateInput(BaseModel):
 
 @api_router.get("/updates/me")
 async def my_update(principal=Depends(get_principal)):
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = await _workspace_today_iso(principal["workspace_id"])
     u = await db.updates.find_one({"workspace_id": principal["workspace_id"], "user_id": principal["user_id"], "day": day}, {"_id": 0})
     return {"update": u, "day": day}
 
 
 @api_router.get("/updates/today")
 async def todays_updates(principal=Depends(get_principal)):
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = await _workspace_today_iso(principal["workspace_id"])
     ups = await db.updates.find({"workspace_id": principal["workspace_id"], "day": day}, {"_id": 0}).sort("updated_at", -1).to_list(50)
     for u in ups:
         u["ago"] = _rel_time(u.get("updated_at", ""))
@@ -7077,7 +7093,7 @@ async def todays_updates(principal=Depends(get_principal)):
 async def post_update(payload: UpdateInput, principal=Depends(require_pro_perm("updates:write"))):
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Update text is required")
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = await _workspace_today_iso(principal["workspace_id"])
     now = datetime.now(timezone.utc).isoformat()
     text = payload.text.strip()[:600]
     name = principal.get("name") or principal.get("email") or "Someone"
@@ -7264,6 +7280,7 @@ async def my_work_items(principal=Depends(get_principal)):
         principal["workspace_id"],
         principal["user_id"],
         department_ids_by_type=department_ids_by_type,
+        today=tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"])),
         include_procurement=True,
     )
     return {"items": items}
@@ -7454,7 +7471,7 @@ async def reports(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
     fin = await compute_financials(c["workspace_id"])
     items = c["tasks"]["items"]
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = tz_utils.workspace_today_iso(c)
     ups = await db.updates.find({"workspace_id": c["workspace_id"], "day": day}, {"_id": 0}).to_list(200)
     headcount = c.get("employees") or len(c["people"]["people"])
     manual = [r for r in (c.get("manual_reports") or []) if r.get("source") != helm_dept_drafts.SOURCE]
@@ -7588,12 +7605,12 @@ async def dismiss_report_draft(draft_id: str, principal=Depends(require_section(
     return {"ok": True}
 
 
-def _today_report_date() -> str:
-    return datetime.now(timezone.utc).date().isoformat()
+def _today_report_date(ws: Optional[dict] = None) -> str:
+    return tz_utils.workspace_today_iso(ws)
 
 
-def _parse_report_date(value: Optional[str]) -> str:
-    raw = (value or "").strip() or _today_report_date()
+def _parse_report_date(value: Optional[str], ws: Optional[dict] = None) -> str:
+    raw = (value or "").strip() or _today_report_date(ws)
     try:
         return datetime.strptime(raw, "%Y-%m-%d").date().isoformat()
     except ValueError as exc:
@@ -7634,7 +7651,7 @@ async def upload_report_document(
         logger.exception("report document upload failed")
         raise HTTPException(status_code=500, detail="Could not store document") from exc
     doc_id = f"rdoc_{uuid.uuid4().hex[:12]}"
-    day = _parse_report_date(report_date)
+    day = _parse_report_date(report_date, await _workspace_tz_doc(principal["workspace_id"]))
     doc = {
         "id": doc_id,
         "workspace_id": principal["workspace_id"],
@@ -7709,7 +7726,9 @@ async def summarize_report_document_route(
                 "summarized_at": now,
             }},
         )
-        report_day = doc.get("report_date") or _today_report_date()
+        report_day = doc.get("report_date") or _today_report_date(
+            await _workspace_tz_doc(principal["workspace_id"]),
+        )
         await db.report_digests.update_one(
             {"workspace_id": principal["workspace_id"], "date": report_day},
             {"$set": {
@@ -7802,7 +7821,7 @@ async def reports_daily_digest(
     (marked after a successful summarize). Digests do not decrement the
     AI-extract quota — only per-file summarize does.
     """
-    day = _parse_report_date(date)
+    day = _parse_report_date(date, await _workspace_tz_doc(principal["workspace_id"]))
     ws_id = principal["workspace_id"]
     rows = await db.report_documents.find(
         {"workspace_id": ws_id, "report_date": day},
@@ -7963,7 +7982,7 @@ async def _generate_weekly_pack_content(workspace_id: str) -> dict:
     c = await get_ws(workspace_id)
     fin = await compute_financials(workspace_id)
     items = c["tasks"]["items"]
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = tz_utils.workspace_today_iso(c)
     ups = await db.updates.find({"workspace_id": workspace_id, "day": day}, {"_id": 0}).to_list(200)
     headcount = c.get("employees") or len(c["people"]["people"])
     current = _report_metric_snapshot(fin, items, ups, headcount)
@@ -8190,7 +8209,7 @@ async def _google_calendar_snapshot(
         return None
     tz_name = workspace.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
     if week_start is None:
-        week_start = _calendar_week_start(datetime.now(timezone.utc).date())
+        week_start = _calendar_week_start(tz_utils.workspace_today(workspace))
     try:
         events, refreshed = await gcal.fetch_week_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, week_start,
@@ -8452,7 +8471,7 @@ async def calendar(
         except ValueError:
             raise HTTPException(status_code=400, detail="week_start must be YYYY-MM-DD")
     else:
-        anchor_day = datetime.now(timezone.utc).date()
+        anchor_day = tz_utils.workspace_today(c)
     week_anchor = _calendar_week_start(anchor_day)
 
     visible_dept_ids = await _calendar_accessible_department_ids(principal)
@@ -8464,7 +8483,7 @@ async def calendar(
     else:
         data = dict(c["calendar"])
         data["live"] = False
-        today = datetime.now(timezone.utc).date()
+        today = tz_utils.workspace_today(c)
         seed_events = _normalize_seed_events(data.get("meetings") or [], today)
         data["events"] = seed_events
         data["week_start"] = week_anchor.strftime("%Y-%m-%d")
@@ -8501,7 +8520,7 @@ async def calendar(
     ]
     events = list(data.get("events") or data.get("meetings") or [])
     if not data.get("events"):
-        events = _normalize_seed_events(events, datetime.now(timezone.utc).date())
+        events = _normalize_seed_events(events, tz_utils.workspace_today(c))
     existing_ids = {e.get("id") for e in events}
     for ev in _deadlines_as_events(in_week_deadlines):
         if ev["id"] not in existing_ids:
@@ -9098,6 +9117,7 @@ async def people(principal=Depends(get_principal)):
     workload_uids = [p.get("user_id") for p in roster if p.get("user_id")]
     workload = await helm_work_items.workload_counts_by_user(
         db, principal["workspace_id"], workload_uids,
+        today=tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"])),
     )
     for p in roster:
         uid = p.get("user_id")
@@ -9819,8 +9839,9 @@ async def list_production_work_orders(
             yield_tracking_enabled=bool(o.get("yield_tracking_enabled")),
             expected_yield_pct=o.get("expected_yield_pct"),
         )
-    today_summary = prod_daily.department_day_summary(orders, logs_by_wo)
-    week_ago = (datetime.now(timezone.utc).date() - timedelta(days=7)).isoformat()
+    local_today = tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"]))
+    today_summary = prod_daily.department_day_summary(orders, logs_by_wo, day=local_today.isoformat())
+    week_ago = (local_today - timedelta(days=7)).isoformat()
     week_logs = [
         log for logs in logs_by_wo.values() for log in logs
         if (log.get("date") or "") >= week_ago
@@ -10444,13 +10465,13 @@ async def _enrich_procurement_requests(rows: list, workspace_id: str | None = No
 
 
 
-def _procurement_queue_sort_key(req: dict) -> tuple:
+def _procurement_queue_sort_key(req: dict, *, today=None) -> tuple:
     """Single source of truth for Procurement queue ordering.
 
     Precedence: blocking production → overdue → priority → oldest first.
     """
     blocking = 0 if req.get("blocking_production_orders") else 1
-    overdue = 0 if _procurement_request_is_overdue(req) else 1
+    overdue = 0 if _procurement_request_is_overdue(req, today=today) else 1
     priority_rank = {"high": 0, "normal": 1, "low": 2}
     pr = priority_rank.get((req.get("priority") or "normal"), 1)
     created = req.get("created_at") or ""
@@ -10607,7 +10628,8 @@ async def list_procurement_requests(
     items = await _enrich_procurement_requests(
         rows, workspace_id=principal["workspace_id"],
     )
-    items.sort(key=_procurement_queue_sort_key)
+    proc_today = tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"]))
+    items.sort(key=lambda r: _procurement_queue_sort_key(r, today=proc_today))
     # Best-effort backfill: delivered + priced requests should already have an
     # expense row. Idempotent — covers requests delivered before this wiring.
     for row in items:
@@ -10621,7 +10643,7 @@ async def list_procurement_requests(
             logger.exception(
                 "procurement expense backfill failed for %s", row.get("id"),
             )
-    lead_time_summary = proc_metrics.department_lead_time_summary(items)
+    lead_time_summary = proc_metrics.department_lead_time_summary(items, today=proc_today)
     month_start, month_end = decision_engine.month_period_bounds()
     spend = proc_spend.spend_rollup(
         items,
@@ -10816,7 +10838,7 @@ async def patch_procurement_request(
                     if (req.get("vendor_name") or "").strip() and not req.get("vendor_selected_at"):
                         upd["vendor_selected_at"] = upd["ordered_at"]
                 if new_status == "delivered" and not req.get("actual_delivery_date"):
-                    upd["actual_delivery_date"] = datetime.now(timezone.utc).date().isoformat()
+                    upd["actual_delivery_date"] = await _workspace_today_iso(principal["workspace_id"])
 
     helm_dept_drafts.apply_status_completion(req, upd, done_status="delivered")
     if not upd:
@@ -13209,7 +13231,7 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
     period = plan_usage.current_usage_period(c)
     # Enforce after we know the message will consume a real model turn (see below).
     now = datetime.now(timezone.utc)
-    await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "user", "content": payload.message, "created_at": now.isoformat(), "day": now.date().isoformat()})
+    await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "user", "content": payload.message, "created_at": now.isoformat(), "day": tz_utils.workspace_today_iso(c)})
     has_fin_access = await can_access_financials(principal)
 
     # Hard deny finance questions without the grant — do not call the model with
@@ -13227,7 +13249,7 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
                     "role": "assistant",
                     "content": denied,
                     "created_at": datetime.now(timezone.utc).isoformat(),
-                    "day": datetime.now(timezone.utc).date().isoformat(),
+                    "day": tz_utils.workspace_today_iso(c),
                 })
 
         return StreamingResponse(
@@ -13374,7 +13396,7 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
                 collected = "I hit an error reaching my reasoning engine. Please try again."
                 yield collected
         finally:
-            await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "assistant", "content": collected, "created_at": datetime.now(timezone.utc).isoformat(), "day": datetime.now(timezone.utc).date().isoformat()})
+            await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "assistant", "content": collected, "created_at": datetime.now(timezone.utc).isoformat(), "day": tz_utils.workspace_today_iso(c)})
 
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
