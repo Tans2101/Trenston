@@ -9,64 +9,27 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-# Provider refresh responses that mean the grant is gone — wipe stored tokens.
-_REVOKED_ERROR_CODES = frozenset({
-    "invalid_grant",
-    "invalid_token",
-    "expired_token",
-    "revoked",
-    "unauthorized_client",
-})
-
 
 class IntegrationRetryableError(Exception):
     """Transient provider/network failure — keep tokens; client should retry later."""
 
 
-def _error_code_from_body(text: str) -> str:
-    raw = (text or "").strip()
-    if not raw:
-        return ""
-    try:
-        payload = json.loads(raw)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        lower = raw.lower()
-        for code in _REVOKED_ERROR_CODES:
-            if code in lower:
-                return code
-        return ""
-    if not isinstance(payload, dict):
-        return ""
-    for key in ("error", "errorCode", "ErrorCode", "code"):
-        val = payload.get(key)
-        if isinstance(val, str) and val.strip():
-            return val.strip().lower()
-    # Intuit nested fault shape
-    fault = payload.get("fault") or payload.get("Fault") or {}
-    if isinstance(fault, dict):
-        err = fault.get("error") or fault.get("Error") or []
-        if isinstance(err, list) and err:
-            first = err[0] if isinstance(err[0], dict) else {}
-            code = first.get("code") or first.get("error") or ""
-            if isinstance(code, str):
-                return code.strip().lower()
-        elif isinstance(err, dict):
-            code = err.get("code") or err.get("error") or ""
-            if isinstance(code, str):
-                return code.strip().lower()
-    return ""
-
-
 def is_revoked_refresh_response(status_code: int, body: str) -> bool:
-    """True only when the provider confirms the refresh grant is invalid/revoked."""
+    """True only for HTTP 400/401 whose JSON body has ``error == "invalid_grant"``.
+
+    Intuit, Xero and Google all report a revoked/expired refresh grant this way.
+    Anything else (5xx, 429, other 4xx, non-JSON bodies) is transient.
+    """
     if status_code not in (400, 401):
         return False
-    code = _error_code_from_body(body)
-    if code in _REVOKED_ERROR_CODES:
-        return True
-    # Some providers return 400/401 with only a message containing invalid_grant.
-    lower = (body or "").lower()
-    return "invalid_grant" in lower
+    try:
+        payload = json.loads(body or "")
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    err = payload.get("error")
+    return isinstance(err, str) and err.strip().lower() == "invalid_grant"
 
 
 def classify_refresh_http_failure(
@@ -81,7 +44,7 @@ def classify_refresh_http_failure(
     snippet = (body or "")[:300]
     if is_revoked_refresh_response(status_code, body):
         return auth_error_cls(snippet or f"{provider} token refresh revoked")
-    # Wipe only on confirmed revoke (invalid_grant etc.). Other 4xx/5xx keep
+    # Wipe only on confirmed invalid_grant. 429, other 4xx and 5xx keep
     # tokens and surface as retryable so a misconfig blip does not force reconnect.
     logger.warning(
         "%s token refresh temporarily unavailable (%s): %s",
@@ -129,6 +92,13 @@ async def refresh_http_post(
             provider=provider, exc=exc, retryable_error_cls=retryable_error_cls,
         ) from exc
     if resp.status_code == 200:
+        try:
+            payload = resp.json()
+        except (json.JSONDecodeError, TypeError, ValueError) as exc:
+            logger.warning("%s token refresh returned invalid JSON", provider)
+            raise retryable_error_cls(f"{provider} token refresh temporarily unavailable") from exc
+        if not isinstance(payload, dict):
+            raise retryable_error_cls(f"{provider} token refresh temporarily unavailable")
         return resp
     raise classify_refresh_http_failure(
         provider=provider,

@@ -59,7 +59,7 @@ class _Resp:
 
 def test_is_revoked_only_on_invalid_grant():
     assert ierr.is_revoked_refresh_response(400, '{"error":"invalid_grant"}')
-    assert ierr.is_revoked_refresh_response(401, "invalid_grant")
+    assert not ierr.is_revoked_refresh_response(401, "invalid_grant")  # non-JSON body is transient
     assert not ierr.is_revoked_refresh_response(500, '{"error":"invalid_grant"}')
     assert not ierr.is_revoked_refresh_response(400, '{"error":"server_error"}')
     assert not ierr.is_revoked_refresh_response(503, "unavailable")

@@ -3965,7 +3965,7 @@ async def _briefing_email_threads(workspace: dict, principal: dict | None = None
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
         return threads, meta
-    except gcal.GoogleRetryableError as exc:
+    except gcal.GoogleTransientError as exc:
         logger.warning("Gmail temporarily unavailable for %s: %s", ws_id, exc)
         return [], meta
     except gcal.GoogleAuthError as exc:
@@ -6462,6 +6462,11 @@ async def import_financial_document_from_drive(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, file_id,
         )
         await _store_user_google_tokens(c["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleTransientError as exc:
+        logger.warning("Google temporarily unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.",
+        ) from exc
     except gcal.GoogleAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except Exception as exc:
@@ -6547,6 +6552,11 @@ async def export_financials_to_sheets(principal=Depends(require_section("financi
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, body,
         )
         await _store_user_google_tokens(c["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleTransientError as exc:
+        logger.warning("Google temporarily unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.",
+        ) from exc
     except gcal.GoogleAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except Exception as exc:
@@ -8141,7 +8151,7 @@ async def _google_calendar_snapshot(
             "source": "google_calendar",
             "week_start": week_start.strftime("%Y-%m-%d"),
         }
-    except gcal.GoogleRetryableError as exc:
+    except gcal.GoogleTransientError as exc:
         logger.warning("Google Calendar temporarily unavailable for %s/%s: %s", ws_id, principal["user_id"], exc)
         return {"events": [], "meetings": [], "focus_hours": 0, "meeting_hours": 0, "live": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError as exc:
@@ -14071,8 +14081,8 @@ async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_i
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except sap_b1_sync.SapB1RetryableError as exc:
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+    except sap_b1_sync.SapB1TransientError as exc:
+        raise HTTPException(status_code=503, detail="SAP Business One is temporarily unavailable. Try again in a few minutes.") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc) or "SAP Business One login rejected") from exc
     except sap_b1_sync.SapB1Error as exc:
@@ -14098,9 +14108,9 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=400, detail="SAP Business One is not connected. Connect it in Integrations first.")
     try:
         live = await sap_b1_sync.ensure_session(creds)
-    except sap_b1_sync.SapB1RetryableError as exc:
+    except sap_b1_sync.SapB1TransientError as exc:
         logger.warning("SAP B1 session temporarily unavailable for %s: %s", ws_id, exc)
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+        raise HTTPException(status_code=503, detail="SAP Business One is temporarily unavailable. Try again in a few minutes.") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
@@ -14131,9 +14141,9 @@ async def sap_b1_sync_endpoint(principal=Depends(require_integration_provider("s
             {"synced_count": result["synced_count"]},
         )
         return result
-    except sap_b1_sync.SapB1RetryableError as exc:
+    except sap_b1_sync.SapB1TransientError as exc:
         logger.warning("SAP B1 sync temporarily unavailable for %s: %s", ws_id, exc)
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+        raise HTTPException(status_code=503, detail="SAP Business One is temporarily unavailable. Try again in a few minutes.") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(
@@ -14166,6 +14176,11 @@ async def xero_select_tenant(payload: XeroTenantInput, principal=Depends(require
         try:
             tokens = await xero_sync.refresh_xero_token(tokens)
             pending = await xero_sync.fetch_xero_connections(tokens.get("access_token") or "")
+        except xero_sync.XeroTransientError as exc:
+            logger.warning("Xero temporarily unavailable for %s: %s", ws_id, exc)
+            raise HTTPException(
+                status_code=503, detail="Xero is temporarily unavailable. Try again in a few minutes.",
+            ) from exc
         except xero_sync.XeroAuthError as exc:
             await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
             raise HTTPException(status_code=401, detail="Xero connection expired. Please reconnect.") from exc
@@ -14363,9 +14378,9 @@ async def quickbooks_sync(principal=Depends(require_integration_provider("quickb
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
-    except qb_sync.QuickBooksRetryableError as exc:
+    except qb_sync.QuickBooksTransientError as exc:
         logger.warning("QuickBooks temporarily unavailable for %s: %s", ws_id, exc)
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+        raise HTTPException(status_code=503, detail="QuickBooks is temporarily unavailable. Try again in a few minutes.") from exc
     except qb_sync.QuickBooksAuthError as exc:
         logger.warning("QuickBooks auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "quickbooks_tokens", None, extra_unset={"qb_last_synced_at": ""})
@@ -14393,9 +14408,9 @@ async def xero_sync_endpoint(principal=Depends(require_integration_provider("xer
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
-    except xero_sync.XeroRetryableError as exc:
+    except xero_sync.XeroTransientError as exc:
         logger.warning("Xero temporarily unavailable for %s: %s", ws_id, exc)
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+        raise HTTPException(status_code=503, detail="Xero is temporarily unavailable. Try again in a few minutes.") from exc
     except xero_sync.XeroPermissionsError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except xero_sync.XeroAuthError as exc:
@@ -14457,7 +14472,7 @@ async def run_accounting_auto_sync() -> dict:
                 else:
                     stats["quickbooks_errors"] += 1
                     logger.warning("QuickBooks auto-sync skipped for %s: %s", ws_id, exc.detail)
-            except qb_sync.QuickBooksRetryableError as exc:
+            except qb_sync.QuickBooksTransientError as exc:
                 stats["quickbooks_errors"] += 1
                 logger.warning("QuickBooks auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except qb_sync.QuickBooksAuthError as exc:
@@ -14490,7 +14505,7 @@ async def run_accounting_auto_sync() -> dict:
                     else:
                         stats["xero_errors"] += 1
                         logger.warning("Xero auto-sync skipped for %s: %s", ws_id, exc.detail)
-                except xero_sync.XeroRetryableError as exc:
+                except xero_sync.XeroTransientError as exc:
                     stats["xero_errors"] += 1
                     logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc)
                 except xero_sync.XeroPermissionsError as exc:
@@ -14521,7 +14536,7 @@ async def run_accounting_auto_sync() -> dict:
                 else:
                     stats["sap_b1_errors"] += 1
                     logger.warning("SAP B1 auto-sync skipped for %s: %s", ws_id, exc.detail)
-            except sap_b1_sync.SapB1RetryableError as exc:
+            except sap_b1_sync.SapB1TransientError as exc:
                 stats["sap_b1_errors"] += 1
                 logger.warning("SAP B1 auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except sap_b1_sync.SapB1AuthError as exc:
@@ -14638,9 +14653,9 @@ async def google_calendar_events(principal=Depends(get_principal)):
         if refreshed is not tokens:
             await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
         return {"events": meetings, "live": True}
-    except gcal.GoogleRetryableError as exc:
+    except gcal.GoogleTransientError as exc:
         logger.warning("Google Calendar temporarily unavailable: %s", exc)
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+        raise HTTPException(status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.") from exc
     except gcal.GoogleAuthError as exc:
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
         raise HTTPException(status_code=401, detail=str(exc)) from exc
@@ -14668,7 +14683,7 @@ async def google_picker_config(principal=Depends(get_principal)):
     try:
         refreshed = await gcal.refresh_google_token(tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
-    except gcal.GoogleRetryableError:
+    except gcal.GoogleTransientError:
         return {"configured": False, "needs_reconnect": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError:
         return {"configured": False, "needs_reconnect": True}
@@ -14707,8 +14722,8 @@ async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_pri
             thread_id=(payload.thread_id or "").strip(),
         )
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
-    except gcal.GoogleRetryableError as exc:
-        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+    except gcal.GoogleTransientError as exc:
+        raise HTTPException(status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.") from exc
     except gcal.GoogleAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except Exception as exc:

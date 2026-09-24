@@ -40,8 +40,12 @@ class SapB1AuthError(Exception):
     """Login rejected or session expired — user must reconnect."""
 
 
-class SapB1RetryableError(IntegrationRetryableError):
+class SapB1TransientError(IntegrationRetryableError):
     """Transient Service Layer/network failure — keep credentials."""
+
+
+# Back-compat alias for callers that predate the Transient naming.
+SapB1RetryableError = SapB1TransientError
 
 
 class SapB1Error(Exception):
@@ -275,7 +279,7 @@ async def login(
             )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
         logger.warning("SAP B1 login network/timeout error: %s", exc)
-        raise SapB1RetryableError("SAP connection temporarily unavailable") from exc
+        raise SapB1TransientError("SAP connection temporarily unavailable") from exc
     if resp.status_code in (401, 403):
         logger.warning(
             "SAP B1 login rejected (%s) body=%s",
@@ -287,7 +291,7 @@ async def login(
             "SAP B1 login temporarily unavailable (%s) body=%s",
             resp.status_code, (resp.text or "")[:2000],
         )
-        raise SapB1RetryableError("SAP connection temporarily unavailable")
+        raise SapB1TransientError("SAP connection temporarily unavailable")
     if resp.status_code >= 400:
         logger.warning(
             "SAP B1 login failed (%s) body=%s",
@@ -361,8 +365,10 @@ async def ensure_session(creds: dict) -> dict:
                 return creds
             if resp.status_code not in (401, 403):
                 return creds
-        except httpx.HTTPError:
-            pass
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            # Service Layer unreachable — do not re-login (and never drop creds) on a blip.
+            logger.warning("SAP B1 session ping network/timeout error: %s", exc)
+            raise SapB1TransientError("SAP connection temporarily unavailable") from exc
     return await login(
         service_layer_url=base,
         company_db=creds["company_db"],
@@ -392,7 +398,7 @@ async def _fetch_collection_page(
                 headers=_session_headers(creds["session_id"], creds.get("route_id")),
             )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-        raise SapB1RetryableError("SAP connection temporarily unavailable") from exc
+        raise SapB1TransientError("SAP connection temporarily unavailable") from exc
 
 
 async def _fetch_collection(
@@ -427,7 +433,7 @@ async def _fetch_collection(
             )
             return await _fetch_collection(fresh, collection, since=since, _retried=True)
         if resp.status_code >= 500:
-            raise SapB1RetryableError("SAP connection temporarily unavailable")
+            raise SapB1TransientError("SAP connection temporarily unavailable")
         if resp.status_code >= 400:
             logger.warning(
                 "SAP B1 %s fetch failed (%s) body=%s",

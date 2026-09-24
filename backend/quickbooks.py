@@ -60,8 +60,12 @@ class QuickBooksAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
-class QuickBooksRetryableError(IntegrationRetryableError):
+class QuickBooksTransientError(IntegrationRetryableError):
     """Transient Intuit/network failure — keep tokens."""
+
+
+# Back-compat alias for callers that predate the Transient naming.
+QuickBooksRetryableError = QuickBooksTransientError
 
 
 def _is_prod_like() -> bool:
@@ -150,7 +154,7 @@ async def refresh_qb_token(tokens: dict, *, force: bool = False) -> dict:
         auth=(QB_CLIENT_ID, QB_CLIENT_SECRET),
         headers={"Accept": "application/json"},
         auth_error_cls=QuickBooksAuthError,
-        retryable_error_cls=QuickBooksRetryableError,
+        retryable_error_cls=QuickBooksTransientError,
     )
 
     updated = {**tokens, **resp.json()}
@@ -400,11 +404,11 @@ async def _query_qb_once(
                     headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise QuickBooksRetryableError("QuickBooks query temporarily unavailable") from exc
+            raise QuickBooksTransientError("QuickBooks query temporarily unavailable") from exc
         if resp.status_code == 401:
             return [], False, 401
         if resp.status_code >= 500:
-            raise QuickBooksRetryableError(
+            raise QuickBooksTransientError(
                 f"QuickBooks query temporarily unavailable ({resp.status_code})"
             )
         if resp.status_code != 200:
@@ -463,7 +467,7 @@ async def _cdc_deleted_ids(
                     headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise QuickBooksRetryableError("QuickBooks CDC temporarily unavailable") from exc
+            raise QuickBooksTransientError("QuickBooks CDC temporarily unavailable") from exc
 
     resp = await _once(access)
     if resp.status_code == 401:
@@ -472,7 +476,7 @@ async def _cdc_deleted_ids(
         if resp.status_code == 401:
             raise QuickBooksAuthError("QuickBooks access token rejected")
     if resp.status_code >= 500:
-        raise QuickBooksRetryableError(f"QuickBooks CDC temporarily unavailable ({resp.status_code})")
+        raise QuickBooksTransientError(f"QuickBooks CDC temporarily unavailable ({resp.status_code})")
     if resp.status_code != 200:
         # CDC window may be >30 days — log and skip deletes rather than fail the sync.
         logger.warning("QuickBooks CDC skipped (%s): %s", resp.status_code, (resp.text or "")[:200])

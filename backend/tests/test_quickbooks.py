@@ -81,7 +81,7 @@ def test_refresh_raises_on_failure():
     }
     mock_resp = AsyncMock()
     mock_resp.status_code = 401
-    mock_resp.text = "invalid_grant"
+    mock_resp.text = '{"error": "invalid_grant"}'
     mock_hc = AsyncMock()
     mock_hc.post = AsyncMock(return_value=mock_resp)
     mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)

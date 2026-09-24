@@ -56,8 +56,12 @@ class XeroAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
-class XeroRetryableError(IntegrationRetryableError):
+class XeroTransientError(IntegrationRetryableError):
     """Transient Xero/network failure — keep tokens."""
+
+
+# Back-compat alias for callers that predate the Transient naming.
+XeroRetryableError = XeroTransientError
 
 
 class XeroPermissionsError(Exception):
@@ -93,7 +97,7 @@ async def refresh_xero_token(tokens: dict, *, force: bool = False) -> dict:
         auth=(XERO_CLIENT_ID, XERO_CLIENT_SECRET),
         headers={"Accept": "application/json"},
         auth_error_cls=XeroAuthError,
-        retryable_error_cls=XeroRetryableError,
+        retryable_error_cls=XeroTransientError,
     )
 
     updated = {**tokens, **resp.json()}
@@ -120,11 +124,11 @@ async def fetch_xero_connections(access_token: str) -> list[dict[str, str]]:
                 headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
             )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-        raise XeroRetryableError("Xero connections temporarily unavailable") from exc
+        raise XeroTransientError("Xero connections temporarily unavailable") from exc
     if resp.status_code == 401:
         raise XeroAuthError("Xero access token rejected")
     if resp.status_code >= 500:
-        raise XeroRetryableError(f"Xero connections temporarily unavailable ({resp.status_code})")
+        raise XeroTransientError(f"Xero connections temporarily unavailable ({resp.status_code})")
     if resp.status_code != 200:
         raise RuntimeError(f"Xero connections failed ({resp.status_code}): {resp.text[:300]}")
     rows = resp.json() or []
@@ -453,7 +457,7 @@ async def _xero_get(
         try:
             resp = await hc.get(url, params=params, headers=headers)
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise XeroRetryableError("Xero temporarily unavailable") from exc
+            raise XeroTransientError("Xero temporarily unavailable") from exc
         if resp.status_code != 429:
             return resp
         retry_after = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
@@ -463,11 +467,11 @@ async def _xero_get(
             delay = float(2 ** attempt)
         delay = min(max(delay, 1.0), 60.0)
         logger.warning("Xero 429 — sleeping %.1fs (attempt %s)", delay, attempt + 1)
-        last_exc = XeroRetryableError("Xero rate limited")
+        last_exc = XeroTransientError("Xero rate limited")
         if attempt >= XERO_MAX_RETRIES_429:
             break
         await asyncio.sleep(delay)
-    raise last_exc or XeroRetryableError("Xero rate limited")
+    raise last_exc or XeroTransientError("Xero rate limited")
 
 
 async def _fetch_collection_once(
@@ -515,7 +519,7 @@ async def _fetch_collection_once(
             if resp.status_code == 304:
                 return [], True, None
             if resp.status_code >= 500:
-                raise XeroRetryableError(
+                raise XeroTransientError(
                     f"Xero {path} temporarily unavailable ({resp.status_code})"
                 )
             if resp.status_code != 200:

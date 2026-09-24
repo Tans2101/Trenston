@@ -56,8 +56,12 @@ class GoogleAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
-class GoogleRetryableError(IntegrationRetryableError):
+class GoogleTransientError(IntegrationRetryableError):
     """Transient Google/network failure — keep tokens."""
+
+
+# Back-compat alias for callers that predate the Transient naming.
+GoogleRetryableError = GoogleTransientError
 
 
 def has_gmail_scope(tokens: Optional[dict]) -> bool:
@@ -124,7 +128,7 @@ async def refresh_google_token(
         },
         headers={"Accept": "application/json"},
         auth_error_cls=GoogleAuthError,
-        retryable_error_cls=GoogleRetryableError,
+        retryable_error_cls=GoogleTransientError,
     )
 
     updated = {**tokens, **resp.json()}
@@ -294,7 +298,7 @@ async def _fetch_calendar_events(
                     params=params,
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise GoogleRetryableError("Google Calendar temporarily unavailable") from exc
+            raise GoogleTransientError("Google Calendar temporarily unavailable") from exc
 
     async def _page(page_token: Optional[str] = None) -> httpx.Response:
         nonlocal tokens, access_token
@@ -312,7 +316,7 @@ async def _fetch_calendar_events(
 
     resp = await _page(None)
     if resp.status_code >= 500:
-        raise GoogleRetryableError(
+        raise GoogleTransientError(
             f"Google Calendar temporarily unavailable ({resp.status_code})"
         )
     if resp.status_code != 200:
@@ -819,7 +823,7 @@ async def create_gmail_draft(
                     json=payload,
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise GoogleRetryableError("Gmail draft temporarily unavailable") from exc
+            raise GoogleTransientError("Gmail draft temporarily unavailable") from exc
 
     resp = await _post(tokens.get("access_token") or "")
     if resp.status_code == 401:
@@ -831,7 +835,7 @@ async def create_gmail_draft(
     if resp.status_code in (401, 403):
         raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
     if resp.status_code >= 500:
-        raise GoogleRetryableError(
+        raise GoogleTransientError(
             f"Gmail draft temporarily unavailable ({resp.status_code})"
         )
     if resp.status_code not in (200, 201):
