@@ -13,7 +13,7 @@ export default function Terms() {
 
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-4">Legal</p>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">Terms of Service</h1>
-        <p className="text-helm-slate text-sm mt-3">Last updated: September 3, 2026</p>
+        <p className="text-helm-slate text-sm mt-3">Last updated: September 24, 2026</p>
 
         <div className="mt-10 space-y-8 text-[15px] text-helm-navy/80 leading-relaxed">
           <section>
@@ -83,8 +83,9 @@ export default function Terms() {
           <section>
             <h2 className="text-lg text-helm-navy font-normal tracking-tight mb-2">Integrations</h2>
             <p>
-              Optional integrations (such as Google Calendar, QuickBooks, Xero, SAP Business One, or HubSpot) only access data after you explicitly connect
-              them. Your use of those services remains subject to their own terms and privacy policies.
+              Optional integrations (such as Google Workspace, QuickBooks, Xero, SAP Business One, HubSpot, or a Slack
+              Incoming Webhook for alerts) only access or send data after you explicitly connect or configure them.
+              Your use of those services remains subject to their own terms and privacy policies.
             </p>
           </section>
 

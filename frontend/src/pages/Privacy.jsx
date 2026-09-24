@@ -13,7 +13,7 @@ export default function Privacy() {
 
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-4">Legal</p>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">Privacy Policy</h1>
-        <p className="text-helm-slate text-sm mt-3">Last updated: September 13, 2026</p>
+        <p className="text-helm-slate text-sm mt-3">Last updated: September 24, 2026</p>
 
         <div className="mt-10 space-y-8 text-[15px] text-helm-navy/80 leading-relaxed">
           <section>
@@ -53,7 +53,9 @@ export default function Privacy() {
             <p>
               Trenston stores the business data you enter or generate in the product, for example revenue and expense entries,
               categories, tasks, decisions, reports, team roster, pipeline deals, and related workspace content.
-              Financial figures come from what you manually enter or from documents you upload.
+              Financial figures come from what you manually enter, from documents you upload, or from accounting systems
+              you explicitly connect (QuickBooks, Xero, or SAP Business One). Pipeline deal records may also come from
+              HubSpot when you connect it.
             </p>
           </section>
 
@@ -91,8 +93,8 @@ export default function Privacy() {
             <h2 className="text-lg text-helm-navy font-normal tracking-tight mb-2">CRM data (HubSpot)</h2>
             <p>
               HubSpot CRM data is pulled only if and when you explicitly connect HubSpot via Integrations.
-              We sync deal metadata (name, company, value, stage, close date) into your workspace Pipeline.
-              Nothing is accessed before that connection.
+              We sync deal metadata (name, associated company name, value, stage, and close date) into your workspace
+              Pipeline. OAuth tokens for HubSpot are encrypted at rest. Nothing is accessed before that connection.
             </p>
           </section>
 
@@ -100,8 +102,35 @@ export default function Privacy() {
             <h2 className="text-lg text-helm-navy font-normal tracking-tight mb-2">QuickBooks &amp; Xero data</h2>
             <p>
               QuickBooks (Intuit) or Xero accounting data is pulled only if and when you explicitly connect that account via
-              Integrations. We sync invoices and bills into your workspace Financials. Nothing is accessed before that
-              connection. Connecting one accounting provider does not disconnect the other if both are configured.
+              Integrations. From QuickBooks we sync invoices, sales receipts, credit memos, refund receipts, purchases,
+              bills, vendor credits, and profit-and-loss lines from journal entries into your workspace Financials.
+              From Xero we sync invoices and bills, credit notes, authorised bank receive/spend transactions, and
+              revenue or expense lines from posted manual journals. Synced rows store amounts, categories, counterparty
+              or description names, dates, notes, currency and tax fields when present, and provider transaction ids.
+              OAuth tokens are encrypted at rest. Nothing is accessed before that connection. Connecting one accounting
+              provider does not disconnect the other if both are configured.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg text-helm-navy font-normal tracking-tight mb-2">SAP Business One data</h2>
+            <p>
+              SAP Business One data is pulled only if and when you explicitly connect it via Integrations by providing
+              your Service Layer URL, company database name, username, and password. Those credentials (including the
+              password and session identifiers used to sync) are encrypted at rest on Trenston servers. We sync A/R
+              invoices, A/P purchase invoices, A/R credit notes, and A/P purchase credit notes into your workspace
+              Financials (amounts, business partner names, comments, document dates, currency and tax fields when
+              present). Nothing is accessed before that connection.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg text-helm-navy font-normal tracking-tight mb-2">Slack alerts</h2>
+            <p>
+              If you configure a Slack Incoming Webhook on Integrations, Trenston stores that webhook URL encrypted at
+              rest and may post to the channel you choose: a one-time connection test message, and later high-severity
+              Decision Engine alert titles and details with a link back to Decisions in Trenston. Trenston does not use
+              a full Slack OAuth app and does not read your Slack workspace history.
             </p>
           </section>
 
@@ -132,13 +161,15 @@ export default function Privacy() {
             <p>
               Trenston uses a third-party AI provider, <span className="text-helm-navy">Anthropic (Claude)</span>, for
               features including Ask Trenston chat, document and bill/receipt extraction, Decision Engine suggestions,
-              Weekly Pack and Briefing summaries, and report digests. When you use those features, Trenston transmits
-              relevant workspace data to Anthropic for processing. That can include financial figures and entries,
-              uploaded documents and reports, and operational or department records assembled for context (for
-              example pipeline, people, or department queue data used by Ask Trenston). Anthropic uses that context only
-              to generate the requested response or suggested entries for your workspace. Do not submit data you are
-              not authorized to process with third-party AI providers. Trenston does not claim SOC 2, HIPAA, GDPR, or
-              similar certifications based solely on this disclosure.
+              Weekly Pack and Briefing summaries, and report digests. Ask Trenston chat messages (your questions and
+              assistant replies) are stored in Trenston&apos;s database for your user in the workspace so you can reopen
+              the conversation. When you use Ask Trenston, Trenston transmits a company snapshot to Anthropic that can
+              include financial figures (when your role may access Financials), pipeline and department queue data you
+              can access, people-roster counts, risk and open-decision titles, plus recent chat turns for multi-turn
+              context. Other AI features transmit the document or workspace records needed for that request. Anthropic
+              uses that context to generate the requested response or suggested entries for your workspace. Do not
+              submit data you are not authorized to process with third-party AI providers. Trenston does not claim SOC 2,
+              HIPAA, GDPR, or similar certifications based solely on this disclosure.
             </p>
           </section>
 
@@ -172,7 +203,12 @@ export default function Privacy() {
               <li><span className="text-helm-navy">Paddle</span>: payment processing</li>
               <li><span className="text-helm-navy">Resend</span>: transactional email</li>
               <li><span className="text-helm-navy">Vercel</span>: hosting and cookieless web analytics (page views)</li>
-              <li><span className="text-helm-navy">QuickBooks (Intuit)</span>: only for users who connect it</li>
+              <li><span className="text-helm-navy">QuickBooks (Intuit)</span>: only for workspaces that connect it</li>
+              <li><span className="text-helm-navy">Xero</span>: only for workspaces that connect it</li>
+              <li><span className="text-helm-navy">SAP Business One</span>: only for workspaces that connect it (credentials stored encrypted; data pulled from your Service Layer)</li>
+              <li><span className="text-helm-navy">HubSpot</span>: only for workspaces that connect it</li>
+              <li><span className="text-helm-navy">Google</span>: only for teammates who connect their own Google account</li>
+              <li><span className="text-helm-navy">Slack</span>: only when you configure an Incoming Webhook (alert delivery to your channel)</li>
             </ul>
           </section>
 
