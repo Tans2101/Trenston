@@ -4553,7 +4553,7 @@ async def export_activities(
             a.get("summary") or "",
         ])
     data = buf.getvalue()
-    filename = f"helm-activity-{start_d.isoformat()}-to-{end_d.isoformat()}.csv"
+    filename = f"trenston-activity-{start_d.isoformat()}-to-{end_d.isoformat()}.csv"
     return Response(
         content=data,
         media_type="text/csv; charset=utf-8",

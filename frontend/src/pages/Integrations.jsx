@@ -330,7 +330,7 @@ export default function Integrations() {
     if (data.integrations_enabled === false) {
       toast.error("Upgrade your plan to connect integrations");
       navigate("/app/billing", {
-        state: { billingNotice: "Integrations require a paid Helm plan." },
+        state: { billingNotice: "Integrations require a paid Trenston plan." },
       });
       return false;
     }

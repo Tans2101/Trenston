@@ -207,7 +207,7 @@ export default function AccountSettings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `helm-export-${todayISO(workspaceTz)}.json`;
+      a.download = `trenston-export-${todayISO(workspaceTz)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -235,7 +235,7 @@ export default function AccountSettings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `helm-activity-${actStart}-to-${actEnd}.csv`;
+      a.download = `trenston-activity-${actStart}-to-${actEnd}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
