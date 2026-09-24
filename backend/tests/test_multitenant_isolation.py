@@ -88,6 +88,7 @@ READ_ENDPOINTS = [
 def _empty_cursor(rows=None):
     cursor = MagicMock()
     cursor.sort = MagicMock(return_value=cursor)
+    cursor.limit = MagicMock(return_value=cursor)
     cursor.to_list = AsyncMock(return_value=list(rows or []))
     return cursor
 
