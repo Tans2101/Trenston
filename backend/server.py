@@ -13318,7 +13318,11 @@ async def _ask_history(workspace_id: str, user_id: str) -> list[dict]:
 
 @api_router.get("/ask/history")
 async def ask_history(principal=Depends(get_principal)):
-    msgs = await db.chat_messages.find({"workspace_id": principal["workspace_id"], "user_id": principal["user_id"]}, {"_id": 0}).sort("created_at", 1).to_list(200)
+    # Newest 200, returned oldest-first so the chat renders chronologically.
+    msgs = await db.chat_messages.find(
+        {"workspace_id": principal["workspace_id"], "user_id": principal["user_id"]}, {"_id": 0},
+    ).sort("created_at", -1).limit(200).to_list(200)
+    msgs.reverse()
     return {"messages": msgs}
 
 
