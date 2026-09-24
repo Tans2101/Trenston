@@ -9,6 +9,8 @@ import {
   SkeletonKPIRow, SkeletonCardList,
 } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { todayISO } from "@/lib/dates";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 
 const STATUS_META = {
@@ -121,13 +123,9 @@ const emptyForm = () => ({
   input_unit: "",
 });
 
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function emptyDailyLog(unit = "") {
+function emptyDailyLog(unit = "", tz) {
   return {
-    date: todayIso(),
+    date: todayISO(tz),
     target_quantity: "",
     actual_quantity: "",
     unit: unit || "",
@@ -219,6 +217,7 @@ function UnitField({
 export default function Production() {
   const { data, loading, error, reload } = useFetch("/production/work-orders");
   const { data: membersData } = useFetch("/members");
+  const tz = useWorkspaceTimezone();
   const [showClosed, setShowClosed] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -231,7 +230,7 @@ export default function Production() {
   const [confirmDeleteLogId, setConfirmDeleteLogId] = useState(null);
   const [dailyLogs, setDailyLogs] = useState([]);
   const [dailyRollup, setDailyRollup] = useState(null);
-  const [logForm, setLogForm] = useState(emptyDailyLog);
+  const [logForm, setLogForm] = useState(() => emptyDailyLog("", tz));
   const [otRateDraft, setOtRateDraft] = useState("");
   const [logsLoading, setLogsLoading] = useState(false);
 
@@ -297,9 +296,9 @@ export default function Production() {
       expected_yield_pct: selected.expected_yield_pct == null ? "" : String(selected.expected_yield_pct),
       input_unit: selected.input_unit || "",
     });
-    setLogForm(emptyDailyLog(selected.unit || ""));
+    setLogForm(emptyDailyLog(selected.unit || "", tz));
     setCompleting(false);
-  }, [selected]);
+  }, [selected, tz]);
 
   useEffect(() => {
     setConfirmDeleteLogId(null);
@@ -641,7 +640,7 @@ export default function Production() {
     try {
       await api.post(`/production/work-orders/${selected.id}/daily-logs`, body);
       toast.success("Daily log saved");
-      setLogForm(emptyDailyLog(draft?.unit || ""));
+      setLogForm(emptyDailyLog(draft?.unit || "", tz));
       const { data: res } = await api.get(`/production/work-orders/${selected.id}/daily-logs`);
       setDailyLogs(res?.logs || []);
       setDailyRollup(res?.rollup || null);

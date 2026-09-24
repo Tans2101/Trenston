@@ -13,6 +13,8 @@ import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonK
 import { Gauge } from "@/components/charts/gauge";
 import { cn } from "@/lib/utils";
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
+import { thisMonthISO } from "@/lib/dates";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import palette from "@/design/palette.json";
 
 const GOLD = palette.gold;
@@ -31,7 +33,6 @@ const CURRENCY_OPTIONS = [
   { code: "inr", label: "INR (₹)" },
 ];
 
-const thisMonth = () => new Date().toISOString().slice(0, 7);
 const fmt = (n, sym = "$") => `${sym}${Number(n || 0).toLocaleString()}`;
 
 function ChartTooltip({ active, payload, label, symbol = "$" }) {
@@ -48,8 +49,8 @@ function ChartTooltip({ active, payload, label, symbol = "$" }) {
   );
 }
 
-const emptyForm = () => ({
-  type: "revenue", category: "Subscriptions", name: "", amount: "", month: thisMonth(),
+const emptyForm = (tz) => ({
+  type: "revenue", category: "Subscriptions", name: "", amount: "", month: thisMonthISO(tz),
   recurring: true, recurrence: "monthly", note: "", source_document_id: null, extract_confidence: null,
 });
 
@@ -74,8 +75,9 @@ export default function Financials() {
   const location = useLocation();
   const { data, loading, error, reload } = useFetch("/financials");
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
+  const tz = useWorkspaceTimezone();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm());
+  const [form, setForm] = useState(() => emptyForm(tz));
   const [busy, setBusy] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -128,7 +130,7 @@ export default function Financials() {
         category: mapCategory(entryType, extracted.category),
         name: extractedName,
         amount: extracted.amount != null ? String(extracted.amount) : "",
-        month: extracted.month || thisMonth(),
+        month: extracted.month || thisMonthISO(tz),
         recurring: entryType === "revenue",
         recurrence: "monthly",
         note: extraNote && extraNote !== extractedName ? extraNote : "",
@@ -143,7 +145,7 @@ export default function Financials() {
       setUploadBusy(false);
       setDragOver(false);
     }
-  }, []);
+  }, [tz]);
 
   const onFilePick = (e) => {
     const file = e.target.files?.[0];
@@ -214,7 +216,7 @@ export default function Financials() {
         category: mapCategory(entryType, extracted.category),
         name: extractedName,
         amount: extracted.amount != null ? String(extracted.amount) : "",
-        month: extracted.month || thisMonth(),
+        month: extracted.month || thisMonthISO(tz),
         recurring: entryType === "revenue",
         recurrence: "monthly",
         note: extraNote && extraNote !== extractedName ? extraNote : "",
@@ -281,7 +283,7 @@ export default function Financials() {
     const hash = (location.hash || "").replace(/^#/, "");
     if (!hash || loading || !data?.can_write) return undefined;
     if (hash === "log-mrr" || hash === "log-entry") {
-      setForm(emptyForm());
+      setForm(emptyForm(tz));
       setShowForm(true);
       setShowSettings(false);
     } else if (hash === "cash") {
@@ -295,7 +297,7 @@ export default function Financials() {
     }
     window.history.replaceState(null, "", location.pathname);
     return undefined;
-  }, [location.hash, location.pathname, loading, data]);
+  }, [location.hash, location.pathname, loading, data, tz]);
 
   if (loading) {
     return (
@@ -375,7 +377,7 @@ export default function Financials() {
       }
       await api.post("/financials/entries", payload);
       toast.success("Entry logged");
-      setForm(emptyForm());
+      setForm(emptyForm(tz));
       setShowForm(false);
       reload();
       reloadActs();
@@ -501,7 +503,7 @@ export default function Financials() {
     <button
       type="button"
       data-testid="add-entry-btn"
-      onClick={() => { setForm(emptyForm()); setShowForm(true); }}
+      onClick={() => { setForm(emptyForm(tz)); setShowForm(true); }}
       className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-gold-hover"
     >
       <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log entry"}
@@ -706,7 +708,7 @@ export default function Financials() {
                 className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold font-medium text-sm px-4 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
                 <Upload className="w-4 h-4" /> {hasAccountingSync ? "Upload one-off bill" : "Upload a bill"}
               </button>
-              <button data-testid="empty-add-entry-btn" onClick={() => { setForm(emptyForm()); setShowForm(true); }}
+              <button data-testid="empty-add-entry-btn" onClick={() => { setForm(emptyForm(tz)); setShowForm(true); }}
                 className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">
                 <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log first entry"}
               </button>

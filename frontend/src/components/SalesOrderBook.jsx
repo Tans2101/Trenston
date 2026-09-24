@@ -6,6 +6,8 @@ import CirEditBtn from "@/components/CirEditBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api, apiErrorMessage } from "@/lib/api";
 import { GlassCard, SectionLabel, EmptyState, ErrorScreen } from "@/components/kit";
+import { thisMonthISO } from "@/lib/dates";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 
 const money = (n) => {
   const v = Number(n) || 0;
@@ -53,6 +55,7 @@ function formatCloseMonth(ym) {
  */
 export default function SalesOrderBook() {
   const { data, loading, error, reload } = useFetch("/sales/order-book");
+  const tz = useWorkspaceTimezone();
   const [filterCountry, setFilterCountry] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [adding, setAdding] = useState(false);
@@ -137,7 +140,7 @@ export default function SalesOrderBook() {
     }
     setBusy(true);
     try {
-      const month = summary?.month || new Date().toISOString().slice(0, 7);
+      const month = summary?.month || thisMonthISO(tz);
       await api.put("/sales/targets", { month, target: t });
       toast.success("Monthly target saved");
       await reload();

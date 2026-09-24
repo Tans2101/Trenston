@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2, Eraser, UserRound, ImageIcon } from "lucide-react";
+import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2, Eraser, UserRound, ImageIcon, Globe } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -15,6 +15,7 @@ import { useTheme } from "@/context/ThemeContext";
 import SwitchButton from "@/components/kokonutui/switch-button";
 import { cn } from "@/lib/utils";
 import { canManageBilling, hasPerm } from "@/lib/access";
+import { addDaysISO, DEFAULT_TIMEZONE, supportedTimezones, todayISO } from "@/lib/dates";
 
 export default function AccountSettings() {
   const { user, setUser, logout } = useAuth();
@@ -27,6 +28,7 @@ export default function AccountSettings() {
   const canExportActivity = isOwner || (user?.perms || []).includes("members:manage");
   const [busy, setBusy] = useState(null);
   const [companyName, setCompanyName] = useState("");
+  const [timezoneDraft, setTimezoneDraft] = useState(DEFAULT_TIMEZONE);
   const [displayName, setDisplayName] = useState("");
   const [confirmAccount, setConfirmAccount] = useState("");
   const [confirmWorkspace, setConfirmWorkspace] = useState("");
@@ -36,16 +38,17 @@ export default function AccountSettings() {
   const [showClearSampleConfirm, setShowClearSampleConfirm] = useState(false);
   const pictureInputRef = useRef(null);
   const logoInputRef = useRef(null);
-  const [actStart, setActStart] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 30);
-    return d.toISOString().slice(0, 10);
-  });
-  const [actEnd, setActEnd] = useState(() => new Date().toISOString().slice(0, 10));
+  const workspaceTz = company?.timezone;
+  const [actStart, setActStart] = useState(() => addDaysISO(todayISO(workspaceTz), -30));
+  const [actEnd, setActEnd] = useState(() => todayISO(workspaceTz));
 
   useEffect(() => {
     setCompanyName(company?.name || "");
   }, [company?.name]);
+
+  useEffect(() => {
+    setTimezoneDraft(company?.timezone || DEFAULT_TIMEZONE);
+  }, [company?.timezone]);
 
   useEffect(() => {
     setDisplayName((user?.name || "").trim());
@@ -85,6 +88,30 @@ export default function AccountSettings() {
       reloadCompany();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not rename company");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const timezoneOptions = supportedTimezones();
+
+  const saveTimezone = async () => {
+    const next = timezoneDraft.trim();
+    if (!timezoneOptions.includes(next)) {
+      toast.error("Pick a timezone from the list");
+      return;
+    }
+    if (next === (company?.timezone || DEFAULT_TIMEZONE)) {
+      toast.message("Timezone is unchanged");
+      return;
+    }
+    setBusy("timezone");
+    try {
+      await api.patch("/company", { timezone: next, company_setup_done: true });
+      toast.success("Timezone saved");
+      reloadCompany();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not save timezone");
     } finally {
       setBusy(null);
     }
@@ -180,7 +207,7 @@ export default function AccountSettings() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `helm-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `helm-export-${todayISO(workspaceTz)}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -499,6 +526,44 @@ export default function AccountSettings() {
               className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
             >
               {busy === "rename" ? "Saving…" : "Save name"}
+            </button>
+          </div>
+        </GlassCard>
+      )}
+
+      {isOwner && (
+        <GlassCard id="company-timezone" className="p-5 mb-4 fade-up scroll-mt-24" data-testid="company-timezone-card">
+          <div className="flex items-center gap-1.5 mb-2 text-helm-gold">
+            <Globe className="w-4 h-4" />
+            <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Timezone</span>
+          </div>
+          <p className="text-sm text-helm-muted mb-4 leading-relaxed">
+            Sets what &ldquo;today&rdquo; means for daily updates, reports, production logs, and your calendar.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              data-testid="company-timezone-input"
+              aria-label="Company timezone"
+              list="company-timezone-options"
+              value={timezoneDraft}
+              onChange={(e) => setTimezoneDraft(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && saveTimezone()}
+              className="flex-1 rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/40"
+              placeholder="Search timezones, e.g. Asia/Manila"
+            />
+            <datalist id="company-timezone-options">
+              {timezoneOptions.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+            <button
+              type="button"
+              data-testid="company-timezone-save"
+              onClick={saveTimezone}
+              disabled={busy === "timezone"}
+              className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
+            >
+              {busy === "timezone" ? "Saving…" : "Save timezone"}
             </button>
           </div>
         </GlassCard>
