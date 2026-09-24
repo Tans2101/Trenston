@@ -34,7 +34,7 @@ const STATUS_LABELS = {
   not_connected: { text: "Not connected", className: "text-helm-muted border border-helm-line" },
   unavailable: { text: "Unavailable", className: "text-helm-muted border border-helm-line" },
   coming_soon: { text: "Coming soon", className: "text-helm-muted border border-helm-line" },
-  error: { text: "Reconnect Slack", className: "text-helm-status-negative bg-helm-status-negative/12" },
+  error: { text: "Slack disconnected", className: "text-helm-status-negative bg-helm-status-negative/12" },
 };
 
 function formatLastSynced(iso) {
@@ -232,6 +232,7 @@ export default function Integrations() {
   const [syncingProvider, setSyncingProvider] = useState(null);
   const [slackUrl, setSlackUrl] = useState("");
   const [slackBusy, setSlackBusy] = useState(false);
+  const [slackEditing, setSlackEditing] = useState(false);
   const [xeroTenantBusy, setXeroTenantBusy] = useState(false);
   const [sapModalOpen, setSapModalOpen] = useState(false);
   const [sapBusy, setSapBusy] = useState(false);
@@ -298,10 +299,6 @@ export default function Integrations() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
-
-  useEffect(() => {
-    if (data?.slack_webhook_url != null) setSlackUrl(data.slack_webhook_url || "");
-  }, [data?.slack_webhook_url]);
 
   if (loading) {
     return (
@@ -426,12 +423,15 @@ export default function Integrations() {
     }
   };
 
-  const saveSlackWebhook = async () => {
+  const saveSlackWebhook = async (nextUrl = slackUrl) => {
     if (!gate("slack")) return;
+    const url = (nextUrl || "").trim();
     setSlackBusy(true);
     try {
-      await api.put("/integrations/slack-webhook", { webhook_url: slackUrl.trim() });
-      toast.success(slackUrl.trim() ? "Slack webhook saved" : "Slack webhook cleared");
+      await api.put("/integrations/slack-webhook", { webhook_url: url });
+      toast.success(url ? "Slack connected" : "Slack webhook removed");
+      setSlackUrl("");
+      setSlackEditing(false);
       reload();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not save webhook");
@@ -440,6 +440,8 @@ export default function Integrations() {
     }
   };
 
+  const slackBroken = data.slack_webhook_status === "broken";
+  const slackConfigured = Boolean(data.slack_webhook_configured);
   const connectable = data.integrations.filter((i) => (i.kind === "oauth" || i.kind === "credentials") && !i.coming_soon);
   const roadmap = data.integrations.filter((i) => i.coming_soon);
   const connectedCount = connectable.filter((i) => i.connected).length;
@@ -522,43 +524,90 @@ export default function Integrations() {
             <h3 className="text-helm-fg font-medium">Slack</h3>
             <p className="text-[11px] font-mono uppercase tracking-wide text-helm-muted mt-0.5">Alerts</p>
             <p className="text-sm text-helm-muted mt-2 leading-relaxed flex-1 min-h-[40px]">
-              {data.slack_webhook_status === "broken"
-                ? "This webhook is broken. Paste a new Incoming Webhook URL to reconnect Slack."
-                : "Paste a Slack Incoming Webhook URL to post high-severity Trenston alerts to a channel. Leave blank to disable."}
+              {slackBroken
+                ? "Slack stopped accepting alerts from this webhook. Paste a new Incoming Webhook URL to reconnect."
+                : "Post high-severity Trenston alerts to a Slack channel with an Incoming Webhook URL."}
             </p>
-            <label className="text-xs text-helm-muted block mt-3">
-              Incoming webhook URL
-              <input
-                data-testid="slack-webhook-input"
-                value={slackUrl}
-                onChange={(e) => setSlackUrl(e.target.value)}
-                placeholder="https://hooks.slack.com/services/…"
-                className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
-              />
-            </label>
-            <div className="mt-4 flex items-center gap-2">
-              <button
-                type="button"
-                data-testid="save-slack-webhook-btn"
-                disabled={slackBusy}
-                onClick={saveSlackWebhook}
-                className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
-              >
-                {slackBusy
-                  ? "Saving…"
-                  : data.slack_webhook_status === "broken"
-                    ? "Reconnect Slack"
-                    : "Save webhook"}
-              </button>
-              {data.slack_webhook_configured && data.slack_webhook_status !== "broken" && (
-                <span className="text-xs text-helm-status-positive font-mono">Configured</span>
-              )}
-              {data.slack_webhook_status === "broken" && (
-                <span className="text-xs text-helm-status-negative font-mono" data-testid="slack-reconnect-hint">
-                  Reconnect Slack
-                </span>
-              )}
-            </div>
+            {slackBroken && (
+              <p className="text-xs text-helm-status-negative font-mono mt-2" data-testid="slack-reconnect-hint">
+                Slack disconnected — reconnect
+              </p>
+            )}
+            {slackConfigured && !slackBroken && !slackEditing ? (
+              <>
+                <p className="text-xs text-helm-muted mt-3">
+                  Webhook{" "}
+                  <span className="font-mono text-helm-fg break-all" data-testid="slack-webhook-masked">
+                    {data.slack_webhook_masked}
+                  </span>
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="replace-slack-webhook-btn"
+                    disabled={slackBusy}
+                    onClick={() => setSlackEditing(true)}
+                    className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
+                  >
+                    Replace
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="remove-slack-webhook-btn"
+                    disabled={slackBusy}
+                    onClick={() => saveSlackWebhook("")}
+                    className="rounded-md border border-helm-line text-helm-muted text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
+                  >
+                    {slackBusy ? "Removing…" : "Remove"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="text-xs text-helm-muted block mt-3">
+                  Incoming webhook URL
+                  <input
+                    data-testid="slack-webhook-input"
+                    value={slackUrl}
+                    onChange={(e) => setSlackUrl(e.target.value)}
+                    placeholder="https://hooks.slack.com/services/…"
+                    autoComplete="off"
+                    className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
+                  />
+                </label>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-testid="save-slack-webhook-btn"
+                    disabled={slackBusy || !slackUrl.trim()}
+                    onClick={() => saveSlackWebhook()}
+                    className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
+                  >
+                    {slackBusy ? "Saving…" : slackBroken ? "Reconnect Slack" : "Save webhook"}
+                  </button>
+                  {slackEditing && (
+                    <button
+                      type="button"
+                      onClick={() => { setSlackEditing(false); setSlackUrl(""); }}
+                      className="rounded-md border border-helm-line text-helm-muted text-sm px-4 py-2.5 hover:bg-helm-fg/5"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {slackBroken && slackConfigured && (
+                    <button
+                      type="button"
+                      data-testid="remove-slack-webhook-btn"
+                      disabled={slackBusy}
+                      onClick={() => saveSlackWebhook("")}
+                      className="rounded-md border border-helm-line text-helm-muted text-sm px-4 py-2.5 hover:bg-helm-fg/5 disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </GlassCard>
         )}
         {connectable.map((it) => (

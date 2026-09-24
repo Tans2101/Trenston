@@ -986,17 +986,36 @@ def _validate_slack_webhook_url(url: str) -> str:
 
 
 def _mask_slack_webhook_url(url: str) -> str:
+    """e.g. https://hooks.slack.com/services/T…/…abcd — never the full secret path."""
     raw = (url or "").strip()
     if not raw:
         return ""
-    # Keep scheme/host and last 4 chars of the path.
     parsed = urlparse(raw)
-    tail = (parsed.path or "")[-4:]
+    parts = [p for p in (parsed.path or "").split("/") if p]
+    tail = (parsed.path or "").rstrip("/")[-4:]
+    if len(parts) >= 2 and parts[0] == "services":
+        return f"https://hooks.slack.com/services/{parts[1][:1]}…/…{tail}"
     return f"https://hooks.slack.com/…{tail}"
 
 
+# Slack answers a dead Incoming Webhook with 404/410 or one of these bodies.
+_SLACK_BROKEN_BODIES = frozenset({"no_service", "channel_not_found", "channel_is_archived", "invalid_token"})
+SLACK_SAVE_FAILED_MESSAGE = "Slack didn't accept that webhook. Check the URL and try again."
+
+
 def _slack_webhook_plaintext(workspace: dict) -> str:
-    """Decrypt stored Slack webhook (supports legacy plaintext)."""
+    """Decrypt the stored Slack webhook.
+
+    Current storage is ``slack_webhook_enc`` (credential_crypto). Falls back to the
+    legacy ``slack_webhook_url`` field, which may hold plaintext or a Fernet token.
+    """
+    enc = workspace.get("slack_webhook_enc")
+    if enc:
+        try:
+            return cred_crypto.decrypt_credential(enc).strip()
+        except Exception:
+            logger.exception("Failed to decrypt slack_webhook_enc for %s", workspace.get("workspace_id"))
+            return ""
     raw = workspace.get("slack_webhook_url")
     if not raw:
         return ""
@@ -1015,7 +1034,8 @@ def _slack_webhook_plaintext(workspace: dict) -> str:
 async def post_slack_webhook(webhook_url: str, text: str, *, workspace_id: str = "") -> dict:
     """Best-effort Slack Incoming Webhook post. Never raises.
 
-    On 404/410 or body no_service/channel_not_found, marks slack_webhook_status=broken.
+    On 404/410 or a dead-webhook body (no_service, channel_not_found,
+    channel_is_archived, invalid_token), marks slack_webhook_status=broken.
     """
     try:
         url = _validate_slack_webhook_url(webhook_url)
@@ -1027,7 +1047,7 @@ async def post_slack_webhook(webhook_url: str, text: str, *, workspace_id: str =
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(url, json={"text": text})
         body = (r.text or "").strip().lower()
-        broken = r.status_code in (404, 410) or body in ("no_service", "channel_not_found")
+        broken = r.status_code in (404, 410) or body in _SLACK_BROKEN_BODIES
         if broken and workspace_id:
             await db.workspaces.update_one(
                 {"workspace_id": workspace_id},
@@ -13725,11 +13745,11 @@ async def integrations(principal=Depends(get_principal)):
         "connection_owners": connection_owners,
         "can_use_connection": can_use,
         "slack_webhook_configured": bool(_slack_webhook_plaintext(c)),
-        "slack_webhook_url": (
+        # Never the full URL — it is a bearer secret for the Slack channel.
+        "slack_webhook_masked": (
             _mask_slack_webhook_url(_slack_webhook_plaintext(c)) if can_manage else ""
         ),
         "slack_webhook_status": c.get("slack_webhook_status") or ("ok" if _slack_webhook_plaintext(c) else ""),
-        "slack_webhook_masked": True,
         "xero_pending_tenants": xero_pending if can_manage else [],
     }
     if can_manage:
@@ -13761,19 +13781,21 @@ async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(req
         # Save-time validation: send a test message; reject if it fails.
         test = await post_slack_webhook(url, "Trenston is connected ✅")
         if not test.get("ok"):
-            raise HTTPException(
-                status_code=400,
-                detail="Slack webhook test failed. Check the URL and try again.",
-            )
-        sealed = cred_crypto.encrypt_credential(url)
+            raise HTTPException(status_code=400, detail=SLACK_SAVE_FAILED_MESSAGE)
         await db.workspaces.update_one(
             {"workspace_id": principal["workspace_id"]},
-            {"$set": {"slack_webhook_url": sealed, "slack_webhook_status": "ok"}},
+            {
+                "$set": {
+                    "slack_webhook_enc": cred_crypto.encrypt_credential(url),
+                    "slack_webhook_status": "ok",
+                },
+                "$unset": {"slack_webhook_url": ""},
+            },
         )
     else:
         await db.workspaces.update_one(
             {"workspace_id": principal["workspace_id"]},
-            {"$set": {"slack_webhook_url": "", "slack_webhook_status": ""}},
+            {"$set": {"slack_webhook_status": ""}, "$unset": {"slack_webhook_enc": "", "slack_webhook_url": ""}},
         )
     await log_activity(
         principal, "integrations", "slack.webhook",
@@ -13782,7 +13804,7 @@ async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(req
     return {
         "ok": True,
         "slack_webhook_configured": bool(url),
-        "slack_webhook_url": _mask_slack_webhook_url(url) if url else "",
+        "slack_webhook_masked": _mask_slack_webhook_url(url) if url else "",
         "slack_webhook_status": "ok" if url else "",
     }
 
@@ -15448,6 +15470,7 @@ def _strip_sensitive(doc: dict) -> dict:
     out = {k: v for k, v in doc.items() if k not in (
         "password", "password_hash", "oauth_session_token_enc",
         "google_tokens", "quickbooks_tokens", "xero_tokens", "hubspot_tokens", "sap_b1_credentials",
+        "slack_webhook_enc", "slack_webhook_url",
     )}
     return out
 
