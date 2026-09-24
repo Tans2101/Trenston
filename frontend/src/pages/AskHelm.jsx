@@ -45,7 +45,7 @@ export default function AskHelm() {
     historyHydrated.current = true;
     setMessages((prev) => {
       if (prev.length > 0) return prev;
-      return history.messages.map((m) => ({ role: m.role, content: m.content }));
+      return history.messages.map((m) => ({ role: m.role, content: m.content, isError: Boolean(m.is_error) }));
     });
   }, [history, streaming]);
 
@@ -198,7 +198,7 @@ export default function AskHelm() {
         )}
 
         {messages.map((m, i) => (
-          <div key={i} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")} data-testid={`msg-${m.role}`}>
+          <div key={i} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")} data-testid={m.isError ? "msg-error" : `msg-${m.role}`}>
             <div className={cn(
               "w-7 h-7 rounded-md flex items-center justify-center shrink-0 border",
               m.role === "user" ? "bg-helm-fg/5 border-helm-line" : "bg-helm-gold/12 border-helm-gold/35",
@@ -207,7 +207,11 @@ export default function AskHelm() {
             </div>
             <div className={cn(
               "max-w-[80%] rounded-xl px-4 py-3 text-[15px] leading-relaxed",
-              m.role === "user" ? "bg-helm-fg/5 border border-helm-line text-helm-fg" : "bg-helm-card border border-helm-line text-helm-fg",
+              m.role === "user"
+                ? "bg-helm-fg/5 border border-helm-line text-helm-fg"
+                : m.isError
+                  ? "bg-helm-status-negative/5 border border-helm-status-negative/25 text-helm-muted italic"
+                  : "bg-helm-card border border-helm-line text-helm-fg",
             )}>
               {m.content ? <p className="whitespace-pre-wrap">{m.content}</p> : <AITextLoading />}
             </div>

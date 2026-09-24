@@ -13268,6 +13268,8 @@ class AskInput(BaseModel):
     message: str
 
 
+ASK_ERROR_REPLY = "I hit an error reaching my reasoning engine. Please try again."
+ASK_INTERRUPTED_NOTE = "\n\n_(Response interrupted — please ask again.)_"
 ASK_HISTORY_TURNS = 10
 ASK_HISTORY_MAX_CHARS = 12_000
 
@@ -13490,6 +13492,7 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
 
     async def gen():
         collected = ""
+        flags: dict = {}
         try:
             async for chunk in helm_llm.stream_text(
                 system,
@@ -13501,10 +13504,24 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
         except Exception:
             logger.exception("chat stream error")
             if not collected:
-                collected = "I hit an error reaching my reasoning engine. Please try again."
-                yield collected
+                # Stored as an error so it never reads back as a real answer or
+                # feeds the next turn's conversation history.
+                collected = ASK_ERROR_REPLY
+                flags["is_error"] = True
+            else:
+                collected += ASK_INTERRUPTED_NOTE
+                flags["interrupted"] = True
+            yield ASK_ERROR_REPLY if flags.get("is_error") else ASK_INTERRUPTED_NOTE
         finally:
-            await db.chat_messages.insert_one({"workspace_id": c["workspace_id"], "user_id": principal["user_id"], "role": "assistant", "content": collected, "created_at": datetime.now(timezone.utc).isoformat(), "day": tz_utils.workspace_today_iso(c)})
+            await db.chat_messages.insert_one({
+                "workspace_id": c["workspace_id"],
+                "user_id": principal["user_id"],
+                "role": "assistant",
+                "content": collected,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "day": tz_utils.workspace_today_iso(c),
+                **flags,
+            })
 
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
