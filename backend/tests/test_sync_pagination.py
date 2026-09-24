@@ -84,7 +84,7 @@ async def test_qb_query_incomplete_when_max_pages_hit(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_xero_pages_until_short():
+async def test_xero_pages_until_short(monkeypatch):
     payloads = [
         _Resp(200, {"Invoices": [{"InvoiceID": str(i)} for i in range(xr.XERO_PAGE_SIZE)]}),
         _Resp(200, {"Invoices": [{"InvoiceID": "tail"}]}),
@@ -106,6 +106,7 @@ async def test_xero_pages_until_short():
             calls["n"] += 1
             return resp
 
+    monkeypatch.setattr(xr, "XERO_MIN_INTERVAL_SEC", 0)
     with patch.object(xr.httpx, "AsyncClient", _Client):
         rows, complete, tokens = await xr._fetch_invoices(
             {"access_token": "tok"}, "tenant", "ACCREC", None,

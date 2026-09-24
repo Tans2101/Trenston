@@ -6,9 +6,11 @@ sources identically.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -30,10 +32,24 @@ AUTH_URL = "https://login.xero.com/identity/connect/authorize"
 CONNECTIONS_URL = "https://api.xero.com/connections"
 API_BASE = "https://api.xero.com/api.xro/2.0"
 
-# offline_access required for refresh tokens; transactions.read covers invoices/bills.
-XERO_SCOPES = "offline_access accounting.transactions.read openid profile email"
+# Granular read scopes (Xero retired broad accounting.transactions.read for new apps
+# from 2 Mar 2026; existing apps must migrate by Sep 2027). Existing connections must
+# reconnect to pick up these scopes.
+# https://devblog.xero.com/upcoming-changes-to-xero-accounting-api-scopes-705c5a9621a0
+XERO_SCOPES = (
+    "offline_access "
+    "openid profile email "
+    "accounting.invoices.read "
+    "accounting.banktransactions.read "
+    "accounting.manualjournals.read"
+)
 
 _DATE_MS_RE = re.compile(r"/Date\((-?\d+)")
+
+# Keep under Xero's ~60 calls/min; serialize with a small delay between requests.
+XERO_MIN_INTERVAL_SEC = 1.05
+XERO_MAX_RETRIES_429 = 3
+_last_xero_call_at = 0.0
 
 
 class XeroAuthError(Exception):
@@ -167,11 +183,17 @@ def _line_description(inv: dict) -> str:
 
 
 def map_xero_invoice(inv: dict) -> Optional[dict]:
-    """Map a Xero Invoice (ACCREC/ACCPAY) to financial_entries fields (QB-compatible)."""
+    """Map a Xero Invoice (ACCREC/ACCPAY) to financial_entries fields (QB-compatible).
+
+    Only AUTHORISED and PAID count — SUBMITTED (awaiting approval), DRAFT, DELETED,
+    VOIDED are excluded.
+    """
     import accounting_map as amap
 
     status = (inv.get("Status") or "").upper()
-    if status in ("DRAFT", "DELETED", "VOIDED"):
+    if status in ("DRAFT", "DELETED", "VOIDED", "SUBMITTED"):
+        return None
+    if status not in ("AUTHORISED", "PAID"):
         return None
     inv_type = (inv.get("Type") or "").upper()
     if inv_type not in ("ACCREC", "ACCPAY"):
@@ -224,6 +246,153 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
     }
 
 
+def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
+    """Map BankTransactions. RECEIVE=revenue, SPEND=expense.
+
+    RECEIVE-OVERPAYMENT / SPEND-OVERPAYMENT / *-PREPAYMENT are skipped — they are
+    balance-sheet /$ prepayment constructs, not P&L until applied.
+    """
+    import accounting_map as amap
+
+    status = (txn.get("Status") or "").upper()
+    if status in ("DELETED", "VOIDED", "DRAFT"):
+        return None
+    txn_type = (txn.get("Type") or "").upper()
+    # Skip overpayments/prepayments (balance sheet until applied to invoices).
+    if txn_type in (
+        "RECEIVE-OVERPAYMENT", "SPEND-OVERPAYMENT",
+        "RECEIVE-PREPAYMENT", "SPEND-PREPAYMENT",
+        "RECEIVE-TRANSFER", "SPEND-TRANSFER",
+    ):
+        return None
+    if txn_type not in ("RECEIVE", "SPEND"):
+        return None
+
+    date_full = _parse_xero_date(txn)
+    month = date_full[:7]
+    amount, is_credit = amap.normalize_mapped_amount(txn.get("Total"))
+    tid = str(txn.get("BankTransactionID") or "")
+    if not tid or amount <= 0:
+        return None
+    contact = ((txn.get("Contact") or {}) if isinstance(txn.get("Contact"), dict) else {}).get("Name") or ""
+    ref = txn.get("Reference") or ""
+    category = amap.fallback_category(_line_category(txn))
+    name = (contact or ref or category).strip()[:120]
+    return {
+        "type": "revenue" if txn_type == "RECEIVE" else "expense",
+        "category": category,
+        "name": name,
+        "amount": amount,
+        "is_credit": is_credit,
+        "month": month,
+        "note": (ref or "")[:500],
+        "qb_txn_id": f"xero_bank_{tid}_{date_full}",
+        "recurring": False,
+        "_xero_raw_type": "bank_receive" if txn_type == "RECEIVE" else "bank_spend",
+    }
+
+
+def map_xero_credit_note(cn: dict) -> Optional[dict]:
+    """ACCRECCREDIT reduces revenue; ACCPAYCREDIT reduces expenses."""
+    import accounting_map as amap
+
+    status = (cn.get("Status") or "").upper()
+    if status in ("DRAFT", "DELETED", "VOIDED", "SUBMITTED"):
+        return None
+    if status not in ("AUTHORISED", "PAID"):
+        return None
+    cn_type = (cn.get("Type") or "").upper()
+    if cn_type not in ("ACCRECCREDIT", "ACCPAYCREDIT"):
+        return None
+    date_full = _parse_xero_date(cn)
+    month = date_full[:7]
+    amount, _ = amap.normalize_mapped_amount(cn.get("Total"))
+    cid = str(cn.get("CreditNoteID") or cn.get("CreditNoteNumber") or "")
+    if not cid or amount <= 0:
+        return None
+    contact = ((cn.get("Contact") or {}) if isinstance(cn.get("Contact"), dict) else {}).get("Name") or ""
+    number = cn.get("CreditNoteNumber") or ""
+    category = amap.fallback_category(_line_category(cn))
+    name = (contact or number or category).strip()[:120]
+    return {
+        "type": "revenue" if cn_type == "ACCRECCREDIT" else "expense",
+        "category": category,
+        "name": name,
+        "amount": amount,
+        "is_credit": True,
+        "month": month,
+        "note": (number or "")[:500],
+        "qb_txn_id": f"xero_cn_{cid}_{date_full}",
+        "recurring": False,
+        "_xero_raw_type": "credit_note",
+    }
+
+
+_XERO_PL_ACCOUNT_TYPES = frozenset({
+    "REVENUE", "SALES", "OTHERINCOME",
+    "EXPENSE", "OVERHEADS", "DIRECTCOSTS", "DEPRECIATN",
+})
+
+
+def map_xero_manual_journal(mj: dict) -> list[dict]:
+    """Map ManualJournal P&L lines only (posted journals)."""
+    import accounting_map as amap
+
+    status = (mj.get("Status") or "").upper()
+    if status not in ("POSTED",):
+        return []
+    mid = str(mj.get("ManualJournalID") or "")
+    if not mid:
+        return []
+    date_full = _parse_xero_date(mj)
+    month = date_full[:7]
+    narration = (mj.get("Narration") or "").strip()
+    out: list[dict] = []
+    for idx, line in enumerate(mj.get("JournalLines") or []):
+        if not isinstance(line, dict):
+            continue
+        acct_type = str(line.get("AccountType") or "").upper().replace(" ", "")
+        # Also accept AccountCode-only lines tagged via LineAmount + common type field.
+        if acct_type and acct_type not in _XERO_PL_ACCOUNT_TYPES:
+            # Some payloads use Account.Type nested
+            nested = ((line.get("Account") or {}) if isinstance(line.get("Account"), dict) else {})
+            acct_type = str(nested.get("Type") or acct_type).upper().replace(" ", "")
+        if acct_type and acct_type not in _XERO_PL_ACCOUNT_TYPES:
+            continue
+        if not acct_type:
+            # Without account type we cannot safely classify — skip.
+            continue
+        amount, _ = amap.normalize_mapped_amount(line.get("LineAmount"))
+        if amount <= 0:
+            continue
+        is_income = acct_type in ("REVENUE", "SALES", "OTHERINCOME")
+        # Positive LineAmount is debit in Xero manual journals; credit is negative.
+        raw = float(line.get("LineAmount") or 0)
+        if is_income:
+            entry_type = "revenue"
+            is_credit = raw > 0  # debit to income reduces revenue
+        else:
+            entry_type = "expense"
+            is_credit = raw < 0  # credit to expense reduces expense
+        category = amap.fallback_category(
+            line.get("AccountCode") or line.get("Description") or ""
+        )
+        name = (line.get("Description") or narration or category).strip()[:120]
+        out.append({
+            "type": entry_type,
+            "category": category,
+            "name": name,
+            "amount": amount,
+            "is_credit": is_credit,
+            "month": month,
+            "note": (narration or "")[:500],
+            "qb_txn_id": f"xero_mj_{mid}_{idx}_{date_full}",
+            "recurring": False,
+            "_xero_raw_type": "manual_journal",
+        })
+    return out
+
+
 def _since_where_clause(since: Optional[str]) -> str:
     if not since:
         return ""
@@ -239,48 +408,91 @@ XERO_PAGE_SIZE = 100  # Xero returns at most 100 invoices per page
 XERO_MAX_PAGES = 100
 
 
-async def _fetch_invoices_once(
+async def _throttle_xero() -> None:
+    """Keep calls under ~60/min."""
+    global _last_xero_call_at
+    now = time.monotonic()
+    wait = XERO_MIN_INTERVAL_SEC - (now - _last_xero_call_at)
+    if wait > 0:
+        await asyncio.sleep(wait)
+    _last_xero_call_at = time.monotonic()
+
+
+async def _xero_get(
+    hc: httpx.AsyncClient,
+    url: str,
+    *,
+    headers: dict,
+    params: Optional[dict] = None,
+) -> httpx.Response:
+    """GET with 429 Retry-After backoff (max 3 retries) and call pacing."""
+    last_exc: Optional[Exception] = None
+    for attempt in range(XERO_MAX_RETRIES_429 + 1):
+        await _throttle_xero()
+        try:
+            resp = await hc.get(url, params=params, headers=headers)
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise XeroRetryableError("Xero temporarily unavailable") from exc
+        if resp.status_code != 429:
+            return resp
+        retry_after = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        try:
+            delay = float(retry_after) if retry_after else (2 ** attempt)
+        except ValueError:
+            delay = float(2 ** attempt)
+        delay = min(max(delay, 1.0), 60.0)
+        logger.warning("Xero 429 — sleeping %.1fs (attempt %s)", delay, attempt + 1)
+        last_exc = XeroRetryableError("Xero rate limited")
+        if attempt >= XERO_MAX_RETRIES_429:
+            break
+        await asyncio.sleep(delay)
+    raise last_exc or XeroRetryableError("Xero rate limited")
+
+
+async def _fetch_collection_once(
     access_token: str,
     tenant_id: str,
-    inv_type: str,
+    *,
+    path: str,
+    result_key: str,
+    where: str,
     since: Optional[str],
+    extra_headers: Optional[dict] = None,
 ) -> tuple[list[dict], bool, Optional[int]]:
-    """Page through invoices. Returns (rows, complete, failing_status)."""
-    where = f'Type=="{inv_type}" AND Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED"'
-    where += _since_where_clause(since)
-    url = f"{API_BASE}/Invoices"
+    """Page through a Xero collection. Returns (rows, complete, failing_status)."""
+    where_full = where + _since_where_clause(since)
+    url = f"{API_BASE}/{path}"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Xero-tenant-id": tenant_id,
+        "Accept": "application/json",
+        **(extra_headers or {}),
+    }
     all_rows: list[dict] = []
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as hc:
-            for page in range(1, XERO_MAX_PAGES + 1):
-                resp = await hc.get(
-                    url,
-                    params={"where": where, "page": page, "order": "Date ASC"},
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Xero-tenant-id": tenant_id,
-                        "Accept": "application/json",
-                    },
+    async with httpx.AsyncClient(timeout=60.0) as hc:
+        for page in range(1, XERO_MAX_PAGES + 1):
+            resp = await _xero_get(
+                hc, url,
+                headers=headers,
+                params={"where": where_full, "page": page, "order": "Date ASC"} if where_full else {"page": page},
+            )
+            if resp.status_code == 401:
+                return [], False, 401
+            if resp.status_code == 403:
+                return [], False, 403
+            if resp.status_code >= 500:
+                raise XeroRetryableError(
+                    f"Xero {path} temporarily unavailable ({resp.status_code})"
                 )
-                if resp.status_code == 401:
-                    return [], False, 401
-                if resp.status_code == 403:
-                    return [], False, 403
-                if resp.status_code >= 500:
-                    raise XeroRetryableError(
-                        f"Xero Invoices temporarily unavailable ({resp.status_code})"
-                    )
-                if resp.status_code != 200:
-                    raise RuntimeError(f"Xero Invoices failed ({resp.status_code}): {resp.text[:300]}")
-                rows = resp.json().get("Invoices") or []
-                if not isinstance(rows, list):
-                    rows = []
-                all_rows.extend(rows)
-                if len(rows) < XERO_PAGE_SIZE:
-                    return all_rows, True, None
-            return all_rows, False, None
-    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-        raise XeroRetryableError("Xero Invoices temporarily unavailable") from exc
+            if resp.status_code != 200:
+                raise RuntimeError(f"Xero {path} failed ({resp.status_code}): {resp.text[:300]}")
+            rows = resp.json().get(result_key) or []
+            if not isinstance(rows, list):
+                rows = []
+            all_rows.extend(rows)
+            if len(rows) < XERO_PAGE_SIZE:
+                return all_rows, True, None
+        return all_rows, False, None
 
 
 async def _handle_xero_403(tokens: dict, tenant_id: str) -> None:
@@ -294,23 +506,30 @@ async def _handle_xero_403(tokens: dict, tenant_id: str) -> None:
     )
 
 
-async def _fetch_invoices(
+async def _fetch_collection(
     tokens: dict,
     tenant_id: str,
-    inv_type: str,
+    *,
+    path: str,
+    result_key: str,
+    where: str,
     since: Optional[str],
+    label: str,
 ) -> tuple[list[dict], bool, dict]:
-    """Fetch invoices; on 401 force one refresh and retry once."""
+    """Fetch a collection; on 401 force one refresh and retry once."""
     access_token = tokens.get("access_token") or ""
-    rows, complete, status = await _fetch_invoices_once(access_token, tenant_id, inv_type, since)
+    rows, complete, status = await _fetch_collection_once(
+        access_token, tenant_id, path=path, result_key=result_key, where=where, since=since,
+    )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
     if status != 401:
         return rows, complete, tokens
-    logger.info("Xero 401 on Invoices %s — forcing token refresh and retrying once", inv_type)
+    logger.info("Xero 401 on %s — forcing token refresh and retrying once", label)
     tokens = await refresh_xero_token(force_token_refresh(tokens), force=True)
-    rows, complete, status = await _fetch_invoices_once(
-        tokens.get("access_token") or "", tenant_id, inv_type, since,
+    rows, complete, status = await _fetch_collection_once(
+        tokens.get("access_token") or "", tenant_id,
+        path=path, result_key=result_key, where=where, since=since,
     )
     if status == 403:
         await _handle_xero_403(tokens, tenant_id)
@@ -319,23 +538,79 @@ async def _fetch_invoices(
     return rows, complete, tokens
 
 
+async def _fetch_invoices(
+    tokens: dict,
+    tenant_id: str,
+    inv_type: str,
+    since: Optional[str],
+) -> tuple[list[dict], bool, dict]:
+    # SUBMITTED excluded in mapper; still filter DRAFT/DELETED/VOIDED at query for efficiency.
+    where = (
+        f'Type=="{inv_type}" AND Status!="DELETED" AND Status!="DRAFT" '
+        f'AND Status!="VOIDED" AND Status!="SUBMITTED"'
+    )
+    return await _fetch_collection(
+        tokens, tenant_id,
+        path="Invoices", result_key="Invoices", where=where, since=since,
+        label=f"Invoices:{inv_type}",
+    )
+
+
 async def fetch_xero_transactions(
     tokens: dict,
     tenant_id: str,
     since: Optional[str] = None,
 ) -> tuple[list[dict], bool, dict]:
-    """Fetch ACCREC invoices and ACCPAY bills; optional since ISO date (date portion).
+    """Fetch invoices, bills, bank txns, credit notes, and manual journals.
 
     Returns (mapped_rows, complete, tokens). Do not advance xero_last_synced_at when complete is False.
     """
     if not tokens.get("access_token"):
         raise XeroAuthError("Missing access token")
 
+    mapped: list[dict] = []
+    all_ok = True
+
     accruals, a_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCREC", since)
     payables, p_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCPAY", since)
-    mapped: list[dict] = []
+    all_ok = all_ok and a_ok and p_ok
     for inv in accruals + payables:
         row = map_xero_invoice(inv)
         if row:
             mapped.append(row)
-    return mapped, a_ok and p_ok, tokens
+
+    banks, b_ok, tokens = await _fetch_collection(
+        tokens, tenant_id,
+        path="BankTransactions", result_key="BankTransactions",
+        where='Status!="DELETED" AND Status!="VOIDED"',
+        since=since, label="BankTransactions",
+    )
+    all_ok = all_ok and b_ok
+    for txn in banks:
+        row = map_xero_bank_transaction(txn)
+        if row:
+            mapped.append(row)
+
+    notes, n_ok, tokens = await _fetch_collection(
+        tokens, tenant_id,
+        path="CreditNotes", result_key="CreditNotes",
+        where='Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED" AND Status!="SUBMITTED"',
+        since=since, label="CreditNotes",
+    )
+    all_ok = all_ok and n_ok
+    for cn in notes:
+        row = map_xero_credit_note(cn)
+        if row:
+            mapped.append(row)
+
+    journals, j_ok, tokens = await _fetch_collection(
+        tokens, tenant_id,
+        path="ManualJournals", result_key="ManualJournals",
+        where='Status=="POSTED"',
+        since=since, label="ManualJournals",
+    )
+    all_ok = all_ok and j_ok
+    for mj in journals:
+        mapped.extend(map_xero_manual_journal(mj))
+
+    return mapped, all_ok, tokens
