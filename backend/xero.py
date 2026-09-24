@@ -6,12 +6,21 @@ sources identically.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+
+from integration_errors import (
+    IntegrationRetryableError,
+    force_token_refresh,
+    refresh_http_post,
+)
+
+logger = logging.getLogger(__name__)
 
 XERO_CLIENT_ID = os.environ.get("XERO_CLIENT_ID", "")
 XERO_CLIENT_SECRET = os.environ.get("XERO_CLIENT_SECRET", "")
@@ -31,6 +40,14 @@ class XeroAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
+class XeroRetryableError(IntegrationRetryableError):
+    """Transient Xero/network failure — keep tokens."""
+
+
+class XeroPermissionsError(Exception):
+    """Tenant still connected but the call lacks permission — do not wipe tokens."""
+
+
 def _token_needs_refresh(tokens: dict) -> bool:
     obtained = tokens.get("obtained_at")
     if not obtained:
@@ -43,9 +60,9 @@ def _token_needs_refresh(tokens: dict) -> bool:
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
-async def refresh_xero_token(tokens: dict) -> dict:
+async def refresh_xero_token(tokens: dict, *, force: bool = False) -> dict:
     """Return valid tokens, refreshing via Xero when the access token is near expiry."""
-    if not _token_needs_refresh(tokens):
+    if not force and not _token_needs_refresh(tokens):
         return tokens
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
@@ -53,15 +70,15 @@ async def refresh_xero_token(tokens: dict) -> dict:
     if not XERO_CLIENT_ID or not XERO_CLIENT_SECRET:
         raise XeroAuthError("Xero OAuth is not configured")
 
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            TOKEN_URL,
-            data={"grant_type": "refresh_token", "refresh_token": refresh_token},
-            auth=(XERO_CLIENT_ID, XERO_CLIENT_SECRET),
-            headers={"Accept": "application/json"},
-        )
-    if resp.status_code != 200:
-        raise XeroAuthError(resp.text[:300] or "Token refresh failed")
+    resp = await refresh_http_post(
+        provider="Xero",
+        url=TOKEN_URL,
+        data={"grant_type": "refresh_token", "refresh_token": refresh_token},
+        auth=(XERO_CLIENT_ID, XERO_CLIENT_SECRET),
+        headers={"Accept": "application/json"},
+        auth_error_cls=XeroAuthError,
+        retryable_error_cls=XeroRetryableError,
+    )
 
     updated = {**tokens, **resp.json()}
     updated["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -80,13 +97,18 @@ async def fetch_xero_connections(access_token: str) -> list[dict[str, str]]:
     """List Xero organisations (tenants) the token can access."""
     if not access_token:
         raise XeroAuthError("Missing access token")
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.get(
-            CONNECTIONS_URL,
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as hc:
+            resp = await hc.get(
+                CONNECTIONS_URL,
+                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+            )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        raise XeroRetryableError("Xero connections temporarily unavailable") from exc
     if resp.status_code == 401:
         raise XeroAuthError("Xero access token rejected")
+    if resp.status_code >= 500:
+        raise XeroRetryableError(f"Xero connections temporarily unavailable ({resp.status_code})")
     if resp.status_code != 200:
         raise RuntimeError(f"Xero connections failed ({resp.status_code}): {resp.text[:300]}")
     rows = resp.json() or []
@@ -217,61 +239,103 @@ XERO_PAGE_SIZE = 100  # Xero returns at most 100 invoices per page
 XERO_MAX_PAGES = 100
 
 
-async def _fetch_invoices(
+async def _fetch_invoices_once(
     access_token: str,
     tenant_id: str,
     inv_type: str,
     since: Optional[str],
-) -> tuple[list[dict], bool]:
-    """Page through invoices. complete=False if the safety page cap is hit."""
+) -> tuple[list[dict], bool, Optional[int]]:
+    """Page through invoices. Returns (rows, complete, failing_status)."""
     where = f'Type=="{inv_type}" AND Status!="DELETED" AND Status!="DRAFT" AND Status!="VOIDED"'
     where += _since_where_clause(since)
     url = f"{API_BASE}/Invoices"
     all_rows: list[dict] = []
-    async with httpx.AsyncClient(timeout=60.0) as hc:
-        for page in range(1, XERO_MAX_PAGES + 1):
-            resp = await hc.get(
-                url,
-                params={"where": where, "page": page, "order": "Date ASC"},
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Xero-tenant-id": tenant_id,
-                    "Accept": "application/json",
-                },
-            )
-            if resp.status_code == 401:
-                raise XeroAuthError("Xero access token rejected")
-            if resp.status_code == 403:
-                raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
-            if resp.status_code != 200:
-                raise RuntimeError(f"Xero Invoices failed ({resp.status_code}): {resp.text[:300]}")
-            rows = resp.json().get("Invoices") or []
-            if not isinstance(rows, list):
-                rows = []
-            all_rows.extend(rows)
-            if len(rows) < XERO_PAGE_SIZE:
-                return all_rows, True
-        return all_rows, False
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as hc:
+            for page in range(1, XERO_MAX_PAGES + 1):
+                resp = await hc.get(
+                    url,
+                    params={"where": where, "page": page, "order": "Date ASC"},
+                    headers={
+                        "Authorization": f"Bearer {access_token}",
+                        "Xero-tenant-id": tenant_id,
+                        "Accept": "application/json",
+                    },
+                )
+                if resp.status_code == 401:
+                    return [], False, 401
+                if resp.status_code == 403:
+                    return [], False, 403
+                if resp.status_code >= 500:
+                    raise XeroRetryableError(
+                        f"Xero Invoices temporarily unavailable ({resp.status_code})"
+                    )
+                if resp.status_code != 200:
+                    raise RuntimeError(f"Xero Invoices failed ({resp.status_code}): {resp.text[:300]}")
+                rows = resp.json().get("Invoices") or []
+                if not isinstance(rows, list):
+                    rows = []
+                all_rows.extend(rows)
+                if len(rows) < XERO_PAGE_SIZE:
+                    return all_rows, True, None
+            return all_rows, False, None
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        raise XeroRetryableError("Xero Invoices temporarily unavailable") from exc
+
+
+async def _handle_xero_403(tokens: dict, tenant_id: str) -> None:
+    """On 403, wipe only when the tenant is no longer in /connections."""
+    connections = await fetch_xero_connections(tokens.get("access_token") or "")
+    tenant_ids = {c["tenant_id"] for c in connections}
+    if tenant_id not in tenant_ids:
+        raise XeroAuthError("Xero tenant access denied. Reconnect and pick an organisation")
+    raise XeroPermissionsError(
+        "Xero permissions are insufficient for this organisation. Check app scopes."
+    )
+
+
+async def _fetch_invoices(
+    tokens: dict,
+    tenant_id: str,
+    inv_type: str,
+    since: Optional[str],
+) -> tuple[list[dict], bool, dict]:
+    """Fetch invoices; on 401 force one refresh and retry once."""
+    access_token = tokens.get("access_token") or ""
+    rows, complete, status = await _fetch_invoices_once(access_token, tenant_id, inv_type, since)
+    if status == 403:
+        await _handle_xero_403(tokens, tenant_id)
+    if status != 401:
+        return rows, complete, tokens
+    logger.info("Xero 401 on Invoices %s — forcing token refresh and retrying once", inv_type)
+    tokens = await refresh_xero_token(force_token_refresh(tokens), force=True)
+    rows, complete, status = await _fetch_invoices_once(
+        tokens.get("access_token") or "", tenant_id, inv_type, since,
+    )
+    if status == 403:
+        await _handle_xero_403(tokens, tenant_id)
+    if status == 401:
+        raise XeroAuthError("Xero access token rejected")
+    return rows, complete, tokens
 
 
 async def fetch_xero_transactions(
     tokens: dict,
     tenant_id: str,
     since: Optional[str] = None,
-) -> tuple[list[dict], bool]:
+) -> tuple[list[dict], bool, dict]:
     """Fetch ACCREC invoices and ACCPAY bills; optional since ISO date (date portion).
 
-    Returns (mapped_rows, complete). Do not advance xero_last_synced_at when complete is False.
+    Returns (mapped_rows, complete, tokens). Do not advance xero_last_synced_at when complete is False.
     """
-    access_token = tokens.get("access_token")
-    if not access_token:
+    if not tokens.get("access_token"):
         raise XeroAuthError("Missing access token")
 
-    accruals, a_ok = await _fetch_invoices(access_token, tenant_id, "ACCREC", since)
-    payables, p_ok = await _fetch_invoices(access_token, tenant_id, "ACCPAY", since)
+    accruals, a_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCREC", since)
+    payables, p_ok, tokens = await _fetch_invoices(tokens, tenant_id, "ACCPAY", since)
     mapped: list[dict] = []
     for inv in accruals + payables:
         row = map_xero_invoice(inv)
         if row:
             mapped.append(row)
-    return mapped, a_ok and p_ok
+    return mapped, a_ok and p_ok, tokens

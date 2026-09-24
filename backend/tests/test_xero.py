@@ -116,7 +116,7 @@ def test_refresh_preserves_tenant():
     mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
     mock_hc.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("xero.httpx.AsyncClient", return_value=mock_hc):
+    with patch("integration_errors.httpx.AsyncClient", return_value=mock_hc):
         out = asyncio.run(xr.refresh_xero_token(tokens))
     assert out["access_token"] == "new"
     assert out["tenant_id"] == "tenant-abc"

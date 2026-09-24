@@ -87,7 +87,7 @@ def test_refresh_raises_on_failure():
     mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
     mock_hc.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("quickbooks.httpx.AsyncClient", return_value=mock_hc):
+    with patch("integration_errors.httpx.AsyncClient", return_value=mock_hc):
         with pytest.raises(qb.QuickBooksAuthError):
             asyncio.run(qb.refresh_qb_token(tokens))
 
@@ -111,7 +111,7 @@ def test_refresh_preserves_refresh_token_when_intuit_omits_it(monkeypatch):
     mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
     mock_hc.__aexit__ = AsyncMock(return_value=None)
 
-    with patch("quickbooks.httpx.AsyncClient", return_value=mock_hc):
+    with patch("integration_errors.httpx.AsyncClient", return_value=mock_hc):
         out = asyncio.run(qb.refresh_qb_token(tokens))
     assert out["access_token"] == "new"
     assert out["refresh_token"] == "keep-me"

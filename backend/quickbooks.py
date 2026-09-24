@@ -1,11 +1,20 @@
 """QuickBooks Online — token refresh and transaction sync."""
 from __future__ import annotations
 
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+
+from integration_errors import (
+    IntegrationRetryableError,
+    force_token_refresh,
+    refresh_http_post,
+)
+
+logger = logging.getLogger(__name__)
 
 QB_CLIENT_ID = (os.environ.get("QUICKBOOKS_CLIENT_ID") or "").strip()
 QB_CLIENT_SECRET = (os.environ.get("QUICKBOOKS_CLIENT_SECRET") or "").strip()
@@ -25,6 +34,10 @@ class QuickBooksAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
+class QuickBooksRetryableError(IntegrationRetryableError):
+    """Transient Intuit/network failure — keep tokens."""
+
+
 def _api_base() -> str:
     return API_BASE
 
@@ -41,9 +54,9 @@ def _token_needs_refresh(tokens: dict) -> bool:
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
-async def refresh_qb_token(tokens: dict) -> dict:
+async def refresh_qb_token(tokens: dict, *, force: bool = False) -> dict:
     """Return valid tokens, refreshing via Intuit when the access token is near expiry."""
-    if not _token_needs_refresh(tokens):
+    if not force and not _token_needs_refresh(tokens):
         return tokens
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
@@ -51,15 +64,15 @@ async def refresh_qb_token(tokens: dict) -> dict:
     if not QB_CLIENT_ID or not QB_CLIENT_SECRET:
         raise QuickBooksAuthError("QuickBooks OAuth is not configured")
 
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            TOKEN_URL,
-            data={"grant_type": "refresh_token", "refresh_token": refresh_token},
-            auth=(QB_CLIENT_ID, QB_CLIENT_SECRET),
-            headers={"Accept": "application/json"},
-        )
-    if resp.status_code != 200:
-        raise QuickBooksAuthError(resp.text[:300] or "Token refresh failed")
+    resp = await refresh_http_post(
+        provider="QuickBooks",
+        url=TOKEN_URL,
+        data={"grant_type": "refresh_token", "refresh_token": refresh_token},
+        auth=(QB_CLIENT_ID, QB_CLIENT_SECRET),
+        headers={"Accept": "application/json"},
+        auth_error_cls=QuickBooksAuthError,
+        retryable_error_cls=QuickBooksRetryableError,
+    )
 
     updated = {**tokens, **resp.json()}
     updated["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -134,10 +147,14 @@ QB_PAGE_SIZE = 1000
 QB_MAX_PAGES = 100
 
 
-async def _query_qb(
+async def _query_qb_once(
     access_token: str, realm_id: str, entity: str, since: Optional[str],
-) -> tuple[list[dict], bool]:
-    """Fetch all pages for an entity. complete=False if the safety page cap is hit."""
+) -> tuple[list[dict], bool, Optional[int]]:
+    """Fetch all pages for an entity. Returns (rows, complete, failing_status).
+
+    failing_status is set when the first page returns a non-success status so
+    callers can refresh-and-retry on 401.
+    """
     all_rows: list[dict] = []
     start = 1
     for _ in range(QB_MAX_PAGES):
@@ -151,14 +168,21 @@ async def _query_qb(
             q = f"SELECT * FROM {entity} STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
 
         url = f"{_api_base()}/v3/company/{realm_id}/query"
-        async with httpx.AsyncClient(timeout=45.0) as hc:
-            resp = await hc.get(
-                url,
-                params={"query": q, "minorversion": "65"},
-                headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as hc:
+                resp = await hc.get(
+                    url,
+                    params={"query": q, "minorversion": "65"},
+                    headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise QuickBooksRetryableError("QuickBooks query temporarily unavailable") from exc
         if resp.status_code == 401:
-            raise QuickBooksAuthError("QuickBooks access token rejected")
+            return [], False, 401
+        if resp.status_code >= 500:
+            raise QuickBooksRetryableError(
+                f"QuickBooks query temporarily unavailable ({resp.status_code})"
+            )
         if resp.status_code != 200:
             raise RuntimeError(f"QuickBooks query failed ({resp.status_code}): {resp.text[:300]}")
 
@@ -169,29 +193,45 @@ async def _query_qb(
             rows = [rows]
         all_rows.extend(rows)
         if len(rows) < QB_PAGE_SIZE:
-            return all_rows, True
+            return all_rows, True, None
         start += QB_PAGE_SIZE
-    return all_rows, False
+    return all_rows, False, None
+
+
+async def _query_qb(
+    tokens: dict, realm_id: str, entity: str, since: Optional[str],
+) -> tuple[list[dict], bool, dict]:
+    """Fetch entity pages; on 401 force one token refresh and retry once."""
+    access_token = tokens.get("access_token") or ""
+    rows, complete, status = await _query_qb_once(access_token, realm_id, entity, since)
+    if status != 401:
+        return rows, complete, tokens
+    logger.info("QuickBooks 401 on %s — forcing token refresh and retrying once", entity)
+    tokens = await refresh_qb_token(force_token_refresh(tokens), force=True)
+    access_token = tokens.get("access_token") or ""
+    rows, complete, status = await _query_qb_once(access_token, realm_id, entity, since)
+    if status == 401:
+        raise QuickBooksAuthError("QuickBooks access token rejected")
+    return rows, complete, tokens
 
 
 async def fetch_qb_transactions(
     tokens: dict, realm_id: str, since: Optional[str] = None,
-) -> tuple[list[dict], bool]:
+) -> tuple[list[dict], bool, dict]:
     """Fetch Purchase and Invoice objects, optionally since an ISO timestamp (uses date portion).
 
-    Returns (mapped_rows, complete). complete is False when a page safety cap was hit —
-    callers must not advance qb_last_synced_at in that case.
+    Returns (mapped_rows, complete, tokens). complete is False when a page safety cap was hit —
+    callers must not advance qb_last_synced_at in that case. tokens may be refreshed after a 401 retry.
     """
-    access_token = tokens.get("access_token")
-    if not access_token:
+    if not tokens.get("access_token"):
         raise QuickBooksAuthError("Missing access token")
 
-    purchases, purchases_complete = await _query_qb(access_token, realm_id, "Purchase", since)
-    invoices, invoices_complete = await _query_qb(access_token, realm_id, "Invoice", since)
+    purchases, purchases_complete, tokens = await _query_qb(tokens, realm_id, "Purchase", since)
+    invoices, invoices_complete, tokens = await _query_qb(tokens, realm_id, "Invoice", since)
 
     mapped = []
     for p in purchases:
         mapped.append({**map_qb_transaction(p, "purchase"), "_qb_raw_type": "purchase"})
     for inv in invoices:
         mapped.append({**map_qb_transaction(inv, "invoice"), "_qb_raw_type": "invoice"})
-    return mapped, purchases_complete and invoices_complete
+    return mapped, purchases_complete and invoices_complete, tokens

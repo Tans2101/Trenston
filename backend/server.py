@@ -3903,6 +3903,9 @@ async def _briefing_email_threads(workspace: dict, principal: dict | None = None
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
         return threads, meta
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Gmail temporarily unavailable for %s: %s", ws_id, exc)
+        return [], meta
     except gcal.GoogleAuthError as exc:
         logger.warning("Gmail auth failed for %s: %s", ws_id, exc)
         if "not granted" in str(exc).lower():
@@ -8074,6 +8077,9 @@ async def _google_calendar_snapshot(
             "source": "google_calendar",
             "week_start": week_start.strftime("%Y-%m-%d"),
         }
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Google Calendar temporarily unavailable for %s/%s: %s", ws_id, principal["user_id"], exc)
+        return {"events": [], "meetings": [], "focus_hours": 0, "meeting_hours": 0, "live": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError as exc:
         logger.warning("Google Calendar auth failed for %s/%s: %s", ws_id, principal["user_id"], exc)
         await _store_user_google_tokens(ws_id, principal["user_id"], None)
@@ -13975,6 +13981,8 @@ async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_i
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except sap_b1_sync.SapB1RetryableError as exc:
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc) or "SAP Business One login rejected") from exc
     except sap_b1_sync.SapB1Error as exc:
@@ -14000,12 +14008,16 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=400, detail="SAP Business One is not connected. Connect it in Integrations first.")
     try:
         live = await sap_b1_sync.ensure_session(creds)
+    except sap_b1_sync.SapB1RetryableError as exc:
+        logger.warning("SAP B1 session temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     since = c.get("sap_b1_last_synced_at")
-    txns, complete = await sap_b1_sync.fetch_sap_transactions(live, since)
+    txns, complete, live = await sap_b1_sync.fetch_sap_transactions(live, since)
+    await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
@@ -14029,6 +14041,9 @@ async def sap_b1_sync_endpoint(principal=Depends(require_integration_provider("s
             {"synced_count": result["synced_count"]},
         )
         return result
+    except sap_b1_sync.SapB1RetryableError as exc:
+        logger.warning("SAP B1 sync temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(
@@ -14173,7 +14188,8 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     since = c.get("qb_last_synced_at")
-    txns, complete = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    txns, complete, tokens = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
@@ -14197,7 +14213,8 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     since = c.get("xero_last_synced_at")
-    txns, complete = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    txns, complete, tokens = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source,
     )
@@ -14221,6 +14238,9 @@ async def quickbooks_sync(principal=Depends(require_integration_provider("quickb
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
+    except qb_sync.QuickBooksRetryableError as exc:
+        logger.warning("QuickBooks temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except qb_sync.QuickBooksAuthError as exc:
         logger.warning("QuickBooks auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "quickbooks_tokens", None, extra_unset={"qb_last_synced_at": ""})
@@ -14248,6 +14268,11 @@ async def xero_sync_endpoint(principal=Depends(require_integration_provider("xer
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
+    except xero_sync.XeroRetryableError as exc:
+        logger.warning("Xero temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+    except xero_sync.XeroPermissionsError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except xero_sync.XeroAuthError as exc:
         logger.warning("Xero auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
@@ -14307,6 +14332,9 @@ async def run_accounting_auto_sync() -> dict:
                 else:
                     stats["quickbooks_errors"] += 1
                     logger.warning("QuickBooks auto-sync skipped for %s: %s", ws_id, exc.detail)
+            except qb_sync.QuickBooksRetryableError as exc:
+                stats["quickbooks_errors"] += 1
+                logger.warning("QuickBooks auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except qb_sync.QuickBooksAuthError as exc:
                 stats["quickbooks_auth_errors"] += 1
                 logger.warning("QuickBooks auto-sync auth failed for %s: %s", ws_id, exc)
@@ -14319,28 +14347,37 @@ async def run_accounting_auto_sync() -> dict:
             tokens = _integration_tokens(c, "xero_tokens") or {}
             if not tokens.get("tenant_id"):
                 stats["xero_skipped"] += 1
-                continue
-            try:
-                principal = _system_accounting_principal(c, "xero_tokens")
-                result = await _run_xero_sync_for_workspace(
-                    c, principal, source="xero_auto_sync",
-                )
-                stats["xero_ok"] += 1
-                stats["transactions_synced"] += int(result.get("synced_count") or 0)
-            except HTTPException as exc:
-                if exc.status_code == 400:
-                    stats["xero_skipped"] += 1
-                else:
+                # Do not continue — a workspace without a Xero tenant may still have SAP B1.
+            else:
+                try:
+                    principal = _system_accounting_principal(c, "xero_tokens")
+                    result = await _run_xero_sync_for_workspace(
+                        c, principal, source="xero_auto_sync",
+                    )
+                    stats["xero_ok"] += 1
+                    stats["transactions_synced"] += int(result.get("synced_count") or 0)
+                except HTTPException as exc:
+                    if exc.status_code == 400:
+                        stats["xero_skipped"] += 1
+                    elif exc.status_code == 503:
+                        stats["xero_errors"] += 1
+                        logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc.detail)
+                    else:
+                        stats["xero_errors"] += 1
+                        logger.warning("Xero auto-sync skipped for %s: %s", ws_id, exc.detail)
+                except xero_sync.XeroRetryableError as exc:
                     stats["xero_errors"] += 1
-                    logger.warning("Xero auto-sync skipped for %s: %s", ws_id, exc.detail)
-            except xero_sync.XeroAuthError as exc:
-                stats["xero_auth_errors"] += 1
-                logger.warning("Xero auto-sync auth failed for %s: %s", ws_id, exc)
-                await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
-            except Exception:
-                stats["xero_errors"] += 1
-                logger.exception("Xero auto-sync failed for %s", ws_id)
-
+                    logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc)
+                except xero_sync.XeroPermissionsError as exc:
+                    stats["xero_errors"] += 1
+                    logger.warning("Xero auto-sync permissions error for %s: %s", ws_id, exc)
+                except xero_sync.XeroAuthError as exc:
+                    stats["xero_auth_errors"] += 1
+                    logger.warning("Xero auto-sync auth failed for %s: %s", ws_id, exc)
+                    await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
+                except Exception:
+                    stats["xero_errors"] += 1
+                    logger.exception("Xero auto-sync failed for %s", ws_id)
 
         if cred_crypto.credentials_present(c.get("sap_b1_credentials")):
             try:
@@ -14353,9 +14390,15 @@ async def run_accounting_auto_sync() -> dict:
             except HTTPException as exc:
                 if exc.status_code == 400:
                     stats["sap_b1_skipped"] += 1
+                elif exc.status_code == 503:
+                    stats["sap_b1_errors"] += 1
+                    logger.warning("SAP B1 auto-sync temporarily unavailable for %s: %s", ws_id, exc.detail)
                 else:
                     stats["sap_b1_errors"] += 1
                     logger.warning("SAP B1 auto-sync skipped for %s: %s", ws_id, exc.detail)
+            except sap_b1_sync.SapB1RetryableError as exc:
+                stats["sap_b1_errors"] += 1
+                logger.warning("SAP B1 auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except sap_b1_sync.SapB1AuthError as exc:
                 stats["sap_b1_auth_errors"] += 1
                 logger.warning("SAP B1 auto-sync auth failed for %s: %s", ws_id, exc)
@@ -14467,6 +14510,9 @@ async def google_calendar_events(principal=Depends(get_principal)):
         if refreshed is not tokens:
             await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
         return {"events": meetings, "live": True}
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Google Calendar temporarily unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except gcal.GoogleAuthError as exc:
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
         raise HTTPException(status_code=401, detail=str(exc)) from exc
@@ -14494,6 +14540,8 @@ async def google_picker_config(principal=Depends(get_principal)):
     try:
         refreshed = await gcal.refresh_google_token(tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleRetryableError:
+        return {"configured": False, "needs_reconnect": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError:
         return {"configured": False, "needs_reconnect": True}
     return {
@@ -14531,6 +14579,8 @@ async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_pri
             thread_id=(payload.thread_id or "").strip(),
         )
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleRetryableError as exc:
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except gcal.GoogleAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except Exception as exc:

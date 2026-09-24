@@ -7,11 +7,20 @@ from __future__ import annotations
 
 import base64
 import email.utils
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import quote
 
 import httpx
+
+from integration_errors import (
+    IntegrationRetryableError,
+    force_token_refresh,
+    refresh_http_post,
+)
+
+logger = logging.getLogger(__name__)
 
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
@@ -42,6 +51,10 @@ _INBOX_FALLBACK_QUERY = "in:inbox newer_than:5d -category:promotions -category:s
 
 class GoogleAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
+
+
+class GoogleRetryableError(IntegrationRetryableError):
+    """Transient Google/network failure — keep tokens."""
 
 
 def has_gmail_scope(tokens: Optional[dict]) -> bool:
@@ -85,9 +98,11 @@ def _token_needs_refresh(tokens: dict) -> bool:
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
-async def refresh_google_token(tokens: dict, client_id: str, client_secret: str) -> dict:
+async def refresh_google_token(
+    tokens: dict, client_id: str, client_secret: str, *, force: bool = False,
+) -> dict:
     """Return valid tokens, refreshing via Google when the access token is near expiry."""
-    if not _token_needs_refresh(tokens):
+    if not force and not _token_needs_refresh(tokens):
         return tokens
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
@@ -95,19 +110,19 @@ async def refresh_google_token(tokens: dict, client_id: str, client_secret: str)
     if not client_id or not client_secret:
         raise GoogleAuthError("Google OAuth is not configured")
 
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            TOKEN_URL,
-            data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "refresh_token": refresh_token,
-                "grant_type": "refresh_token",
-            },
-            headers={"Accept": "application/json"},
-        )
-    if resp.status_code != 200:
-        raise GoogleAuthError(resp.text[:300] or "Token refresh failed")
+    resp = await refresh_http_post(
+        provider="Google",
+        url=TOKEN_URL,
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        },
+        headers={"Accept": "application/json"},
+        auth_error_cls=GoogleAuthError,
+        retryable_error_cls=GoogleRetryableError,
+    )
 
     updated = {**tokens, **resp.json()}
     updated["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -230,20 +245,37 @@ async def _fetch_calendar_events(
     if not access_token:
         raise GoogleAuthError("Missing access token")
 
-    async with httpx.AsyncClient(timeout=45.0) as hc:
-        resp = await hc.get(
-            CALENDAR_EVENTS_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={
-                "timeMin": time_min,
-                "timeMax": time_max,
-                "maxResults": max_results,
-                "singleEvents": True,
-                "orderBy": "startTime",
-            },
-        )
+    async def _once(access: str) -> httpx.Response:
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as hc:
+                return await hc.get(
+                    CALENDAR_EVENTS_URL,
+                    headers={"Authorization": f"Bearer {access}"},
+                    params={
+                        "timeMin": time_min,
+                        "timeMax": time_max,
+                        "maxResults": max_results,
+                        "singleEvents": True,
+                        "orderBy": "startTime",
+                    },
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise GoogleRetryableError("Google Calendar temporarily unavailable") from exc
+
+    resp = await _once(access_token)
     if resp.status_code == 401:
-        raise GoogleAuthError("Google access token rejected. Reconnect Google Calendar")
+        logger.info("Google Calendar 401 — forcing token refresh and retrying once")
+        tokens = await refresh_google_token(
+            force_token_refresh(tokens), client_id, client_secret, force=True,
+        )
+        access_token = tokens.get("access_token") or ""
+        resp = await _once(access_token)
+        if resp.status_code == 401:
+            raise GoogleAuthError("Google access token rejected. Reconnect Google Calendar")
+    if resp.status_code >= 500:
+        raise GoogleRetryableError(
+            f"Google Calendar temporarily unavailable ({resp.status_code})"
+        )
     if resp.status_code != 200:
         raise RuntimeError(f"Google Calendar API failed ({resp.status_code}): {resp.text[:300]}")
 
