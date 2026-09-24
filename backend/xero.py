@@ -7,6 +7,7 @@ sources identically.
 from __future__ import annotations
 
 import asyncio
+import email.utils
 import logging
 import os
 import re
@@ -438,15 +439,15 @@ def map_xero_manual_journal(mj: dict, account_classes: Optional[dict[str, str]] 
     return out
 
 
-def _since_where_clause(since: Optional[str]) -> str:
-    if not since:
-        return ""
-    day = since[:10]
+def if_modified_since_header(since: str) -> str:
+    """RFC 1123 UTC timestamp (e.g. 'Thu, 24 Sep 2026 23:30:00 GMT') for If-Modified-Since."""
     try:
-        dt = datetime.strptime(day, "%Y-%m-%d")
+        dt = datetime.fromisoformat(str(since).replace("Z", "+00:00"))
     except ValueError:
-        return ""
-    return f' AND Date>=DateTime({dt.year},{dt.month},{dt.day})'
+        dt = datetime.strptime(str(since)[:10], "%Y-%m-%d")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return email.utils.format_datetime(dt.astimezone(timezone.utc), usegmt=True)
 
 
 XERO_PAGE_SIZE = 100  # Xero returns at most 100 invoices per page
@@ -512,10 +513,8 @@ async def _fetch_collection_once(
     Incremental sync uses If-Modified-Since (not Date filters). When include_voided
     is True, VOIDED/DELETED rows are returned so callers can delete matching entries.
     """
+    # No Date>= filter: incremental runs rely on If-Modified-Since (last-modified).
     where_full = where
-    # Date filters only for full syncs; incremental relies on If-Modified-Since.
-    if not since:
-        where_full = where + _since_where_clause(since)
     url = f"{API_BASE}/{path}"
     headers = {
         "Authorization": f"Bearer {access_token}",
@@ -523,8 +522,7 @@ async def _fetch_collection_once(
         "Accept": "application/json",
     }
     if since:
-        # RFC 1123 or ISO — Xero accepts ISO-8601.
-        headers["If-Modified-Since"] = since.replace("Z", "") if "T" in since else f"{since[:10]}T00:00:00"
+        headers["If-Modified-Since"] = if_modified_since_header(since)
     if hc is None:
         async with httpx.AsyncClient(timeout=60.0) as own:
             return await _fetch_collection_once(

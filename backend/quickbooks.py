@@ -389,6 +389,43 @@ def map_qb_journal_entry(txn: dict, account_classes: Optional[dict[str, str]] = 
     return out
 
 
+# Intuit ChangeDataCapture only looks back 30 days.
+QB_CDC_MAX_DAYS = 30
+
+
+def _qb_is_voided(row: dict) -> bool:
+    """Voided QBO transactions keep their Id but are zeroed out.
+
+    Intuit surfaces a void as status/TxnStatus "Voided" (CDC) or TotalAmt 0 with
+    PrivateNote "Voided" (regular reads).
+    """
+    status = str(row.get("status") or row.get("TxnStatus") or "").strip().lower()
+    if status == "voided":
+        return True
+    try:
+        total = float(row.get("TotalAmt"))
+    except (TypeError, ValueError):
+        return False
+    return total == 0 and "voided" in str(row.get("PrivateNote") or "").lower()
+
+
+def _qb_deleted_id(kind: str, entity_id: str) -> str:
+    """qb_txn_id (or ``_``-terminated prefix for journal lines) to remove."""
+    if kind == "journal_entry":
+        return f"qb_journal_{entity_id}_"
+    return f"qb_{_qb_entity_slug(kind)}_{entity_id}"
+
+
+def _since_too_old_for_cdc(since: Optional[str]) -> bool:
+    try:
+        dt = datetime.fromisoformat(str(since).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return True
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt < datetime.now(timezone.utc) - timedelta(days=QB_CDC_MAX_DAYS)
+
+
 QB_PAGE_SIZE = 1000
 QB_MAX_PAGES = 100
 
@@ -517,17 +554,10 @@ async def _cdc_deleted_ids(
                     if not isinstance(row, dict):
                         continue
                     status = str(row.get("status") or row.get("statusCode") or "").lower()
-                    # Intuit marks deletions with status=Deleted; voided docs often have PrivateNote/TxnStatus.
-                    txn_status = str(row.get("TxnStatus") or "").lower()
-                    if status == "deleted" or txn_status == "voided" or bool(row.get("sparse") and status == "deleted"):
+                    if status == "deleted" or _qb_is_voided(row):
                         eid = str(row.get("Id") or "")
-                        if not eid:
-                            continue
-                        if kind == "journal_entry":
-                            # Without line detail, delete any journal line prefix.
-                            deleted.append(f"qb_journal_{eid}_")
-                        else:
-                            deleted.append(f"qb_{_qb_entity_slug(kind)}_{eid}")
+                        if eid:
+                            deleted.append(_qb_deleted_id(kind, eid))
     return deleted, tokens
 
 
@@ -543,8 +573,13 @@ async def fetch_qb_transactions(
     """
     if not tokens.get("access_token"):
         raise QuickBooksAuthError("Missing access token")
+    if since and _since_too_old_for_cdc(since):
+        # CDC can't see deletions older than 30 days — resync everything instead.
+        logger.info("QuickBooks last sync older than %s days — full resync", QB_CDC_MAX_DAYS)
+        since = None
 
     mapped: list[dict] = []
+    voided: list[str] = []
     all_complete = True
     account_classes: Optional[dict[str, str]] = None
     for entity, kind in QB_SYNC_ENTITIES:
@@ -560,20 +595,22 @@ async def fetch_qb_transactions(
                     for a in accounts if a.get("Id") is not None
                 }
             for je in rows:
-                # Skip voided journal entries when status is present.
-                if str(je.get("TxnStatus") or "").lower() == "voided":
+                if _qb_is_voided(je):
+                    voided.append(_qb_deleted_id(kind, str(je.get("Id") or "")))
                     continue
                 mapped.extend(map_qb_journal_entry(je, account_classes))
             continue
         for row in rows:
-            if str(row.get("TxnStatus") or "").lower() == "voided":
+            if _qb_is_voided(row):
+                if row.get("Id"):
+                    voided.append(_qb_deleted_id(kind, str(row["Id"])))
                 continue
             mapped_row = map_qb_transaction(row, kind)
             if mapped_row:
                 mapped.append({**mapped_row, "_qb_raw_type": kind})
 
     deleted, tokens = await _cdc_deleted_ids(tokens, realm_id, since)
-    return mapped, all_complete, tokens, deleted
+    return mapped, all_complete, tokens, list(dict.fromkeys(voided + deleted))
 
 
 # Loud at import when a production host has no explicit QuickBooks environment.

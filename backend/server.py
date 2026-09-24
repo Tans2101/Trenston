@@ -14311,6 +14311,29 @@ async def xero_select_tenant(payload: XeroTenantInput, principal=Depends(require
     return {"ok": True, "tenant_id": tokens["tenant_id"], "tenant_name": tokens["tenant_name"]}
 
 
+async def _delete_accounting_entries(ws_id: str, txn_ids: list[str]) -> int:
+    """Remove synced entries whose source document was deleted, voided or cancelled.
+
+    An id ending in ``_`` is a prefix (every line of a journal). Always invalidates
+    the financials cache when anything was requested.
+    """
+    removed = 0
+    ids = [t for t in dict.fromkeys(txn_ids or []) if t]
+    for del_id in ids:
+        if del_id.endswith("_"):
+            res = await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": {"$regex": f"^{re.escape(del_id)}"}},
+            )
+        else:
+            res = await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": del_id},
+            )
+        removed += int(getattr(res, "deleted_count", 0) or 0)
+    if ids:
+        invalidate_financials_cache(ws_id)
+    return removed
+
+
 async def _upsert_accounting_sync_entries(
     *,
     ws_id: str,
@@ -14324,17 +14347,7 @@ async def _upsert_accounting_sync_entries(
     now_iso = datetime.now(timezone.utc).isoformat()
     finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
 
-    for del_id in deleted_ids or []:
-        if not del_id:
-            continue
-        if del_id.endswith("_"):
-            await db.financial_entries.delete_many(
-                {"workspace_id": ws_id, "qb_txn_id": {"$regex": f"^{re.escape(del_id)}"}},
-            )
-        else:
-            await db.financial_entries.delete_one(
-                {"workspace_id": ws_id, "qb_txn_id": del_id},
-            )
+    await _delete_accounting_entries(ws_id, deleted_ids or [])
 
     txn_ids = _unique_ids(t.get("qb_txn_id") for t in txns)
     existing_by_id = {}
