@@ -972,14 +972,66 @@ async def notify_task_delegated(
         return {"sent": False, "reason": "error"}
 
 
-async def post_slack_webhook(webhook_url: str, text: str) -> dict:
-    """Best-effort Slack Incoming Webhook post. Never raises."""
-    url = (webhook_url or "").strip()
-    if not url.startswith("https://hooks.slack.com/"):
+def _validate_slack_webhook_url(url: str) -> str:
+    """Require https and host exactly hooks.slack.com. Returns cleaned URL or raises ValueError."""
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw)
+    if parsed.scheme != "https" or (parsed.hostname or "").lower() != "hooks.slack.com":
+        raise ValueError("Webhook URL must be https://hooks.slack.com/…")
+    return raw
+
+
+def _mask_slack_webhook_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    # Keep scheme/host and last 4 chars of the path.
+    parsed = urlparse(raw)
+    tail = (parsed.path or "")[-4:]
+    return f"https://hooks.slack.com/…{tail}"
+
+
+def _slack_webhook_plaintext(workspace: dict) -> str:
+    """Decrypt stored Slack webhook (supports legacy plaintext)."""
+    raw = workspace.get("slack_webhook_url")
+    if not raw:
+        return ""
+    if isinstance(raw, dict) and cred_crypto.is_sealed_credentials(raw):
+        opened = cred_crypto.unseal_credentials(raw) or {}
+        return str(opened.get("url") or "").strip()
+    if isinstance(raw, str):
+        # Try Fernet token first; fall back to plaintext legacy.
+        try:
+            return cred_crypto.decrypt_credential(raw).strip()
+        except Exception:
+            return raw.strip()
+    return ""
+
+
+async def post_slack_webhook(webhook_url: str, text: str, *, workspace_id: str = "") -> dict:
+    """Best-effort Slack Incoming Webhook post. Never raises.
+
+    On 404/410 or body no_service/channel_not_found, marks slack_webhook_status=broken.
+    """
+    try:
+        url = _validate_slack_webhook_url(webhook_url)
+    except ValueError:
+        return {"ok": False, "reason": "invalid_or_missing"}
+    if not url:
         return {"ok": False, "reason": "invalid_or_missing"}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(url, json={"text": text})
+        body = (r.text or "").strip().lower()
+        broken = r.status_code in (404, 410) or body in ("no_service", "channel_not_found")
+        if broken and workspace_id:
+            await db.workspaces.update_one(
+                {"workspace_id": workspace_id},
+                {"$set": {"slack_webhook_status": "broken"}},
+            )
+            return {"ok": False, "reason": "broken", "status": r.status_code}
         if r.status_code >= 400:
             logger.warning("slack webhook failed status=%s body=%s", r.status_code, r.text[:200])
             return {"ok": False, "reason": "http_error", "status": r.status_code}
@@ -1041,9 +1093,11 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
         html=html,
     )
     slack_result = {"ok": False, "reason": "not_configured"}
-    webhook = (c.get("slack_webhook_url") or "").strip()
-    if webhook:
-        slack_result = await post_slack_webhook(webhook, slack_text)
+    webhook = _slack_webhook_plaintext(c)
+    if webhook and (c.get("slack_webhook_status") or "") != "broken":
+        slack_result = await post_slack_webhook(
+            webhook, slack_text, workspace_id=c.get("workspace_id") or "",
+        )
 
     new_keys = [an.signal_notify_key(s.get("signal") or s) for s in fresh]
     delivered = bool(email_result.get("sent")) or bool(slack_result.get("ok"))
@@ -3357,6 +3411,7 @@ async def company(principal=Depends(get_principal)):
         # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
         "has_team": decision_engine.workspace_has_team(c),
         "logo_url": c.get("logo_url") or None,
+        "timezone": c.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE,
     }
 
 
@@ -3381,6 +3436,7 @@ class CompanySetupInput(BaseModel):
     # Explicit: can the CEO hand work to someone else (hire/contractor/co-founder)?
     # Separate from employees — headcount ≠ decision-makers they can delegate to.
     has_team: Optional[bool] = None
+    timezone: Optional[str] = None  # IANA, default Asia/Manila
     company_setup_done: bool = True
 
 
@@ -3424,6 +3480,11 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
         updates["founder_title"] = title or "CEO"
     if payload.has_team is not None:
         updates["has_team"] = bool(payload.has_team)
+    if payload.timezone is not None:
+        tz_name = (payload.timezone or "").strip() or gcal.DEFAULT_WORKSPACE_TIMEZONE
+        # Validate IANA name via zoneinfo
+        gcal.resolve_timezone(tz_name)
+        updates["timezone"] = tz_name
     if payload.company_setup_done:
         updates["company_setup_done"] = True
     if not updates:
@@ -13538,8 +13599,12 @@ async def integrations(principal=Depends(get_principal)):
         "can_connect_google": True,
         "connection_owners": connection_owners,
         "can_use_connection": can_use,
-        "slack_webhook_configured": bool((c.get("slack_webhook_url") or "").strip()),
-        "slack_webhook_url": (c.get("slack_webhook_url") or "") if can_manage else "",
+        "slack_webhook_configured": bool(_slack_webhook_plaintext(c)),
+        "slack_webhook_url": (
+            _mask_slack_webhook_url(_slack_webhook_plaintext(c)) if can_manage else ""
+        ),
+        "slack_webhook_status": c.get("slack_webhook_status") or ("ok" if _slack_webhook_plaintext(c) else ""),
+        "slack_webhook_masked": True,
         "xero_pending_tenants": xero_pending if can_manage else [],
     }
     if can_manage:
@@ -13563,17 +13628,38 @@ class SlackWebhookInput(BaseModel):
 @api_router.put("/integrations/slack-webhook")
 async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(require_integration_provider("slack"))):
     url = (payload.webhook_url or "").strip()
-    if url and not url.startswith("https://hooks.slack.com/"):
-        raise HTTPException(status_code=400, detail="Webhook URL must start with https://hooks.slack.com/")
-    await db.workspaces.update_one(
-        {"workspace_id": principal["workspace_id"]},
-        {"$set": {"slack_webhook_url": url}},
-    )
+    if url:
+        try:
+            url = _validate_slack_webhook_url(url)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        # Save-time validation: send a test message; reject if it fails.
+        test = await post_slack_webhook(url, "Trenston is connected ✅")
+        if not test.get("ok"):
+            raise HTTPException(
+                status_code=400,
+                detail="Slack webhook test failed. Check the URL and try again.",
+            )
+        sealed = cred_crypto.encrypt_credential(url)
+        await db.workspaces.update_one(
+            {"workspace_id": principal["workspace_id"]},
+            {"$set": {"slack_webhook_url": sealed, "slack_webhook_status": "ok"}},
+        )
+    else:
+        await db.workspaces.update_one(
+            {"workspace_id": principal["workspace_id"]},
+            {"$set": {"slack_webhook_url": "", "slack_webhook_status": ""}},
+        )
     await log_activity(
         principal, "integrations", "slack.webhook",
         "Updated Slack alert webhook" if url else "Cleared Slack alert webhook",
     )
-    return {"ok": True, "slack_webhook_configured": bool(url)}
+    return {
+        "ok": True,
+        "slack_webhook_configured": bool(url),
+        "slack_webhook_url": _mask_slack_webhook_url(url) if url else "",
+        "slack_webhook_status": "ok" if url else "",
+    }
 
 
 @api_router.post("/integrations/{integration_id}/toggle")

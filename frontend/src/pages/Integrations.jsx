@@ -26,6 +26,7 @@ const STATUS_LABELS = {
   not_connected: { text: "Not connected", className: "text-helm-muted border border-helm-line" },
   unavailable: { text: "Unavailable", className: "text-helm-muted border border-helm-line" },
   coming_soon: { text: "Coming soon", className: "text-helm-muted border border-helm-line" },
+  error: { text: "Reconnect Slack", className: "text-helm-status-negative bg-helm-status-negative/12" },
 };
 
 function formatLastSynced(iso) {
@@ -477,12 +478,22 @@ export default function Integrations() {
               <div className="w-10 h-10 rounded-lg bg-helm-fg/5 border border-helm-line flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-helm-gold" />
               </div>
-              <StatusBadge status={data.slack_webhook_configured ? "connected" : "not_connected"} />
+              <StatusBadge
+                status={
+                  data.slack_webhook_status === "broken"
+                    ? "error"
+                    : data.slack_webhook_configured
+                      ? "connected"
+                      : "not_connected"
+                }
+              />
             </div>
             <h3 className="text-helm-fg font-medium">Slack</h3>
             <p className="text-[11px] font-mono uppercase tracking-wide text-helm-muted mt-0.5">Alerts</p>
             <p className="text-sm text-helm-muted mt-2 leading-relaxed flex-1 min-h-[40px]">
-              Paste a Slack Incoming Webhook URL to post high-severity Trenston alerts to a channel. Leave blank to disable.
+              {data.slack_webhook_status === "broken"
+                ? "This webhook is broken. Paste a new Incoming Webhook URL to reconnect Slack."
+                : "Paste a Slack Incoming Webhook URL to post high-severity Trenston alerts to a channel. Leave blank to disable."}
             </p>
             <label className="text-xs text-helm-muted block mt-3">
               Incoming webhook URL
@@ -502,10 +513,19 @@ export default function Integrations() {
                 onClick={saveSlackWebhook}
                 className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
               >
-                {slackBusy ? "Saving…" : "Save webhook"}
+                {slackBusy
+                  ? "Saving…"
+                  : data.slack_webhook_status === "broken"
+                    ? "Reconnect Slack"
+                    : "Save webhook"}
               </button>
-              {data.slack_webhook_configured && (
+              {data.slack_webhook_configured && data.slack_webhook_status !== "broken" && (
                 <span className="text-xs text-helm-status-positive font-mono">Configured</span>
+              )}
+              {data.slack_webhook_status === "broken" && (
+                <span className="text-xs text-helm-status-negative font-mono" data-testid="slack-reconnect-hint">
+                  Reconnect Slack
+                </span>
               )}
             </div>
           </GlassCard>
