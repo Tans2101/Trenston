@@ -18,6 +18,8 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 
+from integration_errors import IntegrationRetryableError
+
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
@@ -36,6 +38,10 @@ _BLOCKED_NETWORKS = (
 
 class SapB1AuthError(Exception):
     """Login rejected or session expired — user must reconnect."""
+
+
+class SapB1RetryableError(IntegrationRetryableError):
+    """Transient Service Layer/network failure — keep credentials."""
 
 
 class SapB1Error(Exception):
@@ -180,7 +186,7 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
     doc_entry = doc.get("DocEntry")
     if doc_entry is None:
         return None
-    qb_txn_id = f"sap_b1_{kind}_{doc_entry}_{date_full}"
+    qb_txn_id = f"sap_b1_{kind}_{doc_entry}"
 
     card = (doc.get("CardName") or "").strip()
     doc_num = doc.get("DocNum")
@@ -189,6 +195,19 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
     name = (card or comments or category).strip()[:120]
     extras = [p for p in [f"Doc #{doc_num}" if doc_num is not None else "", comments] if p and p != name]
     note = " · ".join(extras)
+
+    try:
+        vat = float(doc.get("VatSum") or 0)
+    except (TypeError, ValueError):
+        vat = 0.0
+    amount_net = round(max(amount - abs(vat), 0), 2)
+    # DocTotalSys is local/system currency total when present; else DocRate conversion.
+    if doc.get("DocTotalSys") is not None:
+        amount_home, _ = amap.normalize_mapped_amount(doc.get("DocTotalSys"))
+    else:
+        amount_home = amap.apply_exchange_rate(amount, doc.get("DocRate"))
+    currency = str(doc.get("DocCurrency") or "").upper() or None
+    money = {"currency": currency, "amount_net": amount_net, "amount_home": amount_home}
 
     if kind == "ap":
         return {
@@ -202,6 +221,7 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
             "qb_txn_id": qb_txn_id,
             "recurring": False,
             "_sap_raw_type": "purchase_invoice",
+            **money,
         }
 
     return {
@@ -215,6 +235,7 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
         "qb_txn_id": qb_txn_id,
         "recurring": False,
         "_sap_raw_type": "invoice",
+        **money,
     }
 
 
@@ -226,7 +247,8 @@ def _since_filter(since: Optional[str]) -> str:
         datetime.strptime(day, "%Y-%m-%d")
     except ValueError:
         return ""
-    return f" and DocDate ge '{day}'"
+    # Incremental by last-modified (UpdateDate), not DocDate.
+    return f" and UpdateDate ge '{day}'"
 
 
 async def login(
@@ -244,18 +266,28 @@ async def login(
         raise ValueError("Company database, username, and password are required")
 
     login_url = urljoin(base.rstrip("/") + "/", "Login")
-    async with httpx.AsyncClient(timeout=45.0, verify=True, follow_redirects=False) as hc:
-        resp = await hc.post(
-            login_url,
-            json={"CompanyDB": company, "UserName": user, "Password": password},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=45.0, verify=True, follow_redirects=False) as hc:
+            resp = await hc.post(
+                login_url,
+                json={"CompanyDB": company, "UserName": user, "Password": password},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+            )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        logger.warning("SAP B1 login network/timeout error: %s", exc)
+        raise SapB1RetryableError("SAP connection temporarily unavailable") from exc
     if resp.status_code in (401, 403):
         logger.warning(
             "SAP B1 login rejected (%s) body=%s",
             resp.status_code, (resp.text or "")[:2000],
         )
         raise SapB1AuthError("SAP connection failed")
+    if resp.status_code >= 500:
+        logger.warning(
+            "SAP B1 login temporarily unavailable (%s) body=%s",
+            resp.status_code, (resp.text or "")[:2000],
+        )
+        raise SapB1RetryableError("SAP connection temporarily unavailable")
     if resp.status_code >= 400:
         logger.warning(
             "SAP B1 login failed (%s) body=%s",
@@ -339,31 +371,63 @@ async def ensure_session(creds: dict) -> dict:
     )
 
 
+async def _fetch_collection_page(
+    creds: dict,
+    collection: str,
+    *,
+    select: str,
+    filt: str,
+    skip: int,
+) -> httpx.Response:
+    base = _revalidate_service_layer_url(creds).rstrip("/") + "/"
+    url = (
+        f"{urljoin(base, collection)}"
+        f"?$select={select}&$filter={filt}"
+        f"&$orderby=DocDate asc&$top={PAGE_SIZE}&$skip={skip}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
+            return await hc.get(
+                url,
+                headers=_session_headers(creds["session_id"], creds.get("route_id")),
+            )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        raise SapB1RetryableError("SAP connection temporarily unavailable") from exc
+
+
 async def _fetch_collection(
     creds: dict,
     collection: str,
     *,
     since: Optional[str] = None,
-) -> tuple[list[dict], bool]:
-    select = "DocEntry,DocNum,DocDate,DocTotal,CardName,Comments,Cancelled,DocumentLines"
-    filt = f"Cancelled eq 'tNO'{_since_filter(since)}"
+    _retried: bool = False,
+) -> tuple[list[dict], bool, dict]:
+    select = "DocEntry,DocNum,DocDate,UpdateDate,DocTotal,DocTotalSys,DocCurrency,DocRate,VatSum,CardName,Comments,Cancelled,DocumentLines"
+    # Include cancelled docs on incremental so we can delete matching entries.
+    if since:
+        filt = f"(Cancelled eq 'tNO' or Cancelled eq 'tYES'){_since_filter(since)}"
+    else:
+        filt = f"Cancelled eq 'tNO'{_since_filter(since)}"
     rows: list[dict] = []
     skip = 0
     for _ in range(MAX_PAGES):
-        # Re-resolve on every page — DNS can flip mid-pagination (TOCTOU).
-        base = _revalidate_service_layer_url(creds).rstrip("/") + "/"
-        url = (
-            f"{urljoin(base, collection)}"
-            f"?$select={select}&$filter={filt}"
-            f"&$orderby=DocDate asc&$top={PAGE_SIZE}&$skip={skip}"
+        resp = await _fetch_collection_page(
+            creds, collection, select=select, filt=filt, skip=skip,
         )
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
-            resp = await hc.get(
-                url,
-                headers=_session_headers(creds["session_id"], creds.get("route_id")),
-            )
         if resp.status_code in (401, 403):
-            raise SapB1AuthError("SAP session expired")
+            if _retried:
+                raise SapB1AuthError("SAP session expired")
+            logger.info("SAP B1 401/403 on %s — re-login and retrying once", collection)
+            # Clear session so ensure_session / login issues a fresh one.
+            fresh = await login(
+                service_layer_url=creds["service_layer_url"],
+                company_db=creds["company_db"],
+                username=creds["username"],
+                password=creds["password"],
+            )
+            return await _fetch_collection(fresh, collection, since=since, _retried=True)
+        if resp.status_code >= 500:
+            raise SapB1RetryableError("SAP connection temporarily unavailable")
         if resp.status_code >= 400:
             logger.warning(
                 "SAP B1 %s fetch failed (%s) body=%s",
@@ -373,32 +437,44 @@ async def _fetch_collection(
         payload = resp.json() or {}
         page = payload.get("value") or []
         if not isinstance(page, list):
-            return rows, True
+            return rows, True, creds
         rows.extend(d for d in page if isinstance(d, dict))
         if len(page) < PAGE_SIZE:
-            return rows, True
+            return rows, True, creds
         skip += PAGE_SIZE
-    return rows, False
+    return rows, False, creds
 
 
-async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> tuple[list[dict], bool]:
+async def fetch_sap_transactions(creds: dict, since: Optional[str] = None) -> tuple[list[dict], bool, dict, list[str]]:
     """Pull A/R Invoices + A/P PurchaseInvoices and map to financial_entries rows.
 
-    Returns (mapped_rows, complete). Do not advance sap_b1_last_synced_at when complete is False.
+    Returns (mapped_rows, complete, creds, deleted_qb_txn_ids).
+    Do not advance sap_b1_last_synced_at when complete is False.
     """
     live = await ensure_session(creds)
-    ar_docs, ar_ok = await _fetch_collection(live, "Invoices", since=since)
-    ap_docs, ap_ok = await _fetch_collection(live, "PurchaseInvoices", since=since)
+    ar_docs, ar_ok, live = await _fetch_collection(live, "Invoices", since=since)
+    ap_docs, ap_ok, live = await _fetch_collection(live, "PurchaseInvoices", since=since)
     out: list[dict] = []
+    deleted: list[str] = []
     for doc in ar_docs:
+        if str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1"):
+            de = doc.get("DocEntry")
+            if de is not None:
+                deleted.append(f"sap_b1_ar_{de}")
+            continue
         mapped = map_sap_document(doc, kind="ar")
         if mapped:
             out.append(mapped)
     for doc in ap_docs:
+        if str(doc.get("Cancelled") or "tNO").upper() in ("TYES", "Y", "TRUE", "1"):
+            de = doc.get("DocEntry")
+            if de is not None:
+                deleted.append(f"sap_b1_ap_{de}")
+            continue
         mapped = map_sap_document(doc, kind="ap")
         if mapped:
             out.append(mapped)
-    return out, ar_ok and ap_ok
+    return out, ar_ok and ap_ok, live, deleted
 
 
 def public_connection_info(creds: dict | None) -> dict:

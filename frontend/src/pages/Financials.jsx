@@ -861,7 +861,32 @@ export default function Financials() {
                           {e.category}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-4 text-right font-mono text-helm-fg">{fmt(e.amount, sym)}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono text-helm-fg">
+                        {(() => {
+                          const gross = Number(e.amount) || 0;
+                          const net = e.amount_net != null ? Number(e.amount_net) : null;
+                          const home = e.amount_home != null ? Number(e.amount_home) : null;
+                          let display = gross;
+                          if (net != null && home != null && gross) {
+                            display = Math.abs(home) * (Math.abs(net) / Math.abs(gross));
+                          } else if (home != null) {
+                            display = Math.abs(home);
+                          } else if (net != null) {
+                            display = Math.abs(net);
+                          } else {
+                            display = Math.abs(gross);
+                          }
+                          const showNetHint = net != null && Math.abs(net) !== Math.abs(gross);
+                          return (
+                            <>
+                              {fmt(display, sym)}
+                              {showNetHint ? (
+                                <div className="text-[10px] text-helm-mute font-sans normal-case tracking-normal">net of tax</div>
+                              ) : null}
+                            </>
+                          );
+                        })()}
+                      </td>
                       <td className="py-2.5 pr-4">
                         {e.source === "ai_upload" && e.source_document_id ? (
                           <button

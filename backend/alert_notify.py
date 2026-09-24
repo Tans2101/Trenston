@@ -59,12 +59,22 @@ def build_alert_email_html(workspace_name: str, alerts: list, app_url: str) -> s
 </td></tr></table></body></html>"""
 
 
+def _slack_escape(s: Any) -> str:
+    """Escape Slack mrkdwn special chars (& < >). Plain @channel text is left as-is."""
+    return (
+        str(s or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
+
+
 def build_slack_text(workspace_name: str, alerts: list, app_url: str) -> str:
-    lines = [f"*Trenston high-severity alert: {workspace_name}*"]
+    lines = [f"*Trenston high-severity alert: {_slack_escape(workspace_name)}*"]
     for a in alerts:
         title = a.get("title") or (a.get("signal") or {}).get("summary") or "Alert"
         detail = a.get("description") or (a.get("signal") or {}).get("detail") or ""
-        lines.append(f"• {title}: {detail}")
+        lines.append(f"• {_slack_escape(title)}: {_slack_escape(detail)}")
     link = (app_url or "").rstrip("/") + "/app/decisions"
     lines.append(f"Open: {link}")
     return "\n".join(lines)

@@ -11,6 +11,7 @@ import server
 async def test_upsert_accounting_sync_handles_duplicate_key():
     insert = AsyncMock(side_effect=DuplicateKeyError("E11000"))
     update = AsyncMock()
+    delete_many = AsyncMock()
     find = MagicMock()
     find.to_list = AsyncMock(return_value=[])  # no pre-existing rows
 
@@ -22,9 +23,12 @@ async def test_upsert_accounting_sync_handles_duplicate_key():
     mock_db.financial_entries.find = MagicMock(return_value=Cursor())
     mock_db.financial_entries.insert_one = insert
     mock_db.financial_entries.update_one = update
+    mock_db.financial_entries.delete_many = delete_many
+    mock_db.financial_entries.delete_one = AsyncMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"financial_settings": {"currency": "usd"}})
 
     txns = [{
-        "qb_txn_id": "qb_1_2026-01-01",
+        "qb_txn_id": "qb_purchase_1",
         "type": "expense",
         "category": "Cloud",
         "name": "AWS",
@@ -47,6 +51,8 @@ async def test_upsert_accounting_sync_handles_duplicate_key():
     assert n == 1
     insert.assert_awaited_once()
     update.assert_awaited_once()
+    # Safety net: also deletes dated legacy ids that rewrite to this stable id.
+    assert delete_many.await_count >= 1
     filt, payload = update.await_args.args
-    assert filt == {"workspace_id": "ws1", "qb_txn_id": "qb_1_2026-01-01"}
+    assert filt == {"workspace_id": "ws1", "qb_txn_id": "qb_purchase_1"}
     assert payload["$set"]["amount"] == 10.0

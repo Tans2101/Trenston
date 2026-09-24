@@ -218,7 +218,8 @@ GOOGLE_CLIENT_ID = (os.environ.get('GOOGLE_CLIENT_ID') or '').strip()
 GOOGLE_CLIENT_SECRET = (os.environ.get('GOOGLE_CLIENT_SECRET') or '').strip()
 QB_CLIENT_ID = (os.environ.get('QUICKBOOKS_CLIENT_ID') or '').strip()
 QB_CLIENT_SECRET = (os.environ.get('QUICKBOOKS_CLIENT_SECRET') or '').strip()
-QB_ENV = (os.environ.get('QUICKBOOKS_ENV') or 'sandbox').strip().lower()
+# Prefer quickbooks module resolution (also checks QB_ENVIRONMENT).
+QB_ENV = qb_sync.QB_ENVIRONMENT
 XERO_CLIENT_ID = (os.environ.get('XERO_CLIENT_ID') or '').strip()
 XERO_CLIENT_SECRET = (os.environ.get('XERO_CLIENT_SECRET') or '').strip()
 HUBSPOT_CLIENT_ID = (os.environ.get('HUBSPOT_CLIENT_ID') or '').strip()
@@ -971,14 +972,66 @@ async def notify_task_delegated(
         return {"sent": False, "reason": "error"}
 
 
-async def post_slack_webhook(webhook_url: str, text: str) -> dict:
-    """Best-effort Slack Incoming Webhook post. Never raises."""
-    url = (webhook_url or "").strip()
-    if not url.startswith("https://hooks.slack.com/"):
+def _validate_slack_webhook_url(url: str) -> str:
+    """Require https and host exactly hooks.slack.com. Returns cleaned URL or raises ValueError."""
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    parsed = urlparse(raw)
+    if parsed.scheme != "https" or (parsed.hostname or "").lower() != "hooks.slack.com":
+        raise ValueError("Webhook URL must be https://hooks.slack.com/…")
+    return raw
+
+
+def _mask_slack_webhook_url(url: str) -> str:
+    raw = (url or "").strip()
+    if not raw:
+        return ""
+    # Keep scheme/host and last 4 chars of the path.
+    parsed = urlparse(raw)
+    tail = (parsed.path or "")[-4:]
+    return f"https://hooks.slack.com/…{tail}"
+
+
+def _slack_webhook_plaintext(workspace: dict) -> str:
+    """Decrypt stored Slack webhook (supports legacy plaintext)."""
+    raw = workspace.get("slack_webhook_url")
+    if not raw:
+        return ""
+    if isinstance(raw, dict) and cred_crypto.is_sealed_credentials(raw):
+        opened = cred_crypto.unseal_credentials(raw) or {}
+        return str(opened.get("url") or "").strip()
+    if isinstance(raw, str):
+        # Try Fernet token first; fall back to plaintext legacy.
+        try:
+            return cred_crypto.decrypt_credential(raw).strip()
+        except Exception:
+            return raw.strip()
+    return ""
+
+
+async def post_slack_webhook(webhook_url: str, text: str, *, workspace_id: str = "") -> dict:
+    """Best-effort Slack Incoming Webhook post. Never raises.
+
+    On 404/410 or body no_service/channel_not_found, marks slack_webhook_status=broken.
+    """
+    try:
+        url = _validate_slack_webhook_url(webhook_url)
+    except ValueError:
+        return {"ok": False, "reason": "invalid_or_missing"}
+    if not url:
         return {"ok": False, "reason": "invalid_or_missing"}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.post(url, json={"text": text})
+        body = (r.text or "").strip().lower()
+        broken = r.status_code in (404, 410) or body in ("no_service", "channel_not_found")
+        if broken and workspace_id:
+            await db.workspaces.update_one(
+                {"workspace_id": workspace_id},
+                {"$set": {"slack_webhook_status": "broken"}},
+            )
+            return {"ok": False, "reason": "broken", "status": r.status_code}
         if r.status_code >= 400:
             logger.warning("slack webhook failed status=%s body=%s", r.status_code, r.text[:200])
             return {"ok": False, "reason": "http_error", "status": r.status_code}
@@ -1040,9 +1093,11 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
         html=html,
     )
     slack_result = {"ok": False, "reason": "not_configured"}
-    webhook = (c.get("slack_webhook_url") or "").strip()
-    if webhook:
-        slack_result = await post_slack_webhook(webhook, slack_text)
+    webhook = _slack_webhook_plaintext(c)
+    if webhook and (c.get("slack_webhook_status") or "") != "broken":
+        slack_result = await post_slack_webhook(
+            webhook, slack_text, workspace_id=c.get("workspace_id") or "",
+        )
 
     new_keys = [an.signal_notify_key(s.get("signal") or s) for s in fresh]
     delivered = bool(email_result.get("sent")) or bool(slack_result.get("ok"))
@@ -3356,6 +3411,7 @@ async def company(principal=Depends(get_principal)):
         # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
         "has_team": decision_engine.workspace_has_team(c),
         "logo_url": c.get("logo_url") or None,
+        "timezone": c.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE,
     }
 
 
@@ -3380,6 +3436,7 @@ class CompanySetupInput(BaseModel):
     # Explicit: can the CEO hand work to someone else (hire/contractor/co-founder)?
     # Separate from employees — headcount ≠ decision-makers they can delegate to.
     has_team: Optional[bool] = None
+    timezone: Optional[str] = None  # IANA, default Asia/Manila
     company_setup_done: bool = True
 
 
@@ -3423,6 +3480,11 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
         updates["founder_title"] = title or "CEO"
     if payload.has_team is not None:
         updates["has_team"] = bool(payload.has_team)
+    if payload.timezone is not None:
+        tz_name = (payload.timezone or "").strip() or gcal.DEFAULT_WORKSPACE_TIMEZONE
+        # Validate IANA name via zoneinfo
+        gcal.resolve_timezone(tz_name)
+        updates["timezone"] = tz_name
     if payload.company_setup_done:
         updates["company_setup_done"] = True
     if not updates:
@@ -3903,6 +3965,9 @@ async def _briefing_email_threads(workspace: dict, principal: dict | None = None
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
         return threads, meta
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Gmail temporarily unavailable for %s: %s", ws_id, exc)
+        return [], meta
     except gcal.GoogleAuthError as exc:
         logger.warning("Gmail auth failed for %s: %s", ws_id, exc)
         if "not granted" in str(exc).lower():
@@ -8054,15 +8119,17 @@ async def _google_calendar_snapshot(
     tokens = await _user_google_tokens(ws_id, principal["user_id"])
     if not tokens:
         return None
+    tz_name = workspace.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
     if week_start is None:
         week_start = _calendar_week_start(datetime.now(timezone.utc).date())
     try:
         events, refreshed = await gcal.fetch_week_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, week_start,
+            timezone_name=tz_name,
         )
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today_str = datetime.now(gcal.resolve_timezone(tz_name)).strftime("%Y-%m-%d")
         meetings = [e for e in events if e.get("date") == today_str and not e.get("all_day")]
         focus_hours, meeting_hours = gcal._compute_hours(meetings)
         return {
@@ -8074,6 +8141,9 @@ async def _google_calendar_snapshot(
             "source": "google_calendar",
             "week_start": week_start.strftime("%Y-%m-%d"),
         }
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Google Calendar temporarily unavailable for %s/%s: %s", ws_id, principal["user_id"], exc)
+        return {"events": [], "meetings": [], "focus_hours": 0, "meeting_hours": 0, "live": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError as exc:
         logger.warning("Google Calendar auth failed for %s/%s: %s", ws_id, principal["user_id"], exc)
         await _store_user_google_tokens(ws_id, principal["user_id"], None)
@@ -13531,8 +13601,12 @@ async def integrations(principal=Depends(get_principal)):
         "can_connect_google": True,
         "connection_owners": connection_owners,
         "can_use_connection": can_use,
-        "slack_webhook_configured": bool((c.get("slack_webhook_url") or "").strip()),
-        "slack_webhook_url": (c.get("slack_webhook_url") or "") if can_manage else "",
+        "slack_webhook_configured": bool(_slack_webhook_plaintext(c)),
+        "slack_webhook_url": (
+            _mask_slack_webhook_url(_slack_webhook_plaintext(c)) if can_manage else ""
+        ),
+        "slack_webhook_status": c.get("slack_webhook_status") or ("ok" if _slack_webhook_plaintext(c) else ""),
+        "slack_webhook_masked": True,
         "xero_pending_tenants": xero_pending if can_manage else [],
     }
     if can_manage:
@@ -13545,6 +13619,7 @@ async def integrations(principal=Depends(get_principal)):
             "hubspot": _oauth_callback_uri("hubspot"),
         }
         out["quickbooks_env"] = QB_ENV
+        out.update(qb_sync.qb_env_diagnostics())
     return out
 
 
@@ -13555,17 +13630,38 @@ class SlackWebhookInput(BaseModel):
 @api_router.put("/integrations/slack-webhook")
 async def update_slack_webhook(payload: SlackWebhookInput, principal=Depends(require_integration_provider("slack"))):
     url = (payload.webhook_url or "").strip()
-    if url and not url.startswith("https://hooks.slack.com/"):
-        raise HTTPException(status_code=400, detail="Webhook URL must start with https://hooks.slack.com/")
-    await db.workspaces.update_one(
-        {"workspace_id": principal["workspace_id"]},
-        {"$set": {"slack_webhook_url": url}},
-    )
+    if url:
+        try:
+            url = _validate_slack_webhook_url(url)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        # Save-time validation: send a test message; reject if it fails.
+        test = await post_slack_webhook(url, "Trenston is connected ✅")
+        if not test.get("ok"):
+            raise HTTPException(
+                status_code=400,
+                detail="Slack webhook test failed. Check the URL and try again.",
+            )
+        sealed = cred_crypto.encrypt_credential(url)
+        await db.workspaces.update_one(
+            {"workspace_id": principal["workspace_id"]},
+            {"$set": {"slack_webhook_url": sealed, "slack_webhook_status": "ok"}},
+        )
+    else:
+        await db.workspaces.update_one(
+            {"workspace_id": principal["workspace_id"]},
+            {"$set": {"slack_webhook_url": "", "slack_webhook_status": ""}},
+        )
     await log_activity(
         principal, "integrations", "slack.webhook",
         "Updated Slack alert webhook" if url else "Cleared Slack alert webhook",
     )
-    return {"ok": True, "slack_webhook_configured": bool(url)}
+    return {
+        "ok": True,
+        "slack_webhook_configured": bool(url),
+        "slack_webhook_url": _mask_slack_webhook_url(url) if url else "",
+        "slack_webhook_status": "ok" if url else "",
+    }
 
 
 @api_router.post("/integrations/{integration_id}/toggle")
@@ -13975,6 +14071,8 @@ async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_i
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except sap_b1_sync.SapB1RetryableError as exc:
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc) or "SAP Business One login rejected") from exc
     except sap_b1_sync.SapB1Error as exc:
@@ -14000,14 +14098,18 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=400, detail="SAP Business One is not connected. Connect it in Integrations first.")
     try:
         live = await sap_b1_sync.ensure_session(creds)
+    except sap_b1_sync.SapB1RetryableError as exc:
+        logger.warning("SAP B1 session temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     since = c.get("sap_b1_last_synced_at")
-    txns, complete = await sap_b1_sync.fetch_sap_transactions(live, since)
+    txns, complete, live, deleted = await sap_b1_sync.fetch_sap_transactions(live, since)
+    await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
@@ -14029,6 +14131,9 @@ async def sap_b1_sync_endpoint(principal=Depends(require_integration_provider("s
             {"synced_count": result["synced_count"]},
         )
         return result
+    except sap_b1_sync.SapB1RetryableError as exc:
+        logger.warning("SAP B1 sync temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except sap_b1_sync.SapB1AuthError as exc:
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(
@@ -14085,11 +14190,25 @@ async def _upsert_accounting_sync_entries(
     principal: dict,
     txns: list,
     source: str,
+    deleted_ids: Optional[list[str]] = None,
 ) -> int:
     """Shared QuickBooks/Xero upsert into financial_entries (identical downstream shape)."""
     synced_count = 0
     now_iso = datetime.now(timezone.utc).isoformat()
     finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
+
+    for del_id in deleted_ids or []:
+        if not del_id:
+            continue
+        if del_id.endswith("_"):
+            await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": {"$regex": f"^{re.escape(del_id)}"}},
+            )
+        else:
+            await db.financial_entries.delete_one(
+                {"workspace_id": ws_id, "qb_txn_id": del_id},
+            )
+
     txn_ids = _unique_ids(t.get("qb_txn_id") for t in txns)
     existing_by_id = {}
     if txn_ids:
@@ -14099,17 +14218,38 @@ async def _upsert_accounting_sync_entries(
         ).to_list(len(txn_ids))
         existing_by_id = {e["qb_txn_id"]: e for e in existing_rows if e.get("qb_txn_id")}
 
+    home_currency = normalize_currency(
+        ((await db.workspaces.find_one({"workspace_id": ws_id}, {"_id": 0, "financial_settings": 1})) or {})
+        .get("financial_settings", {})
+        .get("currency")
+    ) or "usd"
+
+    # Sync-path safety: retire dated legacy qb_txn_ids that rewrite to each stable id
+    # so a deploy without the one-shot migration cannot double-count.
+    from scripts.migrate_qb_txn_ids import legacy_dated_patterns_for_stable
+
     for txn in txns:
         txn.pop("_qb_raw_type", None)
         txn.pop("_xero_raw_type", None)
         txn.pop("_sap_raw_type", None)
         qb_txn_id = txn.pop("qb_txn_id")
+        for pat in legacy_dated_patterns_for_stable(qb_txn_id):
+            await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": {"$regex": pat}},
+            )
         existing = existing_by_id.get(qb_txn_id)
+        currency = (txn.get("currency") or home_currency or "").upper() or home_currency
+        amount = txn["amount"]
+        amount_net = txn.get("amount_net") if txn.get("amount_net") is not None else amount
+        amount_home = txn.get("amount_home") if txn.get("amount_home") is not None else amount
         fields = {
             "type": txn["type"],
             "category": txn["category"],
             "name": normalize_entry_name(txn.get("name"), txn.get("category")),
-            "amount": txn["amount"],
+            "amount": amount,
+            "amount_net": amount_net,
+            "amount_home": amount_home,
+            "currency": currency,
             "is_credit": bool(txn.get("is_credit") or txn.get("is_refund")),
             "month": txn["month"],
             "note": txn.get("note", ""),
@@ -14173,9 +14313,10 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     since = c.get("qb_last_synced_at")
-    txns, complete = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    txns, complete, tokens, deleted = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
+    await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
@@ -14197,9 +14338,10 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     since = c.get("xero_last_synced_at")
-    txns, complete = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    txns, complete, tokens, deleted = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
+    await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
-        ws_id=ws_id, principal=principal, txns=txns, source=source,
+        ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
@@ -14221,6 +14363,9 @@ async def quickbooks_sync(principal=Depends(require_integration_provider("quickb
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
+    except qb_sync.QuickBooksRetryableError as exc:
+        logger.warning("QuickBooks temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except qb_sync.QuickBooksAuthError as exc:
         logger.warning("QuickBooks auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "quickbooks_tokens", None, extra_unset={"qb_last_synced_at": ""})
@@ -14248,6 +14393,11 @@ async def xero_sync_endpoint(principal=Depends(require_integration_provider("xer
             {"synced_count": result["synced_count"]},
         )
         return {"ok": True, **result}
+    except xero_sync.XeroRetryableError as exc:
+        logger.warning("Xero temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
+    except xero_sync.XeroPermissionsError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except xero_sync.XeroAuthError as exc:
         logger.warning("Xero auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
@@ -14307,6 +14457,9 @@ async def run_accounting_auto_sync() -> dict:
                 else:
                     stats["quickbooks_errors"] += 1
                     logger.warning("QuickBooks auto-sync skipped for %s: %s", ws_id, exc.detail)
+            except qb_sync.QuickBooksRetryableError as exc:
+                stats["quickbooks_errors"] += 1
+                logger.warning("QuickBooks auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except qb_sync.QuickBooksAuthError as exc:
                 stats["quickbooks_auth_errors"] += 1
                 logger.warning("QuickBooks auto-sync auth failed for %s: %s", ws_id, exc)
@@ -14319,28 +14472,37 @@ async def run_accounting_auto_sync() -> dict:
             tokens = _integration_tokens(c, "xero_tokens") or {}
             if not tokens.get("tenant_id"):
                 stats["xero_skipped"] += 1
-                continue
-            try:
-                principal = _system_accounting_principal(c, "xero_tokens")
-                result = await _run_xero_sync_for_workspace(
-                    c, principal, source="xero_auto_sync",
-                )
-                stats["xero_ok"] += 1
-                stats["transactions_synced"] += int(result.get("synced_count") or 0)
-            except HTTPException as exc:
-                if exc.status_code == 400:
-                    stats["xero_skipped"] += 1
-                else:
+                # Do not continue — a workspace without a Xero tenant may still have SAP B1.
+            else:
+                try:
+                    principal = _system_accounting_principal(c, "xero_tokens")
+                    result = await _run_xero_sync_for_workspace(
+                        c, principal, source="xero_auto_sync",
+                    )
+                    stats["xero_ok"] += 1
+                    stats["transactions_synced"] += int(result.get("synced_count") or 0)
+                except HTTPException as exc:
+                    if exc.status_code == 400:
+                        stats["xero_skipped"] += 1
+                    elif exc.status_code == 503:
+                        stats["xero_errors"] += 1
+                        logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc.detail)
+                    else:
+                        stats["xero_errors"] += 1
+                        logger.warning("Xero auto-sync skipped for %s: %s", ws_id, exc.detail)
+                except xero_sync.XeroRetryableError as exc:
                     stats["xero_errors"] += 1
-                    logger.warning("Xero auto-sync skipped for %s: %s", ws_id, exc.detail)
-            except xero_sync.XeroAuthError as exc:
-                stats["xero_auth_errors"] += 1
-                logger.warning("Xero auto-sync auth failed for %s: %s", ws_id, exc)
-                await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
-            except Exception:
-                stats["xero_errors"] += 1
-                logger.exception("Xero auto-sync failed for %s", ws_id)
-
+                    logger.warning("Xero auto-sync temporarily unavailable for %s: %s", ws_id, exc)
+                except xero_sync.XeroPermissionsError as exc:
+                    stats["xero_errors"] += 1
+                    logger.warning("Xero auto-sync permissions error for %s: %s", ws_id, exc)
+                except xero_sync.XeroAuthError as exc:
+                    stats["xero_auth_errors"] += 1
+                    logger.warning("Xero auto-sync auth failed for %s: %s", ws_id, exc)
+                    await _store_integration_tokens(ws_id, "xero_tokens", None, extra_unset={"xero_last_synced_at": ""})
+                except Exception:
+                    stats["xero_errors"] += 1
+                    logger.exception("Xero auto-sync failed for %s", ws_id)
 
         if cred_crypto.credentials_present(c.get("sap_b1_credentials")):
             try:
@@ -14353,9 +14515,15 @@ async def run_accounting_auto_sync() -> dict:
             except HTTPException as exc:
                 if exc.status_code == 400:
                     stats["sap_b1_skipped"] += 1
+                elif exc.status_code == 503:
+                    stats["sap_b1_errors"] += 1
+                    logger.warning("SAP B1 auto-sync temporarily unavailable for %s: %s", ws_id, exc.detail)
                 else:
                     stats["sap_b1_errors"] += 1
                     logger.warning("SAP B1 auto-sync skipped for %s: %s", ws_id, exc.detail)
+            except sap_b1_sync.SapB1RetryableError as exc:
+                stats["sap_b1_errors"] += 1
+                logger.warning("SAP B1 auto-sync temporarily unavailable for %s: %s", ws_id, exc)
             except sap_b1_sync.SapB1AuthError as exc:
                 stats["sap_b1_auth_errors"] += 1
                 logger.warning("SAP B1 auto-sync auth failed for %s: %s", ws_id, exc)
@@ -14460,13 +14628,19 @@ async def _upsert_hubspot_deals(*, ws_id: str, principal: dict, deals: list) -> 
 @api_router.get("/integrations/google/calendar-events")
 async def google_calendar_events(principal=Depends(get_principal)):
     tokens = await _require_user_google_tokens(principal)
+    ws = await get_ws(principal["workspace_id"])
+    tz_name = (ws or {}).get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
     try:
         meetings, _, _, refreshed = await gcal.fetch_today_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, max_results=20,
+            timezone_name=tz_name,
         )
         if refreshed is not tokens:
             await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
         return {"events": meetings, "live": True}
+    except gcal.GoogleRetryableError as exc:
+        logger.warning("Google Calendar temporarily unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except gcal.GoogleAuthError as exc:
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
         raise HTTPException(status_code=401, detail=str(exc)) from exc
@@ -14494,6 +14668,8 @@ async def google_picker_config(principal=Depends(get_principal)):
     try:
         refreshed = await gcal.refresh_google_token(tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleRetryableError:
+        return {"configured": False, "needs_reconnect": False, "temporarily_unavailable": True}
     except gcal.GoogleAuthError:
         return {"configured": False, "needs_reconnect": True}
     return {
@@ -14531,6 +14707,8 @@ async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_pri
             thread_id=(payload.thread_id or "").strip(),
         )
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GoogleRetryableError as exc:
+        raise HTTPException(status_code=503, detail="temporarily unavailable") from exc
     except gcal.GoogleAuthError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
     except Exception as exc:
@@ -16341,6 +16519,7 @@ async def _connect_mongo_at_startup() -> None:
 async def startup():
     if ENVIRONMENT == "production":
         cred_crypto.assert_encryption_ready()
+    qb_sync.warn_if_qb_env_missing_in_prod()
     await _connect_mongo_at_startup()
     # Do not block Render health checks — indexes / migrations run after listen.
     asyncio.create_task(_ensure_indexes())

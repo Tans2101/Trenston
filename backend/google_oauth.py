@@ -7,11 +7,23 @@ from __future__ import annotations
 
 import base64
 import email.utils
+import logging
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
+from email.policy import SMTP
 from typing import Optional
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
+
+from integration_errors import (
+    IntegrationRetryableError,
+    force_token_refresh,
+    refresh_http_post,
+)
+
+logger = logging.getLogger(__name__)
 
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
@@ -42,6 +54,10 @@ _INBOX_FALLBACK_QUERY = "in:inbox newer_than:5d -category:promotions -category:s
 
 class GoogleAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
+
+
+class GoogleRetryableError(IntegrationRetryableError):
+    """Transient Google/network failure — keep tokens."""
 
 
 def has_gmail_scope(tokens: Optional[dict]) -> bool:
@@ -85,9 +101,11 @@ def _token_needs_refresh(tokens: dict) -> bool:
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
-async def refresh_google_token(tokens: dict, client_id: str, client_secret: str) -> dict:
+async def refresh_google_token(
+    tokens: dict, client_id: str, client_secret: str, *, force: bool = False,
+) -> dict:
     """Return valid tokens, refreshing via Google when the access token is near expiry."""
-    if not _token_needs_refresh(tokens):
+    if not force and not _token_needs_refresh(tokens):
         return tokens
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
@@ -95,19 +113,19 @@ async def refresh_google_token(tokens: dict, client_id: str, client_secret: str)
     if not client_id or not client_secret:
         raise GoogleAuthError("Google OAuth is not configured")
 
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            TOKEN_URL,
-            data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "refresh_token": refresh_token,
-                "grant_type": "refresh_token",
-            },
-            headers={"Accept": "application/json"},
-        )
-    if resp.status_code != 200:
-        raise GoogleAuthError(resp.text[:300] or "Token refresh failed")
+    resp = await refresh_http_post(
+        provider="Google",
+        url=TOKEN_URL,
+        data={
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        },
+        headers={"Accept": "application/json"},
+        auth_error_cls=GoogleAuthError,
+        retryable_error_cls=GoogleRetryableError,
+    )
 
     updated = {**tokens, **resp.json()}
     updated["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -180,6 +198,13 @@ def _map_google_event(event: dict) -> Optional[dict]:
     attendee_count = len(attendees) if attendees else 1
     title = event.get("summary") or "Untitled meeting"
 
+    self_status = ""
+    for att in attendees:
+        if isinstance(att, dict) and att.get("self"):
+            self_status = (att.get("responseStatus") or "").lower()
+            break
+    transparency = (event.get("transparency") or "opaque").lower()
+
     mapped = {
         "id": event.get("id") or f"gcal_{hash(title) & 0xfffffff}",
         "title": title,
@@ -194,24 +219,41 @@ def _map_google_event(event: dict) -> Optional[dict]:
         "start_at": start_dt.isoformat(),
         "end_at": end_dt.isoformat() if end_dt else None,
         "all_day": all_day,
+        "transparency": transparency,
+        "self_response_status": self_status,
     }
     if end_date_inclusive:
         mapped["end_date"] = end_date_inclusive
     return mapped
 
 
-def _today_bounds() -> tuple[str, str]:
-    now = datetime.now(timezone.utc)
+DEFAULT_WORKSPACE_TIMEZONE = "Asia/Manila"
+
+
+def resolve_timezone(name: Optional[str]) -> ZoneInfo:
+    raw = (name or DEFAULT_WORKSPACE_TIMEZONE).strip() or DEFAULT_WORKSPACE_TIMEZONE
+    try:
+        return ZoneInfo(raw)
+    except ZoneInfoNotFoundError:
+        return ZoneInfo(DEFAULT_WORKSPACE_TIMEZONE)
+
+
+def _today_bounds(tz_name: Optional[str] = None) -> tuple[str, str]:
+    tz = resolve_timezone(tz_name)
+    now = datetime.now(tz)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=1)
     return start.isoformat(), end.isoformat()
 
 
-def week_bounds(week_start: datetime) -> tuple[str, str]:
-    """Return ISO bounds for a 7-day window starting at week_start (UTC midnight)."""
+def week_bounds(week_start: datetime, tz_name: Optional[str] = None) -> tuple[str, str]:
+    """Return ISO bounds for a 7-day window in the workspace timezone."""
+    tz = resolve_timezone(tz_name)
     start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
     if start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
+        start = start.replace(tzinfo=tz)
+    else:
+        start = start.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
     end = start + timedelta(days=7)
     return start.isoformat(), end.isoformat()
 
@@ -224,36 +266,109 @@ async def _fetch_calendar_events(
     time_max: str,
     *,
     max_results: int = 100,
+    timezone_name: Optional[str] = None,
+    paginate: bool = False,
 ) -> tuple[list[dict], dict]:
     tokens = await refresh_google_token(tokens, client_id, client_secret)
     access_token = tokens.get("access_token")
     if not access_token:
         raise GoogleAuthError("Missing access token")
+    tz_name = timezone_name or DEFAULT_WORKSPACE_TIMEZONE
 
-    async with httpx.AsyncClient(timeout=45.0) as hc:
-        resp = await hc.get(
-            CALENDAR_EVENTS_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={
-                "timeMin": time_min,
-                "timeMax": time_max,
-                "maxResults": max_results,
-                "singleEvents": True,
-                "orderBy": "startTime",
-            },
+    async def _once(access: str, page_token: Optional[str] = None) -> httpx.Response:
+        params = {
+            "timeMin": time_min,
+            "timeMax": time_max,
+            "maxResults": min(int(max_results or 100), 250),
+            "singleEvents": True,
+            "orderBy": "startTime",
+            "timeZone": tz_name,
+        }
+        if page_token:
+            params["pageToken"] = page_token
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as hc:
+                return await hc.get(
+                    CALENDAR_EVENTS_URL,
+                    headers={"Authorization": f"Bearer {access}"},
+                    params=params,
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise GoogleRetryableError("Google Calendar temporarily unavailable") from exc
+
+    async def _page(page_token: Optional[str] = None) -> httpx.Response:
+        nonlocal tokens, access_token
+        resp = await _once(access_token, page_token)
+        if resp.status_code == 401:
+            logger.info("Google Calendar 401 — forcing token refresh and retrying once")
+            tokens = await refresh_google_token(
+                force_token_refresh(tokens), client_id, client_secret, force=True,
+            )
+            access_token = tokens.get("access_token") or ""
+            resp = await _once(access_token, page_token)
+            if resp.status_code == 401:
+                raise GoogleAuthError("Google access token rejected. Reconnect Google Calendar")
+        return resp
+
+    resp = await _page(None)
+    if resp.status_code >= 500:
+        raise GoogleRetryableError(
+            f"Google Calendar temporarily unavailable ({resp.status_code})"
         )
-    if resp.status_code == 401:
-        raise GoogleAuthError("Google access token rejected. Reconnect Google Calendar")
     if resp.status_code != 200:
         raise RuntimeError(f"Google Calendar API failed ({resp.status_code}): {resp.text[:300]}")
 
-    items = resp.json().get("items") or []
-    events = [m for m in (_map_google_event(ev) for ev in items) if m]
+    body = resp.json() or {}
+    items = list(body.get("items") or [])
+    if paginate:
+        next_token = body.get("nextPageToken")
+        pages = 0
+        while next_token and pages < 20:
+            pages += 1
+            resp = await _page(next_token)
+            if resp.status_code != 200:
+                break
+            body = resp.json() or {}
+            items.extend(body.get("items") or [])
+            next_token = body.get("nextPageToken")
+
+    tz = resolve_timezone(tz_name)
+    events: list[dict] = []
+    for ev in items:
+        mapped = _map_google_event(ev)
+        if not mapped:
+            continue
+        if not mapped.get("all_day") and mapped.get("start_at"):
+            try:
+                start_local = datetime.fromisoformat(
+                    mapped["start_at"].replace("Z", "+00:00")
+                ).astimezone(tz)
+                mapped["time"] = start_local.strftime("%H:%M")
+                mapped["date"] = start_local.strftime("%Y-%m-%d")
+                mapped["start_at"] = start_local.isoformat()
+                if mapped.get("end_at"):
+                    end_local = datetime.fromisoformat(
+                        mapped["end_at"].replace("Z", "+00:00")
+                    ).astimezone(tz)
+                    mapped["end_at"] = end_local.isoformat()
+            except ValueError:
+                pass
+        events.append(mapped)
     return events, tokens
 
 
+def _counts_toward_hours(meeting: dict) -> bool:
+    if meeting.get("all_day"):
+        return False
+    if (meeting.get("self_response_status") or "").lower() == "declined":
+        return False
+    if (meeting.get("transparency") or "").lower() == "transparent":
+        return False
+    return True
+
+
 def _compute_hours(meetings: list[dict]) -> tuple[float, float]:
-    meeting_m = sum(m.get("duration", 0) for m in meetings)
+    meeting_m = sum(m.get("duration", 0) for m in meetings if _counts_toward_hours(m))
     meeting_hours = round(meeting_m / 60, 2)
     focus_hours = round(max(8 - meeting_hours, 0), 2)
     return focus_hours, meeting_hours
@@ -265,11 +380,13 @@ async def fetch_today_calendar(
     client_secret: str,
     *,
     max_results: int = 25,
+    timezone_name: Optional[str] = None,
 ) -> tuple[list[dict], float, float, dict]:
     """Fetch today's primary-calendar events. Returns (meetings, focus_hours, meeting_hours, tokens)."""
-    time_min, time_max = _today_bounds()
+    time_min, time_max = _today_bounds(timezone_name)
     meetings, tokens = await _fetch_calendar_events(
-        tokens, client_id, client_secret, time_min, time_max, max_results=max_results,
+        tokens, client_id, client_secret, time_min, time_max,
+        max_results=max_results, timezone_name=timezone_name,
     )
     focus_hours, meeting_hours = _compute_hours(meetings)
     return meetings, focus_hours, meeting_hours, tokens
@@ -282,11 +399,13 @@ async def fetch_week_calendar(
     week_start: datetime,
     *,
     max_results: int = 100,
+    timezone_name: Optional[str] = None,
 ) -> tuple[list[dict], dict]:
-    """Fetch one week of events from primary calendar."""
-    time_min, time_max = week_bounds(week_start)
+    """Fetch one week of events from primary calendar (paginated via nextPageToken)."""
+    time_min, time_max = week_bounds(week_start, timezone_name)
     return await _fetch_calendar_events(
-        tokens, client_id, client_secret, time_min, time_max, max_results=max_results,
+        tokens, client_id, client_secret, time_min, time_max,
+        max_results=max_results, timezone_name=timezone_name, paginate=True,
     )
 
 
@@ -616,6 +735,14 @@ async def create_spreadsheet(
     return sid, url, tokens
 
 
+class GmailDraftError(ValueError):
+    """Client-facing draft validation error (missing recipient, etc.)."""
+
+
+def _strip_header_injection(value: str) -> str:
+    return (value or "").replace("\r", "").replace("\n", "").strip()
+
+
 async def create_gmail_draft(
     tokens: dict,
     client_id: str,
@@ -629,27 +756,84 @@ async def create_gmail_draft(
     """Create a Gmail draft (Trenston never sends). Returns (draft_id, open_url, tokens)."""
     if not has_scope(tokens, "gmail.compose"):
         raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
+    to_clean = _strip_header_injection(to_email)
+    if not to_clean or to_clean.lower() == "me":
+        raise GmailDraftError("Recipient (To) is required")
+    subj_clean = _strip_header_injection(subject) or "Follow up"
+    # Only prefix Re: when replying to a thread.
+    if thread_id and not subj_clean.lower().startswith("re:"):
+        subj_clean = f"Re: {subj_clean}"
+
     tokens = await refresh_google_token(tokens, client_id, client_secret)
-    subj = subject if subject.lower().startswith("re:") else f"Re: {subject}"
-    rfc = (
-        f"To: {to_email}\r\n"
-        f"Subject: {subj}\r\n"
-        "Content-Type: text/plain; charset=utf-8\r\n"
-        "\r\n"
-        f"{body}"
-    )
-    raw = base64.urlsafe_b64encode(rfc.encode("utf-8")).decode("ascii").rstrip("=")
+
+    in_reply_to = ""
+    references = ""
+    if thread_id:
+        async with httpx.AsyncClient(timeout=30.0) as hc:
+            thread_resp = await hc.get(
+                f"https://gmail.googleapis.com/gmail/v1/users/me/threads/{thread_id}",
+                headers={"Authorization": f"Bearer {tokens.get('access_token')}"},
+                params={
+                    "format": "metadata",
+                    "metadataHeaders": ["Message-ID", "References", "In-Reply-To"],
+                },
+            )
+            if thread_resp.status_code == 200:
+                thread_msgs = (thread_resp.json() or {}).get("messages") or []
+                if thread_msgs:
+                    latest = thread_msgs[-1]
+                    headers_list = ((latest.get("payload") or {}).get("headers")) or []
+                    hmap = {
+                        (h.get("name") or "").lower(): (h.get("value") or "")
+                        for h in headers_list
+                    }
+                    in_reply_to = hmap.get("message-id") or ""
+                    references = (hmap.get("references") or "").strip()
+                    if in_reply_to:
+                        references = (
+                            f"{references} {in_reply_to}".strip() if references else in_reply_to
+                        )
+
+    msg = EmailMessage(policy=SMTP)
+    msg["To"] = to_clean
+    msg["Subject"] = subj_clean
+    if in_reply_to:
+        msg["In-Reply-To"] = in_reply_to
+    if references:
+        msg["References"] = references
+    msg.set_content(body or "", subtype="plain", charset="utf-8")
+    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii").rstrip("=")
     payload: dict = {"message": {"raw": raw}}
     if thread_id:
         payload["message"]["threadId"] = thread_id
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            GMAIL_DRAFTS_URL,
-            headers={"Authorization": f"Bearer {tokens.get('access_token')}", "Content-Type": "application/json"},
-            json=payload,
+
+    async def _post(access: str) -> httpx.Response:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as hc:
+                return await hc.post(
+                    GMAIL_DRAFTS_URL,
+                    headers={
+                        "Authorization": f"Bearer {access}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise GoogleRetryableError("Gmail draft temporarily unavailable") from exc
+
+    resp = await _post(tokens.get("access_token") or "")
+    if resp.status_code == 401:
+        logger.info("Gmail draft 401 — forcing token refresh and retrying once")
+        tokens = await refresh_google_token(
+            force_token_refresh(tokens), client_id, client_secret, force=True,
         )
+        resp = await _post(tokens.get("access_token") or "")
     if resp.status_code in (401, 403):
         raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleRetryableError(
+            f"Gmail draft temporarily unavailable ({resp.status_code})"
+        )
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Gmail draft failed ({resp.status_code}): {resp.text[:300]}")
     data = resp.json() or {}

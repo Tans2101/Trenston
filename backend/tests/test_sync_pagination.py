@@ -48,10 +48,13 @@ async def test_qb_query_paginates_until_short_page():
             return resp
 
     with patch.object(qb.httpx, "AsyncClient", _Client):
-        rows, complete = await qb._query_qb("tok", "realm", "Purchase", None)
+        rows, complete, tokens = await qb._query_qb(
+            {"access_token": "tok"}, "realm", "Purchase", None,
+        )
     assert complete is True
     assert len(rows) == qb.QB_PAGE_SIZE + 1
     assert calls["n"] == 2
+    assert tokens["access_token"] == "tok"
 
 
 @pytest.mark.asyncio
@@ -73,13 +76,15 @@ async def test_qb_query_incomplete_when_max_pages_hit(monkeypatch):
             return _Resp(200, {"QueryResponse": {"Invoice": [{"Id": "1"}, {"Id": "2"}]}})
 
     with patch.object(qb.httpx, "AsyncClient", _Client):
-        rows, complete = await qb._query_qb("tok", "realm", "Invoice", None)
+        rows, complete, _tokens = await qb._query_qb(
+            {"access_token": "tok"}, "realm", "Invoice", None,
+        )
     assert complete is False
     assert len(rows) == 4
 
 
 @pytest.mark.asyncio
-async def test_xero_pages_until_short():
+async def test_xero_pages_until_short(monkeypatch):
     payloads = [
         _Resp(200, {"Invoices": [{"InvoiceID": str(i)} for i in range(xr.XERO_PAGE_SIZE)]}),
         _Resp(200, {"Invoices": [{"InvoiceID": "tail"}]}),
@@ -101,7 +106,17 @@ async def test_xero_pages_until_short():
             calls["n"] += 1
             return resp
 
+    monkeypatch.setattr(xr, "XERO_MIN_INTERVAL_SEC", 0)
     with patch.object(xr.httpx, "AsyncClient", _Client):
-        rows, complete = await xr._fetch_invoices("tok", "tenant", "ACCREC", None)
+        rows, complete, tokens = await xr._fetch_collection(
+            {"access_token": "tok"},
+            "tenant",
+            path="Invoices",
+            result_key="Invoices",
+            where='Type=="ACCREC"',
+            since=None,
+            label="Invoices:ACCREC",
+        )
     assert complete is True
     assert len(rows) == xr.XERO_PAGE_SIZE + 1
+    assert tokens["access_token"] == "tok"
