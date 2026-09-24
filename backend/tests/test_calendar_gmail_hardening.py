@@ -13,17 +13,20 @@ import pytest
 
 
 def test_manila_day_boundary():
-    # 2026-09-24 16:00 UTC = 2026-09-25 00:00 Asia/Manila
-    with patch("google_oauth.datetime") as mock_dt:
-        mock_dt.now.return_value = datetime(2026, 9, 25, 0, 30, tzinfo=ZoneInfo("Asia/Manila"))
-        mock_dt.side_effect = lambda *a, **k: datetime(*a, **k)
-        # Call real fromisoformat etc via original
-        from datetime import datetime as real_dt
-        mock_dt.fromisoformat = real_dt.fromisoformat
-        mock_dt.strptime = real_dt.strptime
+    # 2026-09-24 16:30 UTC = 2026-09-25 00:30 Asia/Manila -> local day starts 16:00 UTC.
+    import tz_utils
+
+    frozen = datetime(2026, 9, 24, 16, 30, tzinfo=ZoneInfo("UTC"))
+
+    class _Frozen(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen if tz is None else frozen.astimezone(tz)
+
+    with patch.object(tz_utils, "datetime", _Frozen):
         start, end = gcal._today_bounds("Asia/Manila")
-    assert start.startswith("2026-09-25T00:00:00")
-    assert "+08:00" in start or start.endswith("+08:00")
+    assert start == "2026-09-24T16:00:00+00:00"
+    assert end == "2026-09-25T16:00:00+00:00"
 
 
 def test_all_day_and_declined_excluded_from_hours():

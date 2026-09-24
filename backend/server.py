@@ -8207,7 +8207,7 @@ async def _google_calendar_snapshot(
     tokens = await _user_google_tokens(ws_id, principal["user_id"])
     if not tokens:
         return None
-    tz_name = workspace.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
+    tz_name = tz_utils.workspace_tz_name(workspace)
     if week_start is None:
         week_start = _calendar_week_start(tz_utils.workspace_today(workspace))
     try:
@@ -8217,7 +8217,7 @@ async def _google_calendar_snapshot(
         )
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
-        today_str = datetime.now(gcal.resolve_timezone(tz_name)).strftime("%Y-%m-%d")
+        today_str = tz_utils.workspace_today_iso(workspace)
         meetings = [e for e in events if e.get("date") == today_str and not e.get("all_day")]
         focus_hours, meeting_hours = gcal._compute_hours(meetings)
         return {
@@ -8905,6 +8905,7 @@ async def _maybe_push_google_event(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
             title=ev["title"], start_iso=ev["start_at"], end_iso=ev["end_at"],
             all_day=bool(ev.get("all_day")), date=ev.get("date"),
+            timezone_name=tz_utils.workspace_tz_name(workspace),
         )
         await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
         if gid:
@@ -8994,6 +8995,7 @@ async def edit_calendar_event(
                             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, gid,
                             title=found["title"], start_iso=found["start_at"], end_iso=found["end_at"],
                             all_day=bool(found.get("all_day")), date=found.get("date"),
+                            timezone_name=tz_utils.workspace_tz_name(c),
                         )
                         await _store_user_google_tokens(c["workspace_id"], principal["user_id"], refreshed)
                     except Exception:
@@ -14725,7 +14727,7 @@ async def _upsert_hubspot_deals(*, ws_id: str, principal: dict, deals: list) -> 
 async def google_calendar_events(principal=Depends(get_principal)):
     tokens = await _require_user_google_tokens(principal)
     ws = await get_ws(principal["workspace_id"])
-    tz_name = (ws or {}).get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
+    tz_name = tz_utils.workspace_tz_name(ws)
     try:
         meetings, _, _, refreshed = await gcal.fetch_today_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, max_results=20,

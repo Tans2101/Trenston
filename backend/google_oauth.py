@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 
+import tz_utils
 from integration_errors import (
     IntegrationRetryableError,
     force_token_refresh,
@@ -166,7 +167,8 @@ def _all_day_exclusive_end(date_yyyy_mm_dd: str) -> str:
     return (day + timedelta(days=1)).isoformat()
 
 
-def _map_google_event(event: dict) -> Optional[dict]:
+def _map_google_event(event: dict, tz: Optional[ZoneInfo] = None) -> Optional[dict]:
+    """Map a Calendar API event. Timed events render `time`/`date` in `tz` (workspace zone)."""
     start_obj = event.get("start") or {}
     end_obj = event.get("end") or {}
     start_raw = start_obj.get("dateTime") or start_obj.get("date")
@@ -176,6 +178,10 @@ def _map_google_event(event: dict) -> Optional[dict]:
     end_dt = _parse_event_dt(end_raw or "")
     if not start_dt:
         return None
+    if tz is not None and not all_day:
+        start_dt = start_dt.astimezone(tz)
+        if end_dt:
+            end_dt = end_dt.astimezone(tz)
 
     # Google Calendar all-day end.date is exclusive. Normalize to an inclusive
     # end day (matching department deadlines) so the UI does not paint a ghost
@@ -225,13 +231,16 @@ def _map_google_event(event: dict) -> Optional[dict]:
         "all_day": all_day,
         "transparency": transparency,
         "self_response_status": self_status,
+        "declined": self_status == "declined",
+        "free": transparency == "transparent",
     }
     if end_date_inclusive:
         mapped["end_date"] = end_date_inclusive
     return mapped
 
 
-DEFAULT_WORKSPACE_TIMEZONE = "Asia/Manila"
+DEFAULT_WORKSPACE_TIMEZONE = tz_utils.DEFAULT_TZ
+CALENDAR_MAX_EVENTS = 250
 
 
 def resolve_timezone(name: Optional[str]) -> ZoneInfo:
@@ -242,24 +251,24 @@ def resolve_timezone(name: Optional[str]) -> ZoneInfo:
         return ZoneInfo(DEFAULT_WORKSPACE_TIMEZONE)
 
 
+def _tz_ws(tz_name: Optional[str]) -> dict:
+    return {"timezone": tz_name or DEFAULT_WORKSPACE_TIMEZONE}
+
+
 def _today_bounds(tz_name: Optional[str] = None) -> tuple[str, str]:
-    tz = resolve_timezone(tz_name)
-    now = datetime.now(tz)
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=1)
-    return start.isoformat(), end.isoformat()
+    """UTC ISO bounds of the workspace-local today."""
+    ws = _tz_ws(tz_name)
+    return tz_utils.day_bounds_utc(ws, tz_utils.workspace_today(ws))
 
 
-def week_bounds(week_start: datetime, tz_name: Optional[str] = None) -> tuple[str, str]:
-    """Return ISO bounds for a 7-day window in the workspace timezone."""
-    tz = resolve_timezone(tz_name)
-    start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=tz)
-    else:
-        start = start.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    end = start + timedelta(days=7)
-    return start.isoformat(), end.isoformat()
+def week_bounds(week_start, tz_name: Optional[str] = None) -> tuple[str, str]:
+    """UTC ISO bounds of the 7 local days starting on week_start's calendar date.
+
+    week_start may be a date or a datetime; only its calendar date is used (the
+    caller already picked the local Sunday), so negative-offset zones never slip a day.
+    """
+    day = week_start.date() if isinstance(week_start, datetime) else week_start
+    return tz_utils.week_bounds_utc(_tz_ws(tz_name), day)
 
 
 async def _fetch_calendar_events(
@@ -271,8 +280,8 @@ async def _fetch_calendar_events(
     *,
     max_results: int = 100,
     timezone_name: Optional[str] = None,
-    paginate: bool = False,
 ) -> tuple[list[dict], dict]:
+    """Fetch events between the bounds, following nextPageToken up to CALENDAR_MAX_EVENTS."""
     tokens = await refresh_google_token(tokens, client_id, client_secret)
     access_token = tokens.get("access_token")
     if not access_token:
@@ -283,7 +292,7 @@ async def _fetch_calendar_events(
         params = {
             "timeMin": time_min,
             "timeMax": time_max,
-            "maxResults": min(int(max_results or 100), 250),
+            "maxResults": min(int(max_results or 100), CALENDAR_MAX_EVENTS),
             "singleEvents": True,
             "orderBy": "startTime",
             "timeZone": tz_name,
@@ -324,49 +333,36 @@ async def _fetch_calendar_events(
 
     body = resp.json() or {}
     items = list(body.get("items") or [])
-    if paginate:
+    next_token = body.get("nextPageToken")
+    while next_token and len(items) < CALENDAR_MAX_EVENTS:
+        resp = await _page(next_token)
+        if resp.status_code >= 500:
+            raise GoogleTransientError(
+                f"Google Calendar temporarily unavailable ({resp.status_code})"
+            )
+        if resp.status_code != 200:
+            break
+        body = resp.json() or {}
+        items.extend(body.get("items") or [])
         next_token = body.get("nextPageToken")
-        pages = 0
-        while next_token and pages < 20:
-            pages += 1
-            resp = await _page(next_token)
-            if resp.status_code != 200:
-                break
-            body = resp.json() or {}
-            items.extend(body.get("items") or [])
-            next_token = body.get("nextPageToken")
+    items = items[:CALENDAR_MAX_EVENTS]
 
     tz = resolve_timezone(tz_name)
     events: list[dict] = []
     for ev in items:
-        mapped = _map_google_event(ev)
-        if not mapped:
-            continue
-        if not mapped.get("all_day") and mapped.get("start_at"):
-            try:
-                start_local = datetime.fromisoformat(
-                    mapped["start_at"].replace("Z", "+00:00")
-                ).astimezone(tz)
-                mapped["time"] = start_local.strftime("%H:%M")
-                mapped["date"] = start_local.strftime("%Y-%m-%d")
-                mapped["start_at"] = start_local.isoformat()
-                if mapped.get("end_at"):
-                    end_local = datetime.fromisoformat(
-                        mapped["end_at"].replace("Z", "+00:00")
-                    ).astimezone(tz)
-                    mapped["end_at"] = end_local.isoformat()
-            except ValueError:
-                pass
-        events.append(mapped)
+        mapped = _map_google_event(ev, tz)
+        if mapped:
+            events.append(mapped)
     return events, tokens
 
 
 def _counts_toward_hours(meeting: dict) -> bool:
+    """All-day, declined (by me) and free/transparent events never count as meeting time."""
     if meeting.get("all_day"):
         return False
-    if (meeting.get("self_response_status") or "").lower() == "declined":
+    if meeting.get("declined") or (meeting.get("self_response_status") or "").lower() == "declined":
         return False
-    if (meeting.get("transparency") or "").lower() == "transparent":
+    if meeting.get("free") or (meeting.get("transparency") or "").lower() == "transparent":
         return False
     return True
 
@@ -409,7 +405,7 @@ async def fetch_week_calendar(
     time_min, time_max = week_bounds(week_start, timezone_name)
     return await _fetch_calendar_events(
         tokens, client_id, client_secret, time_min, time_max,
-        max_results=max_results, timezone_name=timezone_name, paginate=True,
+        max_results=max_results, timezone_name=timezone_name,
     )
 
 
@@ -659,6 +655,7 @@ async def create_calendar_event(
     end_iso: str,
     all_day: bool = False,
     date: Optional[str] = None,
+    timezone_name: Optional[str] = None,
 ) -> tuple[str, dict]:
     """Insert an event on the user's primary calendar. Returns (google_event_id, tokens)."""
     if not has_scope(tokens, "calendar.events"):
@@ -674,8 +671,9 @@ async def create_calendar_event(
     else:
         body = {
             "summary": title,
-            "start": {"dateTime": start_iso, "timeZone": "UTC"},
-            "end": {"dateTime": end_iso, "timeZone": "UTC"},
+            # dateTime keeps its offset; timeZone makes Google show it in the workspace zone.
+            "start": {"dateTime": start_iso, "timeZone": resolve_timezone(timezone_name).key},
+            "end": {"dateTime": end_iso, "timeZone": resolve_timezone(timezone_name).key},
         }
     resp, tokens = await _google_request(
         tokens, client_id, client_secret, "POST", CALENDAR_EVENTS_URL,
@@ -701,6 +699,7 @@ async def patch_calendar_event(
     end_iso: str,
     all_day: bool = False,
     date: Optional[str] = None,
+    timezone_name: Optional[str] = None,
 ) -> dict:
     if not google_event_id:
         return tokens
@@ -716,8 +715,9 @@ async def patch_calendar_event(
     else:
         body = {
             "summary": title,
-            "start": {"dateTime": start_iso, "timeZone": "UTC"},
-            "end": {"dateTime": end_iso, "timeZone": "UTC"},
+            # dateTime keeps its offset; timeZone makes Google show it in the workspace zone.
+            "start": {"dateTime": start_iso, "timeZone": resolve_timezone(timezone_name).key},
+            "end": {"dateTime": end_iso, "timeZone": resolve_timezone(timezone_name).key},
         }
     resp, tokens = await _google_request(
         tokens, client_id, client_secret, "PATCH", f"{CALENDAR_EVENTS_URL}/{google_event_id}",
