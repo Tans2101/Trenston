@@ -106,12 +106,16 @@ def _raw_amount(entry: dict[str, Any]) -> float:
 
 
 def entry_amount_for_totals(entry: dict[str, Any]) -> float:
-    """Prefer net-of-tax home amount for revenue/expense totals (always absolute).
+    """Net-of-tax, home-currency magnitude for revenue/expense totals (always absolute).
 
-    Priority: amount_net scaled into home currency when both net + home exist,
-    else amount_home, else amount_net, else amount.
+    Priority: amount_net_home (current sync contract); for rows synced before it
+    existed, amount_net scaled into home currency when both net + home exist, else
+    amount_home, else amount_net; legacy/manual rows fall back to amount.
     Polarity is applied separately via ``entry_signed_amount``.
     """
+    net_home = _float_or(entry.get("amount_net_home"), None)
+    if net_home is not None:
+        return round(abs(net_home), 2)
     amount = _raw_amount(entry)
     amount_net = entry.get("amount_net")
     amount_home = entry.get("amount_home")

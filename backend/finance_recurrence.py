@@ -177,7 +177,8 @@ def iter_expense_month_amounts(
 
     if not entry.get("recurring"):
         if start <= horizon_end:
-            yield start, _signed(entry, abs(amount))
+            import accounting_map as amap
+            yield start, _signed(entry, amap.entry_amount_for_totals(entry))
         return
 
     end = horizon_end
@@ -352,6 +353,8 @@ def line_items_for_period(
             "category": category,
             "type": (e.get("type") or "").strip().lower(),
             "amount": amap.entry_amount_for_totals(e),
+            # Magnitude above; credits/refunds (incl. legacy negative amounts) flagged here.
+            "is_credit": amap.entry_signed_amount(e) < 0,
             "id": e.get("id"),
             "month": start,
             "recurring": False,
@@ -381,6 +384,7 @@ def line_items_for_period(
                     "category": cat,
                     "type": entry_type,
                     "amount": float(_monthlyized(e, entry_type)),
+                    "is_credit": _signed(e, 1.0) < 0,
                     "id": e.get("id"),
                     "month": start,
                     "recurring": True,

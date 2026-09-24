@@ -78,7 +78,7 @@ export default function Financials() {
   const { data, loading, error, reload } = useFetch("/financials");
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
   const tz = useWorkspaceTimezone();
-  const { symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(() => emptyForm(tz));
   const [busy, setBusy] = useState(false);
@@ -724,7 +724,7 @@ export default function Financials() {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
             {headline.map((h) => (
               <GlassCard key={h.label} className="p-4 fade-up" data-testid={`fin-${h.label}`}>
                 <p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{h.label}</p>
@@ -732,6 +732,9 @@ export default function Financials() {
               </GlassCard>
             ))}
           </div>
+          <p className="text-[11px] text-helm-muted mb-6" data-testid="fin-totals-basis">
+            Figures net of tax, in {(data.currency || workspaceCurrency).toUpperCase()}
+          </p>
 
           {finActs.length > 0 && (
             <GlassCard className="p-4 mb-6 fade-up" data-testid="financials-activity">
@@ -871,8 +874,11 @@ export default function Financials() {
                           const gross = Number(e.amount) || 0;
                           const net = e.amount_net != null ? Number(e.amount_net) : null;
                           const home = e.amount_home != null ? Number(e.amount_home) : null;
+                          const netHome = e.amount_net_home != null ? Number(e.amount_net_home) : null;
                           let display = gross;
-                          if (net != null && home != null && gross) {
+                          if (netHome != null) {
+                            display = Math.abs(netHome);
+                          } else if (net != null && home != null && gross) {
                             display = Math.abs(home) * (Math.abs(net) / Math.abs(gross));
                           } else if (home != null) {
                             display = Math.abs(home);

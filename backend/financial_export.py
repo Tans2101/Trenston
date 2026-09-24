@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any, Optional
 
+import accounting_map as amap
 import finance_recurrence as fin_recur
 from finance_entry import normalize_entry_name
 from money_fmt import currency_symbol, entered_cash_amount, normalize_currency
@@ -82,7 +83,8 @@ def period_line_items(
             "name": normalize_entry_name(e.get("name"), category),
             "category": category,
             "type": e.get("type"),
-            "amount": float(e.get("amount") or 0),
+            # Same net-of-tax home figure (and credit sign) as the statement totals.
+            "amount": amap.entry_signed_amount(e),
         })
     rows.sort(key=lambda r: (0 if r["type"] == "revenue" else 1, r["name"].lower(), r["category"].lower()))
     return rows

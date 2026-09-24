@@ -1887,7 +1887,7 @@ async def compute_financials(
                     "type": e.get("type"),
                     "name": normalize_entry_name(e.get("name"), e.get("category")),
                     "category": e.get("category"),
-                    "amount": e.get("amount"),
+                    "amount": amap.entry_amount_for_totals(e),
                     "source": e.get("source"),
                 }
                 for e in scheduled[:50]
@@ -8016,14 +8016,15 @@ async def _generate_weekly_pack_content(workspace_id: str) -> dict:
     context = _build_weekly_pack_context(c, fin, items, ups, headcount, prior=baseline)
     recent = await db.financial_entries.find(
         {"workspace_id": workspace_id, "type": "expense"},
-        {"_id": 0, "name": 1, "category": 1, "amount": 1, "month": 1, "updated_at": 1, "created_at": 1},
+        {"_id": 0, "name": 1, "category": 1, "amount": 1, "amount_net_home": 1, "amount_net": 1,
+         "amount_home": 1, "month": 1, "updated_at": 1, "created_at": 1},
     ).sort("month", -1).to_list(12)
     context["recent_expenses"] = helm_freshness.annotate_possibly_stale(
         [
             {
                 "name": normalize_entry_name(e.get("name"), e.get("category")),
                 "category": (e.get("category") or "Other"),
-                "amount": e.get("amount"),
+                "amount": amap.entry_amount_for_totals(e),
                 "month": e.get("month"),
                 "updated_at": e.get("updated_at") or e.get("created_at"),
             }
