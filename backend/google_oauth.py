@@ -806,17 +806,34 @@ async def create_gmail_draft(
     payload: dict = {"message": {"raw": raw}}
     if thread_id:
         payload["message"]["threadId"] = thread_id
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            GMAIL_DRAFTS_URL,
-            headers={
-                "Authorization": f"Bearer {tokens.get('access_token')}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
+
+    async def _post(access: str) -> httpx.Response:
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as hc:
+                return await hc.post(
+                    GMAIL_DRAFTS_URL,
+                    headers={
+                        "Authorization": f"Bearer {access}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise GoogleRetryableError("Gmail draft temporarily unavailable") from exc
+
+    resp = await _post(tokens.get("access_token") or "")
+    if resp.status_code == 401:
+        logger.info("Gmail draft 401 — forcing token refresh and retrying once")
+        tokens = await refresh_google_token(
+            force_token_refresh(tokens), client_id, client_secret, force=True,
         )
+        resp = await _post(tokens.get("access_token") or "")
     if resp.status_code in (401, 403):
         raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleRetryableError(
+            f"Gmail draft temporarily unavailable ({resp.status_code})"
+        )
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Gmail draft failed ({resp.status_code}): {resp.text[:300]}")
     data = resp.json() or {}

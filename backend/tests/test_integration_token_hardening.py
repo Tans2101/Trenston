@@ -65,6 +65,17 @@ def test_is_revoked_only_on_invalid_grant():
     assert not ierr.is_revoked_refresh_response(503, "unavailable")
 
 
+def test_other_4xx_without_invalid_grant_is_retryable():
+    exc = ierr.classify_refresh_http_failure(
+        provider="QuickBooks",
+        status_code=400,
+        body='{"error":"invalid_request"}',
+        auth_error_cls=Exception,
+        retryable_error_cls=ierr.IntegrationRetryableError,
+    )
+    assert isinstance(exc, ierr.IntegrationRetryableError)
+
+
 def test_qb_refresh_5xx_keeps_tokens_retryable(monkeypatch):
     monkeypatch.setattr(qb, "QB_CLIENT_ID", "test-client")
     monkeypatch.setattr(qb, "QB_CLIENT_SECRET", "test-secret")

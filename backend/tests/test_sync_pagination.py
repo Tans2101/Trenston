@@ -108,8 +108,14 @@ async def test_xero_pages_until_short(monkeypatch):
 
     monkeypatch.setattr(xr, "XERO_MIN_INTERVAL_SEC", 0)
     with patch.object(xr.httpx, "AsyncClient", _Client):
-        rows, complete, tokens = await xr._fetch_invoices(
-            {"access_token": "tok"}, "tenant", "ACCREC", None,
+        rows, complete, tokens = await xr._fetch_collection(
+            {"access_token": "tok"},
+            "tenant",
+            path="Invoices",
+            result_key="Invoices",
+            where='Type=="ACCREC"',
+            since=None,
+            label="Invoices:ACCREC",
         )
     assert complete is True
     assert len(rows) == xr.XERO_PAGE_SIZE + 1

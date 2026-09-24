@@ -8119,15 +8119,17 @@ async def _google_calendar_snapshot(
     tokens = await _user_google_tokens(ws_id, principal["user_id"])
     if not tokens:
         return None
+    tz_name = workspace.get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
     if week_start is None:
         week_start = _calendar_week_start(datetime.now(timezone.utc).date())
     try:
         events, refreshed = await gcal.fetch_week_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, week_start,
+            timezone_name=tz_name,
         )
         if refreshed is not tokens:
             await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today_str = datetime.now(gcal.resolve_timezone(tz_name)).strftime("%Y-%m-%d")
         meetings = [e for e in events if e.get("date") == today_str and not e.get("all_day")]
         focus_hours, meeting_hours = gcal._compute_hours(meetings)
         return {
@@ -14222,11 +14224,19 @@ async def _upsert_accounting_sync_entries(
         .get("currency")
     ) or "usd"
 
+    # Sync-path safety: retire dated legacy qb_txn_ids that rewrite to each stable id
+    # so a deploy without the one-shot migration cannot double-count.
+    from scripts.migrate_qb_txn_ids import legacy_dated_patterns_for_stable
+
     for txn in txns:
         txn.pop("_qb_raw_type", None)
         txn.pop("_xero_raw_type", None)
         txn.pop("_sap_raw_type", None)
         qb_txn_id = txn.pop("qb_txn_id")
+        for pat in legacy_dated_patterns_for_stable(qb_txn_id):
+            await db.financial_entries.delete_many(
+                {"workspace_id": ws_id, "qb_txn_id": {"$regex": pat}},
+            )
         existing = existing_by_id.get(qb_txn_id)
         currency = (txn.get("currency") or home_currency or "").upper() or home_currency
         amount = txn["amount"]
@@ -14618,9 +14628,12 @@ async def _upsert_hubspot_deals(*, ws_id: str, principal: dict, deals: list) -> 
 @api_router.get("/integrations/google/calendar-events")
 async def google_calendar_events(principal=Depends(get_principal)):
     tokens = await _require_user_google_tokens(principal)
+    ws = await get_ws(principal["workspace_id"])
+    tz_name = (ws or {}).get("timezone") or gcal.DEFAULT_WORKSPACE_TIMEZONE
     try:
         meetings, _, _, refreshed = await gcal.fetch_today_calendar(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, max_results=20,
+            timezone_name=tz_name,
         )
         if refreshed is not tokens:
             await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)

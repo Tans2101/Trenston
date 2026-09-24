@@ -60,7 +60,7 @@ def build_alert_email_html(workspace_name: str, alerts: list, app_url: str) -> s
 
 
 def _slack_escape(s: Any) -> str:
-    """Escape Slack mrkdwn special characters so user/AI text cannot trigger mentions."""
+    """Escape Slack mrkdwn special chars (& < >). Plain @channel text is left as-is."""
     return (
         str(s or "")
         .replace("&", "&amp;")

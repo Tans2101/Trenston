@@ -43,13 +43,21 @@ def apply_exchange_rate(amount: float, exchange_rate: Any) -> float:
     return round(float(amount) * rate, 2)
 
 
+def _raw_amount(entry: dict[str, Any]) -> float:
+    try:
+        return float(entry.get("amount") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def entry_amount_for_totals(entry: dict[str, Any]) -> float:
-    """Prefer net-of-tax home amount for revenue/expense totals.
+    """Prefer net-of-tax home amount for revenue/expense totals (always absolute).
 
     Priority: amount_net scaled into home currency when both net + home exist,
     else amount_home, else amount_net, else amount.
+    Polarity is applied separately via ``entry_signed_amount``.
     """
-    amount = float(entry.get("amount") or 0)
+    amount = _raw_amount(entry)
     amount_net = entry.get("amount_net")
     amount_home = entry.get("amount_home")
     try:
@@ -71,12 +79,26 @@ def entry_amount_for_totals(entry: dict[str, Any]) -> float:
 
 
 def entry_signed_amount(entry: dict[str, Any], amount: Optional[float] = None) -> float:
-    """Apply credit/refund polarity for ledger expansion and burn/MRR."""
+    """Apply credit/refund polarity for ledger expansion and burn/MRR.
+
+    Legacy QB rows may still hold a negative ``amount`` without ``is_credit``.
+    Those keep negative polarity (using net/home magnitude when available).
+    """
+    raw = _raw_amount(entry)
+    is_credit = bool(entry.get("is_credit") or entry.get("is_refund"))
+
     if amount is None:
+        if raw < 0 and not is_credit:
+            # Legacy signed amount: preserve negative polarity.
+            mag = entry_amount_for_totals({**entry, "amount": abs(raw)})
+            return -abs(mag)
         base = entry_amount_for_totals(entry)
     else:
         base = float(amount)
-    if entry.get("is_credit") or entry.get("is_refund"):
+        if raw < 0 and not is_credit:
+            # Caller passed a magnitude (often abs); still honor legacy sign.
+            return -abs(base)
+
+    if is_credit:
         return -abs(base)
-    # Legacy QB rows may still hold a negative amount until the next sync.
-    return base
+    return abs(base)

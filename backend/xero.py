@@ -575,24 +575,6 @@ async def _fetch_collection(
     return rows, complete, tokens
 
 
-async def _fetch_invoices(
-    tokens: dict,
-    tenant_id: str,
-    inv_type: str,
-    since: Optional[str],
-) -> tuple[list[dict], bool, dict]:
-    # SUBMITTED excluded in mapper; still filter DRAFT/DELETED/VOIDED at query for efficiency.
-    where = (
-        f'Type=="{inv_type}" AND Status!="DELETED" AND Status!="DRAFT" '
-        f'AND Status!="VOIDED" AND Status!="SUBMITTED"'
-    )
-    return await _fetch_collection(
-        tokens, tenant_id,
-        path="Invoices", result_key="Invoices", where=where, since=since,
-        label=f"Invoices:{inv_type}",
-    )
-
-
 async def fetch_xero_transactions(
     tokens: dict,
     tenant_id: str,

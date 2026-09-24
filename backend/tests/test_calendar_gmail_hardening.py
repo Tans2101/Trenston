@@ -116,3 +116,46 @@ def test_gmail_draft_requires_recipient():
                     body="x",
                 )
             )
+
+
+def test_gmail_draft_401_refreshes_once():
+    tokens = {
+        "access_token": "old",
+        "refresh_token": "r",
+        "expires_in": 3600,
+        "obtained_at": datetime.now().isoformat() + "+00:00",
+        "scope": "https://www.googleapis.com/auth/gmail.compose",
+    }
+    refreshed = {**tokens, "access_token": "new"}
+    calls = {"n": 0}
+
+    class _Resp:
+        def __init__(self, code):
+            self.status_code = code
+        def json(self):
+            return {"id": "d1", "message": {"id": "m1"}}
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, *a, **k):
+            calls["n"] += 1
+            return _Resp(401 if calls["n"] == 1 else 200)
+
+    refresh = AsyncMock(return_value=refreshed)
+    with patch.object(gcal, "refresh_google_token", refresh), \
+         patch.object(gcal.httpx, "AsyncClient", _Client):
+        draft_id, _, out = asyncio.run(
+            gcal.create_gmail_draft(
+                tokens, "cid", "sec",
+                to_email="a@b.com", subject="Hi", body="x",
+            )
+        )
+    assert draft_id == "d1"
+    assert calls["n"] == 2
+    assert out["access_token"] == "new"
+    assert refresh.await_count >= 2  # initial + force

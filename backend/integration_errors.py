@@ -81,19 +81,10 @@ def classify_refresh_http_failure(
     snippet = (body or "")[:300]
     if is_revoked_refresh_response(status_code, body):
         return auth_error_cls(snippet or f"{provider} token refresh revoked")
-    if status_code >= 500 or status_code in (408, 429):
-        logger.warning(
-            "%s token refresh temporarily unavailable (%s): %s",
-            provider, status_code, snippet,
-        )
-        return retryable_error_cls(
-            f"{provider} token refresh temporarily unavailable ({status_code})"
-        )
-    # Other 4xx without invalid_grant — treat as auth (misconfig / bad request).
-    if 400 <= status_code < 500:
-        return auth_error_cls(snippet or f"{provider} token refresh failed")
+    # Wipe only on confirmed revoke (invalid_grant etc.). Other 4xx/5xx keep
+    # tokens and surface as retryable so a misconfig blip does not force reconnect.
     logger.warning(
-        "%s token refresh unexpected status (%s): %s",
+        "%s token refresh temporarily unavailable (%s): %s",
         provider, status_code, snippet,
     )
     return retryable_error_cls(

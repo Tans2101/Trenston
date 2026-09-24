@@ -108,7 +108,9 @@ def qb_env_diagnostics() -> dict:
         "quickbooks_env_explicit": QB_ENV_EXPLICITLY_SET,
         "quickbooks_minorversion": QB_MINOR_VERSION,
         "quickbooks_env_warning": warning,
-        "quickbooks_api_base": _api_base() if QB_ENV_EXPLICITLY_SET or not _is_prod_like() else "(blocked: set QUICKBOOKS_ENV)",
+        # Always report the real base used by queries (prod-like unset → production host,
+        # never silent sandbox). Warning above tells ops to set the env explicitly.
+        "quickbooks_api_base": _api_base(),
     }
 
 
