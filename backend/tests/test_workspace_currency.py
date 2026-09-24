@@ -1,4 +1,4 @@
-"""T8: PHP default for new workspaces; currency on /company and page payloads."""
+"""T8: USD default for new workspaces; currency on /company and page payloads."""
 from __future__ import annotations
 
 import asyncio
@@ -24,16 +24,18 @@ import server  # noqa: E402
 OWNER = {"workspace_id": "ws1", "user_id": "u1", "pack": "owner", "role": "owner"}
 
 
-def test_new_workspace_defaults_to_php():
+def test_new_workspace_defaults_to_usd():
     ws = seed_data.build_workspace("ws1", "Acme", "u1", empty=True)
-    assert ws["financial_settings"]["currency"] == "php"
+    assert ws["financial_settings"]["currency"] == "usd"
 
 
 def test_onboarding_currency_overrides_default():
-    ws = seed_data.build_workspace("ws1", "Acme", "u1", empty=True, currency="SGD")
-    assert ws["financial_settings"]["currency"] == "sgd"
+    ws = seed_data.build_workspace("ws1", "Acme", "u1", empty=True, currency="PHP")
+    assert ws["financial_settings"]["currency"] == "php"
+    ws_sgd = seed_data.build_workspace("ws1", "Acme", "u1", empty=True, currency="SGD")
+    assert ws_sgd["financial_settings"]["currency"] == "sgd"
     bogus = seed_data.build_workspace("ws1", "Acme", "u1", empty=True, currency="doge")
-    assert bogus["financial_settings"]["currency"] == "php"
+    assert bogus["financial_settings"]["currency"] == "usd"
 
 
 def test_legacy_default_currency_unchanged():
@@ -49,8 +51,8 @@ def _company(ws):
 def test_company_payload_includes_currency():
     ws = seed_data.build_workspace("ws1", "Acme", "u1", empty=True)
     out = _company(ws)
-    assert out["currency"] == "php"
-    assert out["currency_symbol"] == "₱"
+    assert out["currency"] == "usd"
+    assert out["currency_symbol"] == "$"
 
 
 def test_company_payload_legacy_workspace_is_usd():

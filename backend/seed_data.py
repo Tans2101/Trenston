@@ -11,8 +11,9 @@ import integrations_catalog as integ_catalog
 import tz_utils
 from money_fmt import CURRENCY_SYMBOLS
 
-# New workspaces are Philippines-first; legacy docs without a currency stay usd.
-NEW_WORKSPACE_CURRENCY = "php"
+# Default for new workspaces before the owner picks one in onboarding/company setup
+# (matches money_fmt.DEFAULT_CURRENCY). An explicit choice always overrides this.
+NEW_WORKSPACE_CURRENCY = "usd"
 
 
 def gen_join_code() -> str:
