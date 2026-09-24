@@ -838,30 +838,27 @@ async def create_gmail_draft(
     in_reply_to = ""
     references = ""
     if thread_id:
-        async with httpx.AsyncClient(timeout=30.0) as hc:
-            thread_resp = await hc.get(
-                f"https://gmail.googleapis.com/gmail/v1/users/me/threads/{thread_id}",
-                headers={"Authorization": f"Bearer {tokens.get('access_token')}"},
-                params={
-                    "format": "metadata",
-                    "metadataHeaders": ["Message-ID", "References", "In-Reply-To"],
-                },
-            )
-            if thread_resp.status_code == 200:
-                thread_msgs = (thread_resp.json() or {}).get("messages") or []
-                if thread_msgs:
-                    latest = thread_msgs[-1]
-                    headers_list = ((latest.get("payload") or {}).get("headers")) or []
-                    hmap = {
-                        (h.get("name") or "").lower(): (h.get("value") or "")
-                        for h in headers_list
-                    }
-                    in_reply_to = hmap.get("message-id") or ""
-                    references = (hmap.get("references") or "").strip()
-                    if in_reply_to:
-                        references = (
-                            f"{references} {in_reply_to}".strip() if references else in_reply_to
-                        )
+        # Latest message in the thread supplies the reply headers.
+        thread_resp, tokens = await _google_request(
+            tokens, client_id, client_secret, "GET",
+            f"https://gmail.googleapis.com/gmail/v1/users/me/threads/{quote(thread_id, safe='')}",
+            label="Gmail thread",
+            params={
+                "format": "metadata",
+                "metadataHeaders": ["Message-ID", "References", "Subject"],
+            },
+        )
+        if thread_resp.status_code == 200:
+            thread_msgs = (thread_resp.json() or {}).get("messages") or []
+            if thread_msgs:
+                headers_list = ((thread_msgs[-1].get("payload") or {}).get("headers")) or []
+                hmap = {
+                    (h.get("name") or "").lower(): _strip_header_injection(h.get("value") or "")
+                    for h in headers_list
+                }
+                in_reply_to = hmap.get("message-id") or ""
+                if in_reply_to:
+                    references = f"{hmap.get('references') or ''} {in_reply_to}".strip()
 
     msg = EmailMessage(policy=SMTP)
     msg["To"] = to_clean

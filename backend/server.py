@@ -14814,6 +14814,8 @@ async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_pri
         raise HTTPException(status_code=400, detail="Reconnect Google to create Gmail drafts")
     subject = (payload.subject or "Follow up").strip()[:200]
     to_email = (payload.to_email or "").strip()[:200]
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No recipient for this draft")
     snippet = (payload.snippet or "").strip()[:500]
     # AI drafts a real reply; on Anthropic failure we fall back to the template so
     # the Gmail draft still opens instead of 500ing the briefing button.
@@ -14827,12 +14829,14 @@ async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_pri
     try:
         draft_id, url, refreshed = await gcal.create_gmail_draft(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-            to_email=to_email or "me",
+            to_email=to_email,
             subject=subject,
             body=body,
             thread_id=(payload.thread_id or "").strip(),
         )
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
+    except gcal.GmailDraftError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except gcal.GoogleTransientError as exc:
         raise HTTPException(status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.") from exc
     except gcal.GoogleAuthError as exc:
