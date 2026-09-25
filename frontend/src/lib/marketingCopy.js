@@ -2,7 +2,7 @@
 
 export const TAGLINE = "Run your business. Don't chase it.";
 export const CATEGORY = "CEO Operating System";
-export const AUDIENCE = "Built for founders and owners running real operations, however lean the team.";
+export const AUDIENCE = "Built for founders and owners running real operations — from your first hire to your hundredth.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
 export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
