@@ -8,6 +8,7 @@
  * #root so non-JS fetchers (AI crawlers, curl) see real dollar figures from
  * marketingCopy.js — not just meta tags. For /about, injects Person JSON-LD
  * (founder name, role, LinkedIn sameAs) from the same marketingCopy constants.
+ * For /help, injects visible FAQ HTML + FAQPage JSON-LD from HOW_TO_USE_FAQ.
  *
  * Output:
  *   build/index.html
@@ -21,7 +22,12 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { loadMarketingPlans, formatPlanPrice, loadFounderIdentity } from "./loadMarketingPlans.mjs";
+import {
+  loadMarketingPlans,
+  formatPlanPrice,
+  loadFounderIdentity,
+  loadHelpFaq,
+} from "./loadMarketingPlans.mjs";
 import { writeLlmsTxt } from "./sync-llms-txt.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -182,6 +188,58 @@ function injectAboutPersonJsonLd(html, founder, origin) {
   return html.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
 }
 
+function helpFaqJsonLd(faq, origin) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+    url: `${origin}/help`,
+  };
+}
+
+function helpFaqStaticHtml(faq) {
+  const items = faq
+    .map(
+      (item) => `<article>
+  <h2>${escapeHtml(item.q)}</h2>
+  <p>${escapeHtml(item.a)}</p>
+</article>`,
+    )
+    .join("\n");
+  return `<main id="helm-prerender-help">
+  <h1>Trenston Help</h1>
+  <p>Common questions about plans, integrations, access, and how to use Trenston.</p>
+  ${items}
+  <p><a href="/pricing">Pricing</a> · <a href="/integrations">Integrations</a> · <a href="/security">Security</a></p>
+</main>`;
+}
+
+function injectHelpFaq(html, faq, origin) {
+  const body = helpFaqStaticHtml(faq);
+  const jsonLd = `<script type="application/ld+json" id="helm-help-faq-jsonld">${JSON.stringify(helpFaqJsonLd(faq, origin))}</script>`;
+  let out = html;
+  if (/<div id="root"><\/div>/i.test(out)) {
+    out = out.replace(/<div id="root"><\/div>/i, `<div id="root">${body}</div>`);
+  } else if (/<div id="root">[\s\S]*?<\/div>/i.test(out)) {
+    out = out.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${body}</div>`);
+  } else {
+    out = out.replace(/<body([^>]*)>/i, `<body$1>\n${body}\n`);
+  }
+  if (/id="helm-help-faq-jsonld"/i.test(out)) {
+    out = out.replace(/<script type="application\/ld\+json" id="helm-help-faq-jsonld">[\s\S]*?<\/script>/i, jsonLd);
+  } else {
+    out = out.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
+  }
+  return out;
+}
+
 function main() {
   if (!existsSync(indexPath)) {
     console.error("prerender-marketing: build/index.html missing — run build first");
@@ -191,6 +249,7 @@ function main() {
   const shell = readFileSync(indexPath, "utf8");
   const { PLANS } = loadMarketingPlans();
   const founder = loadFounderIdentity();
+  const helpFaq = loadHelpFaq();
 
   for (const [path, page] of Object.entries(pages)) {
     let html = applySeo(shell, { path, page, origin, ogImage });
@@ -199,6 +258,9 @@ function main() {
     }
     if (path === "/about") {
       html = injectAboutPersonJsonLd(html, founder, origin);
+    }
+    if (path === "/help") {
+      html = injectHelpFaq(html, helpFaq, origin);
     }
     const outFile =
       path === "/"

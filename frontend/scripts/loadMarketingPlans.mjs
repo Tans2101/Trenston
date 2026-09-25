@@ -41,6 +41,21 @@ export function loadFounderIdentity() {
   return { FOUNDER_NAME, FOUNDER_ROLE, FOUNDER_LINKEDIN_URL };
 }
 
+/** Public /help FAQ for FAQPage JSON-LD (HOW_TO_USE_FAQ in marketingCopy.js). */
+export function loadHelpFaq() {
+  const src = readFileSync(marketingCopyPath, "utf8");
+  const faq = extractExport(src, "HOW_TO_USE_FAQ");
+  if (!Array.isArray(faq) || faq.length < 1) {
+    throw new Error("loadHelpFaq: HOW_TO_USE_FAQ empty or invalid");
+  }
+  for (const item of faq) {
+    if (!item?.q || !item?.a) {
+      throw new Error("loadHelpFaq: each FAQ item needs q and a");
+    }
+  }
+  return faq;
+}
+
 export function formatPlanPrice(plan) {
   const n = Number(plan.price);
   if (!(n > 0)) return "$0";

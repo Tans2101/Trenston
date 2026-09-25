@@ -650,36 +650,50 @@ export const HOW_TO_USE_STEPS = [
   },
 ];
 
+/**
+ * Public /help FAQ — grounded in backend/plans.py + this file (PLANS, integrations, how-to).
+ * prerender-marketing.mjs injects FAQPage JSON-LD from this export for /help.
+ */
 export const HOW_TO_USE_FAQ = [
+  {
+    q: "Is there a free plan?",
+    a:
+      "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Gmail & Calendar). Accounting integrations (QuickBooks, Xero, SAP Business One) start on Starter.",
+  },
+  {
+    q: "What are the paid plans and is there a free trial?",
+    a:
+      "Starter is $15/mo (up to 7 users), Growth is $39/mo (up to 20), and Business is $99/mo (up to 35). Each paid plan includes a 7-day free trial. Cancel before the trial ends and you will not be charged. Billing runs through Paddle.",
+  },
+  {
+    q: "What integrations are included on each plan?",
+    a:
+      "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps — manual entry stays available everywhere else.",
+  },
+  {
+    q: "Can my leadership team use Trenston?",
+    a:
+      "Yes. Free supports up to 3 Trenston users, Starter up to 7, Growth up to 20, and Business up to 35, with role-based access packs. Trenston users are product logins, separate from your company's total employee headcount. A lean manufacturing company with serious revenue might only need a handful of users.",
+  },
+  {
+    q: "Do I need QuickBooks, SAP Business One, or Google Calendar to get started?",
+    a:
+      "No. Trenston works with manual entry everywhere an integration is not connected. Connect tools when they help; nothing requires them to get value from Briefing, Decisions, or department queues.",
+  },
   {
     q: "Why can I not see Financials or Telemetry?",
     a:
       "Those screens are restricted on purpose. Owners always have them. Finance packs can open Financials, and some packs (such as Executive or Operations) can open Telemetry. Everyone else only sees them if an owner grants that section in Team & Access. If a screen is missing, ask your owner for access rather than assuming Trenston is broken.",
   },
   {
-    q: "What if my company does not use QuickBooks, SAP Business One, or Google Calendar?",
+    q: "What is the difference between Ask Trenston and Decisions?",
     a:
-      "That is fine. Trenston works with manual entry everywhere an integration is not connected. Connect tools when they help; nothing in the product requires them to get value from Briefing, Decisions, or department queues.",
-  },
-  {
-    q: "What happens after I approve or delegate a decision in Decision Center?",
-    a:
-      "The decision moves out of the open queue. Approved, rejected, and delegated items stay visible under recently resolved so you can confirm the outcome and who owns the follow-through. Delegating to yourself keeps the item open so you can still approve or reject it.",
-  },
-  {
-    q: "What is the difference between asking Ask Trenston and checking Decisions?",
-    a:
-      "Ask Trenston answers a question you type right now, using your live company data. Decisions is the queue of calls that already need approval or judgment, including suggestions Trenston drafts for you to confirm. Use Ask Trenston when you have a specific question; use Decisions when something is waiting on a yes, no, or owner.",
+      "Ask Trenston answers a question you type right now from your live company data (subject to plan message limits: Free 10/month, Starter 100, Growth 200, Business 500). Decisions is the queue of calls that already need approval or judgment. Use Ask Trenston for a specific question; use Decisions when something is waiting on a yes, no, or owner.",
   },
   {
     q: "Who can see what I write in My Day?",
     a:
       "Private sticky notes on My Day are only visible to you. They are stored per user and are not shown to teammates or the owner. The optional team update on My Day is different: if you post one, it is shared with the team. Tasks you create or are assigned to follow normal task visibility for people who can see that work.",
-  },
-  {
-    q: "I am in one department. Why do I not see the rest of the company?",
-    a:
-      "Access follows department membership and the permissions your owner set. You see My Day plus the department lanes you belong to. Company-wide screens such as Financials, Telemetry, or Team & Access appear only when your pack or an explicit grant includes them. That keeps each team in its own lane while leadership keeps the full picture.",
   },
 ];
 
