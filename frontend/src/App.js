@@ -152,7 +152,10 @@ function DocumentSeo() {
 }
 
 
-/** Public marketing / legal pages — no ClerkProviderBootstrap, no /api/auth/config wait. */
+/** Public marketing / legal pages — no ClerkProviderBootstrap, no /api/auth/config wait.
+ * Homepage path: App → BrowserRouter → AppRoutes → PublicShell → Landing.
+ * ClerkProviderBootstrap wraps only /login, /sign-up, /app/* (ClerkGatedShell).
+ */
 function PublicShell() {
   return (
     <AuthProvider deferInitialAuth>
