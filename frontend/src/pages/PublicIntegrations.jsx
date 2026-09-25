@@ -31,7 +31,7 @@ export default function PublicIntegrations() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-bg text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/integrations" />
 
       <main>
@@ -77,7 +77,7 @@ export default function PublicIntegrations() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-40px" }}
                 custom={i}
-                className="flex flex-col bg-helm-cream p-7 md:p-8"
+                className="flex flex-col bg-helm-bg p-7 md:p-8"
                 data-testid={`public-integration-${item.id}`}
               >
                 <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">

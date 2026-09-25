@@ -113,7 +113,7 @@ export default function Status() {
   }, "operational");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-bg text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/status" />
 
       <main>
