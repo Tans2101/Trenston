@@ -260,7 +260,19 @@ def primary_frontend_origin() -> str | None:
 
 
 def clerk_sync_status() -> dict[str, Any]:
-    return dict(_last_sync_status or {"synced": False, "reason": "not_run"})
+    cached = _cached_probe_value("sync_status")
+    if cached is not _PROBE_MISS:
+        return dict(cached)
+    status = dict(_last_sync_status or {"synced": False, "reason": "not_run"})
+    return dict(_store_probe_value("sync_status", status, bool(status.get("synced"))))
+
+
+def _set_last_sync_status(status: dict[str, Any]) -> dict[str, Any]:
+    """Update boot sync status and invalidate the TTL cache used by /auth/config."""
+    global _last_sync_status
+    _last_sync_status = status
+    _clear_probe_value("sync_status")
+    return status
 
 
 def clerk_secret_publishable_mode_match(publishable_key: str) -> bool:
@@ -340,7 +352,12 @@ def _bapi_headers() -> dict[str, str]:
 
 _health_probe_cache: dict[str, tuple[float, bool]] = {}
 _HEALTH_PROBE_TTL_OK_SECONDS = 120.0
-_HEALTH_PROBE_TTL_FAIL_SECONDS = 15.0
+# Failures used to retry every 15s and hammer Clerk/FAPI from /auth/config.
+_HEALTH_PROBE_TTL_FAIL_SECONDS = 60.0
+
+# Same ok/fail TTL pattern for non-bool probes (signup policy, display_config, sync status).
+_PROBE_MISS = object()
+_value_probe_cache: dict[str, tuple[float, Any, bool]] = {}
 
 
 def _cached_health(name: str) -> bool | None:
@@ -357,6 +374,27 @@ def _cached_health(name: str) -> bool | None:
 def _store_health(name: str, value: bool) -> bool:
     _health_probe_cache[name] = (time.time(), value)
     return value
+
+
+def _cached_probe_value(name: str) -> Any:
+    """Cached probe payload, or _PROBE_MISS if missing/expired."""
+    row = _value_probe_cache.get(name)
+    if not row:
+        return _PROBE_MISS
+    at, value, ok = row
+    ttl = _HEALTH_PROBE_TTL_OK_SECONDS if ok else _HEALTH_PROBE_TTL_FAIL_SECONDS
+    if time.time() - at > ttl:
+        return _PROBE_MISS
+    return value
+
+
+def _store_probe_value(name: str, value: Any, ok: bool) -> Any:
+    _value_probe_cache[name] = (time.time(), value, ok)
+    return value
+
+
+def _clear_probe_value(name: str) -> None:
+    _value_probe_cache.pop(name, None)
 
 
 async def clerk_api_ok() -> bool:
@@ -1108,33 +1146,29 @@ async def sync_clerk_redirect_urls() -> dict[str, Any]:
         return result
 
 
-_signup_policy_cache: dict[str, Any] | None = None
-_signup_policy_cache_at: float = 0.0
+_signup_policy_empty = {
+    "password_min_length": None,
+    "password_required": None,
+    "captcha_enabled": None,
+    "oauth_google_enabled": None,
+    "sign_up_mode": None,
+}
 
 
 async def clerk_signup_policy() -> dict[str, Any]:
     """Password / CAPTCHA / required-field rules from Clerk FAPI (public environment)."""
-    global _signup_policy_cache, _signup_policy_cache_at
-    import time
-
-    now = time.time()
-    if _signup_policy_cache is not None and now - _signup_policy_cache_at < 600:
-        return _signup_policy_cache
-    empty = {
-        "password_min_length": None,
-        "password_required": None,
-        "captcha_enabled": None,
-        "oauth_google_enabled": None,
-        "sign_up_mode": None,
-    }
+    cached = _cached_probe_value("signup_policy")
+    if cached is not _PROBE_MISS:
+        return dict(cached)
+    empty = dict(_signup_policy_empty)
     host = clerk_jwks_host()
     if not host:
-        return empty
+        return dict(_store_probe_value("signup_policy", empty, False))
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(f"https://{host}/v1/environment")
             if r.status_code != 200:
-                return empty
+                return dict(_store_probe_value("signup_policy", empty, False))
             data = r.json() if r.content else {}
             us = data.get("user_settings") or {}
             ac = data.get("auth_config") or {}
@@ -1156,12 +1190,10 @@ async def clerk_signup_policy() -> dict[str, Any]:
                 "oauth_google_enabled": bool(google.get("enabled")),
                 "sign_up_mode": sign_up.get("mode"),
             }
-            _signup_policy_cache = out
-            _signup_policy_cache_at = now
-            return out
+            return dict(_store_probe_value("signup_policy", out, True))
     except Exception:
         logger.warning("Clerk FAPI environment fetch failed", exc_info=True)
-        return empty
+        return dict(_store_probe_value("signup_policy", empty, False))
 
 
 def clerk_accounts_host_risks(dc: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -1194,20 +1226,24 @@ def clerk_accounts_host_risks(dc: dict[str, Any] | None = None) -> dict[str, Any
 
 async def _clerk_fapi_display_config() -> dict[str, Any]:
     """Public Frontend API display_config (Paths + redirects). No secret required."""
+    cached = _cached_probe_value("fapi_display_config")
+    if cached is not _PROBE_MISS:
+        return dict(cached)
     host = clerk_jwks_host()
     if not host:
-        return {}
+        return dict(_store_probe_value("fapi_display_config", {}, False))
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(f"https://{host}/v1/environment")
             if r.status_code != 200:
-                return {}
+                return dict(_store_probe_value("fapi_display_config", {}, False))
             data = r.json() if r.content else {}
             dc = data.get("display_config") or {}
-            return dc if isinstance(dc, dict) else {}
+            out = dc if isinstance(dc, dict) else {}
+            return dict(_store_probe_value("fapi_display_config", out, bool(out)))
     except Exception:
         logger.debug("Clerk FAPI display_config fetch failed", exc_info=True)
-        return {}
+        return dict(_store_probe_value("fapi_display_config", {}, False))
 
 
 def _display_paths_summary(dc: dict[str, Any]) -> dict[str, Any]:
@@ -1250,7 +1286,6 @@ async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
     Clerk must show /sign-up/continue. If that handoff fails, users see
     \"Unable to complete action at this time\".
     """
-    global _signup_policy_cache, _signup_policy_cache_at
     result: dict[str, Any] = {"attempted": True, "ok": False, "tries": []}
     if not clerk_configured():
         result["reason"] = "not_configured"
@@ -1306,8 +1341,7 @@ async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
                         }
                     )
                     if patch_r.status_code < 400:
-                        _signup_policy_cache = None
-                        _signup_policy_cache_at = 0.0
+                        _clear_probe_value("signup_policy")
                         result["ok"] = True
                         result["reason"] = "ok"
                         result["patched_path"] = path
@@ -1438,6 +1472,7 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
             if display_r.status_code >= 400:
                 result["display_config_error"] = display_r.text[:500]
 
+        _clear_probe_value("fapi_display_config")
         after_dc = await _clerk_fapi_display_config()
         result["after"] = _display_paths_summary(after_dc)
         still_accounts = _paths_still_on_accounts(after_dc)
@@ -1485,15 +1520,12 @@ async def sync_clerk_account_portal(primary: str, app_url: str | None = None) ->
 
 async def sync_clerk_instance() -> dict[str, Any]:
     """Register Trenston Vercel origin with Clerk — required for dev instances on production URL."""
-    global _last_sync_status
     wanted = helm_frontend_origins()
     primary = primary_frontend_origin()
     if not clerk_configured():
-        _last_sync_status = {"synced": False, "reason": "clerk_not_configured"}
-        return _last_sync_status
+        return _set_last_sync_status({"synced": False, "reason": "clerk_not_configured"})
     if not wanted or not primary:
-        _last_sync_status = {"synced": False, "reason": "no_frontend_origin"}
-        return _last_sync_status
+        return _set_last_sync_status({"synced": False, "reason": "no_frontend_origin"})
 
     status: dict[str, Any] = {
         "synced": False,
@@ -1513,8 +1545,7 @@ async def sync_clerk_instance() -> dict[str, Any]:
             r = await client.get(f"{CLERK_BAPI}/instance", headers=headers)
             if r.status_code >= 400:
                 status["reason"] = f"instance_get_{r.status_code}"
-                _last_sync_status = status
-                return status
+                return _set_last_sync_status(status)
 
             inst = r.json()
             env_type = inst.get("environment_type")
@@ -1558,9 +1589,8 @@ async def sync_clerk_instance() -> dict[str, Any]:
                 if patch.status_code >= 400:
                     status["reason"] = f"instance_patch_{patch.status_code}"
                     status["patch_error"] = patch.text[:500]
-                    _last_sync_status = status
                     logger.warning("Clerk instance PATCH failed (%s): %s", patch.status_code, patch.text[:200])
-                    return status
+                    return _set_last_sync_status(status)
                 status["patched"] = True
                 status["development_origin_set"] = patch_body.get("development_origin")
             else:
@@ -1637,13 +1667,12 @@ async def sync_clerk_instance() -> dict[str, Any]:
                     "set it manually in Clerk Dashboard → Domains → Proxy URL after Vercel deploy."
                 )
 
-            _last_sync_status = status
+            _set_last_sync_status(status)
             return status
     except Exception:
         logger.exception("Clerk instance sync failed")
         status["reason"] = "exception"
-        _last_sync_status = status
-        return status
+        return _set_last_sync_status(status)
 
 
 async def ensure_allowed_origins() -> bool:
