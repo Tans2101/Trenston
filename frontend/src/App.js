@@ -3,7 +3,7 @@ import "@/App.css";
 import "@/lib/notify";
 import { lazy, Suspense, useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import { useClerk } from "@clerk/clerk-react";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
@@ -84,7 +84,8 @@ function TrenstonToaster() {
 }
 
 
-function AppRouter() {
+/** SEO title/meta/canonical — runs for public and auth-gated routes under one BrowserRouter. */
+function DocumentSeo() {
   const location = useLocation();
   useEffect(() => {
     persistReferralFromSearch(location.search);
@@ -147,19 +148,136 @@ function AppRouter() {
     setMeta("property", "og:image", DEFAULT_OG_IMAGE);
     setMeta("name", "twitter:image", DEFAULT_OG_IMAGE);
   }, [location.pathname]);
-  const { clerkEnabled, configLoading } = useClerkMode();
-  const Protected = configLoading
-    ? () => <LoadingScreen label="Loading cockpit" />
-    : clerkEnabled
-      ? ProtectedRouteClerk
-      : ProtectedRoute;
+  return null;
+}
 
+
+/** Public marketing / legal pages — no ClerkProviderBootstrap, no /api/auth/config wait. */
+function PublicShell() {
+  return (
+    <AuthProvider deferInitialAuth>
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingScreen label="Loading" />}>
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
+    </AuthProvider>
+  );
+}
+
+
+function AppProtectedGate() {
+  const { clerkEnabled, configLoading } = useClerkMode();
+  if (configLoading) {
+    return <LoadingScreen label="Loading cockpit" />;
+  }
+  const Protected = clerkEnabled ? ProtectedRouteClerk : ProtectedRoute;
+  return <Protected />;
+}
+
+
+function ClerkAuthShell() {
+  const { signOut } = useClerk();
+  const location = useLocation();
   if (location.hash?.includes("session_id=")) {
     return <Navigate to="/login?error=session_retired" replace />;
   }
   return (
-    <Suspense fallback={<LoadingScreen label="Loading" />}>
-      <Routes>
+    <AuthProvider onLogoutExtra={() => signOut()} deferInitialAuth>
+      <ErrorBoundary>
+        <AppearanceSync />
+        <ClerkHelmBridge />
+        <Outlet />
+      </ErrorBoundary>
+    </AuthProvider>
+  );
+}
+
+
+function TrenstonAppShell() {
+  const location = useLocation();
+  if (location.hash?.includes("session_id=")) {
+    return <Navigate to="/login?error=session_retired" replace />;
+  }
+  return (
+    <AuthProvider>
+      <ErrorBoundary>
+        <AppearanceSync />
+        <Outlet />
+      </ErrorBoundary>
+    </AuthProvider>
+  );
+}
+
+
+/** /login, /sign-up, /app/* — wait on useClerkMode (/api/auth/config). */
+function ClerkGatedShell() {
+  const { clerkEnabled, configLoading } = useClerkMode();
+  if (configLoading) {
+    return <LoadingScreen label="Loading" />;
+  }
+  return clerkEnabled ? <ClerkAuthShell /> : <TrenstonAppShell />;
+}
+
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Auth-gated first so /login, /sign-up, /app win over public splat */}
+      <Route
+        element={(
+          <ClerkProviderBootstrap>
+            <ClerkGatedShell />
+          </ClerkProviderBootstrap>
+        )}
+      >
+        {/* Path routing: SignIn/SignUp own /sso-callback and /continue */}
+        <Route
+          path={`${CLERK_SIGN_IN_PATH}/*`}
+          element={(
+            <Suspense fallback={<LoadingScreen label="Loading" />}>
+              <Login />
+            </Suspense>
+          )}
+        />
+        <Route
+          path={`${CLERK_SIGN_UP_PATH}/*`}
+          element={(
+            <Suspense fallback={<LoadingScreen label="Loading" />}>
+              <SignUpPage />
+            </Suspense>
+          )}
+        />
+        <Route path="/app" element={<AppProtectedGate />}>
+          <Route index element={<Suspense fallback={<LoadingScreen label="Loading" />}><Briefing /></Suspense>} />
+          <Route path="me" element={<Suspense fallback={<LoadingScreen label="Loading" />}><MyDay /></Suspense>} />
+          <Route path="sales" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Pipeline /></Suspense>} />
+          <Route path="decisions" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Decisions /></Suspense>} />
+          <Route path="telemetry" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="telemetry"><Telemetry /></SectionGate></Suspense>} />
+          <Route path="financials" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><Financials /></SectionGate></Suspense>} />
+          <Route path="tasks" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Tasks /></Suspense>} />
+          <Route path="reports" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Reports /></Suspense>} />
+          <Route path="calendar" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CalendarPage /></Suspense>} />
+          <Route path="people" element={<Suspense fallback={<LoadingScreen label="Loading" />}><People /></Suspense>} />
+          <Route path="ask" element={<Suspense fallback={<LoadingScreen label="Loading" />}><AskTrenston /></Suspense>} />
+          <Route path="members" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Members /></Suspense>} />
+          <Route path="integrations" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Integrations /></Suspense>} />
+          <Route path="billing" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Billing /></Suspense>} />
+          <Route path="settings" element={<Suspense fallback={<LoadingScreen label="Loading" />}><AccountSettings /></Suspense>} />
+          <Route path="help" element={<Suspense fallback={<LoadingScreen label="Loading" />}><AppHelp /></Suspense>} />
+          <Route path="departments/production" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Production /></Suspense>} />
+          <Route path="departments/procurement" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Procurement /></Suspense>} />
+          <Route path="departments/legal" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Legal /></Suspense>} />
+          <Route path="departments/engineering_maintenance" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Maintenance /></Suspense>} />
+          <Route path="departments/hr" element={<Suspense fallback={<LoadingScreen label="Loading" />}><HR /></Suspense>} />
+          <Route path="departments/sales" element={<Navigate to="/app/sales" replace />} />
+          <Route path="departments/accounting_finance" element={<Navigate to="/app/financials" replace />} />
+          <Route path="departments/:deptType" element={<Suspense fallback={<LoadingScreen label="Loading" />}><DepartmentPlaceholder /></Suspense>} />
+          <Route path="*" element={<Suspense fallback={<LoadingScreen label="Loading" />}><NotFound /></Suspense>} />
+        </Route>
+      </Route>
+
+      <Route element={<PublicShell />}>
         <Route path="/" element={<Landing />} />
         <Route path="/about" element={<About />} />
         <Route path="/features" element={<Features />} />
@@ -169,86 +287,16 @@ function AppRouter() {
         <Route path="/integrations" element={<PublicIntegrations />} />
         <Route path="/help" element={<Help />} />
         <Route path="/security" element={<Security />} />
-        {/* Path routing: SignIn/SignUp own /sso-callback and /continue (do not steal with AuthenticateWithRedirectCallback) */}
-        <Route path={`${CLERK_SIGN_IN_PATH}/*`} element={<Login />} />
-        <Route path={`${CLERK_SIGN_UP_PATH}/*`} element={<SignUpPage />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/refunds" element={<Refunds />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
-        <Route path="/app" element={<Protected />}>
-          <Route index element={<Briefing />} />
-          <Route path="me" element={<MyDay />} />
-          <Route path="sales" element={<Pipeline />} />
-          <Route path="decisions" element={<Decisions />} />
-          <Route path="telemetry" element={<SectionGate section="telemetry"><Telemetry /></SectionGate>} />
-          <Route path="financials" element={<SectionGate section="financials"><Financials /></SectionGate>} />
-          <Route path="tasks" element={<Tasks />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="calendar" element={<CalendarPage />} />
-          <Route path="people" element={<People />} />
-          <Route path="ask" element={<AskTrenston />} />
-          <Route path="members" element={<Members />} />
-          <Route path="integrations" element={<Integrations />} />
-          <Route path="billing" element={<Billing />} />
-          <Route path="settings" element={<AccountSettings />} />
-          <Route path="help" element={<AppHelp />} />
-          <Route path="departments/production" element={<Production />} />
-          <Route path="departments/procurement" element={<Procurement />} />
-          <Route path="departments/legal" element={<Legal />} />
-          <Route path="departments/engineering_maintenance" element={<Maintenance />} />
-          <Route path="departments/hr" element={<HR />} />
-          <Route path="departments/sales" element={<Navigate to="/app/sales" replace />} />
-          <Route path="departments/accounting_finance" element={<Navigate to="/app/financials" replace />} />
-          <Route path="departments/:deptType" element={<DepartmentPlaceholder />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
         <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Suspense>
+      </Route>
+    </Routes>
   );
 }
 
-function ClerkAuthShell() {
-  const { signOut } = useClerk();
-  return (
-    <AuthProvider onLogoutExtra={() => signOut()} deferInitialAuth>
-      {/* Toaster stays outside ErrorBoundary — a bad toast must not blank the app. */}
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AppearanceSync />
-          <ClerkHelmBridge />
-          <AppRouter />
-          <CookieNotice />
-        </BrowserRouter>
-      </ErrorBoundary>
-      <TrenstonToaster />
-    </AuthProvider>
-  );
-}
-
-function TrenstonAppShell() {
-  return (
-    <AuthProvider>
-      <ErrorBoundary>
-        <BrowserRouter>
-          <AppearanceSync />
-          <AppRouter />
-          <CookieNotice />
-        </BrowserRouter>
-      </ErrorBoundary>
-      <TrenstonToaster />
-    </AuthProvider>
-  );
-}
-
-function AuthShell() {
-  const { clerkEnabled, configLoading } = useClerkMode();
-  if (configLoading) {
-    return <LoadingScreen label="Loading" />;
-  }
-  return clerkEnabled ? <ClerkAuthShell /> : <TrenstonAppShell />;
-}
 
 function App() {
   useEffect(() => {
@@ -267,9 +315,12 @@ function App() {
   }, []);
   return (
     <div className="App">
-      <ClerkProviderBootstrap>
-        <AuthShell />
-      </ClerkProviderBootstrap>
+      <BrowserRouter>
+        <DocumentSeo />
+        <AppRoutes />
+        <CookieNotice />
+        <TrenstonToaster />
+      </BrowserRouter>
       <Analytics />
     </div>
   );
