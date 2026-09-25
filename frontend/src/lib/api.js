@@ -125,9 +125,12 @@ api.interceptors.response.use(
   },
 );
 
-/** Fetch auth config without Clerk token (bootstrap). */
+/** Fetch auth config without Clerk token (bootstrap). 30s cap — hung Render must not block forever. */
 export async function fetchAuthConfig() {
-  const { data } = await axios.get(`${API}/auth/config`, { withCredentials: true });
+  const { data } = await axios.get(`${API}/auth/config`, {
+    withCredentials: true,
+    timeout: 30000,
+  });
   return data;
 }
 
