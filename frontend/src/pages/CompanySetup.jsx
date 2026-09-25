@@ -129,6 +129,9 @@ export default function CompanySetup({ company }) {
   };
 
   const firstName = (form.display_name || user?.name || "").trim().split(" ")[0] || "there";
+  // True when the display-name field has nothing to pre-fill from sign-in (Google/Clerk
+  // gave no name) — the "From your sign-in" hint only makes sense when it did.
+  const needsDisplayName = !(user?.name || "").trim();
 
   return (
     <div className="min-h-screen grain flex flex-col">
