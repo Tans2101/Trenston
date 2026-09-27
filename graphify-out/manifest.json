@@ -5520,10 +5520,10 @@
     "semantic_hash": "e02ccc370119baa9693deb6c6da09468"
   },
   "frontend/src/components/marketing/LaptopMockup.jsx": {
-    "mtime": 1790519662.0809684,
-    "seen": 1790519683.8839705,
-    "ast_hash": "d1d412ffcb631111263173212e8e8b3d",
-    "semantic_hash": "d1d412ffcb631111263173212e8e8b3d"
+    "mtime": 1790519808.116977,
+    "seen": 1790519862.6442094,
+    "ast_hash": "4e235a3296ee8d0ab4609be906809af7",
+    "semantic_hash": "4e235a3296ee8d0ab4609be906809af7"
   },
   "backend/tests/test_clerk_user_deleted.py": {
     "mtime": 1790519661.4409683,

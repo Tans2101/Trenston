@@ -2654,7 +2654,7 @@
       "file_type": "code",
       "norm_label": "laptopmockup()",
       "source_file": "frontend/src/components/marketing/LaptopMockup.jsx",
-      "source_location": "L8"
+      "source_location": "L9"
     },
     {
       "id": "frontend_src_pages_integrations_statusbadge",
@@ -156450,7 +156450,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/LaptopMockup.jsx",
-      "source_location": "L10",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -284523,7 +284523,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/LaptopMockup.jsx",
-      "source_location": "L8",
+      "source_location": "L9",
       "weight": 1.0
     },
     {
@@ -316184,5 +316184,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a0045ff698b0d7a2cb524242a802eae11965c21e"
+  "built_at_commit": "363f40825a7793905016445069007230a2d3bd4e"
 }

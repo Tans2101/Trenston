@@ -10799,12 +10799,23 @@
       "degree": 45
     },
     {
-      "id": "backend_dept_ops_wiring_register",
-      "label": "register()",
+      "id": "frontend_src_context_authcontext_useauth",
+      "label": "useAuth()",
       "degree": 43
     }
   ],
   "surprises": [
+    {
+      "source": "OAuth redirect URIs (register exactly)",
+      "target": "integrations()",
+      "source_files": [
+        "docs/INTEGRATIONS.md",
+        "backend/server.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `OAuth redirect URIs (register exactly)` unexpectedly reaches hub `integrations()`"
+    },
     {
       "source": "Test 3: Runtime checks match the protected surface",
       "target": "login()",
@@ -10815,17 +10826,6 @@
       "confidence": "INFERRED",
       "relation": "references",
       "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `Test 3: Runtime checks match the protected surface` unexpectedly reaches hub `login()`"
-    },
-    {
-      "source": "OAuth redirect URIs (register exactly)",
-      "target": "integrations()",
-      "source_files": [
-        "docs/INTEGRATIONS.md",
-        "backend/server.py"
-      ],
-      "confidence": "INFERRED",
-      "relation": "references",
-      "why": "inferred connection - not explicitly stated in source; crosses file types (doc \u2194 code); connects across different repos/directories; bridges separate communities; peripheral node `OAuth redirect URIs (register exactly)` unexpectedly reaches hub `integrations()`"
     },
     {
       "source": "Conversation flow",
@@ -10850,11 +10850,11 @@
       "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities"
     },
     {
-      "source": "Validation Gates",
-      "target": "partial()",
+      "source": "Interpreter guard for subcommands",
+      "target": "add()",
       "source_files": [
-        ".agents/skills/cloudflare-one-migrations/SKILL.md",
-        "backend/tests/test_ask_error_storage.py"
+        ".claude/skills/graphify/SKILL.md",
+        "backend/server.py"
       ],
       "confidence": "INFERRED",
       "relation": "references",
