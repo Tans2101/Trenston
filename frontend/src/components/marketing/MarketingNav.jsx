@@ -50,9 +50,9 @@ export default function MarketingNav({ authed, onEnter, active, surface = "cream
                   {renderLink(
                     l,
                     cn(
-                      "text-sm transition-colors",
+                      "text-base font-semibold transition-colors",
                       isActive(l.to, active)
-                        ? "text-helm-navy font-medium"
+                        ? "text-helm-navy"
                         : "text-helm-slate hover:text-helm-navy",
                     ),
                   )}
@@ -99,7 +99,7 @@ export default function MarketingNav({ authed, onEnter, active, surface = "cream
             {NAV_LINKS.map((l) =>
               renderLink(
                 l,
-                `block rounded-lg px-3 py-2.5 text-sm ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
+                `block rounded-lg px-3 py-2.5 text-base font-semibold ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
               ),
             )}
             <a
