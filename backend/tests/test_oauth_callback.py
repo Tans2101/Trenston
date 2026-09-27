@@ -22,6 +22,12 @@ os.environ.setdefault("APP_URL", "https://www.trenston.com")
 import server  # noqa: E402
 
 
+def test_oauth_callback_uri_google_default_matches_live_route():
+    """redirect_uri must match @api_router.get('/oauth/{provider}/callback') under /api."""
+    with patch.object(server, "public_api_origin", return_value="https://www.trenston.com"):
+        assert server._oauth_callback_uri("google") == "https://www.trenston.com/api/oauth/google/callback"
+
+
 def test_oauth_datetime_expired_accepts_naive_mongo_datetimes():
     naive = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=8)
     assert naive.tzinfo is None
