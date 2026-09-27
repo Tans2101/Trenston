@@ -20,10 +20,11 @@ function isActive(path, active) {
   return active === path || active?.startsWith(path);
 }
 
-export default function MarketingNav({ authed, onEnter, active }) {
+export default function MarketingNav({ authed, onEnter, active, surface = "cream" }) {
   const [open, setOpen] = useState(false);
 
   const activeId = NAV_LINKS.find((l) => isActive(l.to, active))?.to || null;
+  const headerBg = surface === "white" ? "bg-white/90" : "bg-helm-cream/90";
 
   const renderLink = (l, className) => (
     <Link key={l.to} to={l.to} className={className} onClick={() => setOpen(false)}>
@@ -32,7 +33,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
   );
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 bg-helm-cream/90 backdrop-blur-md">
+    <header className={cn("fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 backdrop-blur-md", headerBg)}>
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex h-16 items-center justify-between">
           <MarketingLogo size="sm" />
