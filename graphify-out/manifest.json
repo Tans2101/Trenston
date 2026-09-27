@@ -2628,10 +2628,10 @@
     "semantic_hash": "134183376163add77c3befdde8bf3a3b"
   },
   "frontend/src/pages/Integrations.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710422,
-    "ast_hash": "ac19724b1b0f6cc75722cd26b1102480",
-    "semantic_hash": "ac19724b1b0f6cc75722cd26b1102480"
+    "mtime": 1790525808.0474694,
+    "seen": 1790525883.6316051,
+    "ast_hash": "b17fd81723648c2e90120bb0059feb29",
+    "semantic_hash": "b17fd81723648c2e90120bb0059feb29"
   },
   "frontend/src/pages/Landing.jsx": {
     "mtime": 1790523100.1364315,

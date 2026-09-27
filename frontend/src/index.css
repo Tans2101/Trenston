@@ -254,7 +254,9 @@ html[data-theme="light"] .app-shell {
   --helm-fg: #111111;
   --helm-bg: #FFFFFF;
   --helm-card: #FAFAF9;
-  --helm-muted: #6B7280;
+  /* Was #6B7280 (slate) — ~4.8:1 on white, barely clears WCAG AA for body
+     text. Darkened to gray-700 for a crisper, more comfortable margin. */
+  --helm-muted: #374151;
   --helm-line: color-mix(in srgb, #111111 22%, transparent);
   background: #FFFFFF;
   color: #111111;

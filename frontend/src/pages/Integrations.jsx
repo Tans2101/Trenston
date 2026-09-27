@@ -20,6 +20,54 @@ const ICONS = {
   slack: MessageSquare,
 };
 
+/**
+ * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
+ * (Google, QuickBooks, Xero, SAP, HubSpot, Slack, GitHub) need written
+ * permission we don't have, so each badge is the provider's initial on a
+ * brand-colored tile instead. Same policy as IntegrationsShowcase.jsx on
+ * the marketing site. See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
+ */
+const BRAND_ACCENT = {
+  google: { initial: "G", color: "#4285F4" },
+  quickbooks: { initial: "Q", color: "#2CA01C" },
+  xero: { initial: "X", color: "#13B5EA" },
+  sap_b1: { initial: "S", color: "#0870D6" },
+  hubspot: { initial: "H", color: "#FF7A59" },
+  github: { initial: "G", color: "#24292F" },
+  slack: { initial: "S", color: "#611F69" },
+};
+
+function BrandBadge({ id, name }) {
+  const brand = BRAND_ACCENT[id];
+  const Icon = ICONS[id] || Cloud;
+  if (!brand) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-helm-fg/5 border border-helm-line flex items-center justify-center shrink-0">
+        <Icon className="w-5 h-5 text-helm-gold" />
+      </div>
+    );
+  }
+  return (
+    <div
+      aria-hidden
+      className="w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-semibold text-white shrink-0"
+      style={{ backgroundColor: brand.color }}
+      title={name}
+    >
+      {brand.initial}
+    </div>
+  );
+}
+
+function CategoryPill({ children }) {
+  if (!children) return null;
+  return (
+    <span className="inline-flex items-center rounded-full bg-helm-fg/[0.06] px-2.5 py-1 text-[10px] font-mono font-medium uppercase tracking-wide text-helm-fg/80">
+      {children}
+    </span>
+  );
+}
+
 // Google Workspace capabilities (backend google_oauth.google_capabilities keys).
 const GOOGLE_CAPABILITY_LABELS = [
   ["calendar_write", "Calendar"],
@@ -62,7 +110,6 @@ function StatusBadge({ status }) {
 }
 
 function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, onConnect, onDisconnect, onSync, onNavigate, syncingProvider }) {
-  const Icon = ICONS[it.id] || Cloud;
   const status = it.status || (it.connected ? "connected" : "not_connected");
   const lastSynced = it.sync_action ? formatLastSynced(it.last_synced_at) : null;
   const isComingSoon = it.coming_soon || status === "coming_soon";
@@ -84,16 +131,20 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
   };
 
   return (
-    <GlassCard key={it.id} className="p-5 fade-up flex flex-col" data-testid={`integration-${it.id}`}>
+    <GlassCard
+      key={it.id}
+      className="p-5 fade-up flex flex-col transition-shadow hover:shadow-md"
+      data-testid={`integration-${it.id}`}
+    >
       <div className="flex items-start justify-between mb-3">
-        <div className="w-10 h-10 rounded-lg bg-helm-fg/5 border border-helm-line flex items-center justify-center">
-          <Icon className="w-5 h-5 text-helm-gold" />
-        </div>
+        <BrandBadge id={it.id} name={it.name} />
         <StatusBadge status={status} />
       </div>
 
       <h3 className="text-helm-fg font-medium">{it.name}</h3>
-      <p className="text-[11px] font-mono uppercase tracking-wide text-helm-muted mt-0.5">{it.category}</p>
+      <div className="mt-1.5">
+        <CategoryPill>{it.category}</CategoryPill>
+      </div>
       <p className="text-sm text-helm-muted mt-2 leading-relaxed flex-1 min-h-[40px]">{it.description}</p>
 
       {it.value && (
@@ -197,6 +248,16 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
         >
           <ArrowRight className="w-3.5 h-3.5" /> {it.cta_label || "Open in Trenston"}
         </button>
+      )}
+
+      {it.connected && !isComingSoon && (
+        <p
+          className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wide text-helm-status-positive"
+          data-testid={`${it.id}-live-badge`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-helm-status-positive" aria-hidden />
+          Live Integration
+        </p>
       )}
 
       {!isComingSoon && (
@@ -519,13 +580,11 @@ export default function Integrations() {
           </div>
         </GlassCard>
       )}
-      <div className="grid md:grid-cols-2 gap-4 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
         {data.can_manage && (
-          <GlassCard className="p-5 fade-up flex flex-col" data-testid="slack-webhook-card">
+          <GlassCard className="p-5 fade-up flex flex-col transition-shadow hover:shadow-md" data-testid="slack-webhook-card">
             <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-lg bg-helm-fg/5 border border-helm-line flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-helm-gold" />
-              </div>
+              <BrandBadge id="slack" name="Slack" />
               <StatusBadge
                 status={
                   data.slack_webhook_status === "broken"
@@ -537,7 +596,9 @@ export default function Integrations() {
               />
             </div>
             <h3 className="text-helm-fg font-medium">Slack</h3>
-            <p className="text-[11px] font-mono uppercase tracking-wide text-helm-muted mt-0.5">Alerts</p>
+            <div className="mt-1.5">
+              <CategoryPill>Alerts</CategoryPill>
+            </div>
             <p className="text-sm text-helm-muted mt-2 leading-relaxed flex-1 min-h-[40px]">
               {slackBroken
                 ? "Slack stopped accepting alerts from this webhook. Paste a new Incoming Webhook URL to reconnect."
@@ -546,6 +607,15 @@ export default function Integrations() {
             {slackBroken && (
               <p className="text-xs text-helm-status-negative font-mono mt-2" data-testid="slack-reconnect-hint">
                 Slack disconnected — reconnect
+              </p>
+            )}
+            {slackConfigured && !slackBroken && (
+              <p
+                className="mt-3 inline-flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wide text-helm-status-positive"
+                data-testid="slack-live-badge"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-helm-status-positive" aria-hidden />
+                Live Integration
               </p>
             )}
             {slackConfigured && !slackBroken && !slackEditing ? (
@@ -643,9 +713,12 @@ export default function Integrations() {
 
       {roadmap.length > 0 && (
         <>
-          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">Coming soon</h2>
-          <p className="text-sm text-helm-muted mb-4 max-w-2xl">More connections on the way, with engineering tools next.</p>
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">Coming Soon</h2>
+          <p className="text-sm text-helm-muted mb-4 max-w-2xl leading-relaxed">
+            We are continuously expanding our integration library. Connect engineering velocity and PR status
+            directly to executive KPIs.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {roadmap.map((it) => (
               <IntegrationCard
                 key={it.id}
@@ -660,6 +733,22 @@ export default function Integrations() {
                 syncingProvider={syncingProvider}
               />
             ))}
+            <a
+              href="mailto:contact@trenston.com?subject=Integration%20request"
+              data-testid="request-integration-cta"
+              className="group flex flex-col justify-between rounded-xl border border-dashed border-helm-line bg-helm-fg/[0.02] p-5 fade-up transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.04]"
+            >
+              <div>
+                <p className="text-helm-fg font-medium">Don&apos;t see your stack?</p>
+                <p className="text-sm text-helm-muted mt-2 leading-relaxed">
+                  Tell us which tool to connect next and we&apos;ll look into it.
+                </p>
+              </div>
+              <span className="mt-4 inline-flex items-center gap-1.5 text-sm text-helm-gold group-hover:text-helm-gold-hover">
+                Request an integration
+                <ArrowRight className="w-3.5 h-3.5" />
+              </span>
+            </a>
           </div>
         </>
       )}
