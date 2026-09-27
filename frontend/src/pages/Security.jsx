@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   Cloud,
   CreditCard,
   Database,
@@ -28,11 +29,52 @@ const fade = {
   }),
 };
 
+/**
+ * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
+ * (Vercel, MongoDB, Cloudflare, Clerk, Render, Paddle) need written
+ * permission we don't have, so each card gets a colored initial tile
+ * instead. Same policy as the Integrations page — see BRAND_ACCENT there.
+ */
+const INFRA_BRAND_ACCENT = {
+  Vercel: "#000000",
+  Render: "#46E3B7",
+  "MongoDB Atlas": "#47A248",
+  "Cloudflare R2": "#F38020",
+  Clerk: "#6C47FF",
+  Paddle: "#1A1B23",
+};
+
+function InfraBadge({ name }) {
+  const color = INFRA_BRAND_ACCENT[name] || "#0B1220";
+  const light = ["Vercel", "Paddle"].includes(name);
+  return (
+    <div
+      aria-hidden
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold"
+      style={{ backgroundColor: color, color: light ? "#F5F5F0" : "#FFFFFF" }}
+    >
+      {name.trim().charAt(0)}
+    </div>
+  );
+}
+
+const TRUST_BADGES = [
+  { icon: LockKeyhole, label: "End-to-End TLS Encryption" },
+  { icon: ShieldCheck, label: "Workspace Isolation" },
+  { icon: KeyRound, label: "Fernet Token Sealing" },
+  { icon: Trash2, label: "Zero Residual Retention" },
+];
+
 const WHERE_DATA_LIVES = [
   {
     icon: Cloud,
-    title: "Application hosting",
-    body: "The signed-in cockpit and marketing site run on Vercel. The API is a Python FastAPI service on Render (see render.yaml), with Render cron jobs for retention checks, accounting sync, daily alerts, and weekly digest email.",
+    title: "Vercel",
+    body: "The signed-in cockpit and the marketing site are served from Vercel over HTTPS.",
+  },
+  {
+    icon: Cloud,
+    title: "Render",
+    body: "The API is a Python FastAPI service on Render (see render.yaml), with Render cron jobs for retention checks, accounting sync, daily alerts, and the weekly digest email.",
   },
   {
     icon: Database,
@@ -183,6 +225,44 @@ const QUESTIONS = [
   },
 ];
 
+function FaqAccordion({ items }) {
+  const [openIndex, setOpenIndex] = useState(0);
+
+  return (
+    <div className="mt-10 divide-y divide-helm-navy/[0.08] rounded-2xl border border-helm-navy/[0.08] bg-white">
+      {items.map((item, index) => {
+        const open = openIndex === index;
+        const panelId = `security-faq-panel-${index}`;
+        return (
+          <div key={item.q}>
+            <h3>
+              <button
+                type="button"
+                id={`security-faq-trigger-${index}`}
+                aria-expanded={open}
+                aria-controls={panelId}
+                onClick={() => setOpenIndex(open ? -1 : index)}
+                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
+              >
+                <span className="font-semibold text-helm-navy">{item.q}</span>
+                <ChevronDown
+                  className={`h-4 w-4 shrink-0 text-helm-gold transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+                  aria-hidden
+                />
+              </button>
+            </h3>
+            {open && (
+              <div id={panelId} role="region" aria-labelledby={`security-faq-trigger-${index}`} className="px-6 pb-5">
+                <p className="text-sm leading-relaxed text-helm-navy/85">{item.a}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Security() {
   const { authed, enter } = useMarketingAuth();
 
@@ -192,11 +272,11 @@ export default function Security() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-white text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/security" />
 
       <main>
-        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-helm-cream">
+        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-white">
           <div className="relative mx-auto max-w-4xl text-center">
             <motion.div
               variants={fade}
@@ -230,12 +310,30 @@ export default function Security() {
               Cash, decisions, documents, and connected systems are the operating picture of a company.
               Trenston is designed so that picture stays inside the workspace that owns it, from sign-in through deletion.
             </motion.p>
-            <motion.p
+            <motion.div
               variants={fade}
               initial="hidden"
               animate="show"
               custom={3}
-              className="mt-5 font-mono text-[11px] uppercase tracking-[0.18em] text-helm-slate"
+              className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-2.5"
+              data-testid="security-trust-badges"
+            >
+              {TRUST_BADGES.map(({ icon: Icon, label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-helm-navy/[0.12] bg-white px-3.5 py-1.5 text-xs font-medium text-helm-navy shadow-sm"
+                >
+                  <Icon className="h-3.5 w-3.5 text-helm-gold" aria-hidden />
+                  {label}
+                </span>
+              ))}
+            </motion.div>
+            <motion.p
+              variants={fade}
+              initial="hidden"
+              animate="show"
+              custom={4}
+              className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-helm-slate"
             >
               Last updated September 19, 2026
             </motion.p>
@@ -243,7 +341,7 @@ export default function Security() {
               variants={fade}
               initial="hidden"
               animate="show"
-              custom={4}
+              custom={5}
               className="mt-4 text-sm text-helm-slate"
             >
               Also see{" "}
@@ -273,16 +371,16 @@ export default function Security() {
         <section className="px-6 py-20 md:py-24">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Where data lives</p>
+              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Enterprise-grade infrastructure</p>
               <h2 className="font-display mt-4 text-3xl font-medium tracking-tight md:text-4xl">
-                Cloudflare is for files. The company record is MongoDB.
+                Every part of the stack has one job.
               </h2>
               <p className="mt-4 leading-relaxed text-helm-slate">
-                Trenston is not a Cloudflare database product. Business records sit in MongoDB Atlas.
-                Cloudflare R2 holds private uploaded files. Identity and payments use specialized providers.
+                Trenston is not a single black box. Business records sit in MongoDB Atlas, private files in
+                Cloudflare R2, identity in Clerk, and payments in Paddle — each on infrastructure built for that job.
               </p>
             </div>
-            <div className="mt-12 grid gap-4 sm:grid-cols-2">
+            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {WHERE_DATA_LIVES.map(({ icon: Icon, title, body }, index) => (
                 <motion.article
                   key={title}
@@ -291,9 +389,12 @@ export default function Security() {
                   whileInView="show"
                   viewport={{ once: true, margin: "-40px" }}
                   custom={index}
-                  className="rounded-2xl border border-helm-navy/[0.07] bg-white p-6"
+                  className="rounded-xl border border-helm-navy/[0.1] bg-white p-6 shadow-sm transition-colors hover:border-helm-navy/20"
                 >
-                  <Icon className="h-5 w-5 text-helm-gold" />
+                  <div className="flex items-center gap-3">
+                    <InfraBadge name={title} />
+                    <Icon className="h-4 w-4 text-helm-gold" aria-hidden />
+                  </div>
                   <h3 className="mt-4 text-base font-medium text-helm-navy">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
                 </motion.article>
@@ -343,7 +444,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-24">
           <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Retention &amp; deletion</p>
@@ -372,12 +473,12 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-28">
+        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-28">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Layered protection</p>
               <h2 className="font-display mt-4 text-3xl font-medium tracking-tight md:text-4xl">
-                Controls across the data lifecycle
+                Protection built into every layer
               </h2>
               <p className="mt-4 leading-relaxed text-helm-slate">
                 No single control carries the whole burden. Trenston combines encryption, access boundaries,
@@ -385,7 +486,7 @@ export default function Security() {
               </p>
             </div>
 
-            <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-helm-navy/[0.07] bg-helm-fg/[0.07] md:grid-cols-2">
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
               {CONTROLS.map(({ icon: Icon, title, body }, index) => (
                 <motion.article
                   key={title}
@@ -393,10 +494,10 @@ export default function Security() {
                   initial="hidden"
                   whileInView="show"
                   viewport={{ once: true, margin: "-50px" }}
-                  custom={index % 2}
-                  className="bg-white p-7 md:p-8"
+                  custom={index % 3}
+                  className="rounded-xl border border-helm-navy/[0.1] bg-white p-6 shadow-sm transition-colors hover:border-helm-navy/20"
                 >
-                  <Icon className="h-5 w-5 text-helm-gold" />
+                  <Icon className="h-5 w-5 text-helm-gold" aria-hidden />
                   <h3 className="mt-5 text-base font-medium text-helm-navy">{title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
                 </motion.article>
@@ -406,13 +507,13 @@ export default function Security() {
         </section>
 
         <section className="px-6 py-20 md:py-24">
-          <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-[0.8fr_1.2fr] md:gap-20">
-            <div>
+          <div className="mx-auto max-w-5xl">
+            <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Data boundaries</p>
               <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">
                 Clear about where data goes
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-helm-slate">
+              <p className="mt-4 text-sm leading-relaxed text-helm-navy/85">
                 Trenston is not the only system involved in delivering the product. We identify the providers
                 we use and limit each integration to the access needed for its feature.
               </p>
@@ -421,31 +522,24 @@ export default function Security() {
               </Link>
             </div>
 
-            <ul className="grid gap-3 sm:grid-cols-2">
+            <ul className="mt-10 grid gap-4 md:grid-cols-2">
               {PRACTICES.map((practice) => (
-                <li key={practice} className="flex gap-3 rounded-xl border border-helm-navy/[0.06] bg-helm-fg/[0.02] p-4">
+                <li key={practice} className="flex gap-3 rounded-xl border border-helm-navy/[0.1] bg-white p-5 shadow-sm">
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-helm-gold/12">
                     <Check className="h-3 w-3 text-helm-gold" />
                   </span>
-                  <span className="text-sm leading-relaxed text-helm-slate">{practice}</span>
+                  <span className="text-sm leading-relaxed text-helm-navy/85">{practice}</span>
                 </li>
               ))}
             </ul>
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-24">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Common questions</p>
             <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">What leadership teams ask</h2>
-            <div className="mt-10 grid gap-6 md:grid-cols-2">
-              {QUESTIONS.map((item) => (
-                <div key={item.q} className="rounded-2xl border border-helm-navy/[0.06] bg-white p-6">
-                  <h3 className="text-sm font-medium text-helm-navy">{item.q}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-helm-slate">{item.a}</p>
-                </div>
-              ))}
-            </div>
+            <FaqAccordion items={QUESTIONS} />
           </div>
         </section>
 
