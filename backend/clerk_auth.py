@@ -29,6 +29,11 @@ def _resolve_clerk_jwks_url() -> str:
 
 CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY", "")
 CLERK_JWKS_URL = _resolve_clerk_jwks_url()
+# Clerk Dashboard → Webhooks → Signing Secret (whsec_…). Either env name works.
+CLERK_WEBHOOK_SECRET = (
+    os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET", "").strip()
+    or os.environ.get("CLERK_WEBHOOK_SECRET", "").strip()
+)
 
 _raw_frontend = os.environ.get("FRONTEND_URL", "").strip().rstrip("/")
 FRONTEND_URL = TRENSTON_CANONICAL_ORIGIN if is_stale_deploy_url(_raw_frontend) else _raw_frontend
@@ -1707,3 +1712,79 @@ async def ensure_allowed_origins_legacy() -> bool:
     except Exception:
         logger.exception("Clerk allowed_origins sync failed")
         return False
+
+
+def clerk_webhook_configured() -> bool:
+    return bool(CLERK_WEBHOOK_SECRET.startswith("whsec_"))
+
+
+def verify_clerk_webhook(body: bytes, headers: dict[str, str]) -> dict[str, Any]:
+    """Verify a Clerk (Svix) webhook and return the parsed JSON payload.
+
+    Uses the Standard Webhooks / Svix HMAC scheme without an extra dependency:
+    signed_content = "{id}.{timestamp}.{body}", secret = base64(whsec_…).
+    """
+    import base64
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    if not clerk_webhook_configured():
+        raise ValueError("CLERK_WEBHOOK_SIGNING_SECRET is not configured")
+
+    # Headers may arrive lower-cased via ASGI or mixed-case from proxies.
+    def _hdr(*names: str) -> str:
+        lower = {str(k).lower(): v for k, v in headers.items()}
+        for name in names:
+            val = lower.get(name.lower())
+            if val:
+                return str(val).strip()
+        return ""
+
+    svix_id = _hdr("svix-id", "webhook-id")
+    svix_timestamp = _hdr("svix-timestamp", "webhook-timestamp")
+    svix_signature = _hdr("svix-signature", "webhook-signature")
+    if not svix_id or not svix_timestamp or not svix_signature:
+        raise ValueError("Missing Svix webhook headers")
+
+    try:
+        ts = int(svix_timestamp)
+    except ValueError as exc:
+        raise ValueError("Invalid Svix timestamp") from exc
+    # Reject stale deliveries (replay window ≈ 5 minutes).
+    if abs(int(time.time()) - ts) > 300:
+        raise ValueError("Svix timestamp outside tolerance")
+
+    secret_part = CLERK_WEBHOOK_SECRET.split("_", 1)[1]
+    try:
+        secret_bytes = base64.b64decode(secret_part)
+    except Exception as exc:
+        raise ValueError("Invalid CLERK_WEBHOOK_SIGNING_SECRET") from exc
+
+    if isinstance(body, bytes):
+        body_text = body.decode("utf-8")
+    else:
+        body_text = str(body)
+    signed_content = f"{svix_id}.{svix_timestamp}.{body_text}".encode("utf-8")
+    expected = base64.b64encode(
+        hmac.new(secret_bytes, signed_content, hashlib.sha256).digest()
+    ).decode("ascii")
+
+    candidates: list[str] = []
+    for part in svix_signature.split(" "):
+        part = part.strip()
+        if not part:
+            continue
+        # Format: "v1,<base64>" (versioned) — compare the signature segment.
+        if "," in part:
+            candidates.append(part.split(",", 1)[1])
+        else:
+            candidates.append(part)
+    if not any(hmac.compare_digest(expected, c) for c in candidates):
+        raise ValueError("Invalid Svix signature")
+
+    try:
+        return json.loads(body_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Webhook body is not JSON") from exc

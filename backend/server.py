@@ -1148,6 +1148,63 @@ def _looks_like_jwt(token: str) -> bool:
     return token.count(".") == 2
 
 
+def _user_is_deleted(user: dict | None) -> bool:
+    return bool(user and user.get("deleted_at"))
+
+
+ACCOUNT_DELETED_DETAIL = "Account deleted. Sign in again."
+
+
+async def _reject_if_deleted(user: dict | None):
+    if _user_is_deleted(user):
+        if user.get("user_id"):
+            await db.user_sessions.delete_many({"user_id": user["user_id"]})
+        raise HTTPException(status_code=401, detail=ACCOUNT_DELETED_DETAIL)
+
+
+async def _revoke_local_user_for_clerk_delete(clerk_id: str) -> dict:
+    """Mark the Mongo user deleted and wipe Trenston sessions (Clerk already gone).
+
+    Soft-delete keeps the row so a still-cached JWT cannot re-upsert the account
+    via _user_from_clerk_jwt → fetch profile → insert. Memberships are deactivated
+    so workspace access ends immediately.
+    """
+    clerk_id = (clerk_id or "").strip()
+    if not clerk_id:
+        return {"ok": False, "reason": "missing_clerk_id"}
+    user = await db.users.find_one({"clerk_id": clerk_id}, {"_id": 0})
+    if not user:
+        # Also match rows already soft-deleted under a preserved clerk id.
+        user = await db.users.find_one({"clerk_deleted_id": clerk_id}, {"_id": 0})
+    if not user:
+        return {"ok": True, "reason": "not_found"}
+    if user.get("deleted_at"):
+        await db.user_sessions.delete_many({"user_id": user["user_id"]})
+        return {"ok": True, "reason": "already_deleted", "user_id": user["user_id"]}
+
+    uid = user["user_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    await db.user_sessions.delete_many({"user_id": uid})
+    await db.memberships.update_many(
+        {"user_id": uid, "status": "active"},
+        {"$set": {"status": "revoked", "revoked_at": now, "revoked_reason": "clerk_user_deleted"}},
+    )
+    await db.users.update_one(
+        {"user_id": uid},
+        {
+            "$set": {
+                "deleted_at": now,
+                "clerk_deleted_id": clerk_id,
+                # Free unique email / clerk_id for a future re-signup.
+                "email": f"deleted+{uid}@invalid.local",
+            },
+            "$unset": {"clerk_id": "", "active_workspace_id": ""},
+        },
+    )
+    logger.info("Revoked Trenston user %s after Clerk user.deleted (%s)", uid, clerk_id)
+    return {"ok": True, "reason": "revoked", "user_id": uid}
+
+
 async def _user_from_clerk_jwt(token: str):
     """Authenticate via Clerk session JWT (no Trenston cookie required)."""
     if not clerk_auth.clerk_configured():
@@ -1159,8 +1216,13 @@ async def _user_from_clerk_jwt(token: str):
             raise ValueError("Clerk token missing sub")
         existing = await db.users.find_one({"clerk_id": clerk_id}, {"_id": 0})
         if existing:
+            await _reject_if_deleted(existing)
             await _bootstrap(existing)
             return existing
+        # Soft-deleted rows keep clerk_deleted_id — never re-create from a stale JWT.
+        tombstone = await db.users.find_one({"clerk_deleted_id": clerk_id}, {"_id": 0})
+        if tombstone:
+            await _reject_if_deleted(tombstone)
         identity = await clerk_auth.fetch_clerk_user_profile(clerk_id)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
@@ -1193,12 +1255,10 @@ async def _user_from_request(request: Request):
     auth = request.headers.get("Authorization", "")
     bearer = auth[7:].strip() if auth.startswith("Bearer ") else ""
     if bearer and _looks_like_jwt(bearer):
-        try:
-            return await _user_from_clerk_jwt(bearer)
-        except HTTPException as exc:
-            if exc.status_code != 401:
-                raise
-            # Fall back to Trenston session cookie when Clerk JWT is stale/invalid.
+        # A presented Clerk JWT is authoritative. Do NOT fall back to the Trenston
+        # session cookie when it fails — that let users deleted in Clerk keep using
+        # the app via a still-valid httpOnly cookie.
+        return await _user_from_clerk_jwt(bearer)
 
     token = request.cookies.get("session_token")
     if not token and bearer:
@@ -1218,6 +1278,7 @@ async def _user_from_request(request: Request):
     user = await db.users.find_one({"user_id": session["user_id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
+    await _reject_if_deleted(user)
     return user
 
 
@@ -2502,23 +2563,30 @@ async def _find_user_by_identity(
     google_sub: Optional[str] = None,
     clerk_id: Optional[str] = None,
 ):
-    """Stable identity: Clerk id / Google sub first, then normalized email."""
+    """Stable identity: Clerk id / Google sub first, then normalized email.
+
+    Soft-deleted rows (deleted_at set) are ignored so a later re-signup can
+    create a fresh account.
+    """
     if clerk_id:
         by_clerk = await db.users.find_one({"clerk_id": clerk_id}, {"_id": 0})
-        if by_clerk:
+        if by_clerk and not _user_is_deleted(by_clerk):
             return by_clerk
     if google_sub:
         by_sub = await db.users.find_one({"google_sub": google_sub}, {"_id": 0})
-        if by_sub:
+        if by_sub and not _user_is_deleted(by_sub):
             return by_sub
     if not email:
         return None
     by_email = await db.users.find_one({"email": email}, {"_id": 0})
-    if by_email:
+    if by_email and not _user_is_deleted(by_email):
         return by_email
-    return await db.users.find_one(
+    by_email_ci = await db.users.find_one(
         {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}}, {"_id": 0}
     )
+    if by_email_ci and not _user_is_deleted(by_email_ci):
+        return by_email_ci
+    return None
 
 
 async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Optional[str], clerk_id: str):
@@ -15503,6 +15571,71 @@ async def paddle_webhook(request: Request):
     return {"received": True}
 
 
+@api_router.post("/webhook/clerk")
+async def clerk_webhook(request: Request):
+    """Clerk → Trenston sync. user.deleted revokes local sessions/access."""
+    if not clerk_auth.clerk_webhook_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="CLERK_WEBHOOK_SIGNING_SECRET is not configured on Render",
+        )
+    raw = await request.body()
+    # Preserve header names/case for Svix verification helpers.
+    hdrs = {k: v for k, v in request.headers.items()}
+    try:
+        event = clerk_auth.verify_clerk_webhook(raw, hdrs)
+    except ValueError as exc:
+        logger.warning("Rejected Clerk webhook: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    event_type = (event.get("type") or "").strip()
+    data = event.get("data") or {}
+    # Svix message id is preferred for idempotency; fall back to Clerk event ids.
+    event_id = (
+        request.headers.get("svix-id")
+        or request.headers.get("webhook-id")
+        or event.get("instance_id")
+        or ""
+    )
+    clerk_object_id = (data.get("id") or "").strip()
+    idem = event_id or f"{event_type}:{clerk_object_id}"
+    if not idem or idem == ":":
+        raise HTTPException(status_code=400, detail="Missing Clerk webhook id")
+
+    try:
+        await db.clerk_events.insert_one({
+            "_id": idem,
+            "type": event_type,
+            "clerk_id": clerk_object_id or None,
+            "received_at": datetime.now(timezone.utc),
+        })
+    except Exception as e:
+        if "e11000" in str(e).lower() or "duplicate key" in str(e).lower():
+            return {"received": True}
+        raise
+
+    try:
+        if event_type == "user.deleted":
+            if not clerk_object_id:
+                raise HTTPException(status_code=400, detail="user.deleted missing data.id")
+            await _revoke_local_user_for_clerk_delete(clerk_object_id)
+        elif event_type in ("session.revoked", "session.ended", "session.removed"):
+            # Best-effort: drop Trenston cookies tied to this Clerk user.
+            uid = (data.get("user_id") or "").strip()
+            if uid:
+                local = await db.users.find_one({"clerk_id": uid}, {"_id": 0, "user_id": 1})
+                if local:
+                    await db.user_sessions.delete_many({"user_id": local["user_id"]})
+    except HTTPException:
+        await db.clerk_events.delete_one({"_id": idem})
+        raise
+    except Exception:
+        await db.clerk_events.delete_one({"_id": idem})
+        logger.exception("clerk webhook handler failed id=%s type=%s", idem, event_type)
+        raise HTTPException(status_code=503, detail="Clerk webhook processing failed")
+    return {"received": True}
+
+
 # ------------------------- GDPR / account -------------------------
 _WORKSPACE_COLLECTIONS = (
     "financial_entries", "deals", "documents", "report_documents", "report_digests", "activities", "updates",
@@ -16559,6 +16692,7 @@ async def _ensure_indexes():
         (db.user_sessions, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.user_sessions, [("user_id", 1)], {}),
         (db.paddle_events, [("_id", 1)], {"unique": True}),
+        (db.clerk_events, [("_id", 1)], {"unique": True}),
         (db.paddle_intents, [("_id", 1)], {"unique": True}),
         # 7d TTL — paid webhooks can arrive after the old 1h window; missing-intent
         # path still provisions from custom_data, but keeping the intent helps binding checks.

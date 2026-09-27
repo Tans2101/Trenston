@@ -1,5 +1,6 @@
 import axios from "axios";
 import { invalidateFetchAfterMutation } from "@/lib/fetchInvalidation";
+import { clearClerkTokenCache } from "@/lib/clerkToken";
 
 /** Empty string = same-origin `/api` (Vercel rewrite → Render). Local: http://localhost:8001 */
 export const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
@@ -107,6 +108,16 @@ api.interceptors.response.use(
   (error) => {
     const data = error?.response?.data;
     const detail = data?.detail;
+    const status = error?.response?.status;
+    // Backend rejected a deleted Clerk account — drop cached JWT so retries
+    // don't keep sending a dead session token.
+    if (
+      status === 401
+      && typeof detail === "string"
+      && /account deleted/i.test(detail)
+    ) {
+      clearClerkTokenCache();
+    }
     // Always coerce detail to a string so toast.error(detail) never crashes React
     // (FastAPI validation lists / {message, reason} objects are not valid children).
     if (detail != null && typeof detail !== "string") {

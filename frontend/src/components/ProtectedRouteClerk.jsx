@@ -11,7 +11,7 @@ import { clerkSessionComplete, CLERK_AUTH_OPTS } from "@/lib/clerkSession";
 
 /** Protected routes when Clerk is enabled — wait for Clerk→Trenston session exchange. */
 export default function ProtectedRouteClerk() {
-  const { user, sessionError, clearSessionError } = useAuth();
+  const { user, sessionError, clearSessionError, logout } = useAuth();
   const {
     isSignedIn,
     userId,
@@ -26,6 +26,14 @@ export default function ProtectedRouteClerk() {
   const clerkComplete = clerkSessionComplete({
     isSignedIn, userId, sessionId, session, sessionStatus,
   });
+
+  // Clerk Dashboard (or user.deleted webhook) can end the Clerk session while
+  // AuthContext still holds a Trenston user — clear local state and leave /app.
+  useEffect(() => {
+    if (!clerkReady || !user) return;
+    if (clerkComplete) return;
+    logout();
+  }, [clerkReady, user, clerkComplete, logout]);
 
   useEffect(() => {
     if (user || !clerkComplete || sessionError) {
@@ -42,6 +50,11 @@ export default function ProtectedRouteClerk() {
 
   if (!clerkReady) {
     return <LoadingScreen label="Loading cockpit" />;
+  }
+
+  // Clerk session gone — logout effect above is clearing; don't flash the app.
+  if (user && !clerkComplete) {
+    return <LoadingScreen label="Signing out" />;
   }
 
   if (user) {

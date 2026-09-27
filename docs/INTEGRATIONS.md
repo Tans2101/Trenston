@@ -16,7 +16,7 @@ Users never create API keys. Once you paste keys on Render, owners click **Conne
 | **Cloudflare R2** | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, plus `R2_ACCOUNT_ID` and/or `R2_ENDPOINT` | See **[docs/R2_SETUP.md](docs/R2_SETUP.md)** — Cloudflare → R2 → Manage API tokens |
 | **Resend** | `RESEND_API_KEY`, `SENDER_EMAIL` | [Resend](https://resend.com/) — optional until invites |
 | **Paddle** | `PADDLE_API_KEY`, `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_ID_STARTER` / `_GROWTH` / `_BUSINESS` (or legacy `PADDLE_PRICE_ID`), `PADDLE_WEBHOOK_SECRET`, `PADDLE_ENV` | Paddle dashboard — when charging |
-| **Clerk** | already on Render | Sign-in |
+| **Clerk** | `CLERK_SECRET_KEY`, `CLERK_JWKS_URL`, `CLERK_WEBHOOK_SIGNING_SECRET` | Sign-in + `user.deleted` webhook → `https://www.trenston.com/api/webhook/clerk` |
 
 ## OAuth redirect URIs (register exactly)
 
