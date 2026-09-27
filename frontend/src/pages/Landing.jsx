@@ -21,6 +21,31 @@ const fade = {
 };
 
 function BriefingPreview() {
+  const sidebarNav = [
+    ["Briefing", true],
+    ["Decisions", false],
+    ["Financials", false],
+    ["Tasks", false],
+    ["Calendar", false],
+    ["Ask Trenston", false],
+  ];
+  const stats = [
+    ["Revenue", "$248K", "Up $12K"],
+    ["Burn", "$182K", "Down $8K"],
+    ["Runway", "17 mo", "No change"],
+    ["Cash", "$3.1M", "Ahead"],
+  ];
+  const todayItems = [
+    ["9:00", "Leadership standup", "Calendar"],
+    ["11:30", "Review Decision Center queue", "Decisions"],
+    ["14:00", "Procurement · steel coil ETA", "Procurement"],
+  ];
+  const attentionItems = [
+    ["Approve $40K infrastructure reservation", "Decision · high"],
+    ["WO-1831 blocked on parts", "Production"],
+    ["Two open purchase requests", "Procurement"],
+  ];
+
   return (
     <div className="relative">
       {/* Decorative depth layer */}
@@ -28,31 +53,107 @@ function BriefingPreview() {
         aria-hidden
         className="absolute inset-0 translate-x-2 translate-y-3 rounded-lg border border-helm-navy/20 bg-helm-navy/25"
       />
-      <div className="relative z-[1] rounded-lg border border-helm-navy/40 bg-helm-ink-card p-5 md:p-7 shadow-xl shadow-black/15">
-        <div className="flex items-center justify-between border-b border-helm-cream/[0.06] pb-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
-          <span className="text-[10px] text-helm-slate">Sample briefing, illustrative data</span>
+      <div className="relative z-[1] overflow-hidden rounded-lg border border-helm-navy/40 bg-helm-ink-card shadow-xl shadow-black/15">
+        {/* Browser chrome */}
+        <div className="flex items-center gap-2 border-b border-helm-cream/[0.06] px-3 py-2.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
+          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
+          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
+          <div className="ml-2 flex min-w-0 flex-1 items-center rounded border border-helm-cream/[0.06] bg-helm-ink/40 px-2.5 py-1">
+            <span className="truncate font-mono text-[9px] tracking-wide text-helm-slate">
+              app.trenston.com/briefing
+            </span>
+          </div>
         </div>
-        <p className="font-display text-helm-cream text-2xl md:text-3xl font-medium mt-6 leading-snug tracking-tight">Welcome back, Alex.</p>
-        <p className="text-helm-cream/85 text-sm mt-3 leading-relaxed">Revenue is ahead of plan. Engineering capacity needs a decision today.</p>
-        <div className="grid grid-cols-3 gap-3 mt-6 border-y border-helm-cream/[0.06] py-4">
-          {[
-            ["Monthly revenue", "$248K", "Up $12K this month"],
-            ["Cash runway", "17 months", "No change"],
-            ["Monthly burn", "$182K", "Down $8K this month"],
-          ].map(([l, v, change]) => (
-            <div key={l}>
-              <p className="text-[9px] font-mono uppercase tracking-wider text-helm-slate">{l}</p>
-              <p className="font-mono text-helm-cream text-base mt-1 font-medium tabular-nums">{v}</p>
-              <p className="mt-1 text-[10px] text-helm-slate">{change}</p>
+
+        <div className="flex min-h-0">
+          {/* Left sidebar — md+ */}
+          <aside className="hidden w-[7.25rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
+            <p className="px-1.5 font-display text-[11px] font-medium tracking-tight text-helm-cream">
+              Trenston
+            </p>
+            <nav className="mt-3 space-y-0.5" aria-hidden>
+              {sidebarNav.map(([label, active]) => (
+                <div
+                  key={label}
+                  className={`rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
+                    active
+                      ? "bg-helm-cream/[0.08] text-helm-cream"
+                      : "text-helm-slate"
+                  }`}
+                >
+                  {label}
+                </div>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Main briefing surface */}
+          <div className="min-w-0 flex-1 p-4 md:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
+                <p className="mt-2 font-display text-lg font-medium leading-snug tracking-tight text-helm-cream md:text-xl">
+                  Welcome back, Alex.
+                </p>
+              </div>
+              <span className="shrink-0 text-[9px] leading-snug text-helm-slate text-right max-w-[7.5rem]">
+                Sample briefing, illustrative data
+              </span>
             </div>
-          ))}
-        </div>
-        <div className="mt-5">
-          <div className="h-px w-8 bg-helm-navy/25 mb-3" aria-hidden />
-          <p className="font-mono text-[10px] uppercase tracking-wider text-helm-slate">One decision today</p>
-          <p className="mt-2 text-sm text-helm-cream/85 leading-snug">Approve the $40K infrastructure reservation. It pays back in four months and cuts cloud spend by 18%.</p>
-          <p className="mt-4 text-xs text-helm-slate">Review decision →</p>
+            <p className="mt-2 text-xs leading-relaxed text-helm-cream/80">
+              Revenue is ahead of plan. One Decision and a Production blocker need you today.
+            </p>
+
+            {/* Four KPI tiles */}
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {stats.map(([label, value, change]) => (
+                <div
+                  key={label}
+                  className="rounded border border-helm-cream/[0.06] bg-helm-ink/30 px-2.5 py-2"
+                >
+                  <p className="font-mono text-[8px] uppercase tracking-wider text-helm-slate">{label}</p>
+                  <p className="mt-1 font-mono text-sm font-medium tabular-nums text-helm-cream">{value}</p>
+                  <p className="mt-0.5 text-[9px] text-helm-slate">{change}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Today / Coming up + Needs attention */}
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
+                  Today / Coming up
+                </p>
+                <ul className="mt-2.5 space-y-2">
+                  {todayItems.map(([time, title, lane]) => (
+                    <li key={title} className="flex gap-2">
+                      <span className="w-8 shrink-0 font-mono text-[9px] tabular-nums text-helm-slate">
+                        {time}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] leading-snug text-helm-cream/90">{title}</p>
+                        <p className="mt-0.5 text-[9px] text-helm-slate">{lane}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
+                <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
+                  Needs attention
+                </p>
+                <ul className="mt-2.5 space-y-2">
+                  {attentionItems.map(([title, meta]) => (
+                    <li key={title} className="border-b border-helm-cream/[0.04] pb-2 last:border-0 last:pb-0">
+                      <p className="text-[11px] leading-snug text-helm-cream/90">{title}</p>
+                      <p className="mt-0.5 text-[9px] text-helm-slate">{meta}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
