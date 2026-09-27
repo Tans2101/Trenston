@@ -31,7 +31,7 @@ export default function PublicIntegrations() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-white text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/integrations" />
 
       <main>
@@ -77,7 +77,7 @@ export default function PublicIntegrations() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-40px" }}
                 custom={i}
-                className="flex flex-col bg-helm-cream p-7 md:p-8"
+                className="flex flex-col bg-white p-7 md:p-8"
                 data-testid={`public-integration-${item.id}`}
               >
                 <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
@@ -150,7 +150,7 @@ export default function PublicIntegrations() {
             <button
               type="button"
               onClick={enter}
-              className="mt-10 group inline-flex items-center gap-2 rounded-md bg-helm-cream px-6 py-3 font-medium text-helm-navy transition-colors hover:bg-helm-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
+              className="mt-10 group inline-flex items-center gap-2 rounded-md border border-helm-navy/15 bg-white px-6 py-3 font-medium text-helm-navy shadow-sm transition-colors hover:border-helm-gold/40 hover:bg-helm-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
             >
               {authed ? "Open your cockpit" : "Get started"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

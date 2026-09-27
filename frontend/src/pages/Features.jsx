@@ -68,7 +68,7 @@ export default function Features() {
   };
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
+    <div className="min-h-screen bg-white text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/features" />
 
       <section className="px-6 pt-36 md:pt-48 pb-16">

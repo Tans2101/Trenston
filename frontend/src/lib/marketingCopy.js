@@ -283,7 +283,7 @@ export const PLANS = [
     for: "Small businesses",
     seats: 7,
     trialDays: 7,
-    highlighted: true,
+    highlighted: false,
     includes: [
       "Up to 7 Trenston users",
       "AI document extracts (65/month)",
@@ -300,7 +300,7 @@ export const PLANS = [
     for: "Growing businesses",
     seats: 20,
     trialDays: 7,
-    highlighted: false,
+    highlighted: true,
     includes: [
       "Up to 20 Trenston users",
       "AI document extracts (150/month)",

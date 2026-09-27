@@ -20,7 +20,7 @@ function isActive(path, active) {
   return active === path || active?.startsWith(path);
 }
 
-export default function MarketingNav({ authed, onEnter, active, bgClassName = "bg-helm-cream/90" }) {
+export default function MarketingNav({ authed, onEnter, active, bgClassName = "bg-white/90" }) {
   const [open, setOpen] = useState(false);
 
   const activeId = NAV_LINKS.find((l) => isActive(l.to, active))?.to || null;
