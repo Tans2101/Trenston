@@ -9,16 +9,38 @@ const fade = {
 };
 
 /**
- * Generic monogram badges, not real vendor logos — trademarked marks
- * (Google, QuickBooks, Xero, ...) need written permission we don't have,
- * so each badge is just the integration's first letter in a plain circle.
- * See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
+ * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
+ * (Google, QuickBooks, Xero, SAP, HubSpot, Slack) need written permission
+ * we don't have, so each badge is the integration's initial on a
+ * brand-colored tile instead. Same policy and palette as the in-app
+ * Integrations page. See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
  */
+const BRAND_ACCENT = {
+  Google: "#4285F4",
+  QuickBooks: "#2CA01C",
+  Xero: "#13B5EA",
+  "SAP Business One": "#0870D6",
+  HubSpot: "#FF7A59",
+  Slack: "#611F69",
+};
+
 function IntegrationBadge({ name }) {
+  const color = BRAND_ACCENT[name];
+  if (!color) {
+    return (
+      <div
+        aria-hidden
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-helm-navy/[0.1] bg-helm-navy/[0.03] font-mono text-sm text-helm-navy/70"
+      >
+        {name.trim().charAt(0)}
+      </div>
+    );
+  }
   return (
     <div
       aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-helm-navy/[0.1] bg-helm-navy/[0.03] font-mono text-sm text-helm-navy/70"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold text-white"
+      style={{ backgroundColor: color }}
     >
       {name.trim().charAt(0)}
     </div>

@@ -1878,10 +1878,10 @@
     "semantic_hash": "08106993fd78ff046cb4bc730618f735"
   },
   "frontend/src/components/marketing/DepartmentsShowcase.jsx": {
-    "mtime": 1790523109.388432,
-    "seen": 1790523269.701924,
-    "ast_hash": "0e5ddd97727dda1e96d4c56229118e54",
-    "semantic_hash": "0e5ddd97727dda1e96d4c56229118e54"
+    "mtime": 1790526079.7474854,
+    "seen": 1790526218.634575,
+    "ast_hash": "d0ad08f046f95ac440866ec07a9cb54a",
+    "semantic_hash": "d0ad08f046f95ac440866ec07a9cb54a"
   },
   "frontend/src/components/marketing/FounderCredit.jsx": {
     "mtime": 1790515659.5696826,
@@ -1890,10 +1890,10 @@
     "semantic_hash": "0411a5842c83aae1ade7f39e0d31f8c0"
   },
   "frontend/src/components/marketing/IntegrationsShowcase.jsx": {
-    "mtime": 1790523121.9284327,
-    "seen": 1790523269.701958,
-    "ast_hash": "208bef2ef20ad801bc2dd5202bc8aa21",
-    "semantic_hash": "208bef2ef20ad801bc2dd5202bc8aa21"
+    "mtime": 1790526104.2674868,
+    "seen": 1790526218.6346123,
+    "ast_hash": "94c5992a4e4400e2b61c0eb7adc858ec",
+    "semantic_hash": "94c5992a4e4400e2b61c0eb7adc858ec"
   },
   "frontend/src/components/marketing/MarketingFooter.jsx": {
     "mtime": 1790515659.5696826,
@@ -1914,10 +1914,10 @@
     "semantic_hash": "07b23228c1e51367fd14bf1d44474985"
   },
   "frontend/src/components/marketing/ProductScreens.jsx": {
-    "mtime": 1790515659.5696826,
-    "seen": 1790516102.6709163,
-    "ast_hash": "aeec02cac898d61b97ee30f71dd0ba11",
-    "semantic_hash": "aeec02cac898d61b97ee30f71dd0ba11"
+    "mtime": 1790525992.8794804,
+    "seen": 1790526218.6347098,
+    "ast_hash": "ee1f8a6c4f70c6f64b7581363dfde726",
+    "semantic_hash": "ee1f8a6c4f70c6f64b7581363dfde726"
   },
   "frontend/src/components/shimmering-text.jsx": {
     "mtime": 1790515659.5696826,
@@ -2604,10 +2604,10 @@
     "semantic_hash": "01f44d6ab210f8454dcc0a56c67b2303"
   },
   "frontend/src/pages/Features.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710386,
-    "ast_hash": "c8147d6a6b9e80bd29f292591b414725",
-    "semantic_hash": "c8147d6a6b9e80bd29f292591b414725"
+    "mtime": 1790526128.4754884,
+    "seen": 1790526218.6386158,
+    "ast_hash": "a2c167abf9a8fe1ef9e9c69fc20387fc",
+    "semantic_hash": "a2c167abf9a8fe1ef9e9c69fc20387fc"
   },
   "frontend/src/pages/Financials.jsx": {
     "mtime": 1790515659.573568,
@@ -5520,10 +5520,10 @@
     "semantic_hash": "e02ccc370119baa9693deb6c6da09468"
   },
   "frontend/src/components/marketing/LaptopMockup.jsx": {
-    "mtime": 1790520592.186597,
-    "seen": 1790520686.1015282,
-    "ast_hash": "7c1d72777a0d60590dcf11deb065ca33",
-    "semantic_hash": "7c1d72777a0d60590dcf11deb065ca33"
+    "mtime": 1790526004.327481,
+    "seen": 1790526218.634614,
+    "ast_hash": "a5c467730e68d054b70f59fd06a7e242",
+    "semantic_hash": "a5c467730e68d054b70f59fd06a7e242"
   },
   "backend/tests/test_clerk_user_deleted.py": {
     "mtime": 1790519661.4409683,
@@ -5536,5 +5536,11 @@
     "seen": 1790523269.7021465,
     "ast_hash": "0b18105867d39ed22c6063128a053a92",
     "semantic_hash": "0b18105867d39ed22c6063128a053a92"
+  },
+  "frontend/src/components/marketing/FeatureShowcase.jsx": {
+    "mtime": 1790526032.6794827,
+    "seen": 1790526218.6345775,
+    "ast_hash": "16e14af7f5b524668578712fc31d2cf8",
+    "semantic_hash": "16e14af7f5b524668578712fc31d2cf8"
   }
 }

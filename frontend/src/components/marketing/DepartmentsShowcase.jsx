@@ -20,6 +20,27 @@ const DEPT_ICONS = {
   wrench: Wrench,
 };
 
+/**
+ * Decorative only — this is the logged-out marketing page, not the real
+ * per-workspace department toggle (that lives in Settings once you're
+ * signed in). Shown "on" because every lane here ships in the product
+ * today; it illustrates "turn on only what you need," it doesn't control it.
+ */
+function EnabledToggle() {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 shrink-0"
+      aria-hidden
+      title="Available to enable for your workspace"
+    >
+      <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-helm-navy/50">On</span>
+      <span className="relative inline-flex h-4 w-7 items-center rounded-full bg-helm-gold/70">
+        <span className="absolute right-0.5 h-3 w-3 rounded-full bg-white shadow-sm" />
+      </span>
+    </span>
+  );
+}
+
 /** Department lanes — icon card grid. */
 export default function DepartmentsShowcase({ compact = false }) {
   const { title, intro, items } = DEPARTMENTS_SECTION;
@@ -30,7 +51,7 @@ export default function DepartmentsShowcase({ compact = false }) {
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
           <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">{title}</h2>
-          <p className="mt-5 text-helm-navy/70 leading-relaxed">{intro}</p>
+          <p className="mt-5 text-helm-navy/85 leading-relaxed">{intro}</p>
         </motion.div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((dept, i) => {
@@ -43,11 +64,14 @@ export default function DepartmentsShowcase({ compact = false }) {
                 initial="hidden"
                 whileInView="show"
                 viewport={{ once: true, margin: "-40px" }}
-                className="rounded-lg border border-helm-navy/[0.08] p-6 transition-colors hover:border-helm-navy/20"
+                className="rounded-xl border border-helm-navy/[0.08] bg-white p-6 shadow-sm transition-colors hover:border-helm-navy/20"
               >
-                <Icon className="w-5 h-5 text-helm-navy/70" strokeWidth={1.75} aria-hidden />
+                <div className="flex items-start justify-between gap-3">
+                  <Icon className="w-5 h-5 text-helm-navy/70" strokeWidth={1.75} aria-hidden />
+                  <EnabledToggle />
+                </div>
                 <h3 className="font-display mt-4 text-base text-helm-navy tracking-tight">{dept.name}</h3>
-                <p className="mt-2 text-sm text-helm-navy/70 leading-relaxed">{dept.body}</p>
+                <p className="mt-2 text-sm text-helm-navy/85 leading-relaxed">{dept.body}</p>
               </motion.div>
             );
           })}

@@ -59,6 +59,19 @@
   position: relative;
 }
 
+/* Non-photo panel content (composed UI fragments) — filled, centered, and
+   padded like a real desktop background, instead of the edge-to-edge
+   object-fit: cover treatment a real screenshot gets. */
+.screenContentInner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4%;
+  background: radial-gradient(circle at 30% 20%, #202024 0%, #0e0e10 70%);
+}
+
 .screenContent img {
   width: 100%;
   height: 100%;

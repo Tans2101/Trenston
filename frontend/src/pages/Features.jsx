@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
-import ProductScreens from "@/components/marketing/ProductScreens";
+import FeatureShowcase from "@/components/marketing/FeatureShowcase";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { CATEGORY, FEATURE_CATEGORIES, FEATURE_MODULES, PLANS, PRO_FEATURES, TAGLINE } from "@/lib/marketingCopy";
@@ -125,11 +125,11 @@ export default function Features() {
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
             <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
             <h2 className="font-display text-3xl md:text-4xl font-medium tracking-tight max-w-xl leading-tight">
-              Production, Procurement, and Decision Center as they appear in Trenston.
+              See each part of the cockpit as it actually looks.
             </h2>
           </motion.div>
           <div className="mt-12">
-            <ProductScreens />
+            <FeatureShowcase />
           </div>
         </div>
       </section>
@@ -271,15 +271,21 @@ export default function Features() {
             Everything below is shipping in the product today. Nothing on this page is a roadmap item.
           </p>
           <p className="mt-4 text-sm text-helm-slate">Free to start. Full cockpit on every plan.</p>
-          <button type="button" onClick={enter}
-            className="mt-10 group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 hover:bg-helm-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
-            {authed ? "Open your cockpit" : "Get started with Trenston"}
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </button>
-          <p className="mt-6 text-sm text-helm-slate flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
-            <Link to="/pricing" className="hover:text-helm-navy transition-colors">
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+            <button type="button" onClick={enter}
+              className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 hover:bg-helm-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
+              {authed ? "Open your cockpit" : "Get started free"}
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </button>
+            <Link
+              to="/pricing"
+              className="group inline-flex items-center gap-1.5 text-sm font-medium text-helm-navy hover:text-helm-gold transition-colors"
+            >
               View pricing
+              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
             </Link>
+          </div>
+          <p className="mt-8 text-sm text-helm-slate flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
             <Link to="/about" className="hover:text-helm-navy transition-colors">About Trenston</Link>
             <Link to="/integrations" className="hover:text-helm-navy transition-colors">Integrations</Link>
             <Link to="/security" className="hover:text-helm-navy transition-colors">Security</Link>

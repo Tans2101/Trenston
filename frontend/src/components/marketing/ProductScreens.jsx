@@ -3,7 +3,7 @@
  * not abstract icons. Used on Landing / Features.
  */
 
-function Chrome({ title, children }) {
+export function Chrome({ title, children }) {
   return (
     <div className="overflow-hidden rounded-lg border border-helm-cream/10 bg-helm-ink-card text-left shadow-none">
       <div className="flex items-center gap-2 border-b border-helm-cream/[0.06] px-3 py-2">
@@ -17,7 +17,7 @@ function Chrome({ title, children }) {
   );
 }
 
-function Row({ left, mid, right, tone }) {
+export function Row({ left, mid, right, tone }) {
   return (
     <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-helm-cream/[0.06] py-2.5 last:border-0">
       <p className="truncate text-xs text-helm-cream/90">{left}</p>
@@ -68,6 +68,36 @@ export function DecisionScreen() {
       <div className="mt-4 flex gap-2">
         <span className="rounded border border-helm-cream/15 px-2.5 py-1 font-mono text-[10px] text-helm-cream">Approve</span>
         <span className="rounded border border-helm-cream/10 px-2.5 py-1 font-mono text-[10px] text-helm-slate">Defer</span>
+      </div>
+    </Chrome>
+  );
+}
+
+export function FinanceScreen() {
+  return (
+    <Chrome title="Sales · Order book">
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">This month</p>
+      <Row left="Deal #4102 · Expansion" mid="Won" right="+$42K" tone="text-helm-status-positive" />
+      <Row left="Deal #4098 · Renewal" mid="Follow up" right="$18K" />
+      <Row left="Deal #4110 · New logo" mid="Proposal" right="$9.5K" />
+      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
+        <span className="text-[10px] text-helm-slate">$3.0M confirmed · $5.0M target</span>
+        <span className="font-mono text-[10px] text-helm-cream">Gap $2.0M</span>
+      </div>
+    </Chrome>
+  );
+}
+
+export function TeamScreen() {
+  return (
+    <Chrome title="Team & Access">
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">Departments</p>
+      <Row left="Sales" mid="4 members" right="Owner" tone="text-helm-cream" />
+      <Row left="Production" mid="6 members" right="Manager" />
+      <Row left="Procurement" mid="2 members" right="Manager" />
+      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
+        <span className="text-[10px] text-helm-slate">4 integrations connected</span>
+        <span className="font-mono text-[10px] text-helm-cream">12 seats used</span>
       </div>
     </Chrome>
   );
