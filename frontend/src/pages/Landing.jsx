@@ -197,7 +197,7 @@ export default function Landing() {
         >
           Decisions · Tracked
         </p>
-        <div className="relative mx-auto max-w-6xl grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
+        <div className="relative mx-auto max-w-7xl grid lg:grid-cols-[0.85fr_1.3fr] gap-12 lg:gap-10 items-center">
           <div>
             <motion.p variants={fade} initial="hidden" animate="show" custom={0}
               className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">
@@ -234,7 +234,12 @@ export default function Landing() {
               </Link>
             </motion.p>
           </div>
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, ease, delay: 0.2 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.85, ease, delay: 0.2 }}
+            className="lg:-mr-6 xl:-mr-16 2xl:-mr-28"
+          >
             <BriefingPreview />
           </motion.div>
         </div>

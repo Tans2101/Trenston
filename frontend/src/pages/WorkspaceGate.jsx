@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/kit";
 import { consumeReferralCode, withReferralPayload } from "@/lib/referral";
 import TrenstonMark from "@/components/HelmMark";
+import DangerConfirmCard from "@/components/DangerConfirmCard";
 
 export default function WorkspaceGate() {
   const { user, logout } = useAuth();
@@ -14,6 +15,45 @@ export default function WorkspaceGate() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(Boolean(user?.age_confirmed));
+
+  // A user who just deleted their only workspace (or was removed from their last
+  // one) lands here with no path back to Account Settings, so "delete workspace
+  // first, then delete account" was a dead end — offer account deletion directly.
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showAccountConfirm, setShowAccountConfirm] = useState(false);
+  const [confirmAccount, setConfirmAccount] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const emailConfirm = (user?.email || "").trim().toLowerCase();
+
+  const deleteAccount = async () => {
+    if (!emailConfirm) {
+      toast.error("Your account needs an email before it can be deleted");
+      return;
+    }
+    if (!showAccountConfirm) {
+      setShowAccountConfirm(true);
+      return;
+    }
+    if (confirmAccount.trim().toLowerCase() !== emailConfirm) {
+      toast.error("Type your email exactly to confirm");
+      return;
+    }
+    setDeletingAccount(true);
+    try {
+      await api.delete("/account");
+      toast.success("Account deleted");
+      await logout();
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not delete account");
+      setDeletingAccount(false);
+      setConfirmAccount("");
+    }
+  };
+
+  const cancelDeleteAccount = () => {
+    setShowAccountConfirm(false);
+    setConfirmAccount("");
+  };
 
   const create = async () => {
     if (!name.trim()) { toast.error("Name your company"); return; }
@@ -131,6 +171,41 @@ export default function WorkspaceGate() {
             </div>
           </GlassCard>
         )}
+
+        <div className="mt-10 text-center">
+          {!showDeleteAccount ? (
+            <button
+              type="button"
+              data-testid="gate-delete-account-link"
+              onClick={() => setShowDeleteAccount(true)}
+              className="text-sm text-helm-muted hover:text-helm-fg underline underline-offset-2"
+            >
+              Don&apos;t want to continue with Trenston? Delete your account instead
+            </button>
+          ) : (
+            <DangerConfirmCard
+              id="gate-delete-account"
+              className="fade-up mt-2 text-left"
+              title="Delete account"
+              message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+              confirmLabel="Delete"
+              confirmingLabel="Delete"
+              icon="alert"
+              showConfirm={showAccountConfirm}
+              confirmHint={user?.email}
+              confirmValue={confirmAccount}
+              onConfirmValueChange={setConfirmAccount}
+              confirmPlaceholder={user?.email}
+              busy={deletingAccount}
+              busyLabel="Deleting…"
+              onAction={deleteAccount}
+              onCancel={showAccountConfirm ? cancelDeleteAccount : () => setShowDeleteAccount(false)}
+              actionTestId="gate-delete-account-btn"
+              cancelTestId="gate-cancel-delete-account-btn"
+              inputTestId="gate-confirm-account-input"
+            />
+          )}
+        </div>
       </div>
     </div>
   );

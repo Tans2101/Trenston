@@ -1908,10 +1908,10 @@
     "semantic_hash": "e4c825634f3393df7a8c11920f7f4b63"
   },
   "frontend/src/components/marketing/MarketingNav.jsx": {
-    "mtime": 1790515940.326937,
-    "seen": 1790516102.6709156,
-    "ast_hash": "a392978328a18aca810390a3cf2e044d",
-    "semantic_hash": "a392978328a18aca810390a3cf2e044d"
+    "mtime": 1790517391.8585124,
+    "seen": 1790518311.0177448,
+    "ast_hash": "07b23228c1e51367fd14bf1d44474985",
+    "semantic_hash": "07b23228c1e51367fd14bf1d44474985"
   },
   "frontend/src/components/marketing/ProductScreens.jsx": {
     "mtime": 1790515659.5696826,
@@ -2634,10 +2634,10 @@
     "semantic_hash": "ac19724b1b0f6cc75722cd26b1102480"
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1790515863.4589324,
-    "seen": 1790516102.6710436,
-    "ast_hash": "e504ae9def23311b66d121d1dd846f33",
-    "semantic_hash": "e504ae9def23311b66d121d1dd846f33"
+    "mtime": 1790518229.158303,
+    "seen": 1790518311.021939,
+    "ast_hash": "bd57808232bc657060b1015dbc97e2c4",
+    "semantic_hash": "bd57808232bc657060b1015dbc97e2c4"
   },
   "frontend/src/pages/Legal.jsx": {
     "mtime": 1790515659.573568,
@@ -2778,10 +2778,10 @@
     "semantic_hash": "2c1fbb1f1a9cf01727fec0316c0dc15a"
   },
   "frontend/src/pages/WorkspaceGate.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710658,
-    "ast_hash": "530981f85ef97283638fd148433a2e2f",
-    "semantic_hash": "530981f85ef97283638fd148433a2e2f"
+    "mtime": 1790518148.7302983,
+    "seen": 1790518311.0226686,
+    "ast_hash": "c103ae8e80d247de5d73884c5a88b473",
+    "semantic_hash": "c103ae8e80d247de5d73884c5a88b473"
   },
   "frontend/src/pages/teamAccessInvite.test.js": {
     "mtime": 1790515659.573568,
@@ -5518,5 +5518,11 @@
     "seen": 1790516102.6710668,
     "ast_hash": "e02ccc370119baa9693deb6c6da09468",
     "semantic_hash": "e02ccc370119baa9693deb6c6da09468"
+  },
+  "frontend/src/components/marketing/LaptopMockup.jsx": {
+    "mtime": 1790517398.4545128,
+    "seen": 1790518311.017675,
+    "ast_hash": "5f79750daaf18c1a8d0584d3f8c31d41",
+    "semantic_hash": "5f79750daaf18c1a8d0584d3f8c31d41"
   }
 }
