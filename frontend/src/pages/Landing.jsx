@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Compass, ListChecks, Sparkles, FileText } from "lucide-react";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import LaptopMockup from "@/components/marketing/LaptopMockup";
+import SocialProofBar from "@/components/marketing/SocialProofBar";
 import dashboardBriefing from "@/assets/marketing/dashboard-briefing.png";
 import ProductScreens from "@/components/marketing/ProductScreens";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
@@ -12,7 +14,7 @@ import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
   TAGLINE, CATEGORY, AUDIENCE, HERO_OUTCOME, HERO_SUB,
-  PLANS, PRODUCT_FACTS, HOW_IT_WORKS, FEATURE_HIGHLIGHTS, CEO_DAY, PRICING_FAQ,
+  PLANS, PRODUCT_FACTS, HOW_IT_WORKS, FEATURE_HIGHLIGHTS, CEO_DAY, HOME_FAQ,
   paidPlanRenewalDisclosure,
 } from "@/lib/marketingCopy";
 
@@ -20,6 +22,16 @@ const ease = [0.16, 1, 0.3, 1];
 const fade = {
   hidden: { opacity: 0, y: 20 },
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.08 } }),
+};
+
+// CEO_DAY has no icon field in marketingCopy.js — map by title here rather
+// than changing the shared data shape (it's also read by
+// marketingClaimsVerification.test.js).
+const CEO_DAY_ICONS = {
+  Briefing: Compass,
+  "Decision Center": ListChecks,
+  "Ask Trenston": Sparkles,
+  "CEO Pack": FileText,
 };
 
 export default function Landing() {
@@ -50,7 +62,7 @@ export default function Landing() {
       />
 
       {/* Hero — flat ink, typography leads */}
-      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-24 bg-white">
+      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-16 bg-white">
         <p
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl] rotate-180"
@@ -82,7 +94,7 @@ export default function Landing() {
             <motion.p variants={fade} initial="hidden" animate="show" custom={2}
               className="mt-8 text-xl md:text-2xl text-helm-navy leading-snug max-w-xl font-medium tracking-tight">{HERO_OUTCOME}</motion.p>
             <motion.p variants={fade} initial="hidden" animate="show" custom={3}
-              className="mt-4 text-base text-helm-slate leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
+              className="mt-4 text-base text-helm-navy/75 leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
             <motion.div variants={fade} initial="hidden" animate="show" custom={4} className="mt-10 flex flex-wrap items-center gap-3 relative z-10">
               <button data-testid="hero-cta-btn" onClick={enter} type="button"
                 className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
@@ -93,8 +105,11 @@ export default function Landing() {
                 See the 3-minute workflow
               </a>
             </motion.div>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={5} className="mt-8 text-xs text-helm-slate">{AUDIENCE}</motion.p>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={6} className="mt-3 text-xs text-helm-slate">
+            <motion.div variants={fade} initial="hidden" animate="show" custom={5} className="mt-8">
+              <SocialProofBar />
+            </motion.div>
+            <motion.p variants={fade} initial="hidden" animate="show" custom={6} className="mt-6 text-xs text-helm-navy/60">{AUDIENCE}</motion.p>
+            <motion.p variants={fade} initial="hidden" animate="show" custom={7} className="mt-3 text-xs text-helm-slate">
               <Link to="/security" className="text-helm-slate hover:text-helm-navy transition-colors">
                 How Trenston protects company data →
               </Link>
@@ -121,70 +136,79 @@ export default function Landing() {
             {PRODUCT_FACTS.map((s, i) => (
               <motion.div key={s.l} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-left md:text-center">
                 <p className={`font-mono text-3xl md:text-4xl tabular-nums ${i === 0 ? "text-helm-navy" : "text-helm-navy"}`}>{s.v}</p>
-                <p className="mt-2 text-xs text-helm-slate leading-snug">{s.l}</p>
+                <p className="mt-2 text-xs text-helm-navy/70 leading-snug">{s.l}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
+      <section className="px-6 py-16 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
             <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">What CEOs open Trenston for.</h2>
           </motion.div>
-          <div className="mt-16 space-y-0 border-t border-helm-navy/[0.06]">
-            {CEO_DAY.map((step, i) => (
-              <motion.div key={step.title} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}
-                className="grid sm:grid-cols-[10rem_1fr] gap-3 sm:gap-10 py-7 border-b border-helm-navy/[0.06]">
-                <p className="font-mono text-[10px] uppercase tracking-wider text-helm-navy/70 pt-1">{step.title}</p>
-                <div>
-                  <p className="text-sm text-helm-slate leading-relaxed max-w-xl">{step.body}</p>
-                </div>
-              </motion.div>
-            ))}
+          <div className="mt-12 grid gap-4 sm:grid-cols-2">
+            {CEO_DAY.map((step, i) => {
+              const Icon = CEO_DAY_ICONS[step.title] || Compass;
+              return (
+                <motion.div
+                  key={step.title}
+                  variants={fade}
+                  custom={i}
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={{ once: true, margin: "-60px" }}
+                  className="rounded-lg border border-helm-navy/[0.08] p-6 transition-colors hover:border-helm-navy/20"
+                >
+                  <Icon className="w-5 h-5 text-helm-navy/70" strokeWidth={1.75} aria-hidden />
+                  <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-helm-navy/70">{step.title}</p>
+                  <p className="mt-2 text-sm text-helm-navy/70 leading-relaxed">{step.body}</p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section id="how" className="px-6 py-28 border-t border-helm-navy/[0.05]">
+      <section id="how" className="px-6 py-16 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
             <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">How Trenston fits together.</h2>
           </motion.div>
-          <div className="mt-16 grid md:grid-cols-3 gap-12 md:gap-10">
+          <div className="mt-12 grid md:grid-cols-3 gap-8 md:gap-10">
             {HOW_IT_WORKS.map((s, i) => (
               <motion.div key={s.n} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
                 <p className="font-mono text-helm-slate text-sm">{s.n}</p>
                 <h3 className="font-display mt-4 text-2xl text-helm-navy tracking-tight">{s.title}</h3>
-                <p className="mt-3 text-sm text-helm-slate leading-relaxed">{s.body}</p>
+                <p className="mt-3 text-sm text-helm-navy/70 leading-relaxed">{s.body}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-28 border-t border-helm-navy/[0.05]">
+      <section className="px-6 py-16 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
             <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
               Everything a CEO needs, nothing they do not.
             </h2>
-            <p className="mt-5 text-helm-slate leading-relaxed">
+            <p className="mt-5 text-helm-navy/70 leading-relaxed">
               Real surfaces from the cockpit, not illustrations.
             </p>
           </motion.div>
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-14">
             <ProductScreens />
           </motion.div>
-          <div className="mt-16 max-w-2xl space-y-8 border-t border-helm-navy/[0.06] pt-10">
+          <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 border-t border-helm-navy/[0.06] pt-10">
             {FEATURE_HIGHLIGHTS.map((f) => (
               <div key={f.title}>
                 <h3 className="font-display text-xl text-helm-navy tracking-tight">{f.title}</h3>
-                <p className="mt-2 text-sm text-helm-slate leading-relaxed">{f.body}</p>
+                <p className="mt-2 text-sm text-helm-navy/70 leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>
@@ -200,12 +224,12 @@ export default function Landing() {
 
       <DepartmentsShowcase />
 
-      <section id="pricing" className="scroll-mt-24 px-6 py-28 border-t border-helm-navy/[0.05]">
+      <section id="pricing" className="scroll-mt-24 px-6 py-16 border-t border-helm-navy/[0.05]">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-14 max-w-2xl">
             <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
             <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">Plans that scale with you</h2>
-            <p className="mt-4 text-helm-slate">Start free. Paid plans include a 7-day free trial. Cancel anytime.</p>
+            <p className="mt-4 text-helm-navy/70">Start free. Paid plans include a 7-day free trial. Cancel anytime.</p>
             <Link to="/pricing" className="inline-flex items-center gap-2 mt-4 text-sm text-helm-navy hover:text-helm-navy transition-colors">
               Full pricing page <ArrowRight className="w-4 h-4" />
             </Link>
@@ -228,10 +252,15 @@ export default function Landing() {
                   {plan.price === 0 ? "$0" : `$${plan.price}`}
                   {plan.price > 0 && <span className="text-base text-helm-slate">/mo</span>}
                 </p>
-                <p className="text-sm text-helm-slate mt-2 min-h-[2.5rem]">{plan.for}</p>
-                {plan.trialDays > 0 && (
-                  <p className="text-[11px] font-mono text-helm-slate mt-1">{plan.trialDays}-day free trial</p>
-                )}
+                <p className="text-sm text-helm-navy/70 mt-2 min-h-[2.5rem]">{plan.for}</p>
+                <p
+                  className={`text-[11px] font-mono mt-1 min-h-[1.25rem] ${
+                    plan.trialDays > 0 ? "text-helm-slate" : "text-transparent select-none"
+                  }`}
+                  aria-hidden={!(plan.trialDays > 0)}
+                >
+                  {plan.trialDays > 0 ? `${plan.trialDays}-day free trial` : " "}
+                </p>
                 <ul className="mt-6 space-y-2.5 flex-1">
                   {plan.includes.map((f) => (
                     <li key={f} className="flex items-start gap-2 text-sm text-helm-navy/75">
@@ -258,32 +287,38 @@ export default function Landing() {
               );
             })}
           </div>
-          <div className="mt-14 max-w-2xl space-y-6 text-left">
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-slate">Common questions</p>
-            {PRICING_FAQ.map((item) => (
-              <div key={item.q} className="border-b border-helm-navy/[0.06] pb-5">
-                <p className="text-base md:text-lg font-medium text-helm-navy tracking-tight">{item.q}</p>
-                <p className="text-sm md:text-base text-helm-slate mt-2 leading-relaxed">{item.a}</p>
-                {item.link ? (
-                  <Link
-                    to={item.link.to}
-                    className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-navy transition-colors"
-                  >
-                    {item.link.label} →
-                  </Link>
-                ) : null}
-              </div>
-            ))}
+          <div className="mt-14 max-w-2xl text-left">
+            <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-slate mb-2">Common questions</p>
+            <Accordion type="single" collapsible>
+              {HOME_FAQ.map((item) => (
+                <AccordionItem key={item.q} value={item.q} className="border-helm-navy/[0.06]">
+                  <AccordionTrigger className="text-base md:text-lg font-medium text-helm-navy tracking-tight hover:no-underline hover:text-helm-ink">
+                    {item.q}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-sm md:text-base text-helm-navy/70 leading-relaxed">{item.a}</p>
+                    {item.link ? (
+                      <Link
+                        to={item.link.to}
+                        className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-ink transition-colors"
+                      >
+                        {item.link.label} →
+                      </Link>
+                    ) : null}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 px-6 py-28 border-t border-helm-navy/[0.05]">
+      <section className="relative z-10 px-6 py-16 border-t border-helm-navy/[0.05]">
         <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}
           className="relative mx-auto max-w-2xl text-center">
           <div className="mx-auto h-px w-10 bg-helm-navy/25 mb-8" aria-hidden />
           <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">{TAGLINE}</h2>
-          <p className="mt-6 text-helm-slate">Quiet control for the owner everyone is counting on.</p>
+          <p className="mt-6 text-helm-navy/70">Quiet control for the owner everyone is counting on.</p>
           <div className="mt-10">
             <button data-testid="footer-cta-btn" onClick={enter} type="button"
               className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-7 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">

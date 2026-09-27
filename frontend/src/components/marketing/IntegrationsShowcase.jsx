@@ -9,13 +9,26 @@ const fade = {
 };
 
 /**
- * Text wordmarks for real, shipped integrations only.
- * Avoids trademarked logo assets when usage terms are unclear.
+ * Generic monogram badges, not real vendor logos — trademarked marks
+ * (Google, QuickBooks, Xero, ...) need written permission we don't have,
+ * so each badge is just the integration's first letter in a plain circle.
+ * See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
  */
+function IntegrationBadge({ name }) {
+  return (
+    <div
+      aria-hidden
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-helm-navy/[0.1] bg-helm-navy/[0.03] font-mono text-sm text-helm-navy/70"
+    >
+      {name.trim().charAt(0)}
+    </div>
+  );
+}
+
 export default function IntegrationsShowcase({ compact = false }) {
   return (
     <section
-      className={`px-6 border-t border-helm-navy/[0.05] ${compact ? "py-16" : "py-24"}`}
+      className={`px-6 border-t border-helm-navy/[0.05] ${compact ? "py-12" : "py-16"}`}
       data-testid="integrations-showcase"
       aria-label="Works with"
     >
@@ -26,11 +39,11 @@ export default function IntegrationsShowcase({ compact = false }) {
           <h2 className="font-display mt-4 text-2xl md:text-3xl font-medium tracking-tight text-helm-navy max-w-xl">
             Tools your team already uses.
           </h2>
-          <p className="mt-3 text-sm text-helm-slate max-w-xl leading-relaxed">
+          <p className="mt-3 text-sm text-helm-navy/70 max-w-xl leading-relaxed">
             Connect what you run today. Nothing requires an integration. Manual entry stays available.
           </p>
         </motion.div>
-        <ul className="mt-12 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-10 list-none p-0 m-0">
+        <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-6 list-none p-0 m-0">
           {INTEGRATIONS_SHOWCASE.map((item, i) => (
             <motion.li
               key={item.name}
@@ -39,10 +52,13 @@ export default function IntegrationsShowcase({ compact = false }) {
               initial="hidden"
               whileInView="show"
               viewport={{ once: true, margin: "-40px" }}
-              className="border-t border-helm-navy/[0.08] pt-4"
+              className="flex items-center gap-3 rounded-lg border border-helm-navy/[0.08] px-4 py-3"
             >
-              <p className="font-display text-lg md:text-xl tracking-tight text-helm-navy">{item.name}</p>
-              <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-helm-slate">{item.note}</p>
+              <IntegrationBadge name={item.name} />
+              <div>
+                <p className="font-display text-base tracking-tight text-helm-navy">{item.name}</p>
+                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.15em] text-helm-slate">{item.note}</p>
+              </div>
             </motion.li>
           ))}
         </ul>

@@ -1878,10 +1878,10 @@
     "semantic_hash": "08106993fd78ff046cb4bc730618f735"
   },
   "frontend/src/components/marketing/DepartmentsShowcase.jsx": {
-    "mtime": 1790515659.5696826,
-    "seen": 1790516102.6709118,
-    "ast_hash": "d978e65ce8242f1fbc441309f211689e",
-    "semantic_hash": "d978e65ce8242f1fbc441309f211689e"
+    "mtime": 1790523109.388432,
+    "seen": 1790523269.701924,
+    "ast_hash": "0e5ddd97727dda1e96d4c56229118e54",
+    "semantic_hash": "0e5ddd97727dda1e96d4c56229118e54"
   },
   "frontend/src/components/marketing/FounderCredit.jsx": {
     "mtime": 1790515659.5696826,
@@ -1890,10 +1890,10 @@
     "semantic_hash": "0411a5842c83aae1ade7f39e0d31f8c0"
   },
   "frontend/src/components/marketing/IntegrationsShowcase.jsx": {
-    "mtime": 1790515659.5696826,
-    "seen": 1790516102.6709132,
-    "ast_hash": "d421dd760ce3743b95a1d786aa483dc9",
-    "semantic_hash": "d421dd760ce3743b95a1d786aa483dc9"
+    "mtime": 1790523121.9284327,
+    "seen": 1790523269.701958,
+    "ast_hash": "208bef2ef20ad801bc2dd5202bc8aa21",
+    "semantic_hash": "208bef2ef20ad801bc2dd5202bc8aa21"
   },
   "frontend/src/components/marketing/MarketingFooter.jsx": {
     "mtime": 1790515659.5696826,
@@ -2442,10 +2442,10 @@
     "semantic_hash": "1319912ffc64bc57daa5ee8cfea84257"
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1790515659.5718188,
-    "seen": 1790516102.671012,
-    "ast_hash": "b2fac63664650fe86d178345e5d751e6",
-    "semantic_hash": "b2fac63664650fe86d178345e5d751e6"
+    "mtime": 1790523080.7964303,
+    "seen": 1790523269.7050679,
+    "ast_hash": "76896e7f39afd35ff4f402e6080d3109",
+    "semantic_hash": "76896e7f39afd35ff4f402e6080d3109"
   },
   "frontend/src/lib/marketingHash.js": {
     "mtime": 1790515659.5718188,
@@ -2634,10 +2634,10 @@
     "semantic_hash": "ac19724b1b0f6cc75722cd26b1102480"
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1790519662.0809684,
-    "seen": 1790519683.8880284,
-    "ast_hash": "09e1e64405a413ad28352f47b7f9aade",
-    "semantic_hash": "09e1e64405a413ad28352f47b7f9aade"
+    "mtime": 1790523100.1364315,
+    "seen": 1790523269.7061255,
+    "ast_hash": "e8e0f7a57fb4168d1e468165c04274f8",
+    "semantic_hash": "e8e0f7a57fb4168d1e468165c04274f8"
   },
   "frontend/src/pages/Legal.jsx": {
     "mtime": 1790515659.573568,
@@ -5530,5 +5530,11 @@
     "seen": 1790519683.8765674,
     "ast_hash": "6b3aedf18b60f2c459a4d1d05ab766cd",
     "semantic_hash": "6b3aedf18b60f2c459a4d1d05ab766cd"
+  },
+  "frontend/src/components/marketing/SocialProofBar.jsx": {
+    "mtime": 1790523006.400426,
+    "seen": 1790523269.7021465,
+    "ast_hash": "0b18105867d39ed22c6063128a053a92",
+    "semantic_hash": "0b18105867d39ed22c6063128a053a92"
   }
 }

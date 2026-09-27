@@ -91,6 +91,34 @@ export const PRICING_FAQ = [
   { q: "Can I cancel anytime?", a: "Yes. Manage billing through Paddle. Cancellation takes effect at the end of the current billing period. No refunds after payment. Use the trial to evaluate." },
 ];
 
+/**
+ * Homepage FAQ accordion — a shorter, differently-scoped set than
+ * PRICING_FAQ (which /pricing and marketingClaimsVerification.test.js
+ * depend on, so it stays untouched). Keep in sync with Security.jsx /
+ * /pricing and /billing behavior when either changes.
+ */
+export const HOME_FAQ = [
+  {
+    q: "Billing & cancellation",
+    a: "Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing — it takes effect at the end of the current period, no refunds after payment.",
+    link: { to: "/pricing", label: "See full pricing" },
+  },
+  {
+    q: "Security",
+    a: "Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control) — Trenston never stores your passwords.",
+    link: { to: "/security", label: "How Trenston protects company data" },
+  },
+  {
+    q: "Setup time",
+    a: "No implementation team or onboarding call required. Create a workspace, connect Google or an accounting system (or skip it and enter data by hand), and Trenston starts building your first Briefing right away.",
+  },
+  {
+    q: "Integrations",
+    a: "Google (Gmail & Calendar) is on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack alerts. Manual entry stays available everywhere.",
+    link: { to: "/integrations", label: "See what each integration does" },
+  },
+];
+
 /** Real, shipped integrations only — wordmarks for marketing showcase (no aspirational names). */
 export const INTEGRATIONS_SHOWCASE = [
   { name: "Google", note: "Calendar & Gmail" },
