@@ -21,19 +21,30 @@ const fade = {
 };
 
 function BriefingPreview() {
+  // Dot colors cycle helm brand hues from palette.json (via helm-* tokens).
+  const sidebarDotColors = [
+    "bg-helm-navy",
+    "bg-helm-gold",
+    "bg-helm-slate",
+    "bg-helm-cream",
+    "bg-helm-ember",
+  ];
   const sidebarNav = [
     ["Briefing", true],
-    ["Decisions", false],
-    ["Financials", false],
+    ["Sales", false],
+    ["Procurement", false],
+    ["Production", false],
+    ["Maintenance", false],
+    ["HR", false],
     ["Tasks", false],
     ["Calendar", false],
-    ["Ask Trenston", false],
+    ["Reports", false],
   ];
   const stats = [
-    ["Revenue", "$248K", "Up $12K"],
-    ["Burn", "$182K", "Down $8K"],
-    ["Runway", "17 mo", "No change"],
-    ["Cash", "$3.1M", "Ahead"],
+    ["Revenue", "$248K", "Up $12K this month"],
+    ["Cash runway", "17 months", "No change"],
+    ["Open decisions", "2", "Needs a call"],
+    ["Tasks due today", "3", "On track"],
   ];
   const todayItems = [
     ["9:00", "Leadership standup", "Calendar"],
@@ -68,21 +79,24 @@ function BriefingPreview() {
 
         <div className="flex min-h-0">
           {/* Left sidebar — md+ */}
-          <aside className="hidden w-[7.25rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
+          <aside className="hidden w-[8.5rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
             <p className="px-1.5 font-display text-[11px] font-medium tracking-tight text-helm-cream">
               Trenston
             </p>
             <nav className="mt-3 space-y-0.5" aria-hidden>
-              {sidebarNav.map(([label, active]) => (
+              {sidebarNav.map(([label, active], i) => (
                 <div
                   key={label}
-                  className={`rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
+                  className={`flex items-center gap-1.5 rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
                     active
                       ? "bg-helm-cream/[0.08] text-helm-cream"
                       : "text-helm-slate"
                   }`}
                 >
-                  {label}
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${sidebarDotColors[i % sidebarDotColors.length]}`}
+                  />
+                  <span className="truncate">{label}</span>
                 </div>
               ))}
             </nav>
