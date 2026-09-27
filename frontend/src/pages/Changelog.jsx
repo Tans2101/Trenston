@@ -35,7 +35,7 @@ export default function Changelog() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-bg text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/changelog" />
 
       <main>

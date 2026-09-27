@@ -22,7 +22,7 @@ export default class ErrorBoundary extends Component {
   render() {
     if (this.state.error) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-helm-ink grain p-6">
+        <div className="min-h-screen flex items-center justify-center bg-helm-bg grain p-6">
           <div className="relative z-10 max-w-md w-full text-center">
             <TrenstonMark size={48} className="rounded-md mx-auto mb-6" />
             <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-3">Something went wrong</p>

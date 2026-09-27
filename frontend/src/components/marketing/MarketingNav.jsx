@@ -32,7 +32,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
   );
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 bg-helm-cream/90 backdrop-blur-md">
+    <header className="fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 bg-helm-bg/90 backdrop-blur-md">
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex h-16 items-center justify-between">
           <MarketingLogo size="sm" />

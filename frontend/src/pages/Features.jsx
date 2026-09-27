@@ -68,7 +68,7 @@ export default function Features() {
   };
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
+    <div className="min-h-screen bg-helm-bg text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/features" />
 
       <section className="px-6 pt-36 md:pt-48 pb-16">
@@ -161,7 +161,7 @@ export default function Features() {
 
       <nav
         aria-label="Feature categories"
-        className="sticky top-16 z-30 border-y border-helm-navy/[0.06] bg-helm-cream/90 backdrop-blur-md"
+        className="sticky top-16 z-30 border-y border-helm-navy/[0.06] bg-helm-bg/90 backdrop-blur-md"
       >
         <div className="mx-auto max-w-6xl px-4 md:px-6">
           <div className="flex gap-1 overflow-x-auto scrollbar-none py-1 -mx-1 px-1" role="tablist">

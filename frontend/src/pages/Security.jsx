@@ -192,11 +192,11 @@ export default function Security() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-bg text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/security" />
 
       <main>
-        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-helm-cream">
+        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-helm-bg">
           <div className="relative mx-auto max-w-4xl text-center">
             <motion.div
               variants={fade}
@@ -343,7 +343,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-bg px-6 py-20 md:py-24">
           <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Retention &amp; deletion</p>
@@ -372,7 +372,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-28">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-bg px-6 py-20 md:py-28">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Layered protection</p>
@@ -434,7 +434,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-bg px-6 py-20 md:py-24">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Common questions</p>
             <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">What leadership teams ask</h2>

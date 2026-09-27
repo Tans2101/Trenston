@@ -6,7 +6,7 @@
  *   helm-gold  — small structural accents only (thin dividers, tiny icons)
  *   helm-ember — deliberate "pop" accent (primary CTAs, highlight words, one interactive element)
  *   helm-slate — muted text, captions, borders (micro-labels only — not body copy on dark)
- *   helm-cream — primary light background
+ *   helm-cream — accent/contrast fill (page canvas uses --helm-bg / bg-helm-bg)
  *
  * FLAG — extra keys, not the four-color print palette:
  *   ink / inkCard — original near-black dark surfaces (#09090b / #121214)

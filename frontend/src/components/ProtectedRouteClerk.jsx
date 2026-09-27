@@ -57,7 +57,7 @@ export default function ProtectedRouteClerk() {
     if (sessionError || connectTimedOut) {
       const message = sessionError || "Connecting your account is taking too long. Try again.";
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-helm-ink p-8 text-center">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-helm-bg p-8 text-center">
           <p className="text-lg text-helm-fg mb-2">Could not connect your account</p>
           <p className="text-sm text-helm-status-negative max-w-md mb-6">{message}</p>
           <button
