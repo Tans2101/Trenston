@@ -272,11 +272,11 @@ export default function Security() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/security" />
 
       <main>
-        <section className="relative px-6 pb-16 pt-36 md:pb-24 md:pt-44 bg-white">
+        <section className="relative px-6 pb-12 pt-32 md:pb-16 md:pt-40 bg-helm-cream">
           <div className="relative mx-auto max-w-4xl text-center">
             <motion.div
               variants={fade}
@@ -354,7 +354,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] px-6 py-16 md:py-20">
+        <section className="border-y border-helm-navy/[0.05] px-6 py-12 md:py-14">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Why this matters</p>
             <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
@@ -368,7 +368,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="px-6 py-20 md:py-24">
+        <section className="px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Enterprise-grade infrastructure</p>
@@ -403,7 +403,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Encryption</p>
             <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
@@ -420,7 +420,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="px-6 py-20 md:py-24">
+        <section className="px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Third parties</p>
             <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
@@ -444,7 +444,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
           <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2">
             <div>
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Retention &amp; deletion</p>
@@ -473,7 +473,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-28">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Layered protection</p>
@@ -506,7 +506,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="px-6 py-20 md:py-24">
+        <section className="px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <div className="max-w-2xl">
               <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Data boundaries</p>
@@ -535,7 +535,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="border-y border-helm-navy/[0.05] bg-white px-6 py-20 md:py-24">
+        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
           <div className="mx-auto max-w-5xl">
             <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Common questions</p>
             <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">What leadership teams ask</h2>
@@ -543,7 +543,7 @@ export default function Security() {
           </div>
         </section>
 
-        <section className="px-6 py-20 md:py-24">
+        <section className="px-6 py-14 md:py-16">
           <div className="mx-auto max-w-4xl rounded-2xl border border-helm-navy/[0.07] bg-white p-8 md:p-12">
             <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
               <div>

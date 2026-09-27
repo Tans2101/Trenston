@@ -19,19 +19,6 @@ const fade = {
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.06 } }),
 };
 
-/**
- * Annual prices shown by the billing toggle below. These are a preview of
- * ~20% annual savings, not a live Paddle plan — checkout today is monthly
- * only (see backend/plans.py), so the toggle carries an honest note instead
- * of implying annual invoicing already happens at checkout.
- */
-const ANNUAL_MONTHLY_EQUIVALENT = {
-  free: 0,
-  starter: 12,
-  growth: 31,
-  business: 79,
-};
-
 function FaqAccordion({ items }) {
   const [openIndex, setOpenIndex] = useState(0);
 
@@ -81,16 +68,15 @@ function FaqAccordion({ items }) {
 /** Standalone crawlable pricing page — PLANS from marketingCopy.js. */
 export default function Pricing() {
   const { authed, enter } = useMarketingAuth();
-  const [billing, setBilling] = useState("monthly");
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   return (
-    <div className="min-h-screen bg-white text-helm-navy overflow-x-hidden">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/pricing" />
 
-      <section className="px-6 pt-36 md:pt-48 pb-12">
+      <section className="px-6 pt-32 md:pt-40 pb-10">
         <div className="mx-auto max-w-3xl">
           <motion.p
             variants={fade}
@@ -124,47 +110,11 @@ export default function Pricing() {
         </div>
       </section>
 
-      <section className="px-6 pb-6" aria-label="Billing period">
-        <div className="mx-auto flex max-w-6xl justify-center">
-          <div
-            role="radiogroup"
-            aria-label="Billing period"
-            className="inline-flex items-center gap-1 rounded-full border border-helm-navy/[0.1] bg-white p-1 shadow-sm"
-          >
-            {[
-              { id: "monthly", label: "Monthly" },
-              { id: "annual", label: "Annual (Save 20%)" },
-            ].map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                role="radio"
-                aria-checked={billing === opt.id}
-                data-testid={`pricing-billing-${opt.id}`}
-                onClick={() => setBilling(opt.id)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-                  billing === opt.id
-                    ? "bg-helm-navy text-white"
-                    : "text-helm-navy/70 hover:text-helm-navy"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        {billing === "annual" && (
-          <p className="mx-auto mt-3 max-w-6xl text-center text-[11px] text-helm-navy/60">
-            Preview pricing — checkout is monthly today; annual invoicing is coming soon.
-          </p>
-        )}
-      </section>
-
-      <section className="px-6 pb-20 pt-10" aria-label="Plans">
+      <section className="px-6 pb-14" aria-label="Plans">
         <div className="mx-auto grid max-w-6xl items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {PLANS.map((plan, i) => {
             const renewalDisclosure = paidPlanRenewalDisclosure(plan);
-            const displayPrice = billing === "annual" ? ANNUAL_MONTHLY_EQUIVALENT[plan.id] : plan.price;
+            const displayPrice = plan.price;
             const highlighted = plan.highlighted;
             return (
               <motion.article
@@ -233,7 +183,7 @@ export default function Pricing() {
         </div>
       </section>
 
-      <section className="px-6 pb-24 border-t border-helm-navy/[0.05] pt-16">
+      <section className="px-6 pb-16 border-t border-helm-navy/[0.05] pt-12">
         <div className="mx-auto max-w-2xl">
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-slate">
             Common questions

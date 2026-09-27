@@ -53,16 +53,16 @@ export default function Landing() {
   }, [location.hash, location.pathname]);
 
   return (
-    <div className="min-h-screen bg-white text-helm-navy overflow-x-hidden relative">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden relative">
       <MarketingNav
         authed={authed}
         onEnter={enter}
         active={location.hash === "#pricing" ? "/#pricing" : "/"}
-        bgClassName="bg-white/90"
+        bgClassName="bg-helm-cream/90"
       />
 
       {/* Hero — flat ink, typography leads */}
-      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-16 bg-white">
+      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-16 bg-helm-cream">
         <p
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl] rotate-180"

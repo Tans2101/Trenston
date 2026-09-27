@@ -23,6 +23,44 @@ const fade = {
   }),
 };
 
+/**
+ * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
+ * need written permission we don't have, so each card gets a colored
+ * initial tile instead. Same policy as the in-app Integrations page.
+ */
+const BRAND_ACCENT = {
+  google: "#4285F4",
+  quickbooks: "#2CA01C",
+  xero: "#13B5EA",
+  sap_b1: "#0870D6",
+  hubspot: "#FF7A59",
+  slack: "#611F69",
+};
+
+function IntegrationBadge({ id, name }) {
+  const color = BRAND_ACCENT[id];
+  const letter = name.trim().charAt(0);
+  if (!color) {
+    return (
+      <div
+        aria-hidden
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-helm-navy/[0.1] bg-white font-mono text-sm text-helm-navy/70"
+      >
+        {letter}
+      </div>
+    );
+  }
+  return (
+    <div
+      aria-hidden
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold text-white"
+      style={{ backgroundColor: color }}
+    >
+      {letter}
+    </div>
+  );
+}
+
 export default function PublicIntegrations() {
   const { authed, enter } = useMarketingAuth();
 
@@ -31,11 +69,11 @@ export default function PublicIntegrations() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
       <MarketingNav authed={authed} onEnter={enter} active="/integrations" />
 
       <main>
-        <section className="px-6 pb-12 pt-36 md:pb-16 md:pt-44">
+        <section className="px-6 pb-10 pt-32 md:pb-12 md:pt-40">
           <div className="mx-auto max-w-3xl">
             <motion.p
               variants={fade}
@@ -67,7 +105,7 @@ export default function PublicIntegrations() {
           </div>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-12 md:py-14">
           <div className="mx-auto grid max-w-6xl gap-px bg-helm-navy/[0.06] sm:grid-cols-2 lg:grid-cols-3">
             {PUBLIC_INTEGRATIONS.map((item, i) => (
               <motion.article
@@ -77,12 +115,15 @@ export default function PublicIntegrations() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-40px" }}
                 custom={i}
-                className="flex flex-col bg-white p-7 md:p-8"
+                className="flex flex-col bg-white p-7 shadow-sm md:p-8"
                 data-testid={`public-integration-${item.id}`}
               >
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
-                  {item.category}
-                </p>
+                <div className="flex items-center gap-3">
+                  <IntegrationBadge id={item.id} name={item.name} />
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
+                    {item.category}
+                  </p>
+                </div>
                 <h2 className="font-display mt-4 text-2xl font-medium tracking-tight text-helm-navy">
                   {item.name}
                 </h2>
@@ -105,7 +146,7 @@ export default function PublicIntegrations() {
           </p>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-12 md:py-14">
           <div className="mx-auto max-w-3xl">
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
               Coming soon — not shipped
@@ -138,7 +179,7 @@ export default function PublicIntegrations() {
           </div>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-24">
+        <section className="border-t border-helm-navy/[0.05] px-6 py-16 bg-white">
           <div className="mx-auto max-w-2xl text-center">
             <div className="mx-auto mb-8 h-px w-10 bg-helm-gold" aria-hidden />
             <p className="font-display text-3xl font-medium leading-tight tracking-tight text-helm-navy md:text-4xl">
@@ -150,7 +191,7 @@ export default function PublicIntegrations() {
             <button
               type="button"
               onClick={enter}
-              className="mt-10 group inline-flex items-center gap-2 rounded-md border border-helm-navy/15 bg-white px-6 py-3 font-medium text-helm-navy shadow-sm transition-colors hover:border-helm-gold/40 hover:bg-helm-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
+              className="mt-10 group inline-flex items-center gap-2 rounded-md border border-helm-navy/15 bg-helm-cream px-6 py-3 font-medium text-helm-navy shadow-sm transition-colors hover:border-helm-gold/40 hover:bg-helm-gold focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold"
             >
               {authed ? "Open your cockpit" : "Get started"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

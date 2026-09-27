@@ -68,10 +68,10 @@ export default function Features() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-helm-navy overflow-x-hidden">
+    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
       <MarketingNav authed={authed} onEnter={enter} active="/features" />
 
-      <section className="px-6 pt-36 md:pt-48 pb-16">
+      <section className="px-6 pt-32 md:pt-40 pb-12">
         <div className="mx-auto max-w-3xl">
           <motion.p variants={fade} initial="hidden" animate="show" custom={0}
             className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">{CATEGORY}</motion.p>
@@ -120,7 +120,7 @@ export default function Features() {
         </div>
       </section>
 
-      <section className="px-6 pb-20">
+      <section className="px-6 pb-14">
         <div className="mx-auto max-w-6xl">
           <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
             <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
@@ -134,12 +134,16 @@ export default function Features() {
         </div>
       </section>
 
-      <section className="px-6 pb-16 border-t border-helm-navy/[0.05] pt-16">
+      <section className="px-6 pb-14 border-t border-helm-navy/[0.05] pt-12 bg-white">
         <div className="mx-auto max-w-6xl">
-          <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate mb-2">
-            Included on Starter
-          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-helm-gold/15" aria-hidden>
+              <Check className="h-4 w-4 text-helm-gold" />
+            </span>
+            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">
+              Included on Starter
+            </p>
+          </div>
           <p className="text-sm text-helm-slate mb-6 max-w-xl">
             What you get on the {STARTER_PLAN?.label || "Starter"} plan
             {STARTER_PLAN?.price != null ? ` ($${STARTER_PLAN.price}/mo)` : ""}.
@@ -148,14 +152,16 @@ export default function Features() {
               Compare Free, Growth, and Business →
             </Link>
           </p>
-          <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
-            {PRO_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2.5 text-sm text-helm-navy/85 border-b border-helm-navy/[0.06] pb-3">
-                <Check className="w-3.5 h-3.5 text-helm-gold shrink-0 mt-0.5" aria-hidden />
-                <span>{f}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-xl border border-helm-navy/[0.08] bg-helm-cream/60 p-6">
+            <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+              {PRO_FEATURES.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-sm text-helm-navy/85 border-b border-helm-navy/[0.06] pb-3 last:border-b-0">
+                  <Check className="w-3.5 h-3.5 text-helm-gold shrink-0 mt-0.5" aria-hidden />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
@@ -201,7 +207,7 @@ export default function Features() {
           id={`features-panel-${activeCategory.id}`}
           role="tabpanel"
           aria-labelledby={`features-tab-${activeCategory.id}`}
-          className="px-6 py-16 md:py-20 border-t border-helm-navy/[0.05]"
+          className="px-6 py-12 md:py-14 border-t border-helm-navy/[0.05] bg-white"
         >
           <div className="mx-auto max-w-6xl">
             <motion.div
@@ -229,9 +235,12 @@ export default function Features() {
                     custom={i}
                     initial="hidden"
                     animate="show"
-                    className="group rounded-md border border-helm-navy/[0.08] bg-helm-cream/[0.015] p-5 md:p-6 transition-all duration-300 hover:border-helm-gold/30 hover:-translate-y-0.5"
+                    className="group rounded-xl border border-helm-navy/[0.08] bg-white p-5 md:p-6 shadow-sm transition-all duration-300 hover:border-helm-gold/30 hover:-translate-y-0.5"
                   >
-                    <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-helm-navy/[0.05]" aria-hidden>
+                      <ActiveIcon className="h-4 w-4 text-helm-gold" />
+                    </span>
+                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
                       {mod.title}
                     </p>
                     <h3 className="font-display mt-3 text-xl md:text-2xl tracking-tight text-helm-navy leading-snug">
@@ -263,7 +272,7 @@ export default function Features() {
 
       <IntegrationsShowcase compact />
 
-      <section className="px-6 py-24 border-t border-helm-navy/[0.05]">
+      <section className="px-6 py-16 border-t border-helm-navy/[0.05] bg-white">
         <div className="mx-auto max-w-2xl text-center">
           <div className="mx-auto h-px w-10 bg-helm-gold mb-8" aria-hidden />
           <p className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy leading-tight">{TAGLINE}</p>
