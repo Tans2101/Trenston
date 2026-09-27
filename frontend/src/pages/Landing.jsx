@@ -26,7 +26,7 @@ function BriefingPreview() {
     "bg-helm-navy",
     "bg-helm-gold",
     "bg-helm-slate",
-    "bg-helm-cream",
+    "bg-white",
     "bg-helm-ember",
   ];
   const sidebarNav = [
@@ -67,9 +67,9 @@ function BriefingPreview() {
       <div className="relative z-[1] overflow-hidden rounded-lg border border-helm-navy/40 bg-helm-ink-card shadow-xl shadow-black/15">
         {/* Browser chrome */}
         <div className="flex items-center gap-2 border-b border-helm-cream/[0.06] px-3 py-2.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
-          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
-          <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/25" aria-hidden />
+          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
+          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
+          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
           <div className="ml-2 flex min-w-0 flex-1 items-center rounded border border-helm-cream/[0.06] bg-helm-ink/40 px-2.5 py-1">
             <span className="truncate font-mono text-[9px] tracking-wide text-helm-slate">
               app.trenston.com/briefing
@@ -89,7 +89,7 @@ function BriefingPreview() {
                   key={label}
                   className={`flex items-center gap-1.5 rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
                     active
-                      ? "bg-helm-cream/[0.08] text-helm-cream"
+                      ? "bg-white/[0.08] text-helm-cream"
                       : "text-helm-slate"
                   }`}
                 >
@@ -198,7 +198,7 @@ export default function Landing() {
         authed={authed}
         onEnter={enter}
         active={location.hash === "#pricing" ? "/#pricing" : "/"}
-        surface="white"
+        bgClassName="bg-white/90"
       />
 
       {/* Hero — flat ink, typography leads */}
