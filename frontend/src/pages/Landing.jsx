@@ -5,6 +5,7 @@ import { ArrowRight, Check } from "lucide-react";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import LaptopMockup from "@/components/marketing/LaptopMockup";
+import dashboardBriefing from "@/assets/marketing/dashboard-briefing.png";
 import ProductScreens from "@/components/marketing/ProductScreens";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
@@ -20,141 +21,6 @@ const fade = {
   hidden: { opacity: 0, y: 20 },
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.08 } }),
 };
-
-function BriefingPreview() {
-  // Dot colors cycle helm brand hues from palette.json (via helm-* tokens).
-  const sidebarDotColors = [
-    "bg-helm-navy",
-    "bg-helm-gold",
-    "bg-helm-slate",
-    "bg-white",
-    "bg-helm-ember",
-  ];
-  const sidebarNav = [
-    ["Briefing", true],
-    ["Sales", false],
-    ["Procurement", false],
-    ["Production", false],
-    ["Maintenance", false],
-    ["HR", false],
-    ["Tasks", false],
-    ["Calendar", false],
-    ["Reports", false],
-  ];
-  const stats = [
-    ["Revenue", "$248K", "Up $12K this month"],
-    ["Cash runway", "17 months", "No change"],
-    ["Open decisions", "2", "Needs a call"],
-    ["Tasks due today", "3", "On track"],
-  ];
-  const todayItems = [
-    ["9:00", "Leadership standup", "Calendar"],
-    ["11:30", "Review Decision Center queue", "Decisions"],
-    ["14:00", "Procurement · steel coil ETA", "Procurement"],
-  ];
-  const attentionItems = [
-    ["Approve $40K infrastructure reservation", "Decision · high"],
-    ["WO-1831 blocked on parts", "Production"],
-    ["Two open purchase requests", "Procurement"],
-  ];
-
-  return (
-    <LaptopMockup>
-      <div className="flex min-h-0 bg-helm-ink-card">
-        {/* Left sidebar — md+ */}
-        <aside className="hidden w-[8.5rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
-          <p className="px-1.5 font-display text-[11px] font-medium tracking-tight text-helm-cream">
-            Trenston
-          </p>
-          <nav className="mt-3 space-y-0.5" aria-hidden>
-            {sidebarNav.map(([label, active], i) => (
-              <div
-                key={label}
-                className={`flex items-center gap-1.5 rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
-                  active
-                    ? "bg-white/[0.08] text-helm-cream"
-                    : "text-helm-slate"
-                }`}
-              >
-                <span
-                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${sidebarDotColors[i % sidebarDotColors.length]}`}
-                />
-                <span className="truncate">{label}</span>
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Main briefing surface */}
-        <div className="min-w-0 flex-1 p-4 md:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
-              <p className="mt-2 font-display text-lg font-medium leading-snug tracking-tight text-helm-cream md:text-xl">
-                Welcome back, Alex.
-              </p>
-            </div>
-            <span className="shrink-0 text-[9px] leading-snug text-helm-slate text-right max-w-[7.5rem]">
-              Sample briefing, illustrative data
-            </span>
-          </div>
-          <p className="mt-2 text-xs leading-relaxed text-helm-cream/80">
-            Revenue is ahead of plan. One Decision and a Production blocker need you today.
-          </p>
-
-          {/* Four KPI tiles */}
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {stats.map(([label, value, change]) => (
-              <div
-                key={label}
-                className="rounded border border-helm-cream/[0.06] bg-helm-ink/30 px-2.5 py-2"
-              >
-                <p className="font-mono text-[8px] uppercase tracking-wider text-helm-slate">{label}</p>
-                <p className="mt-1 font-mono text-sm font-medium tabular-nums text-helm-cream">{value}</p>
-                <p className="mt-0.5 text-[9px] text-helm-slate">{change}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Today / Coming up + Needs attention */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
-              <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
-                Today / Coming up
-              </p>
-              <ul className="mt-2.5 space-y-2">
-                {todayItems.map(([time, title, lane]) => (
-                  <li key={title} className="flex gap-2">
-                    <span className="w-8 shrink-0 font-mono text-[9px] tabular-nums text-helm-slate">
-                      {time}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-[11px] leading-snug text-helm-cream/90">{title}</p>
-                      <p className="mt-0.5 text-[9px] text-helm-slate">{lane}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
-              <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
-                Needs attention
-              </p>
-              <ul className="mt-2.5 space-y-2">
-                {attentionItems.map(([title, meta]) => (
-                  <li key={title} className="border-b border-helm-cream/[0.04] pb-2 last:border-0 last:pb-0">
-                    <p className="text-[11px] leading-snug text-helm-cream/90">{title}</p>
-                    <p className="mt-0.5 text-[9px] text-helm-slate">{meta}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </LaptopMockup>
-  );
-}
 
 export default function Landing() {
   const { authed, enter } = useMarketingAuth();
@@ -240,7 +106,11 @@ export default function Landing() {
             transition={{ duration: 0.85, ease, delay: 0.2 }}
             className="lg:-mr-6 xl:-mr-16 2xl:-mr-28"
           >
-            <BriefingPreview />
+            <LaptopMockup
+              src={dashboardBriefing}
+              alt="The Briefing screen in Trenston, showing revenue, burn, runway and a revenue-by-month chart"
+              caption="Briefing, as shown in Trenston"
+            />
           </motion.div>
         </div>
       </section>

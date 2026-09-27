@@ -15949,11 +15949,12 @@ async def delete_account(user=Depends(get_user)):
         other_owners = [o for o in others if o.get("role") == "owner" or pack_of(o) == "owner"]
         if not other_owners:
             sole_owner.append(m["workspace_id"])
-    if sole_owner:
-        raise HTTPException(
-            status_code=400,
-            detail="Transfer or delete workspace first",
-        )
+    # Deleting your account shouldn't require deleting your workspace(s) first —
+    # cascade-delete any workspace where this user is the sole owner instead of
+    # blocking. Workspaces with other owners are left alone (ownership already
+    # covers continuity there); this user's membership in those is removed below.
+    for ws_id in sole_owner:
+        await _delete_workspace_data(ws_id)
     uid = user["user_id"]
     await db.memberships.delete_many({"user_id": uid})
     await db.user_sessions.delete_many({"user_id": uid})

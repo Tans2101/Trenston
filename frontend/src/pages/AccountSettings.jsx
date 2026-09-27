@@ -764,7 +764,11 @@ export default function AccountSettings() {
           id="delete-account"
           className="fade-up h-full"
           title="Delete account"
-          message="Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+          message={
+            isOwner
+              ? "Are you sure you want to delete your account? Since you're the sole owner, this will also delete your workspace and all of its company data for every member. This action cannot be undone."
+              : "Are you sure you want to delete your account? All of your data will be permanently removed. This action cannot be undone."
+          }
           confirmLabel="Delete"
           confirmingLabel="Delete"
           icon="alert"
