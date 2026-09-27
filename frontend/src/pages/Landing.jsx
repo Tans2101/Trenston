@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { ArrowRight, Check } from "lucide-react";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
+import LaptopMockup from "@/components/marketing/LaptopMockup";
 import ProductScreens from "@/components/marketing/ProductScreens";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
@@ -58,119 +59,100 @@ function BriefingPreview() {
   ];
 
   return (
-    <div className="relative">
-      {/* Decorative depth layer */}
-      <div
-        aria-hidden
-        className="absolute inset-0 translate-x-2 translate-y-3 rounded-lg border border-helm-navy/20 bg-helm-navy/25"
-      />
-      <div className="relative z-[1] overflow-hidden rounded-lg border border-helm-navy/40 bg-helm-ink-card shadow-xl shadow-black/15">
-        {/* Browser chrome */}
-        <div className="flex items-center gap-2 border-b border-helm-cream/[0.06] px-3 py-2.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
-          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
-          <span className="h-1.5 w-1.5 rounded-full bg-white/25" aria-hidden />
-          <div className="ml-2 flex min-w-0 flex-1 items-center rounded border border-helm-cream/[0.06] bg-helm-ink/40 px-2.5 py-1">
-            <span className="truncate font-mono text-[9px] tracking-wide text-helm-slate">
-              app.trenston.com/briefing
+    <LaptopMockup>
+      <div className="flex min-h-0 bg-helm-ink-card">
+        {/* Left sidebar — md+ */}
+        <aside className="hidden w-[8.5rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
+          <p className="px-1.5 font-display text-[11px] font-medium tracking-tight text-helm-cream">
+            Trenston
+          </p>
+          <nav className="mt-3 space-y-0.5" aria-hidden>
+            {sidebarNav.map(([label, active], i) => (
+              <div
+                key={label}
+                className={`flex items-center gap-1.5 rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
+                  active
+                    ? "bg-white/[0.08] text-helm-cream"
+                    : "text-helm-slate"
+                }`}
+              >
+                <span
+                  className={`h-1.5 w-1.5 shrink-0 rounded-full ${sidebarDotColors[i % sidebarDotColors.length]}`}
+                />
+                <span className="truncate">{label}</span>
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Main briefing surface */}
+        <div className="min-w-0 flex-1 p-4 md:p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
+              <p className="mt-2 font-display text-lg font-medium leading-snug tracking-tight text-helm-cream md:text-xl">
+                Welcome back, Alex.
+              </p>
+            </div>
+            <span className="shrink-0 text-[9px] leading-snug text-helm-slate text-right max-w-[7.5rem]">
+              Sample briefing, illustrative data
             </span>
           </div>
-        </div>
+          <p className="mt-2 text-xs leading-relaxed text-helm-cream/80">
+            Revenue is ahead of plan. One Decision and a Production blocker need you today.
+          </p>
 
-        <div className="flex min-h-0">
-          {/* Left sidebar — md+ */}
-          <aside className="hidden w-[8.5rem] shrink-0 border-r border-helm-cream/[0.06] bg-helm-ink/50 px-2.5 py-3 md:block">
-            <p className="px-1.5 font-display text-[11px] font-medium tracking-tight text-helm-cream">
-              Trenston
-            </p>
-            <nav className="mt-3 space-y-0.5" aria-hidden>
-              {sidebarNav.map(([label, active], i) => (
-                <div
-                  key={label}
-                  className={`flex items-center gap-1.5 rounded px-1.5 py-1 font-mono text-[9px] tracking-wide ${
-                    active
-                      ? "bg-white/[0.08] text-helm-cream"
-                      : "text-helm-slate"
-                  }`}
-                >
-                  <span
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${sidebarDotColors[i % sidebarDotColors.length]}`}
-                  />
-                  <span className="truncate">{label}</span>
-                </div>
-              ))}
-            </nav>
-          </aside>
-
-          {/* Main briefing surface */}
-          <div className="min-w-0 flex-1 p-4 md:p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-helm-slate">Briefing</p>
-                <p className="mt-2 font-display text-lg font-medium leading-snug tracking-tight text-helm-cream md:text-xl">
-                  Welcome back, Alex.
-                </p>
+          {/* Four KPI tiles */}
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {stats.map(([label, value, change]) => (
+              <div
+                key={label}
+                className="rounded border border-helm-cream/[0.06] bg-helm-ink/30 px-2.5 py-2"
+              >
+                <p className="font-mono text-[8px] uppercase tracking-wider text-helm-slate">{label}</p>
+                <p className="mt-1 font-mono text-sm font-medium tabular-nums text-helm-cream">{value}</p>
+                <p className="mt-0.5 text-[9px] text-helm-slate">{change}</p>
               </div>
-              <span className="shrink-0 text-[9px] leading-snug text-helm-slate text-right max-w-[7.5rem]">
-                Sample briefing, illustrative data
-              </span>
+            ))}
+          </div>
+
+          {/* Today / Coming up + Needs attention */}
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
+              <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
+                Today / Coming up
+              </p>
+              <ul className="mt-2.5 space-y-2">
+                {todayItems.map(([time, title, lane]) => (
+                  <li key={title} className="flex gap-2">
+                    <span className="w-8 shrink-0 font-mono text-[9px] tabular-nums text-helm-slate">
+                      {time}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] leading-snug text-helm-cream/90">{title}</p>
+                      <p className="mt-0.5 text-[9px] text-helm-slate">{lane}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <p className="mt-2 text-xs leading-relaxed text-helm-cream/80">
-              Revenue is ahead of plan. One Decision and a Production blocker need you today.
-            </p>
-
-            {/* Four KPI tiles */}
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {stats.map(([label, value, change]) => (
-                <div
-                  key={label}
-                  className="rounded border border-helm-cream/[0.06] bg-helm-ink/30 px-2.5 py-2"
-                >
-                  <p className="font-mono text-[8px] uppercase tracking-wider text-helm-slate">{label}</p>
-                  <p className="mt-1 font-mono text-sm font-medium tabular-nums text-helm-cream">{value}</p>
-                  <p className="mt-0.5 text-[9px] text-helm-slate">{change}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Today / Coming up + Needs attention */}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
-                <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
-                  Today / Coming up
-                </p>
-                <ul className="mt-2.5 space-y-2">
-                  {todayItems.map(([time, title, lane]) => (
-                    <li key={title} className="flex gap-2">
-                      <span className="w-8 shrink-0 font-mono text-[9px] tabular-nums text-helm-slate">
-                        {time}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-[11px] leading-snug text-helm-cream/90">{title}</p>
-                        <p className="mt-0.5 text-[9px] text-helm-slate">{lane}</p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
-                <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
-                  Needs attention
-                </p>
-                <ul className="mt-2.5 space-y-2">
-                  {attentionItems.map(([title, meta]) => (
-                    <li key={title} className="border-b border-helm-cream/[0.04] pb-2 last:border-0 last:pb-0">
-                      <p className="text-[11px] leading-snug text-helm-cream/90">{title}</p>
-                      <p className="mt-0.5 text-[9px] text-helm-slate">{meta}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="rounded border border-helm-cream/[0.06] bg-helm-ink/20 p-3">
+              <p className="font-mono text-[9px] uppercase tracking-wider text-helm-slate">
+                Needs attention
+              </p>
+              <ul className="mt-2.5 space-y-2">
+                {attentionItems.map(([title, meta]) => (
+                  <li key={title} className="border-b border-helm-cream/[0.04] pb-2 last:border-0 last:pb-0">
+                    <p className="text-[11px] leading-snug text-helm-cream/90">{title}</p>
+                    <p className="mt-0.5 text-[9px] text-helm-slate">{meta}</p>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </LaptopMockup>
   );
 }
 
