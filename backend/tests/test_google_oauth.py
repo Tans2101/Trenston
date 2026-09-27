@@ -164,6 +164,28 @@ def test_map_gmail_message_external():
     assert "payload" not in mapped
 
 
+def test_map_gmail_message_decodes_html_entities():
+    # Gmail's snippet field comes back HTML-entity-encoded — verify we decode it
+    # so cards show "don't" instead of the literal "don&#39;t".
+    msg = {
+        "id": "m2",
+        "threadId": "t2",
+        "snippet": "Let&#39;s sync on Q3 &amp; pricing before Friday",
+        "labelIds": ["INBOX", "IMPORTANT"],
+        "payload": {
+            "headers": [
+                {"name": "From", "value": "Ada Lovelace <ada@customer.com>"},
+                {"name": "Subject", "value": "Re: Q3 proposal &amp; next steps"},
+                {"name": "Date", "value": "Tue, 09 Sep 2026 10:00:00 +0000"},
+            ]
+        },
+    }
+    mapped = gcal._map_gmail_message(msg, own_domain="trenston.com")
+    assert mapped is not None
+    assert mapped["snippet"] == "Let's sync on Q3 & pricing before Friday"
+    assert mapped["subject"] == "Re: Q3 proposal & next steps"
+
+
 def test_fetch_important_threads_filters_and_limits():
     tokens = {
         "access_token": "tok",

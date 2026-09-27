@@ -194,7 +194,8 @@ function MetricTile({ m, index, total }) {
   const status = resolveStatus(m);
   const hasDelta = m.delta != null && m.delta !== 0;
   const surfaceClass = cn(
-    "rounded-xl border border-helm-line bg-helm-card p-4 text-left w-full h-full shadow-sm",
+    "rounded-xl border p-4 text-left w-full h-full shadow-sm",
+    m.missing ? "border-dashed border-helm-line bg-helm-fg/[0.015]" : "border-helm-line bg-helm-card",
     index === 0 && total >= 3 && "md:p-5",
     clickable && "cursor-pointer transition-colors hover:border-helm-gold/40 hover:bg-helm-fg/[0.02] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold",
   );
@@ -208,10 +209,10 @@ function MetricTile({ m, index, total }) {
       <div className={cn("mt-3 flex items-end justify-between gap-2", index === 0 && total >= 3 && "mt-4")}>
         {clickable ? (
           <span className="flex flex-col items-start gap-2 min-w-0">
-            <span className="text-sm text-helm-muted">{m.value || "No data"}</span>
-            <span className="inline-flex items-center gap-1 rounded-md border border-dashed border-helm-gold/40 bg-helm-gold/10 px-2 py-1 text-[11px] font-medium text-helm-gold">
+            <span className="text-sm text-helm-muted">{m.value || "Not tracked"}</span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-helm-gold/40 bg-helm-gold/10 px-2 py-1 text-[11px] font-medium text-helm-gold">
               <Plus className="w-3 h-3" aria-hidden />
-              Add
+              {m.href?.includes("/integrations") ? "Connect Source" : "Set Metric"}
             </span>
           </span>
         ) : (

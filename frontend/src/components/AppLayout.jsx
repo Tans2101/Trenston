@@ -17,7 +17,7 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import CompanySetup from "@/pages/CompanySetup";
-import { helmPlanLabel, helmWorkspacePlanLabel, helmHasFullAccess, helmIsPaidPlan } from "@/lib/helmPlan";
+import { helmPlanLabel, helmHasFullAccess, helmIsPaidPlan } from "@/lib/helmPlan";
 import { departmentIcon } from "@/lib/departmentIcons";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/kit";
@@ -176,13 +176,6 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
         </div>
         <div className="min-w-0 text-left">
           <p className="text-xs text-helm-fg truncate">{active.name}</p>
-          <p className="text-[10px] text-helm-muted uppercase font-mono tracking-wide">
-            {(() => {
-              const plan = helmWorkspacePlanLabel(active.plan, billingEnforced);
-              // "Active" is reserved for the top-bar pill — show role (and real plan names) here.
-              return plan === "Active" ? active.role : `${active.role} · ${plan}`;
-            })()}
-          </p>
         </div>
         <ChevronDown className={cn("w-4 h-4 text-helm-muted shrink-0 transition-transform", open && "rotate-180")} />
       </button>

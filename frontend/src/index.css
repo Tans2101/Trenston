@@ -239,8 +239,11 @@ input.cl-otpCodeFieldInput {
 html[data-theme="dark"] .app-shell {
   --helm-fg: var(--helm-cream);
   --helm-bg: var(--helm-ink);
-  --helm-card: var(--helm-ink-card);
-  --helm-muted: var(--helm-slate);
+  /* Darkened panel fill (was --helm-ink-card / #121214 — barely lifted off the page) */
+  --helm-card: #111111;
+  /* Slate (#6B7280) is ~4.1:1 on this background — fails WCAG AA for body text.
+     Lighten muted/secondary text so it reads clearly against the dark panels. */
+  --helm-muted: #D1D5DB;
   --helm-line: color-mix(in srgb, var(--helm-cream) 18%, transparent);
   background: var(--helm-bg);
   color: var(--helm-fg);

@@ -150,10 +150,10 @@
     "semantic_hash": "78dd3aa7060b5a534b15faf12e9cb996"
   },
   "backend/google_oauth.py": {
-    "mtime": 1790515659.5391483,
-    "seen": 1790516102.6705596,
-    "ast_hash": "1a1900976e6951e46a21bc1e3b335114",
-    "semantic_hash": "1a1900976e6951e46a21bc1e3b335114"
+    "mtime": 1790523858.0362554,
+    "seen": 1790524252.0152075,
+    "ast_hash": "eae04b34fd3104eb1f0c496f399de369",
+    "semantic_hash": "eae04b34fd3104eb1f0c496f399de369"
   },
   "backend/helm_config.py": {
     "mtime": 1790515659.5391483,
@@ -720,10 +720,10 @@
     "semantic_hash": "97ab8e3762cc673859b2097e464750b2"
   },
   "backend/tests/test_google_oauth.py": {
-    "mtime": 1790515659.548069,
-    "seen": 1790516102.6707022,
-    "ast_hash": "1fb1e5105da3a267eaf6531eee04d14a",
-    "semantic_hash": "1fb1e5105da3a267eaf6531eee04d14a"
+    "mtime": 1790523870.132256,
+    "seen": 1790524252.0181897,
+    "ast_hash": "ef3f2da265f668ff52ad200e69d4f95a",
+    "semantic_hash": "ef3f2da265f668ff52ad200e69d4f95a"
   },
   "backend/tests/test_google_workspace.py": {
     "mtime": 1790515659.548069,
@@ -1242,10 +1242,10 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1790515659.5653994,
-    "seen": 1790516102.670809,
-    "ast_hash": "89ef7f05c47c6e4ce7243f6830fa98cf",
-    "semantic_hash": "89ef7f05c47c6e4ce7243f6830fa98cf"
+    "mtime": 1790523999.2042637,
+    "seen": 1790524252.02096,
+    "ast_hash": "178a625deacbc09969a7653809465048",
+    "semantic_hash": "178a625deacbc09969a7653809465048"
   },
   "frontend/src/components/AppearanceSync.jsx": {
     "mtime": 1790515659.5653994,
@@ -1260,10 +1260,10 @@
     "semantic_hash": "79b345afeb47db7581327deac05cd575"
   },
   "frontend/src/components/BriefingCockpitHero.jsx": {
-    "mtime": 1790515659.5653994,
-    "seen": 1790516102.670812,
-    "ast_hash": "a04b4ae0fbc5abeef3e45adc9a5f5c16",
-    "semantic_hash": "a04b4ae0fbc5abeef3e45adc9a5f5c16"
+    "mtime": 1790524155.300273,
+    "seen": 1790524252.0210295,
+    "ast_hash": "7ef4991d54be2b134b4c8ddcd23597d5",
+    "semantic_hash": "7ef4991d54be2b134b4c8ddcd23597d5"
   },
   "frontend/src/components/CirDeleteBtn.jsx": {
     "mtime": 1790515659.5653994,
@@ -1842,10 +1842,10 @@
     "semantic_hash": "4e152557a9ad2e39c2726ecb1f0a6731"
   },
   "frontend/src/components/kokonutui/bento-grid.jsx": {
-    "mtime": 1790515659.5694354,
-    "seen": 1790516102.670906,
-    "ast_hash": "8e399a0cd4a152bd028538465362e6ba",
-    "semantic_hash": "8e399a0cd4a152bd028538465362e6ba"
+    "mtime": 1790524179.3842742,
+    "seen": 1790524252.0242414,
+    "ast_hash": "e25117c84a5376055278ff6dc1e16b58",
+    "semantic_hash": "e25117c84a5376055278ff6dc1e16b58"
   },
   "frontend/src/components/kokonutui/profile-dropdown.jsx": {
     "mtime": 1790515659.5694354,
@@ -2568,10 +2568,10 @@
     "semantic_hash": "236c70213b94601863e4df721293c19c"
   },
   "frontend/src/pages/Briefing.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710331,
-    "ast_hash": "eb50f48f0c3555c6ea47414ca367dcd4",
-    "semantic_hash": "eb50f48f0c3555c6ea47414ca367dcd4"
+    "mtime": 1790524184.0762746,
+    "seen": 1790524252.028324,
+    "ast_hash": "4f6287010ed5222c0111a6d4a325aeab",
+    "semantic_hash": "4f6287010ed5222c0111a6d4a325aeab"
   },
   "frontend/src/pages/CalendarPage.jsx": {
     "mtime": 1790515659.573568,

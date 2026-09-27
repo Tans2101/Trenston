@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import email.utils
+import html
 import logging
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
@@ -452,8 +453,9 @@ def _thread_link(thread_id: str) -> str:
 
 def _map_gmail_message(msg: dict, *, own_domain: str = "") -> Optional[dict]:
     headers = _header_map(msg)
-    subject = (headers.get("subject") or "(no subject)").strip()
+    subject = html.unescape((headers.get("subject") or "(no subject)").strip())
     sender_name, sender_email = _parse_from(headers.get("from") or "")
+    sender_name = html.unescape(sender_name) if sender_name else sender_name
     if own_domain and sender_email and _email_domain(sender_email) == own_domain:
         # Skip self-sent / same-domain noise when filtering for external signal
         labels = set(msg.get("labelIds") or [])
@@ -464,7 +466,9 @@ def _map_gmail_message(msg: dict, *, own_domain: str = "") -> Optional[dict]:
     thread_id = msg.get("threadId") or msg.get("id") or ""
     if not thread_id:
         return None
-    snippet = (msg.get("snippet") or "").strip()
+    # Gmail's snippet field comes back HTML-entity-encoded (e.g. "don&#39;t"
+    # instead of "don't") — decode it so the briefing shows real text.
+    snippet = html.unescape((msg.get("snippet") or "").strip())
     # Snippets only — never include body payload data
     return {
         "id": thread_id,

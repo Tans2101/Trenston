@@ -475,7 +475,10 @@ export default function Briefing() {
 
       {metrics.length > 0 && <BentoGrid metrics={metrics} />}
 
-      <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 md:p-6 shadow-sm">
+      <section
+        className="mb-6 fade-up rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-5 md:p-6 shadow-sm"
+        data-testid="briefing-ai-summary"
+      >
         <div className="flex items-center justify-between gap-3 mb-3">
           <BriefLabel>Today&apos;s summary</BriefLabel>
           {data.ai_summary && canGenerateAi && (

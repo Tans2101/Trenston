@@ -46,6 +46,16 @@ function pickMetric(metrics, key) {
   return (metrics || []).find((m) => def.match.test(m.label || "")) || null;
 }
 
+/** Green/red badge tone for a KPI's period-over-period change — trusts the
+ *  backend's semantic `tone` (e.g. rising burn is "negative") before falling
+ *  back to a naive sign check. */
+function deltaTone(m) {
+  if (m.tone === "positive" || m.tone === "negative") return m.tone;
+  if (m.delta > 0) return "positive";
+  if (m.delta < 0) return "negative";
+  return "neutral";
+}
+
 function decisionQueueStatus(count) {
   if (count === 0) return { body: "Nothing waiting", badge: "Clear", tone: "positive" };
   if (count <= 2) return { body: `${count} open`, badge: "Good", tone: "positive" };
@@ -215,32 +225,50 @@ export default function BriefingCockpitHero({
           ) : null}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6" data-testid="briefing-hero-metrics">
             {heroMetrics.map((m) => (
-              <div key={m.id} className="min-w-0" data-testid={`briefing-hero-metric-${m.id}`}>
+              <div
+                key={m.id}
+                data-testid={`briefing-hero-metric-${m.id}`}
+                className={cn(
+                  "min-w-0",
+                  m.missing && "rounded-lg border border-dashed border-helm-line p-3 -m-3",
+                )}
+              >
                 <p className="text-sm font-medium text-helm-fg">{m.label}</p>
                 {m.missing ? (
                   <>
-                    <p className="mt-2 font-display text-3xl md:text-4xl text-helm-muted/50 tracking-tight tabular-nums">
+                    <p className="mt-2 font-display text-3xl md:text-4xl font-bold text-helm-muted/50 tracking-tight tabular-nums">
                       —
                     </p>
                     <button
                       type="button"
                       onClick={() => navigate(m.href)}
-                      className="mt-2 inline-flex items-center gap-1 text-sm text-helm-gold hover:text-helm-gold-hover transition-colors"
+                      data-testid={`briefing-hero-metric-${m.id}-cta`}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-helm-gold/40 bg-helm-gold/10 px-2.5 py-1 text-xs font-medium text-helm-gold hover:bg-helm-gold/15 transition-colors"
                     >
-                      Add data
-                      <ArrowRight className="w-3.5 h-3.5" />
+                      <Plus className="w-3 h-3" aria-hidden />
+                      Set {m.label}
+                      <ArrowRight className="w-3 h-3" />
                     </button>
                   </>
                 ) : (
                   <>
-                    <p className="mt-2 font-display text-3xl md:text-4xl text-helm-fg tracking-tight tabular-nums">
+                    <p className="mt-2 font-display text-3xl md:text-4xl font-bold text-helm-fg tracking-tight tabular-nums">
                       {m.value || "—"}
                     </p>
-                    <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-helm-muted">
-                      {m.delta != null
-                        ? `${m.delta > 0 ? "+" : ""}${m.delta}% vs last period`
-                        : "vs last period"}
-                    </p>
+                    {m.delta != null ? (
+                      <span
+                        className={cn(
+                          "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs font-medium",
+                          deltaTone(m) === "positive" && "bg-helm-status-positive/12 text-helm-status-positive",
+                          deltaTone(m) === "negative" && "bg-helm-status-negative/12 text-helm-status-negative",
+                          deltaTone(m) === "neutral" && "bg-helm-fg/[0.06] text-helm-muted",
+                        )}
+                      >
+                        {m.delta > 0 ? "▲" : m.delta < 0 ? "▼" : "•"} {Math.abs(m.delta)}% vs last period
+                      </span>
+                    ) : (
+                      <span className="mt-2 inline-flex items-center text-sm text-helm-muted">vs last period</span>
+                    )}
                   </>
                 )}
               </div>
