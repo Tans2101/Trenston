@@ -1,53 +1,57 @@
-/* MacBook Air-style frame: thin near-bezel-less screen with a top notch,
-   a metal hinge line, and a slim tapered aluminum keyboard deck. */
+/* MacBook frame — ported 1:1 (colors, shadows, radii) from the founder-
+   supplied CSS. Only the outer max-width/margin/perspective are dropped
+   since the hero section (not this component) owns sizing and placement. */
 
 .macbookFrame {
   width: 100%;
 }
 
+/* 1. Top Lid / Screen Display */
 .screenContainer {
-  position: relative;
-  background: #0a0a0c;
-  padding: 7px 7px 0 7px;
-  border-radius: 18px 18px 5px 5px;
-  border: 1px solid #2c2c30;
+  background: #08080a; /* True deep black bezel */
+  border-radius: 20px 20px 0 0; /* Perfectly rounded laptop corners */
+  padding: 14px 14px 0 14px; /* Accurate border bezel thickness */
   box-shadow:
-    0 35px 60px -12px rgba(0, 0, 0, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+    0 15px 35px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15); /* Soft inner glass highlight */
+  border: 1px solid #2d2d30; /* Fine outer rubber gasket edge */
+  position: relative;
+  z-index: 2;
 }
 
-.notch {
+/* Real modern MacBook notch */
+.cameraNotch {
+  width: 110px;
+  height: 16px;
+  background: #08080a;
   position: absolute;
-  top: 7px;
+  top: 14px; /* Aligns flush into the inner screen space */
   left: 50%;
   transform: translateX(-50%);
-  width: 22%;
-  min-width: 64px;
-  max-width: 130px;
-  height: 15px;
-  background: #0a0a0c;
-  border-radius: 0 0 11px 11px;
-  z-index: 3;
+  border-radius: 0 0 8px 8px; /* Classic pill-shaped display cutout */
+  z-index: 10;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding-bottom: 4px;
 }
 
-.cameraDot {
+/* Subtle physical camera lens reflection */
+.lens {
   width: 5px;
   height: 5px;
+  background: #111;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #2a3a4a, #0e0e10 70%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 1px #00ffff;
+  opacity: 0.7;
 }
 
+/* Screen panel area */
 .screenContent {
-  position: relative;
-  background: #fff;
-  aspect-ratio: 16 / 10;
+  background: #1a1a1a;
+  aspect-ratio: 16 / 10; /* Apple's native display aspect ratio */
   overflow: hidden;
-  border-radius: 3px 3px 0 0;
+  border-radius: 6px 6px 0 0; /* Internal panel rounding beneath bezel */
+  position: relative;
 }
 
 .screenContent img {
@@ -57,52 +61,65 @@
   display: block;
 }
 
-.hinge {
-  height: 5px;
+/* Subtle glass glare overlay across the screen */
+.screenContent::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+}
+
+/* 2. Bottom Base Assembly */
+.baseContainer {
+  position: relative;
+  margin-top: -1px; /* Seamless closure connection to screen */
+  z-index: 1;
+}
+
+/* Main anodized aluminum chassis body */
+.macbookBase {
+  height: 14px;
   background: linear-gradient(
     to bottom,
-    #1c1c1e 0%,
-    #3a3a3e 40%,
-    #d4d4d8 48%,
-    #eeeef0 54%,
-    #c6c6cb 62%,
-    #86868b 100%
-  );
-}
-
-.baseWrap {
-  width: 97%;
-  margin: 0 auto;
-}
-
-.macbookBase {
-  position: relative;
-  height: 13px;
-  border-radius: 0 0 10px 10px;
-  background: linear-gradient(to bottom, #e8e8ea 0%, #d2d2d6 45%, #b6b6bb 100%);
+    #e3e3e6 0%,
+    #dfdfe2 20%,
+    #b8b8bc 85%,
+    #959599 100%
+  ); /* High-fidelity metal reflection profile */
+  border-radius: 0 0 24px 24px; /* Tapered corners to blend with display */
+  border: 1px solid #b2b2b6;
+  border-top: none;
   box-shadow:
-    0 12px 20px -8px rgba(0, 0, 0, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    0 20px 45px rgba(0, 0, 0, 0.35),
+    0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
+/* Precision display hinge highlight */
 .macbookBase::before {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: 0 0 10px 10px;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.1),
-    transparent 5%,
-    transparent 95%,
-    rgba(0, 0, 0, 0.1)
-  );
+  top: 0;
+  left: 30px;
+  right: 30px;
+  height: 2px;
+  background: rgba(0, 0, 0, 0.35); /* Shadow inside the hinge cavity */
 }
 
-.frontLip {
-  width: 88px;
-  height: 4px;
+/* The physical thumb cutout indent to open the lid */
+.macbookNotchBase {
+  width: 120px;
+  height: 5px;
+  background: linear-gradient(to bottom, #7a7a7e, #a1a1a5);
   margin: 0 auto;
-  border-radius: 0 0 8px 8px;
-  background: linear-gradient(to bottom, #c8c8cd, #98989e);
+  border-radius: 0 0 5px 5px;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4);
 }
