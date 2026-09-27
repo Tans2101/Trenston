@@ -2538,10 +2538,10 @@
     "semantic_hash": "83545aa57e5a38a104b53d08868db698"
   },
   "frontend/src/pages/About.jsx": {
-    "mtime": 1790515659.5718188,
-    "seen": 1790516102.671029,
-    "ast_hash": "47e3ddf5a07b6b5f56577d7494161d9d",
-    "semantic_hash": "47e3ddf5a07b6b5f56577d7494161d9d"
+    "mtime": 1790526533.7275124,
+    "seen": 1790526606.622678,
+    "ast_hash": "602e087cbda70b682c35b5a98d294339",
+    "semantic_hash": "602e087cbda70b682c35b5a98d294339"
   },
   "frontend/src/pages/AccountSettings.jsx": {
     "mtime": 1790519662.0809684,
