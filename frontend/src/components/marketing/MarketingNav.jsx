@@ -49,9 +49,9 @@ export default function MarketingNav({ authed, onEnter, active, bgClassName = "b
                   {renderLink(
                     l,
                     cn(
-                      "text-base font-semibold transition-colors",
+                      "text-base transition-colors",
                       isActive(l.to, active)
-                        ? "text-helm-navy"
+                        ? "text-helm-navy font-medium"
                         : "text-helm-slate hover:text-helm-navy",
                     ),
                   )}
@@ -98,7 +98,7 @@ export default function MarketingNav({ authed, onEnter, active, bgClassName = "b
             {NAV_LINKS.map((l) =>
               renderLink(
                 l,
-                `block rounded-lg px-3 py-2.5 text-base font-semibold ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
+                `block rounded-lg px-3 py-2.5 text-base ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
               ),
             )}
             <a
