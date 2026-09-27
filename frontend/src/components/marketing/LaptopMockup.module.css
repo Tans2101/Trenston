@@ -48,7 +48,11 @@
 /* Screen panel area */
 .screenContent {
   background: #1a1a1a;
-  aspect-ratio: 16 / 10; /* Apple's native display aspect ratio */
+  /* Matches the real product screenshot's own ratio (16:9), not Apple's
+     16:10 panel spec — a mismatch here made object-fit: cover crop the
+     screenshot's left/right edges (sidebar + right-side content) to force
+     it into a shorter, wider-than-tall frame than the image actually is. */
+  aspect-ratio: 16 / 9;
   overflow: hidden;
   border-radius: 6px 6px 0 0; /* Internal panel rounding beneath bezel */
   position: relative;

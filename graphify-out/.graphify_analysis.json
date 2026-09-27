@@ -10853,12 +10853,23 @@
       "degree": 45
     },
     {
-      "id": "frontend_src_context_authcontext_useauth",
-      "label": "useAuth()",
+      "id": "backend_dept_ops_wiring_register",
+      "label": "register()",
       "degree": 43
     }
   ],
   "surprises": [
+    {
+      "source": "OAuth redirect URIs (register exactly)",
+      "target": "integrations()",
+      "source_files": [
+        "docs/INTEGRATIONS.md",
+        "backend/server.py"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `OAuth redirect URIs (register exactly)` unexpectedly reaches hub `integrations()`"
+    },
     {
       "source": "Conversation flow",
       "target": "ok()",
@@ -10880,17 +10891,6 @@
       "confidence": "INFERRED",
       "relation": "references",
       "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `Test 3: Runtime checks match the protected surface` unexpectedly reaches hub `login()`"
-    },
-    {
-      "source": "OAuth redirect URIs (register exactly)",
-      "target": "integrations()",
-      "source_files": [
-        "docs/INTEGRATIONS.md",
-        "backend/server.py"
-      ],
-      "confidence": "INFERRED",
-      "relation": "references",
-      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; bridges separate communities; peripheral node `OAuth redirect URIs (register exactly)` unexpectedly reaches hub `integrations()`"
     },
     {
       "source": "Conversation flow",
