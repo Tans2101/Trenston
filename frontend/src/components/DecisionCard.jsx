@@ -1,7 +1,12 @@
-import { Check, X, Sparkles, PenLine } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Check, X, Sparkles, PenLine, ArrowUpRight } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { motion, useReducedMotion } from "motion/react";
 import { GlassCard } from "@/components/kit";
+import { api, apiErrorMessage } from "@/lib/api";
+import { signalRoute, taskHref } from "@/lib/signalRoute";
 import { cn } from "@/lib/utils";
 
 /** Match chart hover/exit timing (heatmap inactive tween). */
@@ -46,6 +51,41 @@ export default function DecisionCard({
 }) {
   const isAi = d.source === "ai_suggested";
   const reduceMotion = useReducedMotion();
+  const navigate = useNavigate();
+  const [delegateTo, setDelegateTo] = useState("");
+  const source = signalRoute(d.signal);
+
+  const createFollowUp = async () => {
+    try {
+      const res = await api.post("/tasks", { title: `Follow up: ${d.title}`.slice(0, 200), tag: "Decision", column: "backlog" });
+      const taskId = res?.data?.task?.id;
+      toast.success("Follow-up task created", taskId
+        ? { action: { label: "Open task", onClick: () => navigate(taskHref(taskId)) } }
+        : undefined);
+    } catch (e) {
+      const detail = e?.response?.data?.detail;
+      toast.error(detail == null ? "Could not create the follow-up task" : apiErrorMessage(detail, "Could not create the follow-up task"));
+    }
+  };
+
+  const handleApprove = async () => {
+    const ok = await onApprove?.(d.id);
+    if (ok === false) return;
+    // Same toast id as the action hook, so this replaces "Decision approved".
+    toast.success("Decision approved", {
+      id: `decision-${d.id}`,
+      action: { label: "Create follow-up task", onClick: createFollowUp },
+    });
+  };
+
+  const handleDelegate = async (owner) => {
+    if (!owner) return;
+    setDelegateTo(owner);
+    await onDelegate?.(d.id, owner);
+    // Always reset: a failed delegate must not look assigned, and the same
+    // person can be picked again to retry.
+    setDelegateTo("");
+  };
 
   return (
     <motion.div
@@ -55,7 +95,7 @@ export default function DecisionCard({
       transition={LIST_MOTION}
       className="overflow-hidden"
     >
-    <GlassCard className="p-5 fade-up" data-testid={`decision-${d.id}`}>
+    <GlassCard className="p-5 fade-up" data-testid={`decision-${d.id}`} data-deeplink={d.id}>
       <div className="flex flex-col lg:flex-row lg:items-start gap-5">
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -83,6 +123,15 @@ export default function DecisionCard({
           </div>
           <h3 className="text-lg text-helm-fg font-medium tracking-tight">{d.title}</h3>
           {d.description && <p className="text-sm text-helm-muted mt-1">{d.description}</p>}
+          {source?.to && (
+            <Link
+              to={source.to}
+              data-testid={`decision-source-${d.id}`}
+              className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover font-medium"
+            >
+              {source.label || "View source"} <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
 
           {d.recommendation && (
             <div className={cn(
@@ -113,8 +162,8 @@ export default function DecisionCard({
         <div className="flex lg:flex-col gap-2 lg:w-40">
           {canAct ? (
             <>
-              <button data-testid={`approve-${d.id}`} disabled={busy === d.id} onClick={() => onApprove(d.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-helm-gold text-helm-navy text-sm font-medium py-2 transition-colors hover:bg-helm-gold-hover disabled:opacity-50"><Check className="w-4 h-4" /> Approve</button>
-              <select data-testid={`delegate-${d.id}`} disabled={busy === d.id} defaultValue="" onChange={(e) => e.target.value && onDelegate(d.id, e.target.value)} className="flex-1 rounded-md border border-helm-line text-helm-fg text-sm py-2 px-2 bg-helm-card transition-colors hover:bg-helm-fg/5 focus:outline-none focus:border-helm-gold/40 disabled:opacity-50">
+              <button data-testid={`approve-${d.id}`} disabled={busy === d.id} onClick={handleApprove} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-helm-gold text-helm-navy text-sm font-medium py-2 transition-colors hover:bg-helm-gold-hover disabled:opacity-50"><Check className="w-4 h-4" /> Approve</button>
+              <select data-testid={`delegate-${d.id}`} disabled={busy === d.id} value={delegateTo} onChange={(e) => handleDelegate(e.target.value)} className="flex-1 rounded-md border border-helm-line text-helm-fg text-sm py-2 px-2 bg-helm-card transition-colors hover:bg-helm-fg/5 focus:outline-none focus:border-helm-gold/40 disabled:opacity-50">
                 <option value="">Delegate to…</option>
                 {selfMember && (
                   <option value={selfLabel}>{selfOptionLabel || (selfLabel ? `Me – ${selfLabel}` : "Me")}</option>

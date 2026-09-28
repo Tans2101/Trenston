@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Sparkles, User } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useFetch } from "@/hooks/useFetch";
+import { Send, Sparkles, User, ArrowUpRight } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useFetch, useInvalidateFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { API, getApiAuthHeaders, apiErrorMessage, apiForbiddenReason } from "@/lib/api";
@@ -18,16 +18,28 @@ const SUGGESTIONS = [
 
 const FINANCE_SUGGESTION_RE = /\b(runway|mrr|burn|cash|revenue|financial)\b/i;
 
+const ENGINE_ERROR = "I couldn't reach my reasoning engine. Please try again.";
+const EMPTY_ANSWER = "No answer came back. Try again.";
+
+/** Replace the pending (last) assistant message. */
+const replaceLast = (msg) => (m) => {
+  const copy = [...m];
+  copy[copy.length - 1] = { role: "assistant", ...msg };
+  return copy;
+};
+
 export default function AskHelm() {
   const { user } = useAuth();
   const { data: company } = useCompanyQuery();
   const { data: history } = useFetch("/ask/history");
+  const invalidateFetch = useInvalidateFetch();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef(null);
   const autoSent = useRef(false);
-  const historyHydrated = useRef(false);
+  // True once the user sends in this visit; from then on local state owns the thread.
+  const sentThisVisit = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
   const canSeeFinancials = (user?.granted_sections || []).includes("financials");
@@ -38,15 +50,13 @@ export default function AskHelm() {
   const { greeting: timeGreet } = dayPartGreeting();
 
   useEffect(() => {
-    // Apply server history once. Never overwrite an in-flight or already-started chat
-    // when /ask/history resolves after the user has already sent a message.
-    if (historyHydrated.current || streaming) return;
+    // Mirror server history until the user sends in this visit. The cache can hand
+    // us a stale copy first and the fresh one a moment later, so keep applying
+    // updates rather than locking in whichever arrived first. Never overwrite an
+    // in-flight or already-started chat.
+    if (sentThisVisit.current || streaming) return;
     if (!history?.messages) return;
-    historyHydrated.current = true;
-    setMessages((prev) => {
-      if (prev.length > 0) return prev;
-      return history.messages.map((m) => ({ role: m.role, content: m.content, isError: Boolean(m.is_error) }));
-    });
+    setMessages(history.messages.map((m) => ({ role: m.role, content: m.content, isError: Boolean(m.is_error) })));
   }, [history, streaming]);
 
   useEffect(() => {
@@ -56,6 +66,7 @@ export default function AskHelm() {
   const send = async (text) => {
     const q = (text ?? input).trim();
     if (!q || streaming) return;
+    sentThisVisit.current = true;
     setInput("");
     setMessages((m) => [...m, { role: "user", content: q }, { role: "assistant", content: "" }]);
     setStreaming(true);
@@ -82,11 +93,7 @@ export default function AskHelm() {
             : "Ask Trenston isn't included in your plan",
         );
         if (reason === "permission") {
-          setMessages((m) => {
-            const copy = [...m];
-            copy[copy.length - 1] = { role: "assistant", content: message };
-            return copy;
-          });
+          setMessages(replaceLast({ content: message, isError: true }));
           return;
         }
         setMessages((m) => m.slice(0, -2));
@@ -102,19 +109,15 @@ export default function AskHelm() {
         } catch {
           /* keep default */
         }
-        setMessages((m) => {
-          const copy = [...m];
-          copy[copy.length - 1] = { role: "assistant", content: `${detail} Open Billing to upgrade.` };
-          return copy;
-        });
+        setMessages(replaceLast({
+          content: detail,
+          isError: true,
+          link: { to: "/app/billing", label: "Open Billing to upgrade" },
+        }));
         return;
       }
-      if (!res.ok) {
-        setMessages((m) => {
-          const copy = [...m];
-          copy[copy.length - 1] = { role: "assistant", content: "I couldn't reach my reasoning engine. Please try again." };
-          return copy;
-        });
+      if (!res.ok || !res.body) {
+        setMessages(replaceLast({ content: ENGINE_ERROR, isError: true }));
         return;
       }
       const reader = res.body.getReader();
@@ -130,14 +133,20 @@ export default function AskHelm() {
           return copy;
         });
       }
+      const tail = decoder.decode();
+      if (tail) {
+        acc += tail;
+        setMessages(replaceLast({ content: acc }));
+      }
+      // An empty stream would otherwise leave the loading indicator up forever.
+      if (!acc.trim()) setMessages(replaceLast({ content: EMPTY_ANSWER, isError: true }));
     } catch (e) {
-      setMessages((m) => {
-        const copy = [...m];
-        copy[copy.length - 1] = { role: "assistant", content: "I couldn't reach my reasoning engine. Please try again." };
-        return copy;
-      });
+      setMessages(replaceLast({ content: ENGINE_ERROR, isError: true }));
     } finally {
       setStreaming(false);
+      // POST /ask goes through fetch, not the api client, so drop the cached
+      // history here; coming back to this page then shows the latest exchange.
+      invalidateFetch("/ask/history");
     }
   };
 
@@ -214,6 +223,15 @@ export default function AskHelm() {
                   : "bg-helm-card border border-helm-line text-helm-fg",
             )}>
               {m.content ? <p className="whitespace-pre-wrap">{m.content}</p> : <AITextLoading />}
+              {m.link && (
+                <Link
+                  to={m.link.to}
+                  data-testid="ask-message-link"
+                  className="mt-2 inline-flex items-center gap-1 text-sm not-italic font-medium text-helm-gold hover:text-helm-gold-hover"
+                >
+                  {m.link.label} <ArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
             </div>
           </div>
         ))}

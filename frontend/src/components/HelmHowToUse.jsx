@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ChevronDown, BookOpen } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { ChevronDown, BookOpen, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard, SectionLabel } from "@/components/kit";
 import {
@@ -11,6 +11,16 @@ import {
   HOW_TO_USE_FAQ,
   HOW_TO_USE_MODULES,
 } from "@/lib/marketingCopy";
+
+/** In-app destinations for each walkthrough step (keyed by step title). */
+const STEP_ROUTES = {
+  "Open Briefing": { to: "/app", label: "Open Briefing" },
+  "Act on one Decision": { to: "/app/decisions", label: "Open Decisions" },
+  "Learn My Day and your department lane": { to: "/app/me", label: "Open My Day" },
+  "Connect an integration (owners and admins)": { to: "/app/integrations", label: "Open Integrations" },
+  "Invite a teammate (owners)": { to: "/app/members", label: "Open Team & Access" },
+  "Generate a CEO Pack (owners and report access)": { to: "/app/reports", label: "Open Reports" },
+};
 
 function FaqItem({ item, open, onToggle }) {
   return (
@@ -36,8 +46,15 @@ function FaqItem({ item, open, onToggle }) {
   );
 }
 
-export default function TrenstonHowToUse({ className }) {
+/**
+ * Shared how-to guide. On the public /help page paths are plain text; inside
+ * the signed-in app (inApp, or any /app route) steps and paths are real links
+ * so the guide leads straight to the next action.
+ */
+export default function TrenstonHowToUse({ className, inApp }) {
   const [openFaq, setOpenFaq] = useState(0);
+  const location = useLocation();
+  const linked = inApp ?? /^\/app(\/|$)/.test(location.pathname || "");
 
   return (
     <div className={cn("w-full max-w-3xl mx-auto text-left space-y-12", className)}>
@@ -112,6 +129,16 @@ export default function TrenstonHowToUse({ className }) {
                       </p>
                     )}
                     <p className="mt-2 text-sm text-helm-muted leading-relaxed">{step.body}</p>
+                    {linked && STEP_ROUTES[step.title] && (
+                      <Link
+                        to={STEP_ROUTES[step.title].to}
+                        data-testid={`how-to-step-link-${index}`}
+                        className="mt-3 inline-flex items-center gap-1.5 text-sm text-helm-gold hover:underline underline-offset-2"
+                      >
+                        {STEP_ROUTES[step.title].label}
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
+                    )}
                   </div>
                 </div>
               </GlassCard>
@@ -137,16 +164,29 @@ export default function TrenstonHowToUse({ className }) {
       <section>
         <SectionLabel className="mb-2">Where to find things</SectionLabel>
         <p className="text-sm text-helm-muted mb-4 leading-relaxed">
-          Quick reference after you know the concepts. Paths below are what you will see inside the signed-in app; they are not links on this public page.
+          {linked
+            ? "Quick reference after you know the concepts. Select any card to open that part of Trenston."
+            : "Quick reference after you know the concepts. Paths below are what you will see inside the signed-in app; they are not links on this public page."}
         </p>
         <div className="grid sm:grid-cols-2 gap-3">
-          {HOW_TO_USE_MODULES.map((m) => (
-            <GlassCard key={m.nav} className="px-4 py-3">
-              <p className="text-xs font-medium text-helm-fg">{m.nav}</p>
-              <p className="font-mono text-[10px] text-helm-muted mt-1">{m.path}</p>
-              <p className="text-[11px] text-helm-muted mt-1.5 leading-relaxed">{m.tip}</p>
-            </GlassCard>
-          ))}
+          {HOW_TO_USE_MODULES.map((m) => {
+            const card = (
+              <GlassCard
+                className={cn("px-4 py-3 h-full", linked && "transition-colors hover:border-helm-gold/35")}
+              >
+                <p className="text-xs font-medium text-helm-fg">{m.nav}</p>
+                <p className={cn("font-mono text-[10px] mt-1", linked ? "text-helm-gold" : "text-helm-muted")}>{m.path}</p>
+                <p className="text-[11px] text-helm-muted mt-1.5 leading-relaxed">{m.tip}</p>
+              </GlassCard>
+            );
+            return linked && m.path?.startsWith("/app") ? (
+              <Link key={m.nav} to={m.path} className="block" data-testid={`how-to-module-link-${m.nav}`}>
+                {card}
+              </Link>
+            ) : (
+              <div key={m.nav}>{card}</div>
+            );
+          })}
         </div>
         <p className="mt-6 text-xs text-helm-muted">
           Want the full product tour?{" "}

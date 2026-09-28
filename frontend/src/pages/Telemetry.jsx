@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Plus, PenLine, Sparkles } from "lucide-react";
+import { Plus, PenLine, Sparkles, ArrowRight } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import {
   AreaChart, Area, LineChart, Line,
@@ -23,6 +24,9 @@ import {
   HEATMAP_DEFAULT_LEVEL_STYLES,
 } from "@/components/charts/heatmap";
 import { cn } from "@/lib/utils";
+import { formatAxisMoney } from "@/lib/formatAxisMoney";
+import { formatMoney } from "@/lib/money";
+import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import palette from "@/design/palette.json";
 import { ACCENT } from "@/lib/accent";
 
@@ -48,14 +52,42 @@ function toHeatmapColumns(columns = []) {
   }));
 }
 
-function ChartTooltip({ active, payload, label }) {
+// Missing finance KPIs deep-link to the Financials form that fills them
+// (Financials reads #log-mrr / #log-entry / #cash on mount).
+const MISSING_KPI_LINKS = {
+  MRR: { to: "/app/financials#log-mrr", label: "Log recurring revenue" },
+  ARR: { to: "/app/financials#log-mrr", label: "Log recurring revenue" },
+  Runway: { to: "/app/financials#cash", label: "Add cash in bank" },
+  "Net Burn": { to: "/app/financials#log-entry", label: "Log an expense" },
+};
+
+// Runway needs both cash in bank and a ledger. Send the user to whichever is
+// actually missing: an explicit cash flag wins; otherwise, if burn is known the
+// only thing runway can be missing is cash; if burn is unknown, log entries first.
+function runwayMissingLink(k, kpis, data) {
+  const cashFlag = k.cash_entered ?? data?.cash_entered;
+  if (cashFlag === true) return { to: "/app/financials#log-entry", label: "Log revenue & expenses" };
+  if (cashFlag === false) return MISSING_KPI_LINKS.Runway;
+  const burn = (kpis || []).find((x) => x.label === "Net Burn");
+  if (burn && !burn.missing) return MISSING_KPI_LINKS.Runway;
+  return { to: "/app/financials#log-entry", label: "Log revenue & expenses" };
+}
+
+// Non-finance KPI cards open the page the number comes from.
+const KPI_SOURCE_LINKS = {
+  Headcount: "/app/people",
+  "Open Tasks": "/app/tasks",
+  Pipeline: "/app/sales",
+};
+
+function ChartTooltip({ active, payload, label, symbol }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md border border-helm-line bg-helm-card px-3 py-2 text-xs">
       {label && <p className="text-helm-muted mb-1 font-mono">{label}</p>}
       {payload.map((p, i) => (
         <p key={i} className="text-helm-fg font-mono">
-          <span style={{ color: p.color }}>●</span> {p.name}: {p.value}
+          <span style={{ color: p.color }}>●</span> {p.name}: {symbol != null ? formatMoney(p.value, symbol) : p.value}
         </p>
       ))}
     </div>
@@ -63,7 +95,9 @@ function ChartTooltip({ active, payload, label }) {
 }
 
 function Sparkline({ data }) {
-  const chart = data.map((v, i) => ({ i, v }));
+  // A single point (or none) draws nothing useful — keep the card quiet instead.
+  if (!Array.isArray(data) || data.length < 2) return null;
+  const chart = data.map((v, i) => ({ i, v: Number(v) || 0 }));
   return (
     <ResponsiveContainer width="100%" height={36}>
       <LineChart data={chart}>
@@ -81,6 +115,8 @@ const emptyRisk = () => ({ id: "", name: "", likelihood: 3, impact: 3, category:
 
 export default function Telemetry() {
   const { data, loading, error, reload } = useFetch("/telemetry");
+  const { symbol: sym } = useWorkspaceCurrency();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [risks, setRisks] = useState([]);
   const [notes, setNotes] = useState("");
@@ -125,7 +161,11 @@ export default function Telemetry() {
   const asOf = data.data_as_of ? new Date(data.data_as_of).toLocaleString() : null;
   const canWrite = data.can_write;
   const suggestedRisks = data.suggested_risks || [];
-  const hasTargetLine = (data.revenue_trend || []).some((r) => r.target != null && r.target !== undefined);
+  const revenueTrend = data.revenue_trend || [];
+  const hasTargetLine = revenueTrend.some((r) => r.target != null && r.target !== undefined);
+  // Backend `mrr` key here is total monthly revenue (recurring + one-off). Months
+  // that only carry expenses come back as 0 — a flat zero line is not real revenue.
+  const hasRevenue = revenueTrend.some((r) => Number(r.mrr) > 0);
   const funnelStages = toFunnelStages(data.funnel);
   const activityTotal = data.activity_heatmap?.total ?? 0;
   const heatmapColumns = toHeatmapColumns(data.activity_heatmap?.columns || []);
@@ -202,23 +242,49 @@ export default function Telemetry() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {data.kpis.map((k, i) => (
-          <GlassCard key={k.label} className="p-4 fade-up" style={{ animationDelay: `${i * 50}ms` }} data-testid={`kpi-${i}`}>
+        {data.kpis.map((k, i) => {
+          const missingLink = k.missing
+            ? (k.label === "Runway" ? runwayMissingLink(k, data.kpis, data) : MISSING_KPI_LINKS[k.label])
+            : null;
+          const sourceHref = !k.missing ? KPI_SOURCE_LINKS[k.label] : null;
+          const card = (
+          <GlassCard key={k.label} className={cn("p-4 fade-up", sourceHref && "h-full transition-colors group-hover:border-helm-gold/35")} style={{ animationDelay: `${i * 50}ms` }} data-testid={`kpi-${i}`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{k.label}</span>
               <Delta value={k.delta} tone={k.tone} />
             </div>
-            <span className="font-mono text-3xl text-helm-fg">{k.value}</span>
-            <div className="mt-2 -mx-1"><Sparkline data={k.spark} /></div>
+            <span className={cn("font-mono text-helm-fg", k.missing ? "text-xl text-helm-muted" : "text-3xl")}>{k.value}</span>
+            {missingLink ? (
+              <Link
+                to={missingLink.to}
+                className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover"
+                data-testid={`kpi-${i}-add-data`}
+              >
+                {missingLink.label} <ArrowRight className="w-3 h-3" />
+              </Link>
+            ) : (
+              <div className="mt-2 -mx-1"><Sparkline data={k.spark} /></div>
+            )}
           </GlassCard>
-        ))}
+          );
+          return sourceHref ? (
+            <Link key={k.label} to={sourceHref} className="group block" aria-label={`${k.label}: ${k.value}. Open source`} data-testid={`kpi-${i}-link`}>
+              {card}
+            </Link>
+          ) : card;
+        })}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 mb-6">
         <GlassCard className="p-5 fade-up">
-          <SectionLabel className="mb-4">{hasTargetLine ? "MRR vs Target" : "MRR"}</SectionLabel>
-          {(data.revenue_trend || []).length === 0 ? (
-            <p className="text-sm text-helm-muted py-10 text-center">No revenue series yet. Add financial entries to plot MRR.</p>
+          <SectionLabel className="mb-4">{hasTargetLine ? "Revenue vs Target" : "Monthly revenue"}</SectionLabel>
+          {!hasRevenue ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-helm-muted">No revenue logged yet.</p>
+              <Link to="/app/financials#log-entry" className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">
+                Log revenue on Financials <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <AreaChart data={data.revenue_trend} margin={{ left: -18, right: 8, top: 8 }}>
@@ -230,17 +296,31 @@ export default function Telemetry() {
                 </defs>
                 <CartesianGrid stroke={SLATE} strokeOpacity={0.25} vertical={false} />
                 <XAxis dataKey="month" stroke={SLATE} fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke={SLATE} fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip content={<ChartTooltip />} />
+                <YAxis stroke={SLATE} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
+                <Tooltip content={<ChartTooltip symbol={sym} />} />
                 {hasTargetLine && (
                   <Area type="monotone" dataKey="target" name="Target" stroke={SLATE} strokeDasharray="4 4" fill="none" strokeWidth={1.5} />
                 )}
-                <Area type="monotone" dataKey="mrr" name="MRR" stroke={GOLD} strokeWidth={2} fill="url(#mrr)" />
+                <Area type="monotone" dataKey="mrr" name="Revenue" stroke={GOLD} strokeWidth={2} fill="url(#mrr)" />
               </AreaChart>
             </ResponsiveContainer>
           )}
         </GlassCard>
 
+        {funnelStages.length === 0 && (
+          <GlassCard className="p-5 fade-up" data-testid="sales-funnel-empty">
+            <SectionLabel className="mb-4">Sales Funnel</SectionLabel>
+            <div className="py-10 text-center">
+              <p className="text-sm text-helm-muted">No open deals yet. The funnel builds from your pipeline stages.</p>
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-xs">
+                <Link to="/app/sales" className="inline-flex items-center gap-1 text-helm-gold hover:text-helm-gold-hover">
+                  Add a deal <ArrowRight className="w-3 h-3" />
+                </Link>
+                <Link to="/app/integrations" className="text-helm-muted hover:text-helm-fg">or connect HubSpot</Link>
+              </div>
+            </div>
+          </GlassCard>
+        )}
         {funnelStages.length > 0 && (
           <GlassCard className="p-5 fade-up" data-testid="sales-funnel">
             <div className="flex items-start justify-between gap-3 mb-4">
@@ -256,7 +336,7 @@ export default function Telemetry() {
             </div>
             {data.funnel_is_sample && (
               <p className="text-xs text-helm-status-warning mb-3 leading-relaxed" data-testid="funnel-sample-note">
-                This funnel is demo sample data, not your live pipeline. Add deals to replace it.
+                This funnel is demo sample data, not your live pipeline. <Link to="/app/sales" className="underline hover:text-helm-fg">Add deals</Link> to replace it.
               </p>
             )}
             <FunnelChart
@@ -313,6 +393,25 @@ export default function Telemetry() {
                         L{r.likelihood} × I{r.impact}
                       </span>
                     </p>
+                    {!data.risks_is_sample && (
+                      <button
+                        type="button"
+                        data-testid={`risk-decision-${r.id || r.name}`}
+                        onClick={() => navigate("/app/decisions", {
+                          state: {
+                            openAdd: true,
+                            prefill: {
+                              title: `Mitigate: ${r.name}`,
+                              description: `From the risk radar: likelihood ${r.likelihood || 1}/5, impact ${r.impact || 1}/5 (score ${score}). Decide how to reduce or accept this risk.`,
+                              category: r.category || "General",
+                            },
+                          },
+                        })}
+                        className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover"
+                      >
+                        Log a decision <ArrowRight className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 );
               })}

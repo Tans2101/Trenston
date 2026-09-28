@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, RefreshCw, X, Sparkles } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { AnimatePresence } from "motion/react";
@@ -10,12 +10,26 @@ import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
 import DecisionCard, { statusStyle } from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
+import { highlightRecord } from "@/lib/signalRoute";
 import { cn } from "@/lib/utils";
 
 const emptyForm = () => ({ title: "", category: "General", description: "", recommendation: "", due: "", impact: "Medium" });
 
+/** Blank form merged with an optional {title, description, category} prefill from another screen. */
+const prefilledForm = (prefill) => {
+  const base = emptyForm();
+  if (!prefill || typeof prefill !== "object") return base;
+  const str = (v) => (typeof v === "string" ? v : "");
+  return {
+    ...base,
+    title: str(prefill.title) || base.title,
+    description: str(prefill.description) || base.description,
+    category: str(prefill.category) || base.category,
+  };
+};
+
 export default function Decisions() {
-  const { data, loading, error, reload } = useFetch("/decisions");
+  const { data, loading, error, reload, isFetching } = useFetch("/decisions");
   const { data: membersData } = useFetch("/members");
   const { busy, act, approveSuggestion, dismissSuggestion } = useDecisionActions(reload);
   const location = useLocation();
@@ -25,14 +39,45 @@ export default function Decisions() {
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [genBusy, setGenBusy] = useState(false);
+  const [searchParams] = useSearchParams();
+  const focusId = searchParams.get("focus");
+  const wantsNew = searchParams.get("new") === "1";
+  const highlightedRef = useRef(null);
 
+  // Open the add form from another screen: state.openAdd / state.prefill, or ?new=1.
+  // Waits for data so we know whether this user can log decisions at all.
   useEffect(() => {
-    if (!location.state?.openAdd) return;
-    setEditing(null);
-    setForm(emptyForm());
-    setShowForm(true);
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.state, location.pathname, navigate]);
+    const st = location.state || {};
+    if (!st.openAdd && !st.prefill && !wantsNew) return;
+    if (!data) return;
+    if (data.can_act) {
+      setEditing(null);
+      setForm(prefilledForm(st.prefill));
+      setShowForm(true);
+    } else {
+      toast.info("Only owners and executives can log decisions.");
+    }
+    const params = new URLSearchParams(location.search);
+    params.delete("new");
+    const qs = params.toString();
+    navigate(`${location.pathname}${qs ? `?${qs}` : ""}`, { replace: true, state: {} });
+  }, [location.state, location.search, location.pathname, wantsNew, data, navigate]);
+
+  // ?focus=<id>: scroll to and flash the decision (pending, resolved, or a suggestion).
+  useEffect(() => {
+    if (!focusId || !data || highlightedRef.current === focusId) return;
+    const known = [...(data.decisions || []), ...(data.suggestions || [])].some((x) => String(x.id) === focusId);
+    if (!known) {
+      // A just-created decision may not be in the cached copy yet — wait for
+      // the refetch before saying it's gone.
+      if (isFetching) return;
+      highlightedRef.current = focusId;
+      toast.info("That decision is no longer open. It may have been resolved or removed.");
+      return;
+    }
+    highlightedRef.current = focusId;
+    highlightRecord(focusId);
+  }, [focusId, data, isFetching]);
 
   if (loading) {
     return (
@@ -73,8 +118,9 @@ export default function Decisions() {
   const save = async () => {
     if (!form.title.trim()) { toast.error("Add a title"); return; }
     setSaving(true);
-    // Manual decisions use Impact only — never invent a confidence %
-    const payload = { ...form, confidence: null };
+    // Manual decisions use Impact only — never invent a confidence %. On edit,
+    // leave confidence out entirely so an AI estimate on the decision survives.
+    const payload = editing ? { ...form } : { ...form, confidence: null };
     try {
       if (editing) { await api.patch(`/decisions/${editing}`, payload); toast.success("Decision updated"); }
       else { await api.post("/decisions", payload); toast.success("Decision added"); }
@@ -183,7 +229,7 @@ export default function Decisions() {
               <SectionLabel className="mb-4">Recently resolved · outcome checks</SectionLabel>
               <div className="space-y-2">
                 {resolved.map((d) => (
-                  <div key={d.id} className="flex items-center gap-3 rounded-lg border border-helm-line bg-helm-fg/[0.02] px-4 py-3" data-testid={`resolved-${d.id}`}>
+                  <div key={d.id} className="flex items-center gap-3 rounded-lg border border-helm-line bg-helm-fg/[0.02] px-4 py-3" data-testid={`resolved-${d.id}`} data-deeplink={d.id}>
                     <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status])}>{d.status}</span>
                     <span className="text-sm text-helm-fg flex-1">{d.title}</span>
                     <span className="text-xs text-helm-muted">{d.owner ? `→ ${d.owner}` : ""}</span>

@@ -144,7 +144,7 @@ export default function Landing() {
         <div className="mx-auto max-w-7xl">
           <SectionHeader
             eyebrow="The cockpit"
-            title="What CEOs open Trenston for."
+            title="What founders open Trenston for."
             action={<MkLink to="/features" className="text-mk-navy">See all features</MkLink>}
           />
           <div className="mt-16 space-y-20 md:space-y-28">

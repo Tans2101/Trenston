@@ -794,7 +794,7 @@ def _invite_email_html(inviter_name: str, workspace_name: str, role: str, app_ur
 </tr></table>
 <p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:22px 0 0 0;">You've been added</p>
 <h1 style="color:#ffffff;font-size:24px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">{inviter_name} invited you to<br><span style="color:#c9a962;">{workspace_name}</span></h1>
-<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the CEO Operating System. Sign in with Google to see the briefing, decisions, financials and more.</p>
+<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">You now have <b style="color:#ffffff;">{role}</b> access to this company's command center on Trenston, the operating system for founders and CEOs. Sign in with Google to see the briefing, decisions, financials and more.</p>
 <table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
 <td style="background:#c9a962;border-radius:8px;">
 <a href="{app_url}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Trenston &rarr;</a>
@@ -1461,22 +1461,36 @@ def require_integration_provider(provider: str):
     return dep
 
 
-def _valid_fin_month(month: str, *, allow_future: bool = False) -> bool:
-    """Syntactically valid YYYY-MM. Future months rejected unless allow_future."""
+def _valid_fin_month(month: str, *, allow_future: bool = False, now: Optional[datetime] = None) -> bool:
+    """Syntactically valid YYYY-MM. Future months rejected unless allow_future.
+
+    ``now`` = workspace-local datetime (tz_utils.workspace_now) so "future" is
+    judged on the founder's calendar, not UTC."""
     import finance_recurrence as fin_recur
     s = (month or "").strip()
     if not fin_recur.is_valid_month(s):
         return False
-    if not allow_future and fin_recur.is_future_month(s):
+    if not allow_future and fin_recur.is_future_month(s, now):
         return False
     return True
 
 
-def _reject_future_fin_month(month: str) -> None:
+async def _workspace_now(workspace_id: str) -> datetime:
+    """Aware 'now' in the workspace timezone (best effort — a failed timezone
+    lookup falls back to the default zone rather than failing the write)."""
+    try:
+        ws = await _workspace_tz_doc(workspace_id)
+    except Exception:
+        logger.debug("workspace timezone lookup failed for %s", workspace_id, exc_info=True)
+        ws = None
+    return tz_utils.workspace_now(ws)
+
+
+def _reject_future_fin_month(month: str, now: Optional[datetime] = None) -> None:
     """Raise 400 when month is in the future (manual / AI commit / CSV)."""
     import finance_recurrence as fin_recur
     s = (month or "").strip()
-    if fin_recur.is_valid_month(s) and fin_recur.is_future_month(s):
+    if fin_recur.is_valid_month(s) and fin_recur.is_future_month(s, now):
         raise HTTPException(
             status_code=400,
             detail="month cannot be in the future — use the current or a past month",
@@ -1720,7 +1734,7 @@ def _rel_time(iso: str) -> str:
     return f"{int(secs // 86400)}d ago"
 
 
-async def log_activity(principal, module, action, summary, patch=None):
+async def log_activity(principal, module, action, summary, patch=None, related_id=None):
     doc = {
         "activity_id": f"act_{uuid.uuid4().hex[:12]}",
         "workspace_id": principal["workspace_id"],
@@ -1729,6 +1743,8 @@ async def log_activity(principal, module, action, summary, patch=None):
         "module": module, "action": action, "summary": summary,
         "patch": patch or {}, "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if related_id:
+        doc["related_id"] = related_id
     await db.activities.insert_one(doc)
     return doc
 
@@ -1859,7 +1875,12 @@ async def compute_financials(
     cache_key = _financials_cache_key(workspace_id, department_ids)
 
     async def loader():
-        ws = await db.workspaces.find_one({"workspace_id": workspace_id}, {"_id": 0, "financial_settings": 1})
+        ws = await db.workspaces.find_one(
+            {"workspace_id": workspace_id}, {"_id": 0, "financial_settings": 1, "timezone": 1},
+        )
+        # Month boundaries follow the workspace's local calendar (a Manila
+        # founder's September starts at 00:00 Manila, not 08:00).
+        ws_now = tz_utils.workspace_now(ws)
         settings = dict((ws or {}).get("financial_settings") or {})
         if not settings.get("currency"):
             settings["currency"] = "usd"
@@ -1873,8 +1894,8 @@ async def compute_financials(
         # Drop invalid months; future-dated sync rows stay in DB but are excluded
         # from current burn/MRR/runway (they cannot redefine the horizon).
         valid = [e for e in entries if fin_recur.is_valid_month(str(e.get("month") or ""))]
-        entries, scheduled = fin_recur.partition_ledger_entries(valid)
-        horizon = fin_recur.resolve_expense_horizon(entries)
+        entries, scheduled = fin_recur.partition_ledger_entries(valid, ws_now)
+        horizon = fin_recur.resolve_expense_horizon(entries, ws_now)
         rev_by = defaultdict(float, fin_recur.expand_entries_by_month(entries, entry_type="revenue", horizon_end=horizon))
         exp_by = defaultdict(float, fin_recur.expand_entries_by_month(entries, entry_type="expense", horizon_end=horizon))
         # Recurring-only revenue by month (for MRR) — never mix one-time sales into MRR
@@ -1970,6 +1991,11 @@ async def compute_financials(
                     "category": e.get("category"),
                     "amount": amap.entry_amount_for_totals(e),
                     "source": e.get("source"),
+                    # Lets the ledger link an upcoming row back to its origin.
+                    "source_deal_id": e.get("source_deal_id"),
+                    "source_procurement_request_id": e.get("source_procurement_request_id"),
+                    "recurring": e.get("recurring"),
+                    "note": e.get("note"),
                 }
                 for e in scheduled[:50]
             ],
@@ -3570,7 +3596,7 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
         title = payload.founder_title.strip()
         if title and title not in FOUNDER_TITLES:
             raise HTTPException(status_code=400, detail="Invalid role")
-        updates["founder_title"] = title or "CEO"
+        updates["founder_title"] = title or "Founder"
     if payload.has_team is not None:
         updates["has_team"] = bool(payload.has_team)
     if payload.timezone is not None:
@@ -3718,6 +3744,14 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
             currency=(current.get("financial_settings") or {}).get("currency"),
         )
         update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
+        if current.get("company_setup_done"):
+            # The founder already told us who they are in CompanySetup — sample
+            # content must not overwrite that profile with Northwind's.
+            for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
+                if key in current:
+                    update[key] = current[key]
+                else:
+                    update.pop(key, None)
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
         # Replace only seed + manual rows; synced ledgers are never touched.
         await db.financial_entries.delete_many({
@@ -3943,14 +3977,16 @@ async def briefing(principal=Depends(get_principal)):
             })
     metrics.extend(ops_metrics or [])
     b["metrics"] = metrics
-    act_items = [{"title": a["summary"], "detail": f"{a['actor_name']} · {_rel_time(a['created_at'])}", "tone": "neutral"} for a in acts]
+    act_items = [_briefing_activity_item(a) for a in acts]
     b["what_changed"] = act_items + list(b.get("what_changed", []))
     # Prefer calendar weekday over static seed strings ("Monday" / "Today").
     b["date"] = datetime.now(timezone.utc).strftime("%A")
     b["team_updates"] = [{"user_name": u.get("user_name"), "text": u.get("text"),
                           "blocker": u.get("blocker", False),
                           "ago": _rel_time(u.get("updated_at", ""))} for u in ups]
-    b["what_to_decide"] = _briefing_what_to_decide(c)
+    decide_all = _briefing_what_to_decide_all(c)
+    b["what_to_decide"] = decide_all[:5]
+    b["what_to_decide_total"] = len(decide_all)
     b["what_to_delegate"] = _briefing_what_to_delegate(c)
     b["insights_generated_at"] = c.get("insights_generated_at")
     b["email_threads"] = email_threads
@@ -3965,9 +4001,13 @@ async def briefing(principal=Depends(get_principal)):
     can_generate = (
         can_ai_briefing and "briefing:generate" in perms_for(principal.get("pack") or "member")
     )
+    # Same gate the decision act / assign / dismiss endpoints enforce, so the
+    # Briefing can hide action buttons the caller would get a 403 on.
+    can_act = await can_section_write(principal, "decisions", "decisions:act")
     return {
         **b,
         "is_pro": is_pro,
+        "can_act": bool(can_act),
         "ai_summary": b.get("ai_summary") if can_ai_briefing else None,
         "can_generate_ai_summary": can_generate,
     }
@@ -4166,13 +4206,51 @@ def _insights_stale(c: dict) -> bool:
     return datetime.now(timezone.utc) - taken >= timedelta(hours=INSIGHTS_STALE_HOURS)
 
 
+def _briefing_activity_item(a: dict) -> dict:
+    """One activity row → Briefing 'what changed' item (module + related_id for deep links)."""
+    item = {
+        "title": a.get("summary") or "",
+        "detail": f"{a.get('actor_name') or 'Someone'} · {_rel_time(a.get('created_at') or '')}",
+        "tone": "neutral",
+        "module": a.get("module"),
+    }
+    rid = a.get("related_id")
+    if rid:
+        item["related_id"] = rid
+    return item
+
+
+_BRIEFING_LINK_KEYS = ("signal_type", "related_id", "department_type", "employee_id")
+
+
+def _briefing_link_fields(src: dict) -> dict:
+    """signal_type / related_id / department_type / employee_id from a stored
+    decision or suggestion (top-level first, then its `signal`). Only keys with
+    a value are returned so existing payload shapes are unchanged otherwise."""
+    sig = src.get("signal") if isinstance(src.get("signal"), dict) else {}
+    out = {}
+    for key in _BRIEFING_LINK_KEYS:
+        val = src.get(key)
+        if val in (None, ""):
+            val = sig.get("type") if key == "signal_type" else sig.get(key)
+        if val not in (None, ""):
+            out[key] = val
+    return out
+
+
 def _briefing_what_to_decide(c: dict) -> list:
-    """Pending decisions + AI suggestions for the Briefing column."""
+    """Pending decisions + AI suggestions for the Briefing column (top 5)."""
+    return _briefing_what_to_decide_all(c)[:5]
+
+
+def _briefing_what_to_decide_all(c: dict) -> list:
+    """Every pending decision + AI suggestion, sorted — callers slice."""
     items = []
     for d in c.get("decisions") or []:
         if d.get("status") != "pending":
             continue
         items.append({
+            **_briefing_link_fields(d),
             "id": d["id"],
             "title": d.get("title") or "Untitled",
             "detail": (d.get("recommendation") or d.get("description") or "").strip(),
@@ -4187,6 +4265,7 @@ def _briefing_what_to_decide(c: dict) -> list:
         if s.get("status") != "suggested":
             continue
         items.append({
+            **_briefing_link_fields(s),
             "id": s["id"],
             "title": s.get("title") or "Untitled",
             "detail": (s.get("recommendation") or s.get("description") or "").strip(),
@@ -4202,7 +4281,7 @@ def _briefing_what_to_decide(c: dict) -> list:
         return (_IMPACT_RANK.get(x.get("impact"), 9), x.get("due") or "9999")
 
     items.sort(key=sort_key)
-    return items[:5]
+    return items
 
 
 def _briefing_what_to_delegate(c: dict) -> list:
@@ -4213,6 +4292,7 @@ def _briefing_what_to_delegate(c: dict) -> list:
             continue
         personal = (not has_team) or bool(s.get("personal"))
         out.append({
+            **_briefing_link_fields(s),
             "id": s["id"],
             "title": s.get("title") or "Untitled",
             "detail": s.get("detail") or "",
@@ -4656,14 +4736,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
         _load_ops(),
     )
     # Same live feed builders as GET /briefing — do not ground on seed alone.
-    act_items = [
-        {
-            "title": a["summary"],
-            "detail": f"{a['actor_name']} · {_rel_time(a['created_at'])}",
-            "tone": "neutral",
-        }
-        for a in acts
-    ]
+    act_items = [_briefing_activity_item(a) for a in acts]
     what_changed = act_items + list(b.get("what_changed") or [])
     what_to_decide = _briefing_what_to_decide(c)
     metrics = []
@@ -4867,7 +4940,7 @@ async def create_decision(payload: DecisionInput, principal=Depends(require_sect
         {"$push": {"decisions": d}},
     )
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
-    await log_activity(principal, "decisions", "decision.create", f"New decision: {d['title']}")
+    await log_activity(principal, "decisions", "decision.create", f"New decision: {d['title']}", related_id=d["id"])
     return {"ok": True, "decision": d}
 
 
@@ -4903,8 +4976,12 @@ async def approve_decision_suggestion(suggestion_id: str, principal=Depends(requ
         "impact": sug.get("impact") if sug.get("impact") in ("High", "Medium", "Low") else "Medium",
         "source": "ai_suggested",
         "from_suggestion_id": suggestion_id,
-        "signal_type": sug.get("signal_type"),
+        "signal_type": sug.get("signal_type") or (sug.get("signal") or {}).get("type"),
     }
+    # Keep the originating signal so the decision can deep-link back to the
+    # record that raised it (type, related_id, department_type, employee_id…).
+    if isinstance(sug.get("signal"), dict):
+        decision["signal"] = dict(sug["signal"])
     decisions = list(c.get("decisions") or []) + [decision]
     suggestions = [s for s in suggestions if s.get("id") != suggestion_id]
     await db.workspaces.update_one(
@@ -4912,7 +4989,7 @@ async def approve_decision_suggestion(suggestion_id: str, principal=Depends(requ
         {"$set": {"decisions": decisions, "decision_suggestions": suggestions}},
     )
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
-    await log_activity(principal, "decisions", "suggestion.approve", f"Accepted Trenston suggestion: {decision['title']}")
+    await log_activity(principal, "decisions", "suggestion.approve", f"Accepted Trenston suggestion: {decision['title']}", related_id=decision["id"])
     return {"ok": True, "decision": decision}
 
 
@@ -4950,7 +5027,6 @@ async def assign_delegate_suggestion(suggestion_id: str, principal=Depends(requi
     sug = next((s for s in suggestions if s.get("id") == suggestion_id), None)
     if not sug or (sug.get("status") and sug.get("status") != "suggested"):
         raise HTTPException(status_code=404, detail="Suggestion not found")
-    t = c["tasks"]
     solo = not decision_engine.workspace_has_team(c) or bool(sug.get("personal"))
     if solo:
         assignee_uid = principal["user_id"]
@@ -4983,11 +5059,11 @@ async def assign_delegate_suggestion(suggestion_id: str, principal=Depends(requi
         "from_suggestion_id": suggestion_id,
         "note": sug.get("detail") or "",
     }
-    t["items"].append(item)
-    suggestions = [s for s in suggestions if s.get("id") != suggestion_id]
+    # Atomic push/pull (same as task create) so a concurrent task move or
+    # create isn't overwritten by a stale copy of the whole board.
     await db.workspaces.update_one(
         {"workspace_id": c["workspace_id"]},
-        {"$set": {"tasks": t, "delegate_suggestions": suggestions}},
+        {"$push": {"tasks.items": item}, "$pull": {"delegate_suggestions": {"id": suggestion_id}}},
     )
     await log_activity(
         principal, "tasks",
@@ -5027,6 +5103,14 @@ async def dismiss_delegate_suggestion(suggestion_id: str, principal=Depends(requ
 async def edit_decision(decision_id: str, payload: DecisionInput, principal=Depends(require_section("decisions", "decisions:act"))):
     c = await get_ws(principal["workspace_id"])
     fields = _decision_fields(payload)
+    # Only write fields the client actually sent — an edit must not reset
+    # omitted fields to their model defaults.
+    sent = set(payload.model_dump(exclude_unset=True).keys())
+    fields = {k: v for k, v in fields.items() if k in sent}
+    # Never wipe an AI decision's confidence: the manual edit form always
+    # sends confidence=null. Only an explicit number updates it.
+    if payload.confidence is None:
+        fields.pop("confidence", None)
     set_fields = {f"decisions.$[d].{k}": v for k, v in fields.items()}
     result = await db.workspaces.update_one(
         {"workspace_id": c["workspace_id"], "decisions.id": decision_id},
@@ -5060,14 +5144,18 @@ async def onboarding_checklist(principal=Depends(get_principal)):
     has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
     people_n = len(c["people"]["people"])
     members_n = await db.memberships.count_documents({"workspace_id": ws, "status": "active"})
-    day = tz_utils.workspace_today_iso(c)
-    has_update = await db.updates.count_documents({"workspace_id": ws, "user_id": principal["user_id"], "day": day}) > 0
+    # "First" status update — any past update counts, so the step stays done
+    # the next morning instead of flipping back to incomplete every day.
+    has_update = await db.updates.count_documents({"workspace_id": ws, "user_id": principal["user_id"]}) > 0
+    has_team = decision_engine.workspace_has_team(c)
     steps = [
         {"id": "financials", "label": "Add your financials", "done": has_fin, "route": "/app/financials"},
-        {"id": "people", "label": "Add your team roster", "done": people_n > 0, "route": "/app/people"},
-        {"id": "invite", "label": "Invite a teammate", "done": members_n > 1, "route": "/app/members"},
-        {"id": "update", "label": "Post your first status update", "done": has_update, "route": "/app/me"},
     ]
+    if has_team:
+        # Solo founders (has_team=False) can never finish these — omit them.
+        steps.append({"id": "people", "label": "Add your team roster", "done": people_n > 0, "route": "/app/people"})
+        steps.append({"id": "invite", "label": "Invite a teammate", "done": members_n > 1, "route": "/app/members"})
+    steps.append({"id": "update", "label": "Post your first status update", "done": has_update, "route": "/app/me"})
     for step in steps:
         if step["done"]:
             await helm_analytics.log_event_once(
@@ -5383,18 +5471,60 @@ async def _apply_deal_owner_assignment(
 
 
 def _deal_revenue_month(close_date: str, *, now: Optional[datetime] = None) -> str:
-    """YYYY-MM from close_date when parseable, else current UTC month."""
+    """YYYY-MM from close_date when parseable and not in the future, else the
+    current month. ``now`` should be workspace-local (tz_utils.workspace_now) —
+    a deal won today with a forward close_date books revenue this month, not in
+    a future month that burn/MRR ignore."""
     now = now or datetime.now(timezone.utc)
     raw = (close_date or "").strip()
     if raw:
         try:
             if "T" in raw:
                 raw = raw.split("T", 1)[0]
-            datetime.strptime(raw[:10], "%Y-%m-%d")
-            return raw[:7]
+            closed = datetime.strptime(raw[:10], "%Y-%m-%d").date()
+            if closed <= now.date():
+                return raw[:7]
         except ValueError:
             pass
     return now.strftime("%Y-%m")
+
+
+async def _remove_deal_revenue_entry(workspace_id: str, deal_id: str) -> int:
+    """Delete the auto-created revenue row for a deal that is no longer won."""
+    if not deal_id:
+        return 0
+    # Rows the founder has edited in Financials are theirs now — leave them.
+    res = await db.financial_entries.delete_one(
+        {"workspace_id": workspace_id, "source_deal_id": deal_id, "source": "deal",
+         "user_edited": {"$ne": True}},
+    )
+    n = int(getattr(res, "deleted_count", 0) or 0) if res is not None else 0
+    if n:
+        invalidate_financials_cache(workspace_id)
+    return n
+
+
+async def _sync_deal_revenue_amount(deal: dict, principal: dict) -> Optional[dict]:
+    """Update the amount on an existing, unedited auto-booked row. Never inserts."""
+    ws = principal["workspace_id"]
+    deal_id = deal.get("id")
+    if not deal_id:
+        return None
+    existing = await db.financial_entries.find_one(
+        {"workspace_id": ws, "source_deal_id": deal_id, "source": "deal"},
+        {"_id": 0},
+    )
+    if not existing or existing.get("user_edited"):
+        return existing
+    amount = max(round(float(deal.get("value") or 0), 2), 0.0)
+    if float(existing.get("amount") or 0) != amount:
+        await db.financial_entries.update_one(
+            {"id": existing["id"], "workspace_id": ws},
+            {"$set": {"amount": amount}},
+        )
+        invalidate_financials_cache(ws)
+        return {**existing, "amount": amount}
+    return existing
 
 
 async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[Optional[dict], bool]:
@@ -5411,17 +5541,27 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
         {"workspace_id": ws, "source_deal_id": deal_id},
         {"_id": 0},
     )
+    amount = round(float(deal.get("value") or 0), 2)
+    if amount < 0:
+        amount = 0.0
     if existing:
+        # Keep booked revenue in sync with the won deal's value (mirrors the
+        # procurement expense sync). Only touch rows this helper created.
+        if (existing.get("source") == "deal" and not existing.get("user_edited")
+                and float(existing.get("amount") or 0) != amount):
+            await db.financial_entries.update_one(
+                {"id": existing["id"], "workspace_id": ws},
+                {"$set": {"amount": amount}},
+            )
+            invalidate_financials_cache(ws)
+            return {**existing, "amount": amount}, False
         return existing, False
 
     try:
         entry_name = require_entry_name(deal.get("name") or "Won deal")
     except ValueError:
         entry_name = "Won deal"
-    amount = round(float(deal.get("value") or 0), 2)
-    if amount < 0:
-        amount = 0.0
-    month = _deal_revenue_month(deal.get("close_date") or "")
+    month = _deal_revenue_month(deal.get("close_date") or "", now=await _workspace_now(ws))
     finance_dept_id = await dept_migrate.finance_department_id(db, ws)
     entry = {
         "id": f"fe_{uuid.uuid4().hex[:10]}",
@@ -5454,6 +5594,25 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
     invalidate_financials_cache(ws)
     entry.pop("_id", None)
     return entry, True
+
+
+async def _book_won_deal_revenue(deal: dict, principal: dict, currency: str) -> Optional[dict]:
+    """Ensure the won-deal revenue row exists and log it when newly created."""
+    financial_entry, created = await _ensure_deal_won_revenue_entry(deal, principal)
+    if financial_entry and created:
+        await log_activity(
+            principal, "financials", "entry.add",
+            f"Logged revenue from won deal · {financial_entry['name']} "
+            f"{fmt_money(financial_entry['amount'], currency)} ({financial_entry['month']})",
+            {
+                "type": "revenue",
+                "amount": financial_entry["amount"],
+                "month": financial_entry["month"],
+                "source": "deal",
+                "source_deal_id": deal.get("id"),
+            },
+        )
+    return financial_entry
 
 
 def _procurement_expense_month(req: dict, *, now: Optional[datetime] = None) -> str:
@@ -5675,7 +5834,11 @@ async def create_deal(payload: DealInput, principal=Depends(require_section("sal
     await log_activity(principal, "sales", "deal.create",
                        f"New deal: {deal['name']} · {fmt_money(deal['value'], currency)} ({STAGE_LABEL[stage]})",
                        {"value": deal["value"], "stage": stage})
-    return {"ok": True, "deal": enriched}
+    financial_entry = None
+    if stage == "won":
+        # Logged straight in as Won — book the revenue like a stage change would.
+        financial_entry = await _book_won_deal_revenue(deal, principal, currency)
+    return {"ok": True, "deal": enriched, "financial_entry": financial_entry}
 
 
 @api_router.patch("/deals/{deal_id}")
@@ -5717,22 +5880,12 @@ async def update_deal(deal_id: str, payload: DealInput, principal=Depends(requir
     production_prefill = None
     if stage != d["stage"]:
         currency = await _workspace_currency(principal["workspace_id"])
+        if d["stage"] == "won":
+            # No longer won — un-book the auto-created revenue.
+            await _remove_deal_revenue_entry(principal["workspace_id"], deal_id)
         if stage == "won":
             summary = f"Won {upd['name']} · {fmt_money(upd['value'], currency)}"
-            financial_entry, _created = await _ensure_deal_won_revenue_entry(updated, principal)
-            if financial_entry:
-                await log_activity(
-                    principal, "financials", "entry.add",
-                    f"Logged revenue from won deal · {financial_entry['name']} "
-                    f"{fmt_money(financial_entry['amount'], currency)} ({financial_entry['month']})",
-                    {
-                        "type": "revenue",
-                        "amount": financial_entry["amount"],
-                        "month": financial_entry["month"],
-                        "source": "deal",
-                        "source_deal_id": deal_id,
-                    },
-                )
+            financial_entry = await _book_won_deal_revenue(updated, principal, currency)
             prod_dept = await dept_migrate.get_enabled_department(
                 db, principal["workspace_id"], dept_catalog.TYPE_PRODUCTION,
             )
@@ -5748,6 +5901,12 @@ async def update_deal(deal_id: str, payload: DealInput, principal=Depends(requir
         else:
             summary = f"{upd['name']} moved to {STAGE_LABEL[stage]}"
         await log_activity(principal, "sales", "deal.stage", summary, {"stage": stage})
+    elif stage == "won" and round(float(d.get("value") or 0), 2) != upd["value"]:
+        # Still won, value edited — keep an existing auto-booked row in sync.
+        # Never insert here: won deals from before auto-booking (or whose row the
+        # founder deleted, e.g. because accounting already has it) must not
+        # silently gain revenue from a value edit.
+        await _sync_deal_revenue_amount(updated, principal)
     return {
         "ok": True,
         "deal": enriched,
@@ -5760,6 +5919,8 @@ async def update_deal(deal_id: str, payload: DealInput, principal=Depends(requir
 @api_router.delete("/deals/{deal_id}")
 async def delete_deal(deal_id: str, principal=Depends(require_section("sales", "sales:write"))):
     await db.deals.delete_one({"id": deal_id, "workspace_id": principal["workspace_id"]})
+    # Deleting a won deal must not leave orphaned auto-booked revenue behind.
+    await _remove_deal_revenue_entry(principal["workspace_id"], deal_id)
     invalidate_workspace_list_cache(principal["workspace_id"], "deals", "me_work")
     return {"ok": True}
 
@@ -6207,9 +6368,10 @@ async def financials(principal=Depends(require_section("financials", "finance:wr
         fin = await compute_financials(ws_id, department_ids=dept_ids, return_entries=True)
         entries = list(fin.pop("entries", None) or [])
         import finance_recurrence as fin_recur
+        ws_now = await _workspace_now(ws_id)
         for e in entries:
             e["name"] = normalize_entry_name(e.get("name"), e.get("category"))
-            e["scheduled"] = fin_recur.is_future_month(str(e.get("month") or ""))
+            e["scheduled"] = fin_recur.is_future_month(str(e.get("month") or ""), ws_now)
         return {**fin, "entries": entries}
 
     payload = await simple_cache.get_or_set(cache_key, _DEPT_LIST_CACHE_TTL_SECONDS, loader)
@@ -6761,7 +6923,7 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
 
     if payload.type not in ("revenue", "expense"):
         raise HTTPException(status_code=400, detail="type must be revenue or expense")
-    _reject_future_fin_month(payload.month)
+    _reject_future_fin_month(payload.month, await _workspace_now(principal["workspace_id"]))
     if payload.amount < 0:
         raise HTTPException(status_code=400, detail="amount must be non-negative")
     if not math.isfinite(payload.amount):
@@ -6857,7 +7019,7 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
 async def edit_fin_entry(entry_id: str, payload: FinEntryInput, principal=Depends(require_section("financials", "finance:write"))):
     if payload.type not in ("revenue", "expense"):
         raise HTTPException(status_code=400, detail="type must be revenue or expense")
-    _reject_future_fin_month(payload.month)
+    _reject_future_fin_month(payload.month, await _workspace_now(principal["workspace_id"]))
     if payload.amount < 0:
         raise HTTPException(status_code=400, detail="amount must be non-negative")
     if not math.isfinite(payload.amount):
@@ -6872,7 +7034,10 @@ async def edit_fin_entry(entry_id: str, payload: FinEntryInput, principal=Depend
         {"$set": {"type": payload.type, "category": category, "name": entry_name,
                   "amount": round(payload.amount, 2), "month": payload.month.strip(),
                   "recurring": payload.recurring, "recurrence": _fin_entry_recurrence(payload),
-                  "note": (payload.note or "").strip()}})
+                  "note": (payload.note or "").strip(),
+                  # Auto-booked rows (e.g. from a won deal) become the user's
+                  # once edited, so deal changes no longer overwrite or delete them.
+                  "user_edited": True}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Entry not found")
     invalidate_financials_cache(principal["workspace_id"])
@@ -6955,7 +7120,7 @@ async def import_financials_csv_preview(
         except UnicodeDecodeError:
             raise HTTPException(status_code=400, detail="Could not decode CSV as UTF-8 or Latin-1")
     try:
-        parsed = fin_csv.parse_financial_csv(text)
+        parsed = fin_csv.parse_financial_csv(text, now=await _workspace_now(principal["workspace_id"]))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:
@@ -6981,6 +7146,7 @@ async def import_financials_csv_confirm(
     if len(payload.entries) > 5000:
         raise HTTPException(status_code=400, detail="Too many rows (max 5000)")
     now = datetime.now(timezone.utc).isoformat()
+    ws_now_local = await _workspace_now(principal["workspace_id"])
     finance_dept_id = await dept_migrate.finance_department_id(db, principal["workspace_id"])
     docs = []
     for raw in payload.entries:
@@ -6996,7 +7162,7 @@ async def import_financials_csv_confirm(
         if amount < 0:
             continue
         month = (raw.get("month") or "").strip()
-        if not re.fullmatch(r"\d{4}-\d{2}", month) or not _valid_fin_month(month):
+        if not re.fullmatch(r"\d{4}-\d{2}", month) or not _valid_fin_month(month, now=ws_now_local):
             continue
         category = (raw.get("category") or "Other").strip() or "Other"
         docs.append({
@@ -7079,8 +7245,12 @@ async def create_task(payload: TaskInput, principal=Depends(require_pro_perm("ta
     if item["column"] == "done":
         item["progress"] = 100
         item["done_at"] = datetime.now(timezone.utc).isoformat()
-    t["items"].append(item)
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"tasks": t}})
+    # Atomic append — never read-modify-write the whole board (lost updates
+    # when two people add or move tasks at the same time).
+    await db.workspaces.update_one(
+        {"workspace_id": c["workspace_id"]},
+        {"$push": {"tasks.items": item}},
+    )
     invalidate_workspace_list_cache(principal["workspace_id"], "tasks", "me_work", "calendar", "reports")
     await notify_task_delegated(
         assignee_user_id=assignee_uid,
@@ -7090,6 +7260,9 @@ async def create_task(payload: TaskInput, principal=Depends(require_pro_perm("ta
         workspace_name=c.get("name") or "your company",
     )
     return {"ok": True, "task": item}
+
+
+_MISSING_FIELD = object()
 
 
 class TaskPatch(BaseModel):
@@ -7110,6 +7283,7 @@ async def patch_task(task_id: str, payload: TaskPatch, principal=Depends(require
 
     fields = payload.model_dump(exclude_unset=True)
     prev_assignee = target.get("assignee_user_id")
+    before = dict(target)
 
     if "column" in fields and fields["column"] is not None:
         prev_col = target.get("column")
@@ -7142,7 +7316,26 @@ async def patch_task(task_id: str, payload: TaskPatch, principal=Depends(require
             target["assignee_user_id"] = principal["user_id"]
             target["assignee"] = principal.get("name") or principal.get("email") or "Me"
 
-    await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"tasks": t}})
+    # Write only the changed fields of this one item (positional arrayFilters),
+    # so a concurrent edit to another task — or another field — is not lost.
+    set_ops = {
+        f"tasks.items.$[t].{k}": v for k, v in target.items()
+        if k != "id" and before.get(k, _MISSING_FIELD) != v
+    }
+    unset_ops = {f"tasks.items.$[t].{k}": "" for k in before if k not in target}
+    update_doc: dict = {}
+    if set_ops:
+        update_doc["$set"] = set_ops
+    if unset_ops:
+        update_doc["$unset"] = unset_ops
+    if update_doc:
+        result = await db.workspaces.update_one(
+            {"workspace_id": c["workspace_id"], "tasks.items.id": task_id},
+            update_doc,
+            array_filters=[{"t.id": task_id}],
+        )
+        if getattr(result, "matched_count", 1) == 0:
+            raise HTTPException(status_code=404, detail="Task not found")
     invalidate_workspace_list_cache(principal["workspace_id"], "tasks", "me_work", "calendar", "reports")
     if "assignee_user_id" in fields:
         await notify_task_delegated(
@@ -7162,20 +7355,21 @@ async def clear_done_tasks(principal=Depends(require_pro_perm("tasks:move"))):
     t = c["tasks"]
     can_assign = await can_section_write(principal, "tasks", "tasks:assign")
     uid = principal["user_id"]
-    kept, cleared = [], 0
+    cleared_ids: list[str] = []
     for item in t.get("items") or []:
         if item.get("column") != "done":
-            kept.append(item)
             continue
         owns = item.get("assignee_user_id") == uid
         unassigned = not item.get("assignee_user_id")
         if can_assign or owns or unassigned:
-            cleared += 1
-        else:
-            kept.append(item)
+            cleared_ids.append(item.get("id"))
+    cleared = len(cleared_ids)
     if cleared:
-        t["items"] = kept
-        await db.workspaces.update_one({"workspace_id": c["workspace_id"]}, {"$set": {"tasks": t}})
+        # $pull by id (and still-done) instead of rewriting the whole board.
+        await db.workspaces.update_one(
+            {"workspace_id": c["workspace_id"]},
+            {"$pull": {"tasks.items": {"id": {"$in": cleared_ids}, "column": "done"}}},
+        )
         invalidate_workspace_list_cache(principal["workspace_id"], "tasks", "me_work", "calendar", "reports")
         await log_activity(principal, "tasks", "tasks.clear_done", f"Cleared {cleared} finished task{'s' if cleared != 1 else ''}")
     return {"ok": True, "cleared": cleared}
@@ -7301,8 +7495,8 @@ async def delete_note(note_id: str, principal=Depends(get_principal)):
 
 
 # ------------------------- My Work (cross-department feed) -------------------------
-# Deep-link query params are not wired on department pages yet — URLs point at the
-# department page itself (known limitation; Tasks is the only page with ?task= today).
+# Each item's `url` deep-links to the record: department pages get ?item=<id>,
+# Sales gets /app/sales?deal=<id> (see work_items.work_item_url).
 _ME_WORK_URLS = helm_work_items.WORK_URLS
 
 
@@ -8519,6 +8713,31 @@ async def _department_calendar_upcoming(
     return out
 
 
+_DEADLINE_SOURCE_DEPT = {
+    "production_work_order": dept_catalog.TYPE_PRODUCTION,
+    "procurement_request": dept_catalog.TYPE_PROCUREMENT,
+    "legal_matter": dept_catalog.TYPE_LEGAL,
+}
+
+
+def _deadline_href(u: dict) -> Optional[str]:
+    """Deep link from a calendar deadline to the record it came from."""
+    st = u.get("source_type")
+    rid = u.get("source_id") or u.get("id")
+    if not st or not rid:
+        return None
+    if st == "decision":
+        return helm_work_items.decision_url(rid)
+    if st == "task":
+        return helm_work_items.task_url(rid)
+    if st == "hr_leave_request":
+        return helm_work_items.hr_leave_request_url(rid)
+    dept_type = _DEADLINE_SOURCE_DEPT.get(st)
+    if dept_type:
+        return helm_work_items.work_item_url(dept_type, rid)
+    return None
+
+
 def _deadlines_as_events(upcoming: list[dict]) -> list[dict]:
     """Turn upcoming deadline rows into calendar events.
 
@@ -8556,6 +8775,9 @@ def _deadlines_as_events(upcoming: list[dict]) -> list[dict]:
             ev["department_id"] = u["department_id"]
         if u.get("department_name"):
             ev["department_name"] = u["department_name"]
+        href = u.get("href") or _deadline_href(u)
+        if href:
+            ev["href"] = href
         events.append(ev)
     return events
 
@@ -8612,7 +8834,8 @@ async def calendar(
             continue
         if d.get("status") == "pending":
             upcoming.append({"id": d["id"], "title": d["title"], "date": due,
-                             "type": "Decision", "meta": d.get("category", "")})
+                             "type": "Decision", "meta": d.get("category", ""),
+                             "source_type": "decision", "source_id": d["id"]})
     for t in c["tasks"]["items"]:
         due = (t.get("due") or "").strip()
         try:
@@ -8621,12 +8844,17 @@ async def calendar(
             continue
         if t.get("column") != "done" and (not t.get("assignee_user_id") or t.get("assignee_user_id") == principal["user_id"]):
             upcoming.append({"id": t["id"], "title": t["title"], "date": due,
-                             "type": "Task", "meta": t.get("tag", "")})
+                             "type": "Task", "meta": t.get("tag", ""),
+                             "source_type": "task", "source_id": t["id"]})
     upcoming.extend(await _department_calendar_upcoming(
         principal["workspace_id"],
         accessible_department_ids=visible_dept_ids,
     ))
     upcoming.sort(key=lambda x: x["date"])
+    for u in upcoming:
+        href = _deadline_href(u)
+        if href:
+            u["href"] = href
     data["upcoming"] = upcoming
     week_end = (week_anchor + timedelta(days=6)).strftime("%Y-%m-%d")
     week_start_s = week_anchor.strftime("%Y-%m-%d")
@@ -16595,7 +16823,7 @@ async def health():
 
 @api_router.get("/")
 async def root():
-    return {"service": "Trenston CEO Operating System"}
+    return {"service": "Trenston — Founder & CEO Operating System"}
 
 
 _serve_static = should_serve_static()
@@ -16605,7 +16833,7 @@ if not _serve_static:
     async def api_root():
         """Friendly response when someone opens the Render host directly (API-only)."""
         return {
-            "service": "Trenston CEO Operating System API",
+            "service": "Trenston — Founder & CEO Operating System API",
             "message": "This URL is the API backend. Open your Vercel app to use Trenston.",
             "health": "/api/health",
             "auth": "/api/auth/config",

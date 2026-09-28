@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Scale, FileText, Upload } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -11,6 +12,8 @@ import {
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
+import { highlightRecord } from "@/lib/signalRoute";
+import DepartmentNotEnabled from "@/components/DepartmentNotEnabled";
 
 const STATUS_META = {
   draft: { label: "Draft", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -66,6 +69,9 @@ export default function Legal() {
   const [form, setForm] = useState({ title: "", matter_type: "contract", assigned_to: "", notes: "", due_date: "", recurrence: "", counterparty: "" });
   const [counterpartySuggestions, setCounterpartySuggestions] = useState([]);
   const fileRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const deepItemId = searchParams.get("item");
+  const handledDeepLink = useRef(null);
 
   const allMatters = useMemo(() => data?.matters || [], [data?.matters]);
   const visible = useMemo(
@@ -78,6 +84,25 @@ export default function Legal() {
   );
   const workspaceMembers = (membersData?.members || []).filter((m) => m.user_id && m.status === "active");
 
+  // Deep link: /app/departments/legal?item=<id> opens that matter once data
+  // is loaded (revealing filed matters if needed) and flashes its row.
+  useEffect(() => {
+    if (!deepItemId || !data || handledDeepLink.current === deepItemId) return;
+    handledDeepLink.current = deepItemId;
+    const target = allMatters.find((m) => m.id === deepItemId);
+    if (!target) {
+      toast.info("That matter is no longer in the queue");
+      return;
+    }
+    if (target.status === "filed") setShowFiled(true);
+    setSelectedId(target.id);
+    highlightRecord(target.id);
+  }, [deepItemId, data, allMatters]);
+
+  // Reset the draft only when a different matter is opened or the server copy
+  // actually changed (save / someone else's edit) — not on every background
+  // refetch, which would wipe half-typed notes.
+  const draftKey = selected ? `${selected.id}|${selected.updated_at || ""}` : null;
   useEffect(() => {
     if (!selected) {
       setDraft(null);
@@ -93,7 +118,8 @@ export default function Legal() {
       recurrence: selected.recurrence || "",
       counterparty: selected.counterparty || "",
     });
-  }, [selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on id + updated_at on purpose
+  }, [draftKey]);
 
   if (loading) {
     return (
@@ -110,19 +136,13 @@ export default function Legal() {
       return (
         <ErrorScreen
           label="Access denied"
-          message="You are not a member of Legal. Ask your CEO to add you."
+          message="You are not a member of Legal. Ask your founder or CEO to add you."
           onRetry={reload}
         />
       );
     }
     if (status === 404) {
-      return (
-        <ErrorScreen
-          label="Legal not enabled"
-          message="Enable Legal under Settings → Departments first."
-          onRetry={reload}
-        />
-      );
+      return <DepartmentNotEnabled deptType="legal" label="Legal" onEnabled={reload} onRetry={reload} />;
     }
     return (
       <ErrorScreen
@@ -181,7 +201,9 @@ export default function Legal() {
       body.title = draft.title.trim();
       body.matter_type = draft.matter_type;
       body.notes = draft.notes;
-      body.status = draft.status;
+      // Only send status when it changed, so an assignee can still save notes
+      // and dates on a matter a lead already moved past internal review.
+      if (draft.status !== selected.status) body.status = draft.status;
       body.due_date = (draft.due_date || "").trim();
       body.counterparty = (draft.counterparty || "").trim();
       body.recurrence = draft.matter_type === "compliance" ? (draft.recurrence || null) : null;
@@ -189,8 +211,8 @@ export default function Legal() {
     if (isLead && draft.assigned_to !== selected.assigned_to) {
       body.assigned_to = draft.assigned_to || null;
     }
-    if (!isLead && !MEMBER_STATUSES.has(draft.status)) {
-      toast.error("Only a lead or CEO can advance past internal review");
+    if (!isLead && draft.status !== selected.status && !MEMBER_STATUSES.has(draft.status)) {
+      toast.error("Only a lead, founder, or CEO can advance past internal review");
       return;
     }
     setBusy(true);
@@ -370,6 +392,7 @@ export default function Legal() {
                 return (
                 <tr
                   key={m.id}
+                  data-deeplink={m.id}
                   data-testid={`legal-row-${m.id}`}
                   onClick={() => setSelectedId(m.id)}
                   className={cn(
@@ -519,7 +542,7 @@ export default function Legal() {
                 ))}
               </select>
               {!isLead && (
-                <span className="text-[10px] text-helm-muted">Only a lead or CEO can reassign</span>
+                <span className="text-[10px] text-helm-muted">Only a lead, founder, or CEO can reassign</span>
               )}
             </label>
           </div>

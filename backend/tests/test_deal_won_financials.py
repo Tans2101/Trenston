@@ -71,6 +71,17 @@ class DocStore:
                 return MagicMock(matched_count=1)
         return MagicMock(matched_count=0)
 
+    async def delete_one(self, query):
+        def _ok(r, k, v):
+            if isinstance(v, dict) and "$ne" in v:
+                return r.get(k) != v["$ne"]
+            return r.get(k) == v
+        for i, r in enumerate(self.rows):
+            if all(_ok(r, k, v) for k, v in query.items()):
+                del self.rows[i]
+                return MagicMock(deleted_count=1)
+        return MagicMock(deleted_count=0)
+
     async def insert_one_deal(self, doc):
         self.rows.append(dict(doc))
 
@@ -296,6 +307,136 @@ def test_no_production_prompt_when_production_disabled(won_api):
 def test_deal_revenue_month_helper():
     from datetime import datetime, timezone
     now = datetime(2026, 3, 15, tzinfo=timezone.utc)
-    assert server._deal_revenue_month("2026-09-20", now=now) == "2026-09"
+    # Past close date books in its own month.
+    assert server._deal_revenue_month("2026-02-20", now=now) == "2026-02"
+    # Future close date when won → the month it was actually won.
+    assert server._deal_revenue_month("2026-09-20", now=now) == "2026-03"
     assert server._deal_revenue_month("", now=now) == "2026-03"
     assert server._deal_revenue_month("not-a-date", now=now) == "2026-03"
+
+
+def test_deal_revenue_month_uses_workspace_local_now():
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo
+    # 2026-09-30 20:00 UTC == 2026-10-01 04:00 in Manila.
+    utc_now = datetime(2026, 9, 30, 20, 0, tzinfo=timezone.utc)
+    manila_now = utc_now.astimezone(ZoneInfo("Asia/Manila"))
+    assert server._deal_revenue_month("2026-10-01", now=manila_now) == "2026-10"
+    assert server._deal_revenue_month("2026-10-01", now=utc_now) == "2026-09"
+
+
+def _won_payload(deal, **overrides):
+    body = {
+        "name": deal["name"],
+        "company": deal["company"],
+        "value": deal["value"],
+        "stage": "won",
+        "owner_name": deal["owner_name"],
+        "close_date": deal["close_date"],
+    }
+    body.update(overrides)
+    return body
+
+
+def test_future_close_date_books_current_month(won_api):
+    from datetime import datetime, timezone
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client, close_date="2099-12-31")
+    r = client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal))
+    assert r.status_code == 200, r.text
+    # Mock workspace has no timezone → default zone; compare against that.
+    expected = server.tz_utils.workspace_now({}).strftime("%Y-%m")
+    assert r.json()["financial_entry"]["month"] == expected
+    assert entries.rows[0]["month"] == expected
+
+
+def test_deal_created_as_won_books_revenue(won_api):
+    client, deals, entries, *_ = won_api
+    r = client.post("/api/deals", json={
+        "name": "Direct Win", "company": "Beta", "value": 5000,
+        "stage": "won", "owner_name": "CEO", "close_date": "2026-01-10",
+    })
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["financial_entry"]["source_deal_id"] == body["deal"]["id"]
+    assert body["financial_entry"]["amount"] == 5000
+    assert body["financial_entry"]["month"] == "2026-01"
+    assert len(entries.rows) == 1
+
+
+def test_deal_created_not_won_books_nothing(won_api):
+    client, deals, entries, *_ = won_api
+    r = client.post("/api/deals", json={
+        "name": "Open", "company": "Beta", "value": 5000,
+        "stage": "lead", "owner_name": "CEO", "close_date": "",
+    })
+    assert r.status_code == 200, r.text
+    assert r.json()["financial_entry"] is None
+    assert entries.rows == []
+
+
+def test_moving_won_deal_away_removes_revenue(won_api):
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    assert len(entries.rows) == 1
+    r = client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, stage="negotiation"))
+    assert r.status_code == 200, r.text
+    assert entries.rows == []
+
+
+def test_moving_away_keeps_manual_entry_linked_to_deal(won_api):
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    # Simulate a manually-entered row that also references the deal.
+    entries.rows[0]["source"] = "manual"
+    client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, stage="lost"))
+    assert len(entries.rows) == 1
+
+
+def test_deleting_won_deal_removes_revenue(won_api):
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    assert len(entries.rows) == 1
+    assert client.delete(f"/api/deals/{deal['id']}").status_code == 200
+    assert entries.rows == []
+
+
+def test_editing_won_deal_value_updates_revenue_amount(won_api):
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    r = client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, value=31000))
+    assert r.status_code == 200, r.text
+    assert len(entries.rows) == 1
+    assert entries.rows[0]["amount"] == 31000
+    # Idempotent: same value again changes nothing.
+    client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, value=31000))
+    assert len(entries.rows) == 1
+    assert entries.rows[0]["amount"] == 31000
+
+
+def test_value_edit_on_won_deal_without_row_does_not_book_revenue(won_api):
+    """Won deals from before auto-booking (or whose row was deleted) must not
+    silently gain a revenue entry just because their value was edited."""
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    entries.rows.clear()  # founder removed the auto row (e.g. accounting has it)
+    r = client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, value=42000))
+    assert r.status_code == 200, r.text
+    assert entries.rows == []
+
+
+def test_user_edited_revenue_row_survives_unwin_and_value_edit(won_api):
+    client, deals, entries, *_ = won_api
+    deal = _create_deal(client)
+    assert client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal)).status_code == 200
+    entries.rows[0]["user_edited"] = True
+    entries.rows[0]["amount"] = 12345
+    client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, value=31000))
+    assert entries.rows[0]["amount"] == 12345
+    client.patch(f"/api/deals/{deal['id']}", json=_won_payload(deal, stage="lost"))
+    assert len(entries.rows) == 1

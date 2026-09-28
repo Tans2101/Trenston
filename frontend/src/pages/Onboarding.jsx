@@ -69,7 +69,7 @@ export default function Onboarding() {
       await api.post("/workspace/apply-template", { template });
       window.location.href = "/app";
     } catch (e) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error(e?.response?.data?.detail || "Something went wrong. Please try again.");
       setBusy(null);
     }
   };

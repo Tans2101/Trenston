@@ -418,7 +418,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
         />
         <SidebarThemeControl />
         <ProfileDropdown
-          name={user?.name || "CEO"}
+          name={user?.name || "You"}
           picture={user?.picture}
           planLabel={(() => {
             const plan = helmPlanLabel(company?.plan, isPro, billingEnforced);
@@ -589,8 +589,21 @@ function useQuickNavActions() {
     const byId = new Map(navActions.map((a) => [a.id, a]));
     const quickActions = QUICK_ACTION_IDS.map((id) => byId.get(id)).filter(Boolean);
 
+    // Verbs, not just places. "Ask Trenston" is already a nav action above.
+    // Decisions opens the form itself only for people who can log decisions.
+    const createActions = byId.has("decisions")
+      ? [{
+        id: "new-decision",
+        label: "New decision",
+        to: "/app/decisions?new=1",
+        description: "Create",
+        keywords: ["log decision", "add decision", "create", "call"],
+        icon: <Plus className="w-4 h-4" />,
+      }]
+      : [];
+
     return {
-      actions: [...navActions, ...deptActions, ...settingsActions, ...siteActions],
+      actions: [...createActions, ...navActions, ...deptActions, ...settingsActions, ...siteActions],
       quickActions,
       departmentActions: deptActions,
     };
@@ -792,7 +805,7 @@ export default function AppLayout() {
               <Bell className="w-4 h-4" />
             </button>
             <ProfileDropdown
-              name={user?.name || "CEO"}
+              name={user?.name || "You"}
               picture={user?.picture}
               planLabel={profilePlanLabel}
               showBilling={canBilling}

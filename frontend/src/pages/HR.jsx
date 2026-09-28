@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X, Users, ChevronUp, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -12,6 +12,18 @@ import {
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
+import { highlightRecord } from "@/lib/signalRoute";
+import DepartmentNotEnabled from "@/components/DepartmentNotEnabled";
+
+const HR_TABS = ["onboarding", "employees", "leave", "offboarding"];
+
+/** Initial tab from the URL: ?tab=<id>, else ?employee= → employees. */
+function tabFromParams(params) {
+  const t = params.get("tab");
+  if (t && HR_TABS.includes(t)) return t;
+  if (params.get("employee")) return "employees";
+  return "onboarding";
+}
 
 const STEP_STATUS_META = {
   not_started: { label: "Not started", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -41,7 +53,7 @@ function personLabel(p) {
 
 export default function HR() {
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState("onboarding");
+  const [tab, setTab] = useState(() => tabFromParams(searchParams));
   const { data, loading, error, reload } = useFetch("/hr/onboarding");
   const { data: tmplData, reload: reloadTmpl } = useFetch("/hr/template");
   const { data: empData, reload: reloadEmp } = useFetch("/hr/employees");
@@ -77,8 +89,83 @@ export default function HR() {
     const emp = searchParams.get("employee");
     if (!emp) return;
     setTab("employees");
+    setEmpStatusFilter("");
     setSelectedEmpId(emp);
+    highlightRecord(emp);
   }, [searchParams]);
+
+  // ?tab=<id> keeps the tab in sync when the URL changes while mounted.
+  const tabParam = searchParams.get("tab");
+  useEffect(() => {
+    if (tabParam && HR_TABS.includes(tabParam)) setTab(tabParam);
+  }, [tabParam]);
+
+  // ?tab=leave&request=<id> → leave tab, clear the status filter so the
+  // request is visible, and flash its row.
+  const leaveRequestParam = searchParams.get("request");
+  const handledLeaveLink = useRef(null);
+  useEffect(() => {
+    if (!leaveRequestParam || !leaveData || handledLeaveLink.current === leaveRequestParam) return;
+    handledLeaveLink.current = leaveRequestParam;
+    setTab("leave");
+    const found = (leaveData?.requests || []).some((r) => r.id === leaveRequestParam);
+    if (!found) {
+      toast.info("That leave request is no longer open");
+      return;
+    }
+    setLeaveStatusFilter("");
+    highlightRecord(leaveRequestParam);
+  }, [leaveRequestParam, leaveData]);
+
+  // ?item=<id> → whichever HR record it is (onboarding, offboarding,
+  // employee or leave request), revealing completed rows if needed.
+  const itemParam = searchParams.get("item");
+  // My Work links onboarding/offboarding steps as "<instanceId>:<stepId>";
+  // the record to open is the instance.
+  const itemId = itemParam ? itemParam.split(":")[0] : null;
+  const handledItemLink = useRef(null);
+  useEffect(() => {
+    if (!itemParam || handledItemLink.current === itemParam) return;
+    const onb = (data?.instances || []).find((i) => i.id === itemId);
+    if (onb) {
+      handledItemLink.current = itemParam;
+      setTab("onboarding");
+      if (onb.overall_status === "active") setShowActive(true);
+      setSelectedId(onb.id);
+      highlightRecord(onb.id);
+      return;
+    }
+    const off = (offData?.instances || []).find((i) => i.id === itemId);
+    if (off) {
+      handledItemLink.current = itemParam;
+      setTab("offboarding");
+      if (off.overall_status === "active") setShowCompletedOff(true);
+      setSelectedOffId(off.id);
+      highlightRecord(off.id);
+      return;
+    }
+    const emp = (empData?.employees || []).find((e) => e.id === itemId);
+    if (emp) {
+      handledItemLink.current = itemParam;
+      setTab("employees");
+      setEmpStatusFilter("");
+      setSelectedEmpId(emp.id);
+      highlightRecord(emp.id);
+      return;
+    }
+    const leave = (leaveData?.requests || []).find((r) => r.id === itemId);
+    if (leave) {
+      handledItemLink.current = itemParam;
+      setTab("leave");
+      setLeaveStatusFilter("");
+      highlightRecord(leave.id);
+      return;
+    }
+    if (data && offData && empData && leaveData) {
+      handledItemLink.current = itemParam;
+      toast.info("That HR record is no longer available");
+    }
+  }, [itemParam, itemId, data, offData, empData, leaveData]);
 
   const all = useMemo(() => data?.instances || [], [data?.instances]);
   const visible = useMemo(
@@ -151,19 +238,13 @@ export default function HR() {
       return (
         <ErrorScreen
           label="Access denied"
-          message="You are not a member of HR. Ask your CEO to add you."
+          message="You are not a member of HR. Ask your founder or CEO to add you."
           onRetry={reload}
         />
       );
     }
     if (status === 404) {
-      return (
-        <ErrorScreen
-          label="HR not enabled"
-          message="Enable HR under Settings → Departments first."
-          onRetry={reload}
-        />
-      );
+      return <DepartmentNotEnabled deptType="hr" label="HR" onEnabled={reload} onRetry={reload} />;
     }
     return (
       <ErrorScreen
@@ -525,7 +606,7 @@ export default function HR() {
                   ? "Turn on “Show completed” to see finished hires, or start a new one."
                   : isLead
                     ? "Start onboarding for a new hire. Their checklist is copied from the template."
-                    : "Ask an HR lead or the CEO to start onboarding for a new hire."
+                    : "Ask an HR lead, the founder, or the CEO to start onboarding for a new hire."
               }
               action={isLead ? (
                 <button
@@ -554,6 +635,7 @@ export default function HR() {
                     return (
                       <tr
                         key={inst.id}
+                        data-deeplink={inst.id}
                         data-testid={`hr-row-${inst.id}`}
                         onClick={() => setSelectedId(inst.id)}
                         className={cn(
@@ -728,6 +810,7 @@ export default function HR() {
                     return (
                       <tr
                         key={emp.id}
+                        data-deeplink={emp.id}
                         data-testid={`hr-employee-${emp.id}`}
                         onClick={() => setSelectedEmpId(emp.id)}
                         className={cn(
@@ -859,6 +942,7 @@ export default function HR() {
                   {leaveRequests.map((req) => (
                     <tr
                       key={req.id}
+                      data-deeplink={req.id}
                       data-testid={`hr-leave-${req.id}`}
                       className="border-b border-helm-line"
                     >
@@ -957,6 +1041,7 @@ export default function HR() {
                   {offVisible.map((inst) => (
                     <tr
                       key={inst.id}
+                      data-deeplink={inst.id}
                       data-testid={`hr-off-row-${inst.id}`}
                       onClick={() => setSelectedOffId(inst.id)}
                       className={cn(

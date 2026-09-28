@@ -124,8 +124,11 @@ def _parse_type(raw: str) -> Optional[str]:
     return TYPE_ALIASES.get(key)
 
 
-def parse_financial_csv(text: str) -> dict[str, Any]:
-    """Return {valid: [...], skipped: [{row, reason}], parsed_row_count} without writing."""
+def parse_financial_csv(text: str, *, now=None) -> dict[str, Any]:
+    """Return {valid: [...], skipped: [{row, reason}], parsed_row_count} without writing.
+
+    ``now`` should be the workspace-local datetime so "future month" matches the
+    founder's calendar (defaults to UTC)."""
     import finance_recurrence as fin_recur
 
     if text.startswith("\ufeff"):
@@ -166,7 +169,7 @@ def parse_financial_csv(text: str) -> dict[str, Any]:
         if not month:
             skipped.append({"row": i, "reason": f"Invalid date/month: {raw_date!r}"})
             continue
-        if fin_recur.is_future_month(month):
+        if fin_recur.is_future_month(month, now):
             skipped.append({"row": i, "reason": f"Month cannot be in the future: {month}"})
             continue
         entry_type = _parse_type(raw_type)

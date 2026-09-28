@@ -33,7 +33,7 @@ export default function CompanySetup({ company }) {
     typeof company?.has_team === "boolean",
   );
   const [form, setForm] = useState({
-    founder_title: company?.founder_title || "CEO",
+    founder_title: company?.founder_title || "Founder",
     display_name: (user?.name || "").trim(),
     name: company?.name || "",
     industry: company?.industry || "",
@@ -78,7 +78,8 @@ export default function CompanySetup({ company }) {
     if (step === 2) {
       return (
         !!form.employees
-        && form.founded?.length === 4
+        // Founded is optional (backend accepts blank) — only reject a partial year.
+        && (!form.founded || form.founded.length === 4)
         && typeof form.has_team === "boolean"
       );
     }
@@ -381,7 +382,7 @@ export default function CompanySetup({ company }) {
                     </div>
                   </div>
                   <label className="block text-xs text-helm-muted">
-                    Founded
+                    Founded <span className="text-helm-muted">(optional)</span>
                     <input
                       data-testid="setup-founded"
                       value={form.founded}
@@ -426,7 +427,7 @@ export default function CompanySetup({ company }) {
                     ["Maturity", form.stage],
                     ["Team size", teamSizeLabel()],
                     ["Can delegate", form.has_team ? "Yes — I have people I can hand work to" : "No — just me for now"],
-                    ["Founded", form.founded],
+                    ["Founded", form.founded || "—"],
                     ...(form.mission ? [["Mission", form.mission]] : []),
                   ].map(([label, value]) => (
                     <div key={label} className="flex gap-4 py-2 border-b border-helm-fg/[0.04] last:border-0">

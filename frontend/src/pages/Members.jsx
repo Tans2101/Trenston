@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { UserPlus, User, Mail, Copy, Link2, Shield, Check } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -9,6 +10,7 @@ import { PageHeader, GlassCard, SectionLabel, ErrorScreen, SkeletonCardList } fr
 import { ASSIGNABLE_PACKS, packMeta, hasPerm } from "@/lib/access";
 import { formatDepartmentNames } from "@/lib/departments";
 import { cn } from "@/lib/utils";
+import { MANAGE_DEPARTMENTS_HREF } from "@/lib/departmentRoutes";
 
 export default function Members() {
   const { user } = useAuth();
@@ -18,7 +20,9 @@ export default function Members() {
   const { data: codeData } = useFetch(canInvite ? "/workspaces/join-code" : null);
   const { data: accessData, reload: reloadAccess } = useFetch(canManageOwners ? "/access/sections" : null);
 
-  const [tab, setTab] = useState("team");
+  const [searchParams] = useSearchParams();
+  // ?tab=access (e.g. from the People roster) opens Manage Access directly.
+  const [tab, setTab] = useState(() => (searchParams.get("tab") === "access" ? "access" : "team"));
   const [email, setEmail] = useState("");
   const [pack, setPack] = useState("member");
   const [busy, setBusy] = useState(false);
@@ -261,7 +265,8 @@ export default function Members() {
                     <p className="text-[10px] font-mono uppercase tracking-[0.18em] text-helm-muted mt-4 mb-2">Department lanes</p>
                     {enabledDepartments.length === 0 ? (
                       <p className="text-xs text-helm-muted" data-testid={`access-depts-none-${member.membership_id}`}>
-                        No departments enabled yet. Turn them on under Settings → Departments.
+                        No departments enabled yet. Turn them on under{" "}
+                        <Link to={MANAGE_DEPARTMENTS_HREF} className="text-helm-gold hover:underline">Settings → Departments</Link>.
                       </p>
                     ) : !member.user_id ? (
                       <p className="text-xs text-helm-muted" data-testid={`access-depts-pending-${member.membership_id}`}>
@@ -309,7 +314,7 @@ export default function Members() {
         </GlassCard>
       )}
 
-      {tab === "team" && (
+      {(tab === "team" || !canManageOwners) && (
         <>
           {canInvite && (
             <GlassCard className="p-5 mb-4 fade-up">

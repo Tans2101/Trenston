@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
@@ -17,6 +17,7 @@ import BentoGrid from "@/components/kokonutui/bento-grid";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import BriefingCockpitHero from "@/components/BriefingCockpitHero";
 import { toastGmailDraftNote } from "@/components/CirNote";
+import { decisionHref, taskHref, signalRoute, moduleRoute } from "@/lib/signalRoute";
 
 const toneDot = { positive: "bg-helm-status-positive", negative: "bg-helm-status-negative", neutral: "bg-helm-muted" };
 
@@ -103,7 +104,10 @@ export default function Briefing() {
       />
     );
   }
-  if (company.onboarding_done === false) return <Onboarding />;
+  // Setup is for people who can edit the workspace. Invited teammates without
+  // that permission would be stuck on a wizard they cannot finish, so they get
+  // the normal briefing instead.
+  if (company.onboarding_done === false && canClearSample) return <Onboarding />;
 
   const canGenerateAi = Boolean(data.can_generate_ai_summary);
 
@@ -129,8 +133,11 @@ export default function Briefing() {
   const assignDelegate = async (id) => {
     setDelegateBusy(id);
     try {
-      await api.post(`/delegates/suggestions/${id}/assign`);
-      toast.success(company?.has_team === false ? "Saved for later" : "Task created");
+      const { data: res } = await api.post(`/delegates/suggestions/${id}/assign`);
+      const taskId = res?.task?.id;
+      toast.success(company?.has_team === false ? "Saved for later" : "Task created", taskId
+        ? { action: { label: "Open task", onClick: () => navigate(taskHref(taskId)) } }
+        : undefined);
       reloadBriefing();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not save task");
@@ -216,7 +223,7 @@ export default function Briefing() {
   };
 
   const { greeting: timeGreet, briefingLabel } = dayPartGreeting();
-  const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "CEO"}`;
+  const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "there"}`;
   const doneCount = checklist?.steps?.filter((s) => s.done).length ?? 0;
   const stepCount = checklist?.steps?.length ?? 0;
   const showChecklist = Boolean(checklist && !checklist.complete && !checklist.dismissed);
@@ -235,6 +242,10 @@ export default function Briefing() {
   const whatChanged = data.what_changed || [];
   const whatToDecide = data.what_to_decide || [];
   const whatToDelegate = data.what_to_delegate || [];
+  // Server total when present (the list may be capped); otherwise the list length.
+  const whatToDecideTotal = Number.isFinite(data.what_to_decide_total) ? data.what_to_decide_total : whatToDecide.length;
+  // Older payloads have no can_act; only hide actions on an explicit false.
+  const canActBriefing = data.can_act !== false;
   const hasTeam = company?.has_team !== false;
   const setupHeadline = /start by logging your financials/i.test(data.headline || "");
   const financeMetrics = metrics.filter((m) => /mrr|revenue|^burn|runway/i.test(m.label || ""));
@@ -308,6 +319,8 @@ export default function Briefing() {
       <BriefingCockpitHero
         metrics={metrics}
         decisions={whatToDecide}
+        decisionsTotal={whatToDecideTotal}
+        canAct={data.can_act}
         suppressFinanceEmpty={showSetupPrompt}
       />
 
@@ -627,22 +640,38 @@ export default function Briefing() {
             {whatChanged.length === 0 && (
               <p className="text-sm text-helm-muted leading-relaxed">Nothing new logged yet.</p>
             )}
-            {whatChanged.map((c, i) => (
-              <div key={i} className="flex gap-3" data-testid={`changed-${i}`}>
-                <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone] || toneDot.neutral)} />
-                <div>
-                  <p className="text-sm text-helm-fg leading-snug">{c.title}</p>
-                  <p className="text-xs text-helm-muted mt-1 leading-relaxed">{c.detail}</p>
+            {whatChanged.map((c, i) => {
+              const raw = moduleRoute(c.module);
+              // Don't link into a gated section the viewer can't open.
+              const gated = raw === "/app/financials" ? "financials" : raw === "/app/telemetry" ? "telemetry" : null;
+              const to = gated && !(user?.granted_sections || []).includes(gated) ? null : raw;
+              const inner = (
+                <>
+                  <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone] || toneDot.neutral)} />
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-sm text-helm-fg leading-snug", to && "group-hover:text-helm-gold")}>{c.title}</p>
+                    <p className="text-xs text-helm-muted mt-1 leading-relaxed">{c.detail}</p>
+                  </div>
+                  {to && <ArrowUpRight className="w-3.5 h-3.5 text-helm-muted shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
+                </>
+              );
+              return to ? (
+                <Link key={i} to={to} className="flex gap-3 group rounded-md -mx-1 px-1 hover:bg-helm-fg/[0.03] transition-colors" data-testid={`changed-${i}`}>
+                  {inner}
+                </Link>
+              ) : (
+                <div key={i} className="flex gap-3" data-testid={`changed-${i}`}>
+                  {inner}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </GlassCard>
 
         <GlassCard className="p-5 fade-up">
           <div className="flex items-center justify-between mb-4">
             <BriefLabel>What to decide</BriefLabel>
-            <span className="text-xs tabular-nums text-helm-muted">{whatToDecide.length}</span>
+            <span className="text-xs tabular-nums text-helm-muted">{whatToDecideTotal}</span>
           </div>
           <div className="space-y-3">
             {whatToDecide.length === 0 && (
@@ -651,7 +680,7 @@ export default function Briefing() {
             {whatToDecide.map((d) => (
               <button
                 key={d.id}
-                onClick={() => navigate("/app/decisions")}
+                onClick={() => navigate(decisionHref(d.id))}
                 data-testid={`decide-${d.id}`}
                 className="w-full text-left rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3 transition-colors hover:border-helm-fg/15 hover:bg-helm-fg/[0.04] group"
               >
@@ -679,6 +708,15 @@ export default function Briefing() {
                 </div>
               </button>
             ))}
+            {whatToDecideTotal > whatToDecide.length && (
+              <button
+                type="button"
+                onClick={() => navigate("/app/decisions")}
+                className="text-xs text-helm-gold hover:text-helm-gold-hover"
+              >
+                View all {whatToDecideTotal} decisions
+              </button>
+            )}
           </div>
         </GlassCard>
 
@@ -705,7 +743,7 @@ export default function Briefing() {
               <div key={d.id || i} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`delegate-${d.id || i}`}>
                 <button
                   type="button"
-                  onClick={() => navigate("/app/tasks")}
+                  onClick={() => navigate(signalRoute(d)?.to || "/app/tasks")}
                   className="w-full text-left group"
                 >
                   <p className="text-sm text-helm-fg leading-snug group-hover:text-helm-gold">{d.title}</p>
@@ -717,7 +755,7 @@ export default function Briefing() {
                     <span className="text-xs">{d.owner || d.suggested_owner_name}</span>
                   </div>
                 )}
-                {d.id && (
+                {d.id && canActBriefing && (
                   <div className="flex gap-2 mt-3">
                     <button
                       data-testid={hasTeam && !d.personal ? `assign-delegate-${d.id}` : `save-later-${d.id}`}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, PenLine } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -8,6 +9,36 @@ import { GlassCard, SectionLabel, EmptyState, ConfirmDialog } from "@/components
 import { cn } from "@/lib/utils";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
+import { fetchErrorMessage } from "@/hooks/useFetch";
+import { highlightRecord } from "@/lib/signalRoute";
+
+const PANEL_IDS = ["spares", "schedule", "contracts", "overhead"];
+
+function panelFromHash(hash) {
+  const h = String(hash || "").replace(/^#/, "").toLowerCase();
+  return PANEL_IDS.includes(h) ? h : null;
+}
+
+/** A failed sub-load must not look like "none yet" — say so and offer Retry. */
+function PanelLoadError({ query, what }) {
+  return (
+    <div
+      className="rounded-md border border-helm-status-negative/35 bg-helm-status-negative/8 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2"
+      data-testid="maint-panel-error"
+    >
+      <p className="text-sm text-helm-fg">
+        Could not load {what}. {fetchErrorMessage(query.error, "")}
+      </p>
+      <button
+        type="button"
+        onClick={() => query.reload?.()}
+        className="rounded-md border border-helm-line text-xs px-3 py-1.5 text-helm-fg hover:border-helm-gold/35"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
 
 
 /** equipment_names may be missing/legacy — never call .filter on a non-array. */
@@ -27,7 +58,9 @@ const emptyContract = {
 
 /** Spares / Schedule / Contracts / Overhead panels for Maintenance. */
 export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
-  const [tab, setTab] = useState("spares");
+  const location = useLocation();
+  // Deep links: /app/departments/engineering_maintenance#spares|#schedule|#contracts
+  const [tab, setTab] = useState(() => panelFromHash(location.hash) || "spares");
   const sparesQ = useFetch("/maintenance/spares");
   const schedQ = useFetch("/maintenance/schedules");
   const contractsQ = useFetch("/maintenance/contracts");
@@ -47,6 +80,13 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
   const [editingContractId, setEditingContractId] = useState(null);
   const [pendingDelete, setPendingDelete] = useState(null);
 
+  useEffect(() => {
+    const fromHash = panelFromHash(location.hash);
+    if (!fromHash) return;
+    setTab(fromHash);
+    highlightRecord("maintenance-ops-panels");
+  }, [location.hash]);
+
   const overhead = ticketData?.overhead || costsQ.data?.overhead || settingsQ.data?.overhead;
   const { symbol: workspaceSymbol } = useWorkspaceCurrency();
   const symbol = ticketData?.currency_symbol || costsQ.data?.currency_symbol || workspaceSymbol;
@@ -64,7 +104,20 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
     ]);
   };
 
+  // Pre-fill the budget field with the saved budget (and follow later saves),
+  // so the lead edits the real number instead of a blank box.
+  const savedBudget = overhead?.budget_entered
+    ? overhead.budget
+    : (settingsQ.data?.monthly_budget_entered ? settingsQ.data.monthly_budget : null);
+  useEffect(() => {
+    setBudgetDraft(savedBudget == null ? "" : String(savedBudget));
+  }, [savedBudget]);
+
   const saveBudget = async () => {
+    if (!String(budgetDraft).trim()) {
+      toast.error("Enter a monthly budget amount");
+      return;
+    }
     const t = Number(budgetDraft);
     if (!Number.isFinite(t) || t < 0) {
       toast.error("Enter a non-negative budget");
@@ -248,9 +301,13 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
   };
 
   const addCost = async () => {
+    if (!String(costForm.amount).trim()) {
+      toast.error("Enter the cost amount");
+      return;
+    }
     const amount = Number(costForm.amount);
-    if (!Number.isFinite(amount) || amount < 0) {
-      toast.error("Enter a valid amount");
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Enter an amount greater than zero");
       return;
     }
     setBusy(true);
@@ -323,7 +380,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
   const costs = costsQ.data?.costs || [];
 
   return (
-    <div className="mt-6 space-y-4" data-testid="maintenance-ops-panels">
+    <div className="mt-6 space-y-4 scroll-mt-24" data-testid="maintenance-ops-panels" data-deeplink="maintenance-ops-panels">
       {overhead && (
         <div
           className={cn(
@@ -374,7 +431,11 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               <Plus className="w-4 h-4" /> Add spare
             </button>
           )}
-          {(sparesQ.data?.spares || []).length === 0 ? (
+          {sparesQ.error ? (
+            <PanelLoadError query={sparesQ} what="spares" />
+          ) : sparesQ.loading ? (
+            <p className="text-sm text-helm-muted">Loading spares…</p>
+          ) : (sparesQ.data?.spares || []).length === 0 ? (
             <EmptyState title="No spares tracked" body="Add critical spare parts and minimum thresholds." />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line">
@@ -435,7 +496,11 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               <Plus className="w-4 h-4" /> Add schedule
             </button>
           )}
-          {(schedQ.data?.schedules || []).length === 0 ? (
+          {schedQ.error ? (
+            <PanelLoadError query={schedQ} what="maintenance schedules" />
+          ) : schedQ.loading ? (
+            <p className="text-sm text-helm-muted">Loading schedules…</p>
+          ) : (schedQ.data?.schedules || []).length === 0 ? (
             <EmptyState title="No schedules" body="Add per-machine tasks and frequency. Resolving a matching ticket auto-updates last done." />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line">
@@ -499,7 +564,11 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
               <Plus className="w-4 h-4" /> Add AMC
             </button>
           )}
-          {(contractsQ.data?.contracts || []).length === 0 ? (
+          {contractsQ.error ? (
+            <PanelLoadError query={contractsQ} what="maintenance contracts" />
+          ) : contractsQ.loading ? (
+            <p className="text-sm text-helm-muted">Loading contracts…</p>
+          ) : (contractsQ.data?.contracts || []).length === 0 ? (
             <EmptyState title="No AMCs" body="Track annual maintenance contracts and renewal dates." />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line">
@@ -600,7 +669,11 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
             </>
           )}
 
-          {costs.length === 0 ? (
+          {costsQ.error ? (
+            <PanelLoadError query={costsQ} what="this month’s costs" />
+          ) : costsQ.loading ? (
+            <p className="text-sm text-helm-muted">Loading costs…</p>
+          ) : costs.length === 0 ? (
             <EmptyState title="No costs logged this month" body="Non-ticket costs appear here once logged." />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line" data-testid="maintenance-costs-table">

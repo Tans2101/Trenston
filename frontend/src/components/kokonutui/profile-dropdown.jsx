@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function ProfileDropdown({
-  name = "CEO",
+  name = "You",
   picture,
   planLabel,
   showBilling = false,

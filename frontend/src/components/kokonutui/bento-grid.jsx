@@ -190,7 +190,9 @@ function groupMetricsBySection(metrics) {
 
 function MetricTile({ m, index, total }) {
   const navigate = useNavigate();
-  const clickable = Boolean(m.href && m.missing);
+  // Any tile with a destination opens it; missing tiles also show a setup CTA.
+  const clickable = Boolean(m.href);
+  const setupCta = Boolean(m.href && m.missing);
   const status = resolveStatus(m);
   const hasDelta = m.delta != null && m.delta !== 0;
   const surfaceClass = cn(
@@ -207,7 +209,7 @@ function MetricTile({ m, index, total }) {
         <StatusDot status={status} />
       </div>
       <div className={cn("mt-3 flex items-end justify-between gap-2", index === 0 && total >= 3 && "mt-4")}>
-        {clickable ? (
+        {setupCta ? (
           <span className="flex flex-col items-start gap-2 min-w-0">
             <span className="text-sm text-helm-muted">{m.value || "Not tracked"}</span>
             <span className="inline-flex items-center gap-1 rounded-md border border-helm-gold/40 bg-helm-gold/10 px-2 py-1 text-[11px] font-medium text-helm-gold">
@@ -232,7 +234,7 @@ function MetricTile({ m, index, total }) {
       type="button"
       className={surfaceClass}
       onClick={() => navigate(m.href)}
-      aria-label={`Add ${m.label} data`}
+      aria-label={setupCta ? `Add ${m.label} data` : `Open ${m.label}`}
     >
       {body}
     </button>
@@ -243,7 +245,8 @@ function MetricTile({ m, index, total }) {
 
 /**
  * Trenston briefing metrics bento — driven entirely by `metrics` from the briefing API.
- * Missing metrics with `href` are clickable and navigate to where data can be added.
+ * Metrics with `href` are clickable: missing ones lead to where data can be added,
+ * tracked ones open the page behind the number.
  * Cards with a `section` field render under uppercase department labels in fixed order.
  */
 export default function BentoGrid({ metrics = [], className }) {

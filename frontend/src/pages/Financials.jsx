@@ -1,11 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet } from "lucide-react";
+import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
@@ -19,6 +19,7 @@ import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
 import palette from "@/design/palette.json";
 import { ACCENT, accentAlpha } from "@/lib/accent";
+import { dealHref, departmentItemHref, highlightRecord } from "@/lib/signalRoute";
 
 const GOLD = ACCENT;
 const CREAM = palette.cream;
@@ -52,6 +53,20 @@ function ChartTooltip({ active, payload, label, symbol }) {
   );
 }
 
+// Expense breakdown values are whole-number percentages, not money.
+function PercentTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0];
+  return (
+    <div className="rounded-md border border-helm-line bg-helm-card px-3 py-2 text-xs">
+      <p className="text-helm-fg font-mono">{p.name}: {p.value}%</p>
+    </div>
+  );
+}
+
+// Runway under this many months surfaces a quiet prompt to decide what to do about it.
+const RUNWAY_WARN_MONTHS = 6;
+
 const emptyForm = (tz) => ({
   type: "revenue", category: "Subscriptions", name: "", amount: "", month: thisMonthISO(tz),
   recurring: true, recurrence: "monthly", note: "", source_document_id: null, extract_confidence: null,
@@ -76,7 +91,7 @@ function itemNameFromExtract(extracted) {
 export default function Financials() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data, loading, error, reload } = useFetch("/financials");
+  const { data, loading, error, reload, isFetching } = useFetch("/financials");
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
   const tz = useWorkspaceTimezone();
   const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
@@ -285,7 +300,17 @@ export default function Financials() {
   // Must run before any early returns so hooks stay unconditional.
   useEffect(() => {
     const hash = (location.hash || "").replace(/^#/, "");
-    if (!hash || loading || !data?.can_write) return undefined;
+    if (!hash || loading || !data) return undefined;
+    // #entry-<id> — scroll to and flash a ledger row (readable by everyone).
+    if (hash.startsWith("entry-")) {
+      // A just-booked row (e.g. from a won deal) may not be in the cached copy
+      // yet — wait for the refetch before highlighting and clearing the hash.
+      if (isFetching) return undefined;
+      highlightRecord(decodeURIComponent(hash.slice("entry-".length)));
+      navigate(location.pathname, { replace: true });
+      return undefined;
+    }
+    if (!data.can_write) return undefined;
     if (hash === "log-mrr" || hash === "log-entry") {
       setForm(emptyForm(tz));
       setShowForm(true);
@@ -299,9 +324,11 @@ export default function Financials() {
     } else {
       return undefined;
     }
-    window.history.replaceState(null, "", location.pathname);
+    // Clear through the router (not history.replaceState) so location.hash
+    // actually changes — otherwise every refetch re-opens the form.
+    navigate(location.pathname, { replace: true });
     return undefined;
-  }, [location.hash, location.pathname, loading, data, tz]);
+  }, [location.hash, location.pathname, loading, data, tz, navigate, isFetching]);
 
   if (loading) {
     return (
@@ -483,9 +510,27 @@ export default function Financials() {
     }
   };
 
+  const expenseBreakdown = data.expense_breakdown || [];
+  const scenarios = data.scenarios || [];
+  const burnSeries = data.burn_series || [];
+  // Future-dated entries come back separately (they don't count toward totals
+  // yet). Show them at the top of the ledger, marked Upcoming, so they are not
+  // invisible after saving.
+  const postedEntries = data.entries || [];
+  const postedIds = new Set(postedEntries.map((e) => e.id));
+  const scheduledEntries = (data.scheduled_entries || [])
+    .filter((e) => e && e.id && !postedIds.has(e.id))
+    .map((e) => ({ ...e, scheduled: true }))
+    .sort((a, b) => String(b.month || "").localeCompare(String(a.month || "")));
+  const entries = [...scheduledEntries, ...postedEntries];
+  const runwayMonths = data.runway_months != null ? Number(data.runway_months) : null;
+  const runwayLow = runwayMonths != null && Number.isFinite(runwayMonths) && runwayMonths < RUNWAY_WARN_MONTHS;
+
+  const openEntryForm = () => { setForm(emptyForm(tz)); setShowForm(true); };
+
   const headline = [
-    { label: "MRR", value: data.mrr_known === false ? "Add data" : data.mrr },
-    { label: "ARR", value: data.mrr_known === false ? "Add data" : data.arr },
+    { label: "MRR", value: data.mrr_known === false ? "Add data" : data.mrr, fill: openEntryForm },
+    { label: "ARR", value: data.mrr_known === false ? "Add data" : data.arr, fill: openEntryForm },
     {
       label: "Runway",
       value:
@@ -494,12 +539,14 @@ export default function Financials() {
           : data.runway_no_burn
             ? "No burn — cash growing"
             : "Add data",
+      fill: data.cash_entered === false ? () => openSettings() : openEntryForm,
     },
-    { label: "Net Burn", value: data.burn_known === false ? "Add data" : data.burn },
-    { label: "Cash", value: data.cash_entered === false ? "Add data" : data.cash },
+    { label: "Net Burn", value: data.burn_known === false ? "Add data" : data.burn, fill: openEntryForm },
+    { label: "Cash", value: data.cash_entered === false ? "Add data" : data.cash, fill: () => openSettings() },
     {
       label: "Gross Margin",
       value: !data.gross_margin || data.gross_margin === "—" ? "Add data" : data.gross_margin,
+      fill: () => openSettings(),
     },
   ];
 
@@ -700,6 +747,7 @@ export default function Financials() {
       )}
 
       {!data.has_data ? (
+        <>
         <EmptyState icon={Wallet} title="No financials logged yet"
           body={
             hasAccountingSync
@@ -723,19 +771,89 @@ export default function Financials() {
             </div>
           ) : <p className="text-sm text-helm-muted">Ask a workspace owner or finance teammate to add data.</p>}
         />
+        {!hasAccountingSync && data.can_manage && (
+          <p className="-mt-6 mb-10 text-center text-xs text-helm-muted" data-testid="empty-connect-accounting">
+            <button type="button" onClick={() => navigate("/app/integrations")} className="inline-flex items-center gap-1 hover:text-helm-fg">
+              <Plug className="w-3 h-3" /> Or connect QuickBooks, Xero, or SAP Business One to sync automatically
+            </button>
+          </p>
+        )}
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
-            {headline.map((h) => (
-              <GlassCard key={h.label} className="p-4 fade-up" data-testid={`fin-${h.label}`}>
-                <p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{h.label}</p>
-                <p className="font-mono text-2xl text-helm-fg mt-2">{h.value}</p>
-              </GlassCard>
-            ))}
+            {headline.map((h) => {
+              const missing = h.value === "Add data";
+              return (
+                <GlassCard key={h.label} className="p-4 fade-up" data-testid={`fin-${h.label}`}>
+                  <p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{h.label}</p>
+                  {missing && canWrite ? (
+                    <button
+                      type="button"
+                      onClick={h.fill}
+                      className="mt-2 inline-flex items-center gap-1 font-mono text-lg text-helm-gold hover:text-helm-gold-hover"
+                      data-testid={`fin-${h.label}-add`}
+                    >
+                      Add data <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <p className={cn("font-mono mt-2", missing ? "text-lg text-helm-muted" : "text-2xl text-helm-fg")}>{h.value}</p>
+                  )}
+                </GlassCard>
+              );
+            })}
           </div>
           <p className="text-[11px] text-helm-muted mb-6" data-testid="fin-totals-basis">
             Figures net of tax, in {(data.currency || workspaceCurrency).toUpperCase()}
+            {data.scheduled_count > 0 && (
+              <> · {data.scheduled_count} future-dated entr{data.scheduled_count === 1 ? "y" : "ies"} not counted until their month</>
+            )}
           </p>
+
+          {runwayLow && (
+            <GlassCard className="p-4 mb-6 fade-up border-helm-status-warning/35" data-testid="runway-warning">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-2.5 min-w-0">
+                  <AlertTriangle className="w-4 h-4 text-helm-status-warning shrink-0 mt-0.5" />
+                  <p className="text-sm text-helm-fg">
+                    Runway is {runwayMonths} month{runwayMonths === 1 ? "" : "s"} at current net burn.
+                    <span className="text-helm-muted"> Worth a deliberate call on spend or revenue.</span>
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    data-testid="runway-ask-btn"
+                    onClick={() => navigate("/app/ask", {
+                      state: {
+                        prefill: `Our runway is ${runwayMonths} months at ${data.burn} net burn with ${data.cash} cash. What are the most realistic ways to extend it, based on our current expenses and revenue?`,
+                      },
+                    })}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-1.5 hover:bg-helm-fg/5"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-helm-gold" /> Ask Trenston
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="runway-decision-btn"
+                    onClick={() => navigate("/app/decisions", {
+                      state: {
+                        openAdd: true,
+                        prefill: {
+                          title: `Extend runway beyond ${runwayMonths} month${runwayMonths === 1 ? "" : "s"}`,
+                          description: `Runway is ${runwayMonths} month${runwayMonths === 1 ? "" : "s"} at ${data.burn} net burn with ${data.cash} cash in bank. Decide what to change on spend or revenue.`,
+                          category: "Finance",
+                        },
+                      },
+                    })}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-warning/35 bg-helm-status-warning/12 text-helm-fg text-sm px-3 py-1.5 hover:bg-helm-status-warning/20"
+                  >
+                    Log a decision <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </GlassCard>
+          )}
 
           {finActs.length > 0 && (
             <GlassCard className="p-4 mb-6 fade-up" data-testid="financials-activity">
@@ -773,16 +891,16 @@ export default function Financials() {
 
             <GlassCard className="p-5 fade-up">
               <div className="flex items-center justify-between mb-2">
-                <SectionLabel>Cash & margin</SectionLabel>
-                {canWrite && <button data-testid="edit-settings-btn" onClick={openSettings} className="text-helm-muted hover:text-helm-gold"><PenLine className="w-3.5 h-3.5" /></button>}
+                <SectionLabel>Expense mix</SectionLabel>
+                {canWrite && <button data-testid="edit-settings-btn" onClick={openSettings} title="Edit cash & margin" aria-label="Edit cash & margin" className="text-helm-muted hover:text-helm-gold"><PenLine className="w-3.5 h-3.5" /></button>}
               </div>
-              {data.expense_breakdown.length > 0 ? (
+              {expenseBreakdown.length > 0 ? (
                 <>
                   <ResponsiveContainer width="100%" height={170}>
-                    <PieChart><Pie data={data.expense_breakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={2} stroke="none">{data.expense_breakdown.map((_, i) => <Cell key={i} fill={PIE[i % PIE.length]} />)}</Pie><Tooltip content={<ChartTooltip symbol={sym} />} /></PieChart>
+                    <PieChart><Pie data={expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={2} stroke="none">{expenseBreakdown.map((e, i) => <Cell key={e.name} fill={PIE[i % PIE.length]} />)}</Pie><Tooltip content={<PercentTooltip />} /></PieChart>
                   </ResponsiveContainer>
                   <div className="space-y-1 mt-1">
-                    {data.expense_breakdown.map((e, i) => (
+                    {expenseBreakdown.map((e, i) => (
                       <div key={e.name} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-sm" style={{ background: PIE[i % PIE.length] }} /><span className="text-helm-muted flex-1">{e.name}</span><span className="font-mono text-helm-fg">{e.value}%</span></div>
                     ))}
                   </div>
@@ -791,12 +909,12 @@ export default function Financials() {
             </GlassCard>
           </div>
 
-          {data.scenarios.length > 0 && (
+          {burnSeries.length > 0 && (
             <div className="grid lg:grid-cols-3 gap-4 mb-6">
               <GlassCard className="p-5 lg:col-span-2 fade-up">
                 <SectionLabel className="mb-4">Monthly Net Burn</SectionLabel>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.burn_series} margin={{ left: -8, right: 8 }}>
+                  <BarChart data={burnSeries} margin={{ left: -8, right: 8 }}>
                     <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
@@ -807,8 +925,26 @@ export default function Financials() {
               </GlassCard>
               <GlassCard className="p-5 fade-up">
                 <SectionLabel className="mb-4">Runway Scenarios</SectionLabel>
+                {scenarios.length === 0 && (
+                  <div className="py-6 text-center" data-testid="scenarios-empty">
+                    {data.runway_no_burn ? (
+                      <p className="text-sm text-helm-muted">Revenue covers expenses on average, so there is no runway to model.</p>
+                    ) : !data.cash_entered ? (
+                      <>
+                        <p className="text-sm text-helm-muted">Add cash in bank to model runway at current, trimmed, and scaled burn.</p>
+                        {canWrite && (
+                          <button type="button" onClick={openSettings} className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">
+                            Add cash in bank <ArrowRight className="w-3 h-3" />
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-helm-muted">Scenarios appear once expenses outpace revenue.</p>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-3">
-                  {data.scenarios.map((s) => (
+                  {scenarios.map((s) => (
                     <div key={s.name} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`scenario-${s.name}`}>
                       <div className="flex items-center justify-between"><span className="text-sm text-helm-fg">{s.name}</span><span className="font-mono text-helm-gold text-sm">{s.runway} months</span></div>
                       <p className="text-xs text-helm-muted mt-1">{s.desc}</p>
@@ -833,7 +969,7 @@ export default function Financials() {
           )}
 
           <GlassCard className="p-5 fade-up">
-            <SectionLabel className="mb-4">Ledger · {data.entries.length} entries</SectionLabel>
+            <SectionLabel className="mb-4">Ledger · {entries.length} entr{entries.length === 1 ? "y" : "ies"}</SectionLabel>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -845,8 +981,8 @@ export default function Financials() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.entries.map((e) => (
-                    <tr key={e.id} className="border-b border-helm-fg/[0.03]" data-testid={`entry-${e.id}`}>
+                  {entries.map((e) => (
+                    <tr key={e.id} className={cn("border-b border-helm-fg/[0.03]", e.scheduled && "opacity-75")} data-testid={`entry-${e.id}`} data-deeplink={e.id}>
                       <td className="py-2.5 pr-4 font-mono text-helm-muted">
                         {e.month}
                         {(e.scheduled || false) && (
@@ -910,6 +1046,24 @@ export default function Financials() {
                           >
                             <Sparkles className="w-3 h-3" /> AI upload
                           </button>
+                        ) : e.source === "deal" && e.source_deal_id ? (
+                          <Link
+                            to={dealHref(e.source_deal_id)}
+                            data-testid={`entry-deal-${e.id}`}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono text-helm-gold hover:text-helm-gold-hover transition-colors"
+                            title="Open the won deal behind this entry"
+                          >
+                            Deal <ArrowRight className="w-3 h-3" />
+                          </Link>
+                        ) : e.source === "procurement" && e.source_procurement_request_id ? (
+                          <Link
+                            to={departmentItemHref("procurement", e.source_procurement_request_id)}
+                            data-testid={`entry-procurement-${e.id}`}
+                            className="inline-flex items-center gap-1 text-[10px] font-mono text-helm-gold hover:text-helm-gold-hover transition-colors"
+                            title="Open the procurement request behind this entry"
+                          >
+                            Procurement <ArrowRight className="w-3 h-3" />
+                          </Link>
                         ) : (
                           <span className="text-[10px] font-mono text-helm-muted">{e.source}</span>
                         )}

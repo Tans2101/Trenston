@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { GripVertical, Plus, X } from "lucide-react";
+import { GripVertical, Plus, X, Sparkles } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
+import { highlightRecord } from "@/lib/signalRoute";
+import { todayISO } from "@/lib/dates";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const priorityStyle = {
   High: "text-helm-status-negative bg-helm-status-negative/12",
@@ -26,12 +31,14 @@ export default function Tasks() {
   const [form, setForm] = useState(emptyTask());
   const [busy, setBusy] = useState(false);
   const [clearingDone, setClearingDone] = useState(false);
+  const tz = useWorkspaceTimezone();
+  const hasItems = Boolean(data?.items?.length);
 
+  // ?task=<id> deep link — scroll to and flash the card once the board renders.
   useEffect(() => {
-    if (!focusTaskId || !data?.items?.length) return;
-    const el = document.querySelector(`[data-testid="task-${focusTaskId}"]`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [focusTaskId, data?.items]);
+    if (!focusTaskId || !hasItems) return;
+    highlightRecord(focusTaskId);
+  }, [focusTaskId, hasItems]);
 
   if (loading) {
     return (
@@ -55,6 +62,7 @@ export default function Tasks() {
     );
   }
 
+  const today = todayISO(tz);
   const canCreate = data.can_create;
   const canAssign = data.can_assign;
   const taskAssigneeOptions = buildAssigneeOptions(membersData?.members || [], data.my_user_id, {
@@ -170,11 +178,14 @@ export default function Tasks() {
             <div className="space-y-2">
               {items.map((t) => {
                 const mine = t.assignee_user_id === data.my_user_id;
+                const overdue = t.column !== "done" && ISO_DATE.test(String(t.due || "")) && t.due < today;
+                const fromTrenston = t.source === "ai_suggested" || Boolean(t.from_suggestion_id);
                 return (
                 <div key={t.id}
                   draggable
                   onDragStart={() => setDragId(t.id)}
                   data-testid={`task-${t.id}`}
+                  data-deeplink={t.id}
                   className={cn(
                     "group rounded-lg border border-helm-line bg-helm-card p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-helm-gold/35",
                     mine && "border-l-2 border-l-helm-gold/60",
@@ -184,10 +195,28 @@ export default function Tasks() {
                     <GripVertical className="w-3.5 h-3.5 text-helm-muted mt-0.5 group-hover:text-helm-muted" />
                     <div className="flex-1">
                       <p className="text-sm text-helm-fg leading-snug">{t.title}</p>
+                      {t.note ? (
+                        <p className="text-xs text-helm-muted leading-snug mt-1 line-clamp-3" data-testid={`task-note-${t.id}`}>{t.note}</p>
+                      ) : null}
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className={cn("text-[10px] font-mono uppercase tracking-wide rounded px-1.5 py-0.5", priorityStyle[t.priority])}>{t.priority}</span>
                         <span className="text-[10px] font-mono text-helm-muted">{t.tag}</span>
-                        {t.due && <span className="text-[10px] font-mono text-helm-muted ml-auto">{t.due}</span>}
+                        {fromTrenston && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-mono rounded px-1.5 py-0.5 text-helm-gold bg-helm-gold/12" data-testid={`task-from-trenston-${t.id}`}>
+                            <Sparkles className="w-2.5 h-2.5" /> From Trenston
+                          </span>
+                        )}
+                        {t.due && (
+                          <span
+                            className={cn(
+                              "text-[10px] font-mono ml-auto",
+                              overdue ? "text-helm-status-negative" : "text-helm-muted",
+                            )}
+                            data-testid={overdue ? `task-overdue-${t.id}` : undefined}
+                          >
+                            {overdue ? `Overdue · ${t.due}` : t.due}
+                          </span>
+                        )}
                       </div>
                       {t.progress > 0 && t.progress < 100 && (
                         <div className="mt-2 h-1 rounded-full bg-helm-fg/5 overflow-hidden">
@@ -197,6 +226,16 @@ export default function Tasks() {
                       <div className="flex items-center gap-1.5 mt-2">
                         <span className="w-4 h-4 rounded-full bg-helm-gold/12 border border-helm-gold/35 flex items-center justify-center text-[9px] text-helm-gold">{(t.assignee || "?")[0]}</span>
                         <span className="text-[11px] text-helm-muted">{t.assignee}{mine && " · you"}</span>
+                        {/* Touch + keyboard alternative to drag-and-drop. */}
+                        <select
+                          value={t.column}
+                          onChange={(e) => move(t.id, e.target.value)}
+                          aria-label={`Move "${t.title}" to stage`}
+                          data-testid={`task-stage-${t.id}`}
+                          className="ml-auto max-w-[8.5rem] text-[10px] font-mono rounded px-1.5 py-0.5 border border-helm-line bg-helm-card text-helm-muted hover:text-helm-fg focus:outline-none focus:border-helm-gold/40"
+                        >
+                          {data.columns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
                       </div>
                     </div>
                   </div>

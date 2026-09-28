@@ -149,7 +149,7 @@ export default function DepartmentsSettings() {
       <p className="text-sm text-helm-muted mb-5 leading-relaxed">
         {canManage
           ? "Enable any department for your company, independent of industry, then assign teammates. Enabled departments appear in the sidebar."
-          : "Departments enabled for this company. Only the CEO can turn additional departments on."}
+          : "Departments enabled for this company. Only the founder or CEO can turn additional departments on."}
       </p>
 
       <SectionLabel className="mb-3">All departments</SectionLabel>
@@ -214,7 +214,7 @@ export default function DepartmentsSettings() {
                   </button>
                 ) : (
                   <span className="text-[11px] font-mono uppercase tracking-wide text-helm-muted shrink-0">
-                    Ask CEO
+                    Ask founder
                   </span>
                 )}
               </div>

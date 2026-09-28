@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Package } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -12,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
+import { departmentItemHref, highlightRecord } from "@/lib/signalRoute";
+import DepartmentNotEnabled from "@/components/DepartmentNotEnabled";
 
 const STATUS_META = {
   requested: { label: "Requested", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -175,7 +178,26 @@ function BlockingProductionBadge({ orders, requestId }) {
       title={label}
       className="inline-flex max-w-full items-center truncate rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide border border-helm-gold/35 bg-helm-gold/12 text-helm-gold"
     >
-      Blocking: {label}
+      Blocking:&nbsp;
+      {orders.map((o, i) => {
+        const ref = o.reference || o.work_order_id || "work order";
+        const text = o.due_date ? `${ref} (due ${o.due_date})` : ref;
+        return (
+          <span key={o.work_order_id || i} className="truncate">
+            {i > 0 && ", "}
+            {o.work_order_id ? (
+              <Link
+                to={departmentItemHref("production", o.work_order_id)}
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`blocking-production-link-${o.work_order_id}`}
+                className="underline underline-offset-2 hover:text-helm-fg"
+              >
+                {text}
+              </Link>
+            ) : text}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -194,6 +216,9 @@ export default function Procurement() {
   const [vendorSuggestions, setVendorSuggestions] = useState([]);
   const [vendorNote, setVendorNote] = useState("");
   const [form, setForm] = useState({ item: "", quantity: "1", vendor_name: "", cost: "", notes: "", expected_delivery_date: "", priority: "normal" });
+  const [searchParams] = useSearchParams();
+  const deepItemId = searchParams.get("item");
+  const handledDeepLink = useRef(null);
 
   const allRequests = useMemo(() => data?.requests || [], [data?.requests]);
   const leadSummary = data?.lead_time_summary || null;
@@ -259,6 +284,24 @@ export default function Procurement() {
     };
   }, [adding, form.item]);
 
+  // Deep link: ?item=<id> opens that request once loaded (revealing closed
+  // requests if needed) and flashes its row.
+  useEffect(() => {
+    if (!deepItemId || !data || handledDeepLink.current === deepItemId) return;
+    handledDeepLink.current = deepItemId;
+    const target = allRequests.find((r) => r.id === deepItemId);
+    if (!target) {
+      toast.info("That request is no longer in the queue");
+      return;
+    }
+    if (CLOSED.has(target.status)) setShowClosed(true);
+    setSelectedId(target.id);
+    highlightRecord(target.id);
+  }, [deepItemId, data, allRequests]);
+
+  // Reset the draft only when another request is opened or the server copy
+  // changed (save / someone else's edit) — never on a focus refetch.
+  const draftKey = selected ? `${selected.id}|${selected.updated_at || ""}` : null;
   useEffect(() => {
     if (!selected) {
       setDraft(null);
@@ -274,7 +317,8 @@ export default function Procurement() {
       priority: selected.priority || "normal",
       status: selected.status || "requested",
     });
-  }, [selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on id + updated_at on purpose
+  }, [draftKey]);
 
   if (loading) {
     return (
@@ -291,19 +335,13 @@ export default function Procurement() {
       return (
         <ErrorScreen
           label="Access denied"
-          message="You are not a member of Procurement. Ask your CEO to add you."
+          message="You are not a member of Procurement. Ask your founder or CEO to add you."
           onRetry={reload}
         />
       );
     }
     if (status === 404) {
-      return (
-        <ErrorScreen
-          label="Procurement not enabled"
-          message="Enable Procurement under Settings → Departments first."
-          onRetry={reload}
-        />
-      );
+      return <DepartmentNotEnabled deptType="procurement" label="Procurement" onEnabled={reload} onRetry={reload} />;
     }
     return (
       <ErrorScreen
@@ -774,6 +812,7 @@ export default function Procurement() {
               {visible.map((req) => (
                 <tr
                   key={req.id}
+                  data-deeplink={req.id}
                   data-testid={`procurement-row-${req.id}`}
                   onClick={() => setSelectedId(req.id)}
                   className={cn(

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from typing import Optional
+from urllib.parse import quote
 
 import departments_catalog as dept_catalog
 
@@ -14,6 +15,37 @@ WORK_URLS = {
     dept_catalog.TYPE_HR: "/app/departments/hr",
     dept_catalog.TYPE_SALES: "/app/sales",
 }
+
+def _q(value) -> str:
+    return quote(str(value or ""), safe="")
+
+
+def work_item_url(department_type: str, item_id: str = "") -> str:
+    """Deep link to one record on its department page.
+
+    Sales deals → ``/app/sales?deal=<id>``; every other department →
+    ``<dept path>?item=<id>``. Falls back to the bare page when id is empty.
+    """
+    base = WORK_URLS.get(department_type) or f"/app/departments/{department_type}"
+    if not item_id:
+        return base
+    if department_type == dept_catalog.TYPE_SALES:
+        return f"{base}?deal={_q(item_id)}"
+    return f"{base}?item={_q(item_id)}"
+
+
+def task_url(task_id: str) -> str:
+    return f"/app/tasks?task={_q(task_id)}" if task_id else "/app/tasks"
+
+
+def hr_leave_request_url(request_id: str) -> str:
+    base = f"{WORK_URLS[dept_catalog.TYPE_HR]}?tab=leave"
+    return f"{base}&request={_q(request_id)}" if request_id else base
+
+
+def decision_url(decision_id: str) -> str:
+    return f"/app/decisions?focus={_q(decision_id)}" if decision_id else "/app/decisions"
+
 
 # Sources used for People roster workload badges (excludes procurement requested_by).
 WORKLOAD_DEPARTMENT_TYPES = (
@@ -55,7 +87,7 @@ def work_row(
         "title": (title or item_id).strip() or item_id,
         "due_date": due,
         "status": status or "",
-        "url": WORK_URLS.get(department_type) or f"/app/departments/{department_type}",
+        "url": work_item_url(department_type, item_id),
         "relationship": relationship,
         "overdue": overdue,
         "icon": entry.get("icon") or "briefcase",

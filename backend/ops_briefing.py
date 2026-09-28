@@ -90,9 +90,11 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
                 budget=proc_dept.get("monthly_budget"),
                 budget_entered=bool(proc_dept.get("monthly_budget_entered")),
             )
+            awaiting = [r for r in rows if (r.get("status") or "") == "requested"]
             sections["procurement"] = {
                 "lead_time": lead,
                 "spend": spend,
+                "awaiting_approval_count": len(awaiting),
                 "enabled": True,
             }
         except Exception:
@@ -310,6 +312,16 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "missing": False,
             "href": "/app/departments/procurement" if late_n else None,
         })
+        awaiting_n = int(proc.get("awaiting_approval_count") or 0)
+        if awaiting_n:
+            out.append({
+                "label": "Awaiting approval",
+                "value": str(awaiting_n),
+                "delta": 0,
+                "tone": "warning",
+                "missing": False,
+                "href": "/app/departments/procurement",
+            })
         spend = proc["spend"]
         if spend["budget_entered"]:
             gap = spend.get("gap") or 0
@@ -469,7 +481,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if below_n else "positive",
             "missing": False,
-            "href": "/app/departments/engineering_maintenance" if below_n else None,
+            "href": "/app/departments/engineering_maintenance#spares" if below_n else None,
         })
         out.append({
             "label": "Maint overdue",
@@ -477,7 +489,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if overdue_n else "positive",
             "missing": False,
-            "href": "/app/departments/engineering_maintenance" if overdue_n else None,
+            "href": "/app/departments/engineering_maintenance#schedule" if overdue_n else None,
         })
         out.append({
             "label": "AMC renewals",
@@ -485,7 +497,7 @@ def ops_briefing_metric_cards(data: dict) -> list[dict]:
             "delta": 0,
             "tone": "negative" if renew_n else "positive",
             "missing": False,
-            "href": "/app/departments/engineering_maintenance" if renew_n else None,
+            "href": "/app/departments/engineering_maintenance#contracts" if renew_n else None,
         })
         overhead = maint["overhead"]
         if overhead["budget_entered"]:
@@ -540,7 +552,7 @@ def daily_briefing_email_html(
     import email_compliance as ec
 
     name = html.escape(workspace_name or "your company")
-    link = html.escape((app_url or "").rstrip("/") + "/app/briefing", quote=True)
+    link = html.escape((app_url or "").rstrip("/") + "/app", quote=True)
     month = (data.get("month") or "").strip() or "this month"
     sections = data.get("sections") or {}
     blocks: list[str] = []

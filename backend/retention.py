@@ -63,7 +63,10 @@ def trial_reminder_due(ws: dict | None, *, now: datetime, trial_days: int) -> bo
 
 def inactivity_nudge_due(ws: dict | None, *, now: datetime) -> bool:
     ws = ws or {}
-    if ws.get("onboarding_done") is False:
+    # Founders who finished CompanySetup but bounced at the template screen
+    # still have onboarding_done=False — they are exactly who a win-back
+    # nudge is for. Only skip when neither setup flag is set.
+    if ws.get("onboarding_done") is False and not ws.get("company_setup_done"):
         return False
     last = last_activity_at(ws)
     if not last:

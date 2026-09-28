@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Wrench } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -14,6 +15,8 @@ import MaintenanceOpsPanels from "@/components/MaintenanceOpsPanels";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
+import { departmentItemHref, highlightRecord } from "@/lib/signalRoute";
+import DepartmentNotEnabled from "@/components/DepartmentNotEnabled";
 
 const STATUS_META = {
   reported: { label: "Reported", className: "bg-helm-muted/12 text-helm-fg border-helm-muted/35" },
@@ -60,7 +63,26 @@ function BlockingProductionBadge({ orders, ticketId }) {
       title={label}
       className="inline-flex max-w-full items-center truncate rounded px-1.5 py-0.5 text-[10px] font-mono uppercase tracking-wide border border-helm-gold/35 bg-helm-gold/12 text-helm-gold"
     >
-      Blocking: {label}
+      Blocking:&nbsp;
+      {orders.map((o, i) => {
+        const ref = o.reference || o.work_order_id || "work order";
+        const text = o.due_date ? `${ref} (due ${o.due_date})` : ref;
+        return (
+          <span key={o.work_order_id || i} className="truncate">
+            {i > 0 && ", "}
+            {o.work_order_id ? (
+              <Link
+                to={departmentItemHref("production", o.work_order_id)}
+                onClick={(e) => e.stopPropagation()}
+                data-testid={`blocking-production-link-${o.work_order_id}`}
+                className="underline underline-offset-2 hover:text-helm-fg"
+              >
+                {text}
+              </Link>
+            ) : text}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -106,6 +128,9 @@ export default function Maintenance() {
     notes: "",
     assigned_technician: "",
   });
+  const [searchParams] = useSearchParams();
+  const deepItemId = searchParams.get("item");
+  const handledDeepLink = useRef(null);
 
   const allTickets = useMemo(() => data?.tickets || [], [data?.tickets]);
   const visible = useMemo(() => {
@@ -146,6 +171,24 @@ export default function Maintenance() {
     };
   }, [adding, form.equipment_name]);
 
+  // Deep link: ?item=<id> opens that ticket once loaded (revealing resolved
+  // tickets if needed) and flashes its row.
+  useEffect(() => {
+    if (!deepItemId || !data || handledDeepLink.current === deepItemId) return;
+    handledDeepLink.current = deepItemId;
+    const target = allTickets.find((t) => t.id === deepItemId);
+    if (!target) {
+      toast.info("That ticket is no longer in the queue");
+      return;
+    }
+    if (target.status === "resolved") setShowResolved(true);
+    setSelectedId(target.id);
+    highlightRecord(target.id);
+  }, [deepItemId, data, allTickets]);
+
+  // Reset the draft only when another ticket is opened or the server copy
+  // changed (save / someone else's edit) — never on a focus refetch.
+  const draftKey = selected ? `${selected.id}|${selected.updated_at || ""}` : null;
   useEffect(() => {
     if (!selected) {
       setDraft(null);
@@ -160,7 +203,8 @@ export default function Maintenance() {
       assigned_technician: selected.assigned_technician || "",
       cost: selected.cost == null ? "" : String(selected.cost),
     });
-  }, [selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on id + updated_at on purpose
+  }, [draftKey]);
 
   if (loading) {
     return (
@@ -177,16 +221,17 @@ export default function Maintenance() {
       return (
         <ErrorScreen
           label="Access denied"
-          message="You are not a member of Engineering & Maintenance. Ask your CEO to add you."
+          message="You are not a member of Engineering & Maintenance. Ask your founder or CEO to add you."
           onRetry={reload}
         />
       );
     }
     if (status === 404) {
       return (
-        <ErrorScreen
-          label="Department not enabled"
-          message="Enable Engineering & Maintenance under Settings → Departments first."
+        <DepartmentNotEnabled
+          deptType="engineering_maintenance"
+          label="Engineering & Maintenance"
+          onEnabled={reload}
           onRetry={reload}
         />
       );
@@ -421,6 +466,7 @@ export default function Maintenance() {
               {visible.map((t) => (
                 <tr
                   key={t.id}
+                  data-deeplink={t.id}
                   data-testid={`maintenance-row-${t.id}`}
                   onClick={() => setSelectedId(t.id)}
                   className={cn(
@@ -530,7 +576,7 @@ export default function Maintenance() {
                 ))}
               </select>
               {!isLead && (
-                <span className="text-[10px] text-helm-muted">Only a lead or CEO can assign a technician</span>
+                <span className="text-[10px] text-helm-muted">Only a lead, founder, or CEO can assign a technician</span>
               )}
             </label>
           </div>

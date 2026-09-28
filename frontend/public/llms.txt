@@ -1,10 +1,10 @@
 # Trenston
 
-> CEO Operating System. Run your business. Don't chase it.
+> Founder & CEO Operating System. Run your business. Don't chase it.
 
-Built for founders and owners running real operations — from your first hire to your hundredth.
+Built for founders and CEOs running real operations — from your first hire to your hundredth.
 
-Trenston is a CEO operating system: one cockpit for money, pipeline, people,
+Trenston is the operating system for founders and CEOs: one cockpit for money, pipeline, people,
 department work, and decisions — Briefing, Decision Center, Financials,
 Ask Trenston, and department lanes (Production, Procurement, Legal, HR,
 Maintenance, Sales).

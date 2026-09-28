@@ -10,6 +10,15 @@ import { api } from "@/lib/api";
 import { PageHeader, GlassCard, ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
+/** Where to go right after a provider connects, so the win is visible. */
+const NEXT_STEP = {
+  quickbooks: { label: "View Financials", to: "/app/financials" },
+  xero: { label: "View Financials", to: "/app/financials" },
+  sap_b1: { label: "View Financials", to: "/app/financials" },
+  google: { label: "Open Calendar", to: "/app/calendar" },
+  hubspot: { label: "Open Sales", to: "/app/sales" },
+};
+
 const ICONS = {
   google: Calendar,
   quickbooks: Building2,
@@ -317,7 +326,11 @@ export default function Integrations() {
             : connected === "hubspot"
               ? "HubSpot"
             : connected;
-      toast.success(`${name} connected. Your data will flow into Trenston`);
+      const next = NEXT_STEP[connected];
+      toast.success(`${name} connected. Your data will flow into Trenston`, next ? {
+        action: { label: next.label, onClick: () => navigate(next.to) },
+        duration: 10000,
+      } : undefined);
       setParams({});
       reload();
     } else if (params.get("xero_select")) {
@@ -424,7 +437,10 @@ export default function Integrations() {
         username: sapForm.username.trim(),
         password: sapForm.password,
       });
-      toast.success("SAP Business One connected");
+      toast.success("SAP Business One connected", {
+        action: { label: NEXT_STEP.sap_b1.label, onClick: () => navigate(NEXT_STEP.sap_b1.to) },
+        duration: 10000,
+      });
       setSapModalOpen(false);
       setSapForm({ service_layer_url: "", company_db: "", username: "", password: "" });
       reload();
@@ -468,7 +484,10 @@ export default function Integrations() {
     setXeroTenantBusy(true);
     try {
       const { data: res } = await api.post("/integrations/xero/select-tenant", { tenant_id: tenantId });
-      toast.success(`Xero organisation selected: ${res.tenant_name || "done"}`);
+      toast.success(`Xero organisation selected: ${res.tenant_name || "done"}`, {
+        action: { label: NEXT_STEP.xero.label, onClick: () => navigate(NEXT_STEP.xero.to) },
+        duration: 10000,
+      });
       reload();
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not select organisation");

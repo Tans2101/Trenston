@@ -20,6 +20,7 @@ import {
 } from "@/lib/briefingCockpit";
 import palette from "@/design/palette.json";
 import { ACCENT, ACCENT_SCALE } from "@/lib/accent";
+import { decisionHref } from "@/lib/signalRoute";
 
 const ASSISTANT_PROMPTS = [
   "What's my burn rate?",
@@ -70,6 +71,10 @@ export default function BriefingCockpitHero({
   decisions = [],
   loading = false,
   suppressFinanceEmpty = false,
+  /** Full open-decision count from the server (the list may be capped). */
+  decisionsTotal,
+  /** False hides "add decision" for viewers who cannot log decisions. */
+  canAct,
 }) {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
@@ -157,9 +162,9 @@ export default function BriefingCockpitHero({
   });
 
   const decisionRows = (decisions || []).slice(0, 5);
-  const queueStatus = decisionQueueStatus(decisionRows.length);
+  const openDecisionsTotal = Number.isFinite(decisionsTotal) ? decisionsTotal : (decisions || []).length;
+  const queueStatus = decisionQueueStatus(openDecisionsTotal);
   const decisionsPriority = decisionRows.length > 0;
-  const openDecisionsTotal = (decisions || []).length;
 
   if (loading) {
     return (
@@ -473,14 +478,17 @@ export default function BriefingCockpitHero({
         >
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-helm-fg">Decisions</h3>
-            <button
-              type="button"
-              aria-label="Add decision"
-              onClick={() => navigate("/app/decisions", { state: { openAdd: true } })}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
+            {canAct !== false && (
+              <button
+                type="button"
+                aria-label="Add decision"
+                title="Log a decision"
+                onClick={() => navigate("/app/decisions", { state: { openAdd: true } })}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <div
             className={cn(
@@ -512,7 +520,7 @@ export default function BriefingCockpitHero({
                   <li key={d.id || i}>
                     <button
                       type="button"
-                      onClick={() => navigate("/app/decisions")}
+                      onClick={() => navigate(decisionHref(d.id))}
                       className="w-full flex items-start justify-between gap-2 text-sm text-left rounded-md px-1 py-0.5 -mx-1 hover:bg-helm-fg/[0.04] transition-colors"
                     >
                       <div className="min-w-0">
@@ -526,13 +534,13 @@ export default function BriefingCockpitHero({
                   </li>
                 ))}
               </ul>
-              {openDecisionsTotal >= 5 ? (
+              {openDecisionsTotal > decisionRows.length || openDecisionsTotal >= 5 ? (
                 <button
                   type="button"
                   onClick={() => navigate("/app/decisions")}
                   className="mt-3 text-xs text-helm-gold hover:text-helm-gold-hover"
                 >
-                  View all decisions
+                  View all {openDecisionsTotal} decisions
                 </button>
               ) : null}
             </>

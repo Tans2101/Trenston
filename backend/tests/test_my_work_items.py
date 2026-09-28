@@ -292,7 +292,7 @@ def test_accessible_assigned_item_appears(work_api):
     mine = next(i for i in items if i["id"] == "pwo_mine_open")
     assert mine["department_type"] == "production"
     assert mine["relationship"] == "assigned_to_me"
-    assert mine["url"] == "/app/departments/production"
+    assert mine["url"] == "/app/departments/production?item=pwo_mine_open"
     assert mine["due_date"] == work_api["tomorrow"]
     assert mine["overdue"] is False
 

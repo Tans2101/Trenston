@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
-import { Send, CheckCircle2, Circle, AlertTriangle, Plus, Users, Lock, PenLine, Briefcase } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Send, CheckCircle2, Circle, AlertTriangle, Plus, Users, Lock, PenLine, Briefcase, Scale } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
@@ -12,6 +12,7 @@ import { GlassCard, SectionLabel, ErrorScreen, EmptyState, PageHeaderSkeleton, S
 import DecisionCard from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import { departmentIcon } from "@/lib/departmentIcons";
+import { taskHref } from "@/lib/signalRoute";
 import { cn } from "@/lib/utils";
 
 /* Sticky-note chips keep a distinct paper palette so notes stay scannable; not brand fills. */
@@ -35,6 +36,7 @@ const colLabel = { backlog: "To-Do", in_progress: "in progress", review: "review
 
 export default function MyDay() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { data: notesData, loading: l0, error: e0, reload: reloadNotes } = useFetch("/notes");
   const { data: mine, loading: l1, error: e1, reload: reloadMine } = useFetch("/updates/me");
   const { data: tasks, loading: l2, error: e2, reload: reloadTasks } = useFetch("/tasks/me");
@@ -167,6 +169,23 @@ export default function MyDay() {
   const openItems = myItems.filter((t) => t.column !== "done");
   const doneItems = myItems.filter((t) => t.column === "done");
   const teamUpdates = (today?.updates || []).filter((u) => u.user_id !== user?.user_id);
+
+  // Turn a teammate's blocker into a decision, with the context already filled in.
+  const logDecisionFromBlocker = (u) => {
+    const text = (u.text || "").trim();
+    const firstLine = text.split("\n")[0];
+    const short = firstLine.length > 80 ? `${firstLine.slice(0, 77)}…` : firstLine;
+    navigate("/app/decisions", {
+      state: {
+        openAdd: true,
+        prefill: {
+          title: short ? `Unblock ${u.user_name || "teammate"}: ${short}` : `Unblock ${u.user_name || "teammate"}`,
+          description: text ? `${u.user_name || "A teammate"} reported a blocker: ${text}` : "",
+          category: "Team",
+        },
+      },
+    });
+  };
 
   return (
     <div>
@@ -378,6 +397,16 @@ export default function MyDay() {
                     <span className="text-[10px] text-helm-muted ml-auto font-mono">{u.ago}</span>
                   </div>
                   <p className="text-helm-muted text-xs mt-1 leading-relaxed">{u.text}</p>
+                  {u.blocker && canActDecisions && (
+                    <button
+                      type="button"
+                      data-testid={`log-decision-${u.update_id}`}
+                      onClick={() => logDecisionFromBlocker(u)}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-helm-gold hover:text-helm-gold-hover font-medium"
+                    >
+                      <Scale className="w-3 h-3" /> Log decision
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -415,19 +444,19 @@ export default function MyDay() {
             {openItems.map((t) => (
               <GlassCard key={t.id} className="p-3 fade-up flex items-center gap-3" data-testid={`myday-task-${t.id}`}>
                 <button onClick={() => moveTask(t, "done")} className="text-helm-muted hover:text-helm-status-positive shrink-0"><Circle className="w-4 h-4" /></button>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-helm-fg truncate">{t.title}</p>
+                <Link to={taskHref(t.id)} className="flex-1 min-w-0 group" data-testid={`myday-task-link-${t.id}`}>
+                  <p className="text-sm text-helm-fg truncate group-hover:text-helm-gold transition-colors">{t.title}</p>
                   <span className={cn("text-[10px] font-mono uppercase tracking-wide", colStyle[t.column])}>
-                    {colLabel[t.column] || t.column.replace("_", " ")}{t.tag ? ` · ${t.tag}` : ""}
+                    {colLabel[t.column] || String(t.column || "").replace("_", " ")}{t.tag ? ` · ${t.tag}` : ""}
                   </span>
-                </div>
+                </Link>
                 {t.due && <span className="text-[11px] font-mono text-helm-muted shrink-0">{t.due}</span>}
               </GlassCard>
             ))}
             {doneItems.map((t) => (
               <GlassCard key={t.id} className="p-3 flex items-center gap-3 opacity-60" data-testid={`myday-task-${t.id}`}>
                 <button onClick={() => moveTask(t, "in_progress")} className="text-helm-status-positive shrink-0"><CheckCircle2 className="w-4 h-4" /></button>
-                <p className="text-sm text-helm-muted line-through truncate flex-1">{t.title}</p>
+                <Link to={taskHref(t.id)} className="text-sm text-helm-muted line-through truncate flex-1 hover:text-helm-fg transition-colors">{t.title}</Link>
               </GlassCard>
             ))}
           </div>

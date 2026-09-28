@@ -506,7 +506,7 @@ export default function AccountSettings() {
             <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Company name</span>
           </div>
           <p className="text-sm text-helm-muted mb-4 leading-relaxed">
-            Only the CEO can rename this company. The name shows in the sidebar workspace switcher and on exports.
+            Only the founder or CEO can rename this company. The name shows in the sidebar workspace switcher and on exports.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input

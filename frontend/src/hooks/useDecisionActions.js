@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 
-/** Shared approve / reject / delegate / suggestion actions for Decisions + My Day. */
+/** Server's error detail (string, {message}, or validation list), else the fallback. */
+export function serverDetail(e, fallback) {
+  const d = e?.response?.data?.detail;
+  return d == null ? fallback : apiErrorMessage(d, fallback);
+}
+
+/**
+ * Shared approve / reject / delegate / suggestion actions for Decisions + My Day.
+ * Each action resolves to true on success and false on failure so callers can
+ * reset their UI (e.g. the delegate select) or offer a follow-up.
+ */
 export function useDecisionActions(reload) {
   const [busy, setBusy] = useState(null);
 
@@ -12,12 +22,14 @@ export function useDecisionActions(reload) {
       await api.post(`/decisions/${id}/action`, { action, owner });
       reload?.();
       if (action === "delegated" && owner) {
-        toast.success(`Assigned to ${owner}`);
+        toast.success(`Assigned to ${owner}`, { id: `decision-${id}` });
       } else {
-        toast.success(`Decision ${action}`);
+        toast.success(`Decision ${action}`, { id: `decision-${id}` });
       }
+      return true;
     } catch (e) {
-      toast.error("Action failed");
+      toast.error(serverDetail(e, "Could not update the decision. Try again."));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -29,8 +41,10 @@ export function useDecisionActions(reload) {
       await api.post(`/decisions/suggestions/${id}/approve`);
       toast.success("Suggestion accepted. It is now a pending decision");
       reload?.();
+      return true;
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not approve");
+      toast.error(serverDetail(e, "Could not accept the suggestion. Try again."));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -42,8 +56,10 @@ export function useDecisionActions(reload) {
       await api.post(`/decisions/suggestions/${id}/dismiss`);
       toast.success("Suggestion dismissed");
       reload?.();
+      return true;
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not dismiss");
+      toast.error(serverDetail(e, "Could not dismiss the suggestion. Try again."));
+      return false;
     } finally {
       setBusy(null);
     }

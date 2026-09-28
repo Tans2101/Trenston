@@ -1381,3 +1381,17 @@ html[data-theme="dark"] .bg-helm-gold.text-helm-navy,
 html[data-theme="dark"] .bg-helm-gold .text-helm-navy {
   color: #0A0A0A !important;
 }
+
+/* Deep-linked record (see lib/signalRoute.js highlightRecord): a brief,
+   quiet accent ring so the user sees which row they were sent to. */
+@keyframes deeplinkFlash {
+  0%, 60% { box-shadow: 0 0 0 2px rgb(var(--helm-accent) / 0.85); }
+  100% { box-shadow: 0 0 0 2px rgb(var(--helm-accent) / 0); }
+}
+.deeplink-flash {
+  animation: deeplinkFlash 2.4s ease-out;
+  scroll-margin: 96px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .deeplink-flash { animation: none; box-shadow: 0 0 0 2px rgb(var(--helm-accent) / 0.85); }
+}

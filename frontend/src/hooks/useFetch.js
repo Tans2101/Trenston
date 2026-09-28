@@ -71,6 +71,9 @@ export function useFetch(path, deps = EMPTY_DEPS) {
     error: enabled ? (query.error ?? null) : null,
     reload: () => query.refetch(),
     setData,
+    // True while a (re)fetch is in flight — lets deep links wait for fresh
+    // data instead of judging a just-created record against a stale cache.
+    isFetching: enabled ? Boolean(query.isFetching) : false,
   };
 }
 

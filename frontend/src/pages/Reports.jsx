@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { FileText, Plus, PenLine, X, Copy, Download, Check } from "lucide-react";
+import { FileText, Plus, PenLine, X, Copy, Download, Check, ArrowRight } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage, blobErrorDetail } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
@@ -11,6 +12,13 @@ import ReportsDailyDigest from "@/components/ReportsDailyDigest";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import { cn } from "@/lib/utils";
 import { currencySymbol, formatMoney } from "@/lib/money";
+
+// Auto trend cards → the page whose data they summarise.
+const AUTO_REPORT_SOURCES = {
+  auto_fin: { to: "/app/financials", label: "View in Financials" },
+  auto_team: { to: "/app/people", label: "View team" },
+  auto_exec: { to: "/app/tasks", label: "View tasks" },
+};
 
 const emptyReport = () => ({ title: "", type: "General", period: "", summary: "", metrics: [{ label: "", value: "" }, { label: "", value: "" }, { label: "", value: "" }] });
 
@@ -371,6 +379,7 @@ export default function Reports() {
                 badge="Auto"
                 canWrite={canWrite}
                 onAddToReport={() => openFromTrend(r)}
+                source={AUTO_REPORT_SOURCES[r.id]}
               />
             ))}
           </div>
@@ -533,7 +542,7 @@ export default function Reports() {
   );
 }
 
-function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToReport, badge, hideSummary }) {
+function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToReport, badge, hideSummary, source }) {
   const isAuto = badge === "Auto" || badge === "Updated automatically" || r.source === "auto";
   const metrics = r.metrics || [];
 
@@ -586,15 +595,28 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
           ))}
         </div>
       )}
-      {canWrite && onAddToReport && (
-        <button
-          type="button"
-          data-testid={`add-trend-to-report-${r.id}`}
-          onClick={onAddToReport}
-          className="mt-auto pt-5 inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 hover:border-helm-fg/20 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add to report
-        </button>
+      {((canWrite && onAddToReport) || source) && (
+        <div className="mt-auto pt-5 flex flex-wrap items-center gap-3">
+          {canWrite && onAddToReport && (
+            <button
+              type="button"
+              data-testid={`add-trend-to-report-${r.id}`}
+              onClick={onAddToReport}
+              className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 hover:border-helm-fg/20 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add to report
+            </button>
+          )}
+          {source && (
+            <Link
+              to={source.to}
+              data-testid={`report-source-${r.id}`}
+              className="inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover"
+            >
+              {source.label} <ArrowRight className="w-3 h-3" />
+            </Link>
+          )}
+        </div>
       )}
     </GlassCard>
   );

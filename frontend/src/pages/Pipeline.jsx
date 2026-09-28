@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, PenLine, X, TrendingUp } from "lucide-react";
@@ -8,12 +9,14 @@ import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
   SkeletonKPIRow, SkeletonCardList,
 } from "@/components/kit";
-import { FETCH_STALE_MS, fetchErrorMessage } from "@/hooks/useFetch";
+import { FETCH_STALE_MS, fetchErrorMessage, invalidateFetchQueries } from "@/hooks/useFetch";
 import { cn } from "@/lib/utils";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
 import SalesOrderBook from "@/components/SalesOrderBook";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
+import { entryHref, highlightRecord } from "@/lib/signalRoute";
+import { useAuth } from "@/context/AuthContext";
 
 const stageStyle = {
   lead: "text-helm-fg bg-helm-fg/5",
@@ -38,6 +41,38 @@ const emptyForm = (defaults = {}) => ({
 });
 const PAGE_LIMIT = 200;
 
+/** "2026-09" → "September 2026" (local, no timezone shift). */
+function monthLabel(month) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(month || ""));
+  if (!m) return "this month";
+  return new Date(Number(m[1]), Number(m[2]) - 1, 1).toLocaleString(undefined, { month: "long", year: "numeric" });
+}
+
+/**
+ * Server metrics are workspace-wide. When "My deals" is on, rebuild them from
+ * the deals actually shown so the KPIs and stage counts match the list.
+ */
+function metricsFromDeals(deals, base, stages) {
+  const order = (base?.by_stage?.length ? base.by_stage : (stages || []).map((st) => ({ stage: st.id, label: st.label })))
+    .map((s) => ({ stage: s.stage, label: s.label }));
+  const seen = new Set(order.map((s) => s.stage));
+  deals.forEach((d) => {
+    if (d.stage && !seen.has(d.stage)) { seen.add(d.stage); order.push({ stage: d.stage, label: d.stage }); }
+  });
+  const val = (d) => Number(d.value) || 0;
+  const isOpen = (d) => d.stage !== "won" && d.stage !== "lost";
+  const round = (n) => Math.round(n * 100) / 100;
+  return {
+    open_value: round(deals.filter(isOpen).reduce((a, d) => a + val(d), 0)),
+    won_value: round(deals.filter((d) => d.stage === "won").reduce((a, d) => a + val(d), 0)),
+    open_count: deals.filter(isOpen).length,
+    by_stage: order.map((s) => {
+      const inStage = deals.filter((d) => d.stage === s.stage);
+      return { ...s, count: inStage.length, value: round(inStage.reduce((a, d) => a + val(d), 0)) };
+    }),
+  };
+}
+
 function ownerLabel(owner) {
   if (!owner) return "";
   return owner.name || owner.email || "Teammate";
@@ -45,6 +80,10 @@ function ownerLabel(owner) {
 
 export default function Pipeline() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusDealId = searchParams.get("deal");
   const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
   const [extraDeals, setExtraDeals] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
@@ -80,8 +119,10 @@ export default function Pipeline() {
     setNextCursor(dealsQuery.data?.next_cursor ?? null);
   }, [dealsQuery.data, mineOnly]);
 
-  const pageDeals = dealsQuery.data?.items || dealsQuery.data?.deals || [];
-  const deals = extraDeals.length ? [...pageDeals, ...extraDeals] : pageDeals;
+  const deals = useMemo(() => {
+    const pageDeals = dealsQuery.data?.items || dealsQuery.data?.deals || [];
+    return extraDeals.length ? [...pageDeals, ...extraDeals] : pageDeals;
+  }, [dealsQuery.data, extraDeals]);
   const meta = dealsQuery.data
     ? {
         can_write: dealsQuery.data.can_write,
@@ -104,6 +145,9 @@ export default function Pipeline() {
     await queryClient.invalidateQueries({ queryKey: ["deals", "pipeline"] });
   }, [queryClient]);
 
+  // Set when paging fails, so a ?deal= deep link stops paging instead of
+  // retrying (and toasting) in a loop while the API is down.
+  const loadMoreFailedRef = useRef(false);
   const loadMore = async () => {
     if (!nextCursor || loadingMore) return;
     setLoadingMore(true);
@@ -114,17 +158,44 @@ export default function Pipeline() {
       const page = data.items || data.deals || [];
       setExtraDeals((prev) => [...prev, ...page]);
       setNextCursor(data.next_cursor ?? null);
+      loadMoreFailedRef.current = false;
     } catch {
+      loadMoreFailedRef.current = true;
       toast.error("Could not load more deals");
     } finally {
       setLoadingMore(false);
     }
   };
 
+  const loadMoreRef = useRef(loadMore);
+  loadMoreRef.current = loadMore;
+
+  // ?deal=<id> deep link: make sure the deal is on screen (pipeline tab, filter
+  // off, paged in), then scroll to and flash it.
+  useEffect(() => {
+    if (!focusDealId || !dealsQuery.data || dealsQuery.isFetching || loadingMore) return;
+    const clear = () => setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete("deal");
+      return next;
+    }, { replace: true });
+    if (salesTab !== "pipeline") { setSalesTab("pipeline"); return; }
+    if (deals.some((d) => d.id === focusDealId)) {
+      highlightRecord(focusDealId);
+      clear();
+      return;
+    }
+    if (mineOnly) { setMineOnly(false); return; }
+    if (nextCursor && !loadMoreFailedRef.current) { loadMoreRef.current?.(); return; }
+    if (!loadMoreFailedRef.current) toast.error("That deal is no longer in the pipeline");
+    loadMoreFailedRef.current = false;
+    clear();
+  }, [focusDealId, dealsQuery.data, dealsQuery.isFetching, loadingMore, salesTab, deals, mineOnly, nextCursor, setSearchParams]);
+
   if (loading) {
     return (
       <div>
-        <PageHeader title="Sales Pipeline" subtitle="Log deals and stages. Pipeline signals roll straight into the CEO Briefing." />
+        <PageHeader title="Sales Pipeline" subtitle="Log deals and stages. Pipeline signals roll straight into the Briefing." />
         <SkeletonKPIRow count={4} />
         <SkeletonCardList count={4} />
       </div>
@@ -143,13 +214,26 @@ export default function Pipeline() {
   const canReassign = meta.can_reassign_owner;
   const myId = meta.my_user_id;
   const salesOwners = meta.sales_owners || [];
-  const m = meta.metrics;
+  // "My deals" → metrics from the filtered list; team view → server aggregate.
+  const m = mineOnly ? metricsFromDeals(deals, meta.metrics, meta.stages) : meta.metrics;
   const sym = meta.currency_symbol || workspaceSymbol;
 
   const maybeOfferProduction = (res) => {
     if (res?.production_prompt && res?.production_prefill) {
       setProductionPrompt(res.production_prefill);
     }
+  };
+
+  // Won deals create a revenue entry server-side — say so and link to it.
+  const announceRevenue = (res) => {
+    const entry = res?.financial_entry;
+    if (!entry?.id) return;
+    invalidateFetchQueries(queryClient, "/financials");
+    // Only offer the link to people who can open Financials (SectionGate).
+    const canSeeFinancials = (user?.granted_sections || []).includes("financials");
+    toast.success(`Revenue logged for ${monthLabel(entry.month)}`, canSeeFinancials ? {
+      action: { label: "View in Financials", onClick: () => navigate(entryHref(entry.id)) },
+    } : undefined);
   };
 
   const dealPayload = (base) => ({
@@ -195,11 +279,13 @@ export default function Pipeline() {
     try {
       if (editing) {
         const { data: res } = await api.patch(`/deals/${editing}`, payload);
-        toast.success("Deal updated");
+        if (res?.financial_entry?.id) announceRevenue(res);
+        else toast.success("Deal updated");
         maybeOfferProduction(res);
       } else {
-        await api.post("/deals", payload);
-        toast.success("Deal added to pipeline");
+        const { data: res } = await api.post("/deals", payload);
+        if (res?.financial_entry?.id) announceRevenue(res);
+        else toast.success("Deal added to pipeline");
       }
       setShowForm(false); reload();
     } catch (e) { toast.error(e?.response?.data?.detail || "Could not save"); }
@@ -209,6 +295,7 @@ export default function Pipeline() {
   const changeStage = async (d, stage) => {
     try {
       const { data: res } = await api.patch(`/deals/${d.id}`, dealPayload({ ...d, stage }));
+      announceRevenue(res);
       maybeOfferProduction(res);
       reload();
     } catch (e) {
@@ -257,7 +344,7 @@ export default function Pipeline() {
 
   return (
     <div>
-      <PageHeader title="Sales" subtitle="Pipeline and order book. Status rolls into the CEO Briefing." action={action} />
+      <PageHeader title="Sales" subtitle="Pipeline and order book. Status rolls into the Briefing." action={action} />
 
       <div className="flex items-center gap-1 mb-5 border-b border-helm-line" data-testid="sales-tabs">
         {[
@@ -321,7 +408,7 @@ export default function Pipeline() {
                 </div>
                 <div className="space-y-2">
                   {deals.filter((d) => d.stage === s.stage).map((d) => (
-                    <GlassCard key={d.id} className="p-4 fade-up flex items-center gap-4 group" data-testid={`deal-${d.id}`}>
+                    <GlassCard key={d.id} className="p-4 fade-up flex items-center gap-4 group" data-testid={`deal-${d.id}`} data-deeplink={d.id}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                           <p className="text-sm text-helm-fg truncate">{d.name}</p>

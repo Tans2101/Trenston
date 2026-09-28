@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ChevronLeft, ChevronRight, CalendarPlus, Clock, Users, Plus, X, RefreshCw, Link2,
@@ -10,6 +10,7 @@ import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
 import { api } from "@/lib/api";
 import { ErrorScreen, EmptyState, GlassCard, PageHeaderSkeleton, SkeletonChart, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { taskHref, decisionHref, departmentItemHref } from "@/lib/signalRoute";
 
 function eventScopeLabel(ev) {
   if (!ev) return null;
@@ -52,6 +53,29 @@ const typeDot = {
   Legal: "bg-helm-fg",
   Leave: "bg-helm-status-positive",
 };
+
+const DEADLINE_SOURCE_DEPT = {
+  production_work_order: "production",
+  procurement_request: "procurement",
+  legal_matter: "legal",
+};
+
+/** Where a read-only deadline event leads: backend href, else derived from its id/source. */
+function deadlineHref(ev) {
+  if (!ev || ev.source !== "deadline") return null;
+  if (ev.href) return ev.href;
+  const rawId = String(ev.id || "").replace(/^deadline_/, "");
+  const sourceId = ev.source_id || rawId;
+  if (ev.source_type === "hr_leave_request") return departmentItemHref("hr", sourceId, { leaveRequest: true });
+  if (DEADLINE_SOURCE_DEPT[ev.source_type]) return departmentItemHref(DEADLINE_SOURCE_DEPT[ev.source_type], sourceId);
+  if (ev.type === "Task") return taskHref(rawId);
+  if (ev.type === "Decision") return decisionHref(rawId);
+  return null;
+}
+
+function isClickableEvent(ev) {
+  return isEditableHelmEvent(ev) || Boolean(deadlineHref(ev));
+}
 
 function isEditableHelmEvent(ev) {
   if (!ev || ev.source !== "helm" || String(ev.id || "").startsWith("deadline_")) return false;
@@ -120,7 +144,21 @@ function sameDay(a, b) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
+/** "YYYY-MM-DD" → local midnight (no UTC shift); invalid → null. */
+function parseLocalDate(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
 function parseEventStart(ev) {
+  // All-day items are calendar dates, not instants. Their start_at/end_at are
+  // UTC midnight–23:59, which lands across two local days east/west of UTC
+  // (e.g. Manila, UTC+8) — use the plain date instead.
+  if (ev.all_day) {
+    const local = parseLocalDate(ev.date);
+    if (local) return local;
+  }
   if (ev.start_at) return new Date(ev.start_at);
   if (ev.date && ev.time) return new Date(`${ev.date}T${ev.time}:00`);
   if (ev.date) return new Date(`${ev.date}T00:00:00`);
@@ -128,6 +166,9 @@ function parseEventStart(ev) {
 }
 
 function parseEventEndDay(ev) {
+  if (ev.all_day && ev.date) {
+    return parseLocalDate(ev.end_date) || parseLocalDate(ev.date);
+  }
   if (ev.end_at) {
     const end = new Date(ev.end_at);
     return new Date(end.getFullYear(), end.getMonth(), end.getDate());
@@ -222,7 +263,7 @@ function MiniMonth({ month, selected, weekDays, onSelectDay, onPrev, onNext }) {
   );
 }
 
-function AgendaSidebar({ events, weekDays, selectedDay, onSelectDay }) {
+function AgendaSidebar({ events, weekDays, selectedDay, onSelectDay, onEventClick }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -267,7 +308,7 @@ function AgendaSidebar({ events, weekDays, selectedDay, onSelectDay }) {
                 <button
                   key={ev.id}
                   type="button"
-                  onClick={() => onSelectDay(day)}
+                  onClick={() => (isClickableEvent(ev) ? onEventClick?.(ev) : onSelectDay(day))}
                   className="w-full flex items-start gap-2 rounded-md px-2 py-1.5 text-left hover:bg-helm-fg/[0.04] transition-colors"
                   data-testid={`agenda-${ev.id}`}
                 >
@@ -294,9 +335,6 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const hours = [];
-  for (let h = GRID_START; h <= GRID_END; h++) hours.push(h);
-
   const byDay = useMemo(() => {
     const map = weekDays.map((d) => ({ day: d, timed: [], allDay: [] }));
     events.forEach((ev) => {
@@ -309,8 +347,26 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
     return map;
   }, [events, weekDays]);
 
-  const nowTop = ((now.getHours() + now.getMinutes() / 60) - GRID_START) * HOUR_HEIGHT;
-  const showNowLine = now.getHours() >= GRID_START && now.getHours() <= GRID_END;
+  // Default grid is 7 AM–8 PM; stretch it so early/late meetings still show
+  // (they used to be dropped, and the agenda sidebar is hidden on mobile).
+  const { gridStart, gridEnd } = useMemo(() => {
+    let lo = GRID_START;
+    let hi = GRID_END;
+    byDay.forEach(({ timed }) => timed.forEach((ev) => {
+      const start = parseEventStart(ev);
+      if (!start || Number.isNaN(start.getTime())) return;
+      const h = start.getHours();
+      lo = Math.min(lo, h);
+      hi = Math.max(hi, h);
+    }));
+    return { gridStart: lo, gridEnd: hi };
+  }, [byDay]);
+
+  const hours = [];
+  for (let h = gridStart; h <= gridEnd; h++) hours.push(h);
+
+  const nowTop = ((now.getHours() + now.getMinutes() / 60) - gridStart) * HOUR_HEIGHT;
+  const showNowLine = now.getHours() >= gridStart && now.getHours() <= gridEnd;
 
   return (
     <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -352,7 +408,8 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                 key={ev.id}
                 type="button"
                 onClick={() => onEventClick?.(ev)}
-                className={cn("rounded px-1.5 py-0.5 text-[10px] truncate border text-left w-full", typeBlock[ev.type] || "bg-helm-fg/10 border-helm-line text-helm-fg", isEditableHelmEvent(ev) && "cursor-pointer hover:brightness-110")}
+                className={cn("rounded px-1.5 py-0.5 text-[10px] truncate border text-left w-full", typeBlock[ev.type] || "bg-helm-fg/10 border-helm-line text-helm-fg", isClickableEvent(ev) ? "cursor-pointer hover:brightness-110" : "cursor-default")}
+                data-testid={`allday-${ev.id}`}
                 title={eventScopeLabel(ev) ? `${ev.title} · ${eventScopeLabel(ev)}` : ev.title}
               >
                 {ev.title}
@@ -367,14 +424,14 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
 
       {/* Time grid */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="grid relative" style={{ gridTemplateColumns: "52px repeat(7, 1fr)", minHeight: (GRID_END - GRID_START + 1) * HOUR_HEIGHT }}>
+        <div className="grid relative" style={{ gridTemplateColumns: "52px repeat(7, 1fr)", minHeight: (gridEnd - gridStart + 1) * HOUR_HEIGHT }}>
           {/* Hour labels */}
           <div className="border-r border-helm-line relative">
             {hours.map((h) => (
               <div
                 key={h}
                 className="absolute left-0 right-0 pr-2 text-right text-[10px] font-mono text-helm-muted -translate-y-2"
-                style={{ top: (h - GRID_START) * HOUR_HEIGHT }}
+                style={{ top: (h - gridStart) * HOUR_HEIGHT }}
               >
                 {h === 12 ? "noon" : h < 12 ? `${h} AM` : `${h - 12} PM`}
               </div>
@@ -415,9 +472,10 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                   if (!start) return null;
                   const startFrac = start.getHours() + start.getMinutes() / 60;
                   const durH = (ev.duration || 30) / 60;
-                  const top = (startFrac - GRID_START) * HOUR_HEIGHT;
-                  const height = Math.max(durH * HOUR_HEIGHT - 2, 22);
-                  if (startFrac < GRID_START || startFrac > GRID_END) return null;
+                  const top = (startFrac - gridStart) * HOUR_HEIGHT;
+                  // Keep blocks that run past midnight inside the grid.
+                  const maxHeight = (gridEnd + 1 - startFrac) * HOUR_HEIGHT - 2;
+                  const height = Math.max(Math.min(durH * HOUR_HEIGHT - 2, maxHeight), 22);
                   return (
                     <button
                       key={ev.id}
@@ -427,7 +485,7 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
                       className={cn(
                         "absolute left-1 right-1 z-10 rounded-md border px-1.5 py-1 overflow-hidden text-left shadow-sm",
                         typeBlock[ev.type] || "bg-helm-fg/10 border-helm-fg/15 text-helm-fg",
-                        isEditableHelmEvent(ev) && "cursor-pointer hover:brightness-110",
+                        isClickableEvent(ev) ? "cursor-pointer hover:brightness-110" : "cursor-default",
                       )}
                       style={{ top: top + 1, height }}
                       title={eventScopeLabel(ev) ? `${ev.title} · ${eventScopeLabel(ev)}` : ev.title}
@@ -469,7 +527,15 @@ export default function CalendarPage() {
   const [connecting, setConnecting] = useState(false);
 
   const weekParam = toIsoDate(weekStart);
-  const { data, loading, error, reload } = useFetch(`/calendar?week_start=${weekParam}`, [weekParam]);
+  const { data: weekData, loading, error, reload } = useFetch(`/calendar?week_start=${weekParam}`, [weekParam]);
+  // Keep the last loaded week on screen while the next one loads, instead of
+  // flashing a full-page skeleton on every week change.
+  const [lastData, setLastData] = useState(null);
+  useEffect(() => {
+    if (weekData) setLastData(weekData);
+  }, [weekData]);
+  const data = weekData || lastData;
+  const refreshing = loading && !weekData && Boolean(lastData);
   const { data: departmentsData } = useDepartmentsQuery();
 
   const scopeDepartments = useMemo(() => {
@@ -479,7 +545,10 @@ export default function CalendarPage() {
   }, [departmentsData]);
 
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
-  const events = data?.events || data?.meetings || [];
+  const events = useMemo(
+    () => (weekData ? (weekData.events || weekData.meetings || []) : []),
+    [weekData],
+  );
 
   const goToday = () => {
     const t = new Date();
@@ -510,6 +579,8 @@ export default function CalendarPage() {
   };
 
   const openEdit = (ev) => {
+    const href = deadlineHref(ev);
+    if (href) { navigate(href); return; }
     if (data?.can_write !== true || !isEditableHelmEvent(ev)) return;
     setEditing(ev.id);
     const vis = ev.visibility === "department" ? "department" : "personal";
@@ -592,7 +663,7 @@ export default function CalendarPage() {
     }
   };
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div>
         <PageHeaderSkeleton className="px-2 md:px-4" />
@@ -615,7 +686,7 @@ export default function CalendarPage() {
     );
   }
 
-  const hasEvents = events.length > 0;
+  const hasEvents = events.length > 0 || refreshing;
   const canWrite = data.can_write === true;
   const googleConnected = data.google_connected || data.live || data.source === "google_calendar";
   const googleAvailable = data.google_available !== false;
@@ -722,6 +793,7 @@ export default function CalendarPage() {
             ))}
           </div>
           <div className="hidden sm:flex items-center gap-4 text-xs text-helm-muted font-mono">
+            {refreshing && <span className="text-helm-muted" data-testid="calendar-refreshing">Loading…</span>}
             <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-helm-gold" />{data.focus_hours ?? 0}h focus</span>
             <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-helm-gold" />{data.meeting_hours ?? 0}h meetings</span>
           </div>
@@ -741,7 +813,7 @@ export default function CalendarPage() {
             onPrev={() => setSidebarMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
             onNext={() => setSidebarMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
           />
-          <AgendaSidebar events={events} weekDays={weekDays} selectedDay={selectedDay} onSelectDay={pickDay} />
+          <AgendaSidebar events={events} weekDays={weekDays} selectedDay={selectedDay} onSelectDay={pickDay} onEventClick={openEdit} />
         </aside>
 
         <div className="flex-1 flex flex-col min-w-0 bg-helm-bg">

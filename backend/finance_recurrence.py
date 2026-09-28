@@ -42,6 +42,8 @@ def is_valid_month(month: str) -> bool:
 
 
 def current_month(now: Optional[datetime] = None) -> str:
+    """YYYY-MM of ``now``. Pass an aware workspace-local datetime
+    (tz_utils.workspace_now) so the month flips at local midnight, not UTC."""
     from datetime import timezone
     dt = now or datetime.now(timezone.utc)
     return dt.strftime("%Y-%m")

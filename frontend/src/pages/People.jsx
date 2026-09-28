@@ -267,15 +267,17 @@ export default function People() {
                     </p>
                   )}
                   {showWorkload && (
-                    <p
+                    <Link
+                      to={p.user_id === user?.user_id ? "/app/me" : "/app/tasks"}
                       className={cn(
-                        "text-[11px] font-mono mt-1",
-                        overdueCount > 0 ? "text-helm-status-warning" : "text-helm-muted",
+                        "inline-block text-[11px] font-mono mt-1 hover:underline",
+                        overdueCount > 0 ? "text-helm-status-warning" : "text-helm-muted hover:text-helm-fg",
                       )}
                       data-testid={`person-workload-${p.id}`}
+                      title={p.user_id === user?.user_id ? "Open My Day" : "Open the task board"}
                     >
                       {openCount} open{overdueCount > 0 ? ` · ${overdueCount} overdue` : ""}
-                    </p>
+                    </Link>
                   )}
                 </div>
                 {canWrite && (
@@ -316,7 +318,7 @@ function PersonForm({ form, setForm, submit, busy, editing, person, close, canIn
             </p>
             <p className="mt-1 text-helm-muted">
               Assign access in{" "}
-              <Link to="/app/members" className="text-helm-gold hover:underline">Team & Access</Link>
+              <Link to="/app/members?tab=access" className="text-helm-gold hover:underline">Team & Access</Link>
               {" "}→ department membership, not from this roster field.
             </p>
           </div>

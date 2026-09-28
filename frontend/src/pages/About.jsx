@@ -52,9 +52,9 @@ import { cn } from "@/lib/utils";
  * read by marketingClaimsVerification.test.js) — map by title here instead
  * of changing that shared shape. */
 const WHO_ICONS = {
-  "Founders and owners running real operations": Users,
+  "Founders building the company": Users,
   "Owner-operators and traditional businesses": Building2,
-  "Leadership teams": Briefcase,
+  "CEOs and leadership teams": Briefcase,
 };
 const VALUE_ICONS = {
   "Signal over noise": Radio,

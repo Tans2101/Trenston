@@ -178,7 +178,7 @@ def build_workspace(workspace_id, name, owner_user_id, empty=False, currency=Non
         "mission": "Autonomous inspection robots for industrial sites." if not empty else "",
         "onboarding_done": not empty, "company_setup_done": not empty,
         "industry": "" if empty else "Industrial Robotics",
-        "founder_title": "" if empty else "CEO",
+        "founder_title": "" if empty else "Founder",
         # Sample template has a team; empty/new leaves has_team unset until CompanySetup.
         "has_team": True if not empty else None,
         "template": "empty" if empty else "sample",

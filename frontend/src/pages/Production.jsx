@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Factory } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -14,6 +15,8 @@ import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
 import { PossiblyStaleBadge } from "@/components/AiSummaryMeta";
+import { departmentItemHref, highlightRecord } from "@/lib/signalRoute";
+import DepartmentNotEnabled from "@/components/DepartmentNotEnabled";
 
 const STATUS_META = {
   awaiting_materials: {
@@ -237,6 +240,9 @@ export default function Production() {
   const [logForm, setLogForm] = useState(() => emptyDailyLog("", tz));
   const [otRateDraft, setOtRateDraft] = useState("");
   const [logsLoading, setLogsLoading] = useState(false);
+  const [searchParams] = useSearchParams();
+  const deepItemId = searchParams.get("item");
+  const handledDeepLink = useRef(null);
 
   const allOrders = useMemo(
     () => [...(data?.work_orders || [])].sort(compareOrders),
@@ -271,6 +277,27 @@ export default function Production() {
     );
   }, [data?.overtime_rate_per_hour]);
 
+  // Deep link: ?item=<id> opens that work order once loaded (revealing
+  // closed orders if needed) and flashes its row.
+  useEffect(() => {
+    if (!deepItemId || !data || handledDeepLink.current === deepItemId) return;
+    handledDeepLink.current = deepItemId;
+    const target = allOrders.find((o) => o.id === deepItemId);
+    if (!target) {
+      toast.info("That work order is no longer in the queue");
+      return;
+    }
+    if (CLOSED.has(target.status)) setShowClosed(true);
+    setSelectedId(target.id);
+    highlightRecord(target.id);
+  }, [deepItemId, data, allOrders]);
+
+  // Reset the edit draft only when another order is opened or the server copy
+  // changed (save / someone else's edit) — never on a focus refetch.
+  const draftKey = selected ? `${selected.id}|${selected.updated_at || ""}` : null;
+  // The half-typed daily log only resets when a different order is opened.
+  const logFormKey = selected ? `${selected.id}|${selected.unit || ""}|${tz || ""}` : null;
+
   useEffect(() => {
     if (!selected) {
       setDraft(null);
@@ -300,9 +327,15 @@ export default function Production() {
       expected_yield_pct: selected.expected_yield_pct == null ? "" : String(selected.expected_yield_pct),
       input_unit: selected.input_unit || "",
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on id + updated_at on purpose
+  }, [draftKey]);
+
+  useEffect(() => {
+    if (!selected) return;
     setLogForm(emptyDailyLog(selected.unit || "", tz));
     setCompleting(false);
-  }, [selected, tz]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on order id / unit / tz on purpose
+  }, [logFormKey]);
 
   useEffect(() => {
     setConfirmDeleteLogId(null);
@@ -348,13 +381,7 @@ export default function Production() {
       );
     }
     if (status === 404) {
-      return (
-        <ErrorScreen
-          label="Production not enabled"
-          message="Enable Production under Settings → Departments first."
-          onRetry={reload}
-        />
-      );
+      return <DepartmentNotEnabled deptType="production" label="Production" onEnabled={reload} onRetry={reload} />;
     }
     return (
       <ErrorScreen
@@ -858,6 +885,7 @@ export default function Production() {
                 return (
                   <tr
                     key={order.id}
+                    data-deeplink={order.id}
                     data-testid={`production-row-${order.id}`}
                     onClick={() => setSelectedId(order.id)}
                     className={cn(
@@ -914,18 +942,28 @@ export default function Production() {
                       <div className="flex flex-col gap-1">
                         <StatusBadge status={order.status} />
                         {order.linked_procurement && (
-                          <span className="text-[10px] text-helm-muted truncate max-w-[9rem]" data-testid={`linked-proc-${order.id}`}>
+                          <Link
+                            to={departmentItemHref("procurement", order.linked_procurement.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-helm-muted truncate max-w-[9rem] underline-offset-2 hover:text-helm-gold hover:underline"
+                            data-testid={`linked-proc-${order.id}`}
+                          >
                             Proc: {order.linked_procurement.item || order.linked_procurement.id}
                             {" · "}
                             {PROC_STATUS_LABELS[order.linked_procurement.status] || order.linked_procurement.status}
-                          </span>
+                          </Link>
                         )}
                         {order.linked_maintenance && (
-                          <span className="text-[10px] text-helm-muted truncate max-w-[9rem]" data-testid={`linked-maint-${order.id}`}>
+                          <Link
+                            to={departmentItemHref("engineering_maintenance", order.linked_maintenance.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[10px] text-helm-muted truncate max-w-[9rem] underline-offset-2 hover:text-helm-gold hover:underline"
+                            data-testid={`linked-maint-${order.id}`}
+                          >
                             Maint: {order.linked_maintenance.equipment_name || order.linked_maintenance.id}
                             {" · "}
                             {MAINT_STATUS_LABELS[order.linked_maintenance.status] || order.linked_maintenance.status}
-                          </span>
+                          </Link>
                         )}
                       </div>
                     </td>
