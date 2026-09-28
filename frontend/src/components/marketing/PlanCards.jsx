@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Four plan cards from PLANS (single source of truth). The highlighted plan
- * renders on navy with a spinning conic border; the rest are white cards.
+ * renders on solid navy; the rest are flat white cards.
  * Rows are fixed-height where copy varies so every CTA lines up.
  */
 export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-cta", renewalTestIdPrefix }) {
@@ -20,11 +20,11 @@ export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-
               data-testid={`pricing-plan-${plan.id}`}
               className={cn(
                 "relative flex w-full flex-col p-7 md:p-8",
-                hi ? "mk-spin-border text-white xl:-my-4 xl:py-12" : "mk-card",
+                hi ? "bg-mk-navy text-white" : "mk-card",
               )}
             >
               <div className="flex items-center justify-between gap-3">
-                <h3 className={cn("text-xs font-semibold uppercase tracking-[0.18em]", hi ? "text-mk-sky" : "text-mk-navy")}>
+                <h3 className={cn("text-xs font-semibold uppercase tracking-[0.18em]", hi ? "text-white/75" : "text-mk-navy")}>
                   {plan.label}
                 </h3>
                 {hi && (
@@ -34,7 +34,7 @@ export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-
                 )}
               </div>
               <p className="mt-6 flex items-baseline gap-1 tabular-nums">
-                <span className="text-5xl font-semibold tracking-[-0.04em]">${plan.price}</span>
+                <span className="text-5xl font-medium tracking-[-0.03em]">${plan.price}</span>
                 {plan.price > 0 && <span className={cn("text-base", hi ? "text-white/70" : "text-mk-gray")}>/mo</span>}
               </p>
               <p className={cn("mt-3 min-h-[2.75rem] text-sm leading-snug", hi ? "text-white/85" : "text-mk-gray")}>{plan.for}</p>
@@ -46,7 +46,7 @@ export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-
               <ul className="flex-1 space-y-3">
                 {plan.includes.map((f) => (
                   <li key={f} className={cn("flex items-start gap-2.5 text-sm font-medium", hi ? "text-white" : "text-mk-black")}>
-                    <Check className={cn("mt-0.5 h-4 w-4 shrink-0", hi ? "text-mk-sky" : "text-mk-navy")} aria-hidden />
+                    <Check className={cn("mt-0.5 h-4 w-4 shrink-0", hi ? "text-white" : "text-mk-navy")} aria-hidden />
                     {f}
                   </li>
                 ))}

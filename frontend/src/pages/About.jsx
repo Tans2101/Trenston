@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 import {
   CtaBand,
-  DarkBackdrop,
+  DISPLAY,
   DrawLine,
   Eyebrow,
   MkButton,
   MkPage,
   PageHero,
   Reveal,
+  RuledItem,
   SectionHeader,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
@@ -45,6 +46,7 @@ import {
   WHAT_TRENSTON_IS,
   WHO_HELM_IS_FOR,
 } from "@/lib/marketingCopy";
+import { cn } from "@/lib/utils";
 
 /** WHO_HELM_IS_FOR and VALUES have no icon field in marketingCopy.js (also
  * read by marketingClaimsVerification.test.js) — map by title here instead
@@ -67,6 +69,14 @@ const FACTS = [
   { label: "Built for", value: AUDIENCE },
 ];
 
+const TOC = [
+  { id: "what", label: "What Trenston is" },
+  { id: "why", label: "Why we built it" },
+  { id: "founder", label: "Who's behind it" },
+  { id: "customers", label: "Who it's for" },
+  { id: "principles", label: "What we believe" },
+];
+
 export default function About() {
   const { authed, enter } = useMarketingAuth();
   useEffect(() => { window.scrollTo(0, 0); }, []);
@@ -75,43 +85,38 @@ export default function About() {
 
   return (
     <MkPage authed={authed} onEnter={enter} active="/about">
-      <PageHero eyebrow="About us" lines={["About", "Trenston."]} sub={MISSION} />
+      <PageHero eyebrow="About us" lines={["About", "Trenston."]} sub={MISSION} toc={TOC} />
 
       {/* What it is + key facts */}
-      <section className="bg-white px-6 py-24 md:py-28" data-testid="about-facts">
+      <section id="what" className="scroll-mt-16 bg-white px-6 py-24 md:py-28" data-testid="about-facts">
         <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[1.3fr_1fr]">
           <Reveal>
             <Eyebrow>What Trenston is</Eyebrow>
-            <p className="mt-8 text-2xl font-medium leading-[1.4] tracking-[-0.015em] text-mk-black md:text-[1.9rem]">
+            <p className={cn("mt-6 text-2xl leading-[1.4] text-mk-black md:text-[1.85rem]", DISPLAY)}>
               {WHAT_TRENSTON_IS}
             </p>
           </Reveal>
-          <dl className="self-end">
+          <dl className="self-end border-t border-mk-black">
             {FACTS.map((f, i) => (
-              <Reveal key={f.label} i={i} className="border-t border-mk-line py-5 last:border-b">
-                <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{f.label}</dt>
-                <dd className="mt-2 text-lg leading-snug text-mk-black">{f.value}</dd>
+              <Reveal key={f.label} i={i} className="grid grid-cols-[8rem_1fr] gap-4 border-b border-mk-line py-5">
+                <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-mk-navy">{f.label}</dt>
+                <dd className="leading-snug text-mk-black">{f.value}</dd>
               </Reveal>
             ))}
           </dl>
         </div>
       </section>
 
-      {/* Why we built it — black band, pull quote + story */}
-      <section className="relative overflow-hidden bg-mk-black px-6 py-24 text-white md:py-32">
-        <DarkBackdrop />
-        <div className="relative mx-auto max-w-7xl">
+      {/* Why we built it — flat black band, pull quote + story */}
+      <section id="why" className="scroll-mt-16 bg-mk-black px-6 py-24 text-white md:py-28">
+        <div className="mx-auto max-w-7xl">
           <Eyebrow dark>Why we built Trenston</Eyebrow>
           <div className="mt-10 grid gap-14 lg:grid-cols-[1.15fr_1fr]">
             <Reveal>
-              <p className="text-3xl font-semibold leading-[1.2] tracking-[-0.025em] md:text-[2.6rem]">
-                <span className="text-mk-sky">“</span>
-                {ABOUT_PROBLEM}
-                <span className="text-mk-sky">”</span>
-              </p>
+              <p className={cn("text-3xl leading-[1.25] md:text-[2.5rem]", DISPLAY)}>“{ABOUT_PROBLEM}”</p>
             </Reveal>
             <Reveal i={1}>
-              <DrawLine className="bg-white/30" />
+              <DrawLine className="bg-white/40" />
               <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">What we built</p>
               <p className="mt-4 leading-relaxed text-mk-gray-dark">{ABOUT_STORY}</p>
             </Reveal>
@@ -120,26 +125,25 @@ export default function About() {
       </section>
 
       {/* Founder */}
-      <section className="bg-white px-6 py-24 md:py-28" data-testid="about-founder">
+      <section id="founder" className="scroll-mt-16 bg-white px-6 py-24 md:py-28" data-testid="about-founder">
         <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[0.8fr_1.2fr]">
-          <Reveal className="relative mx-auto w-full max-w-sm lg:mx-0">
+          <Reveal className="mx-auto w-full max-w-sm lg:mx-0">
             {/* No real headshot on file yet — an honest monogram, not a stand-in photo. */}
-            <div className="group relative aspect-[4/5] overflow-hidden bg-mk-black" aria-hidden>
-              <div className="mk-grid absolute inset-0 opacity-70" />
-              <div className="absolute -bottom-1/4 -right-1/4 h-3/4 w-3/4 rounded-full bg-mk-navy blur-2xl transition-transform duration-700 group-hover:scale-125" />
-              <span className="absolute inset-0 flex items-center justify-center text-[7rem] font-semibold tracking-[-0.06em] text-white">
-                {initials}
+            <div className="relative flex aspect-[4/5] items-end bg-mk-black p-8" aria-hidden>
+              <span className="absolute left-8 top-8 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">
+                {FOUNDER_ROLE}
               </span>
+              <span className="text-[7rem] font-medium leading-none tracking-[-0.05em] text-white">{initials}</span>
             </div>
-            <span className="absolute -bottom-4 left-6 inline-flex items-center gap-2 bg-mk-navy px-4 py-2.5 text-sm text-white">
-              <MapPin className="h-4 w-4" aria-hidden />
+            <p className="mt-4 flex items-center gap-2 text-sm text-mk-gray">
+              <MapPin className="h-4 w-4 text-mk-navy" aria-hidden />
               {COMPANY_LOCATION}
-            </span>
+            </p>
           </Reveal>
           <Reveal i={1}>
             <Eyebrow>Who&apos;s behind Trenston</Eyebrow>
-            <h2 className="mt-6 text-5xl font-semibold tracking-[-0.04em] md:text-6xl">{FOUNDER_NAME}</h2>
-            <p className="mt-2 text-sm font-semibold uppercase tracking-[0.16em] text-mk-gray">{FOUNDER_ROLE}</p>
+            <h2 className={cn("mt-5 text-5xl md:text-6xl", DISPLAY)}>{FOUNDER_NAME}</h2>
+            <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-mk-gray">{FOUNDER_ROLE}</p>
             <p className="mt-8 max-w-xl text-xl leading-relaxed text-mk-black">{FOUNDER_NOTE}</p>
             <div className="mt-10 flex flex-wrap gap-3">
               <a
@@ -163,63 +167,32 @@ export default function About() {
 
       {/* Mission & vision */}
       <section className="bg-mk-mist px-6 py-24 md:py-28">
-        <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-2">
-          {[
-            { icon: Compass, label: "Our mission", body: MISSION },
-            { icon: TrendingUp, label: "Where we're headed", body: VISION },
-          ].map(({ icon: Icon, label, body }, i) => (
-            <Reveal key={label} i={i} className="mk-card group p-8 md:p-10">
-              <span className="mk-icon-tile">
-                <Icon className="h-5 w-5" aria-hidden />
-              </span>
-              <h2 className="mt-8 text-3xl font-semibold tracking-[-0.03em]">{label}</h2>
-              <p className="mt-4 leading-relaxed text-mk-gray">{body}</p>
-            </Reveal>
-          ))}
+        <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-2">
+          <RuledItem icon={Compass} title="Our mission" body={MISSION} />
+          <RuledItem icon={TrendingUp} i={1} title="Where we're headed" body={VISION} />
         </div>
       </section>
 
       {/* Who it's for */}
-      <section className="bg-white px-6 py-24 md:py-28">
+      <section id="customers" className="scroll-mt-16 bg-white px-6 py-24 md:py-28">
         <div className="mx-auto max-w-7xl">
           <SectionHeader eyebrow="Customers" title="Who Trenston is for." />
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {WHO_HELM_IS_FOR.map((item, i) => {
-              const Icon = WHO_ICONS[item.title] || Building2;
-              return (
-                <Reveal key={item.title} i={i} className="mk-card group p-8">
-                  <span className="mk-icon-tile">
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </span>
-                  <h3 className="mt-8 text-xl font-semibold leading-snug tracking-tight">{item.title}</h3>
-                  <p className="mt-3 leading-relaxed text-mk-gray">{item.body}</p>
-                </Reveal>
-              );
-            })}
+          <div className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
+            {WHO_HELM_IS_FOR.map((item, i) => (
+              <RuledItem key={item.title} i={i} icon={WHO_ICONS[item.title] || Building2} title={item.title} body={item.body} />
+            ))}
           </div>
         </div>
       </section>
 
       {/* Values — black band */}
-      <section className="bg-mk-black px-6 py-24 text-white md:py-32" data-testid="about-values">
+      <section id="principles" className="scroll-mt-16 bg-mk-black px-6 py-24 text-white md:py-28" data-testid="about-values">
         <div className="mx-auto max-w-7xl">
           <SectionHeader dark eyebrow="Principles" title="What we believe." />
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
-            {VALUES.map((v, i) => {
-              const Icon = VALUE_ICONS[v.title] || Sparkles;
-              return (
-                <Reveal key={v.title} i={i} className="mk-card mk-card-dark group flex flex-col p-8">
-                  <div className="flex items-start justify-between">
-                    <span className="mk-icon-tile">
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <span className="font-mono text-sm text-mk-gray-dark">0{i + 1}</span>
-                  </div>
-                  <h3 className="mt-10 text-2xl font-semibold tracking-tight">{v.title}</h3>
-                  <p className="mt-3 leading-relaxed text-mk-gray-dark">{v.body}</p>
-                </Reveal>
-              );
-            })}
+          <div className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
+            {VALUES.map((v, i) => (
+              <RuledItem key={v.title} dark i={i} index={i + 1} icon={VALUE_ICONS[v.title] || Sparkles} title={v.title} body={v.body} />
+            ))}
           </div>
         </div>
       </section>
@@ -229,12 +202,10 @@ export default function About() {
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
             <Eyebrow>The difference</Eyebrow>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
-              What makes Trenston different.
-            </h2>
+            <h2 className={cn("mt-4 text-4xl leading-[1.05] md:text-5xl", DISPLAY)}>What makes Trenston different.</h2>
           </Reveal>
           <Reveal i={1}>
-            <DrawLine className="bg-mk-navy" />
+            <DrawLine className="bg-mk-black" />
             <p className="mt-8 text-xl leading-relaxed text-mk-black">{ABOUT_DIFFERENTIATOR}</p>
           </Reveal>
         </div>

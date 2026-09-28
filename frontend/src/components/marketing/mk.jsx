@@ -1,22 +1,26 @@
 /**
- * Marketing design primitives — black / navy / white editorial system.
- * Styling + motion lives in index.css under `.mk-*`; these components only
- * compose it. Every public page renders inside <MkPage>, which also opts all
- * framer-motion animations into the user's reduced-motion preference.
+ * Marketing design primitives — black / navy / white editorial system,
+ * modelled on BlackRock.com's patterns: flat black and white bands, ruled
+ * text columns, arrow text-links, square buttons, no gradients or glows.
+ * Styling + motion lives in index.css under `.mk-*`. Every public page renders
+ * inside <MkPage>, which opts framer-motion into reduced-motion preferences.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowDownRight, ArrowRight, Plus } from "lucide-react";
 import MarketingNav from "@/components/marketing/MarketingNav";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { cn } from "@/lib/utils";
 
 export const ease = [0.16, 1, 0.3, 1];
 
+/** Display type: medium weight, tight but not crushed. */
+export const DISPLAY = "font-medium tracking-[-0.03em]";
+
 export const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.8, ease, delay: i * 0.08 } }),
+  hidden: { opacity: 0, y: 20 },
+  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.07 } }),
 };
 
 /** Page shell: white canvas, marketing nav + footer, reduced-motion aware. */
@@ -33,17 +37,7 @@ export function MkPage({ authed, onEnter, active, children, className }) {
 }
 
 /** Button / link styled as a sweep-fill button. */
-export function MkButton({
-  to,
-  href,
-  onClick,
-  variant = "dark",
-  size,
-  arrow = true,
-  className,
-  children,
-  ...rest
-}) {
+export function MkButton({ to, href, onClick, variant = "dark", size, arrow = true, className, children, ...rest }) {
   const cls = cn("mk-btn", `mk-btn-${variant}`, size === "sm" && "mk-btn-sm", className);
   const inner = (
     <>
@@ -73,12 +67,11 @@ export function Eyebrow({ children, dark = false, className }) {
   return (
     <p
       className={cn(
-        "flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em]",
+        "text-xs font-semibold uppercase tracking-[0.16em]",
         dark ? "text-mk-gray-dark" : "text-mk-navy",
         className,
       )}
     >
-      <span className={cn("h-px w-8", dark ? "bg-mk-sky" : "bg-mk-navy")} aria-hidden />
       {children}
     </p>
   );
@@ -103,17 +96,17 @@ export function Reveal({ children, className, i = 0, as = "div", ...rest }) {
 }
 
 /** Headline whose lines rise out of a clipping mask, one after another. */
-export function SplitHeadline({ lines, className, as = "h1", delay = 0.1 }) {
+export function SplitHeadline({ lines, className, as = "h1", delay = 0.05 }) {
   const Tag = as;
   return (
     <Tag className={className}>
       {lines.map((line, i) => (
-        <span key={i} className="block overflow-hidden pb-[0.08em]">
+        <span key={i} className="block overflow-hidden pb-[0.1em]">
           <motion.span
             className="block"
-            initial={{ y: "105%" }}
+            initial={{ y: "100%" }}
             animate={{ y: 0 }}
-            transition={{ duration: 1, ease, delay: delay + i * 0.12 }}
+            transition={{ duration: 0.9, ease, delay: delay + i * 0.1 }}
           >
             {line}
           </motion.span>
@@ -123,23 +116,16 @@ export function SplitHeadline({ lines, className, as = "h1", delay = 0.1 }) {
   );
 }
 
-/** Animated backdrop for black bands: panning grid + drifting navy glow. */
-export function DarkBackdrop() {
+/**
+ * Black page header for inner pages. Optional `toc` renders an
+ * "On this page" jump list on the right (anchors to section ids); `aside`
+ * renders arbitrary content there instead.
+ */
+export function PageHero({ eyebrow, lines, sub, children, toc, aside, size = "lg", className }) {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="mk-glow absolute -right-[10%] -top-[30%] h-[80vh] w-[80vh] rounded-full" />
-      <div className="mk-grid absolute inset-0" />
-    </div>
-  );
-}
-
-/** Black page header used by every inner page. */
-export function PageHero({ eyebrow, lines, sub, children, aside, className }) {
-  return (
-    <section className={cn("relative overflow-hidden bg-mk-black text-white", className)}>
-      <DarkBackdrop />
-      <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-36 md:pb-28 md:pt-44">
-        <div className={cn("grid gap-12", aside && "lg:grid-cols-[1.1fr_0.9fr] lg:items-end")}>
+    <section className={cn("bg-mk-black text-white", className)}>
+      <div className="mx-auto max-w-7xl px-6 pb-16 pt-32 md:pb-20 md:pt-40">
+        <div className={cn("grid gap-14", (toc || aside) && "lg:grid-cols-[1.5fr_1fr] lg:items-end")}>
           <div>
             {eyebrow && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
@@ -148,37 +134,60 @@ export function PageHero({ eyebrow, lines, sub, children, aside, className }) {
             )}
             <SplitHeadline
               lines={lines}
-              className="mt-8 text-5xl font-semibold leading-[0.98] tracking-[-0.04em] sm:text-6xl lg:text-7xl"
+              className={cn(
+                "mt-6 leading-[1.04]",
+                size === "md" ? "text-4xl sm:text-5xl lg:text-[3.5rem]" : "text-5xl sm:text-6xl lg:text-[4.5rem]",
+                DISPLAY,
+              )}
             />
             {sub && (
               <motion.p
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease, delay: 0.45 }}
-                className="mt-8 max-w-2xl text-lg leading-relaxed text-mk-gray-dark md:text-xl"
+                transition={{ duration: 0.7, ease, delay: 0.35 }}
+                className="mt-8 max-w-2xl text-lg leading-relaxed text-mk-gray-dark"
               >
                 {sub}
               </motion.p>
             )}
             {children && (
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, ease, delay: 0.6 }}
+                transition={{ duration: 0.7, ease, delay: 0.45 }}
                 className="mt-10"
               >
                 {children}
               </motion.div>
             )}
           </div>
-          {aside && (
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease, delay: 0.5 }}
-            >
+          {aside && !toc && (
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease, delay: 0.4 }}>
               {aside}
             </motion.div>
+          )}
+          {toc && (
+            <motion.nav
+              aria-label="On this page"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.5 }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">On this page</p>
+              <ul className="mt-4 border-t border-white/25">
+                {toc.map((t) => (
+                  <li key={t.id} className="border-b border-white/25">
+                    <a
+                      href={`#${t.id}`}
+                      className="group flex items-center justify-between py-3.5 text-[0.9375rem] text-white/85 transition-colors hover:text-white"
+                    >
+                      <span className="mk-title-line">{t.label}</span>
+                      <ArrowDownRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:translate-y-0.5" aria-hidden />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </motion.nav>
           )}
         </div>
       </div>
@@ -194,7 +203,8 @@ export function SectionHeader({ eyebrow, title, intro, action, dark = false, cla
         {eyebrow && <Eyebrow dark={dark}>{eyebrow}</Eyebrow>}
         <h2
           className={cn(
-            "mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl",
+            "mt-4 text-4xl leading-[1.05] md:text-[3.25rem]",
+            DISPLAY,
             dark ? "text-white" : "text-mk-black",
           )}
         >
@@ -211,37 +221,37 @@ export function SectionHeader({ eyebrow, title, intro, action, dark = false, cla
   );
 }
 
-/** Infinite ticker. Items render twice so the -50% loop is seamless. */
-export function Marquee({ items, className }) {
-  const row = (hidden) =>
-    items.map((item, i) => (
-      <span
-        key={`${hidden ? "b" : "a"}-${i}`}
-        aria-hidden={hidden || undefined}
-        className="flex shrink-0 items-center gap-10 pr-10 text-sm font-semibold uppercase tracking-[0.16em]"
-      >
-        {item}
-        <span className="h-1.5 w-1.5 rotate-45 bg-current opacity-50" aria-hidden />
-      </span>
-    ));
+/**
+ * Ruled text column (BlackRock-style card): hairline on top, small icon,
+ * title, body, optional children. The rule thickens on hover.
+ */
+export function RuledItem({ icon: Icon, index, title, body, children, dark = false, i = 0, className }) {
   return (
-    <div className={cn("mk-marquee", className)}>
-      <div className="mk-marquee-track py-5">
-        {row(false)}
-        {row(true)}
+    <Reveal i={i} className={cn("mk-item group", dark && "mk-item-dark", className)}>
+      <div className="flex items-start justify-between gap-4">
+        {Icon ? <Icon className={cn("h-6 w-6", dark ? "text-white" : "text-mk-navy")} strokeWidth={1.5} aria-hidden /> : <span />}
+        {index != null && (
+          <span className={cn("font-mono text-xs", dark ? "text-mk-gray-dark" : "text-mk-gray")}>
+            {String(index).padStart(2, "0")}
+          </span>
+        )}
       </div>
-    </div>
+      <h3 className={cn("mt-6 text-xl font-semibold leading-snug tracking-tight", dark ? "text-white" : "text-mk-black")}>
+        {title}
+      </h3>
+      {body && <p className={cn("mt-3 leading-relaxed", dark ? "text-mk-gray-dark" : "text-mk-gray")}>{body}</p>}
+      {children}
+    </Reveal>
   );
 }
 
 /** Closing black call-to-action band. */
 export function CtaBand({ title, sub, authed, onEnter, secondary }) {
   return (
-    <section className="relative overflow-hidden bg-mk-black text-white">
-      <DarkBackdrop />
-      <div className="relative mx-auto max-w-7xl px-6 py-24 md:py-32">
+    <section className="bg-mk-black text-white">
+      <div className="mx-auto max-w-7xl px-6 py-24 md:py-28">
         <Reveal className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-end">
-          <h2 className="text-5xl font-semibold leading-[0.98] tracking-[-0.04em] md:text-7xl">{title}</h2>
+          <h2 className={cn("text-5xl leading-[1.02] md:text-6xl", DISPLAY)}>{title}</h2>
           <div>
             {sub && <p className="text-lg leading-relaxed text-mk-gray-dark">{sub}</p>}
             <div className="mt-8 flex flex-wrap gap-3">
@@ -261,7 +271,7 @@ export function CtaBand({ title, sub, authed, onEnter, secondary }) {
 export function MkAccordion({ items, idPrefix = "faq", dark = false }) {
   const [open, setOpen] = useState(0);
   return (
-    <div className={cn("border-t", dark ? "border-white/15" : "border-mk-line")}>
+    <div className={cn("border-t", dark ? "border-white/25" : "border-mk-black")}>
       {items.map((item, i) => {
         const isOpen = open === i;
         return (
@@ -275,22 +285,22 @@ export function MkAccordion({ items, idPrefix = "faq", dark = false }) {
                 onClick={() => setOpen(isOpen ? -1 : i)}
                 className={cn(
                   "group flex w-full items-center justify-between gap-6 py-6 text-left text-lg font-semibold tracking-tight transition-colors md:text-xl",
-                  dark ? "text-white hover:text-mk-sky" : "text-mk-black hover:text-mk-navy",
+                  dark ? "text-white" : "text-mk-black hover:text-mk-navy",
                 )}
               >
                 {item.q}
                 <span
                   className={cn(
-                    "flex h-9 w-9 shrink-0 items-center justify-center border transition-colors duration-500",
+                    "flex h-9 w-9 shrink-0 items-center justify-center border transition-colors duration-300",
                     isOpen
-                      ? "border-mk-navy bg-mk-navy text-white"
+                      ? "border-mk-black bg-mk-black text-white"
                       : dark
-                        ? "border-white/30 text-white"
-                        : "border-mk-line text-mk-black group-hover:border-mk-navy",
+                        ? "border-white/40 text-white"
+                        : "border-mk-line text-mk-black group-hover:border-mk-black",
                   )}
                   aria-hidden
                 >
-                  <Plus className={cn("h-4 w-4 transition-transform duration-500", isOpen && "rotate-45")} />
+                  <Plus className={cn("h-4 w-4 transition-transform duration-300", isOpen && "rotate-45")} />
                 </span>
               </button>
             </h3>
@@ -303,7 +313,7 @@ export function MkAccordion({ items, idPrefix = "faq", dark = false }) {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.45, ease }}
+                  transition={{ duration: 0.4, ease }}
                   className="overflow-hidden"
                 >
                   <div className="max-w-3xl pb-7">
@@ -333,7 +343,16 @@ export function DrawLine({ className }) {
       initial={{ scaleX: 0 }}
       whileInView={{ scaleX: 1 }}
       viewport={{ once: true, amount: 0 }}
-      transition={{ duration: 1.4, ease }}
+      transition={{ duration: 1.2, ease }}
     />
+  );
+}
+
+/** Flat mist panel that frames a product visual like an editorial image. */
+export function VisualPanel({ children, className }) {
+  return (
+    <div className={cn("flex items-center justify-center bg-mk-mist p-6 sm:p-10 lg:p-12", className)}>
+      <div className="w-full">{children}</div>
+    </div>
   );
 }

@@ -1064,17 +1064,16 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
 
 /* ==========================================================================
    Marketing site (.mk) — black / navy / white editorial system.
-   Animations are original CSS in the style of uiverse.io community
-   components (sweep-fill buttons, grow-underline links, lift+bar cards,
-   spinning conic border, marquee ticker, panning grid). All motion is
-   disabled under prefers-reduced-motion.
+   Motion is restrained and monochrome: sweep-fill buttons and
+   grow-underline links (patterns common on uiverse.io, re-implemented
+   here), ruled items whose rule thickens on hover. No glows, gradients,
+   grids or neon. All motion is disabled under prefers-reduced-motion.
    ========================================================================== */
 
 :root {
   --mk-black: #0a0a0a;
   --mk-navy: #0b2a5b;
   --mk-navy-2: #153b7a;
-  --mk-sky: #9db5e3;
   --mk-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 .mk { font-feature-settings: "ss01", "cv11"; }
@@ -1115,7 +1114,7 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
   transform-origin: left center;
 }
 .mk-btn:focus-visible {
-  outline: 2px solid var(--mk-sky);
+  outline: 2px solid var(--mk-navy);
   outline-offset: 3px;
 }
 .mk-btn .mk-arrow {
@@ -1136,6 +1135,7 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
 .mk-btn-outline-dark:hover, .mk-btn-outline-dark:focus-visible { color: #fff; }
 .mk-btn-outline-light { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.55); --mk-sweep: #fff; }
 .mk-btn-outline-light:hover, .mk-btn-outline-light:focus-visible { color: var(--mk-black); border-color: #fff; }
+.mk-btn-light:focus-visible, .mk-btn-outline-light:focus-visible { outline-color: #fff; }
 
 /* Text link: underline grows from the left, arrow nudges forward. */
 .mk-link {
@@ -1181,148 +1181,57 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
 .mk-navlink:hover::after,
 .mk-navlink[aria-current="page"]::after { transform: scaleX(1); }
 
-/* Cards: lift, shadow deepens, a navy bar draws across the top edge. */
+/* Cards: flat, square. Hover only darkens the border — no lift, no glow. */
 .mk-card {
   position: relative;
   background: #fff;
   border: 1px solid #e3e3e0;
-  transition: translate 0.45s var(--mk-ease), box-shadow 0.45s var(--mk-ease), border-color 0.45s var(--mk-ease);
+  transition: border-color 0.35s var(--mk-ease);
 }
-.mk-card::before {
+.mk-card:hover { border-color: #0a0a0a; }
+
+/* Ruled item: a column that starts with a hairline rule (BlackRock-style
+   text card). The rule thickens to navy on hover. */
+.mk-item { position: relative; padding-top: 1.75rem; border-top: 1px solid #0a0a0a; }
+.mk-item::before {
   content: "";
   position: absolute;
   top: -1px;
-  left: -1px;
-  right: -1px;
+  left: 0;
   height: 3px;
+  width: 100%;
   background: var(--mk-navy);
   transform: scaleX(0);
   transform-origin: left center;
-  transition: transform 0.55s var(--mk-ease);
+  transition: transform 0.5s var(--mk-ease);
 }
-.mk-card:hover {
-  /* `translate` (not transform) so it composes with framer-motion's inline transform */
-  translate: 0 -4px;
-  border-color: #cfcfcb;
-  box-shadow: 0 24px 48px -28px rgba(10, 10, 10, 0.35);
-}
-.mk-card:hover::before { transform: scaleX(1); }
-.mk-card-dark {
-  background: #141414;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-.mk-card-dark::before { background: #fff; }
-.mk-card-dark:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.9);
-}
+.mk-item:hover::before { transform: scaleX(1); }
+.mk-item-dark { border-top-color: rgba(255, 255, 255, 0.45); }
+.mk-item-dark::before { background: #fff; }
 
-/* Icon tile that inverts on parent hover. */
-.mk-icon-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid #e3e3e0;
-  color: var(--mk-navy);
-  transition: background 0.35s var(--mk-ease), color 0.35s var(--mk-ease), border-color 0.35s var(--mk-ease);
+/* Title underline that draws on hover of a .group parent. */
+.mk-title-line {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1.5px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.45s var(--mk-ease);
 }
-.group:hover .mk-icon-tile {
-  background: var(--mk-navy);
-  border-color: var(--mk-navy);
-  color: #fff;
-}
-.mk-card-dark .mk-icon-tile { border-color: rgba(255, 255, 255, 0.15); color: #fff; }
-.group:hover .mk-card-dark .mk-icon-tile,
-.mk-card-dark.group:hover .mk-icon-tile { background: #fff; color: var(--mk-black); border-color: #fff; }
+.group:hover .mk-title-line { background-size: 100% 1.5px; }
 
-/* Spinning conic border (highlighted plan). Content sits on ::after. */
-.mk-spin-border {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-}
-.mk-spin-border::before {
-  content: "";
-  position: absolute;
-  inset: -60%;
-  z-index: -2;
-  background: conic-gradient(from 0deg, transparent 0 62%, rgba(157, 181, 227, 0.9) 74%, #ffffff 80%, transparent 88%);
-  animation: mk-spin 5.5s linear infinite;
-}
-.mk-spin-border::after {
-  content: "";
-  position: absolute;
-  inset: 2px;
-  z-index: -1;
-  background: var(--mk-navy);
-}
-@keyframes mk-spin { to { transform: rotate(1turn); } }
-
-/* Marquee ticker. Track holds the list twice and slides -50%. */
-.mk-marquee {
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-}
-.mk-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: mk-marquee 48s linear infinite;
-}
-.mk-marquee:hover .mk-marquee-track { animation-play-state: paused; }
-@keyframes mk-marquee { to { transform: translateX(-50%); } }
-
-/* Panning grid backdrop for black bands. */
-.mk-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-  background-size: 72px 72px;
-  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 35%, #000 25%, transparent 75%);
-  mask-image: radial-gradient(ellipse 80% 70% at 70% 35%, #000 25%, transparent 75%);
-  animation: mk-grid-pan 26s linear infinite;
-}
-@keyframes mk-grid-pan { to { background-position: 72px 72px; } }
-
-/* Slow-drifting navy glow. */
-.mk-glow {
-  background: radial-gradient(circle, rgba(21, 59, 122, 0.55) 0%, rgba(11, 42, 91, 0.2) 40%, transparent 70%);
-  filter: blur(20px);
-  animation: mk-float 14s ease-in-out infinite alternate;
-}
-@keyframes mk-float {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-6%, 8%, 0) scale(1.12); }
-}
-
-/* Pulsing live dot. */
-.mk-live-dot { position: relative; display: inline-block; width: 8px; height: 8px; border-radius: 9999px; background: #4ade80; }
-.mk-live-dot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: inherit;
-  animation: mk-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-@keyframes mk-ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
-
-/* Step connector line draws across when in view (toggled via data-inview). */
-.mk-draw { transform: scaleX(0); transform-origin: left center; transition: transform 1.4s var(--mk-ease); }
-.mk-draw[data-inview="true"] { transform: scaleX(1); }
+/* Arrow that nudges forward on hover of a .group parent. */
+.mk-group-arrow { transition: transform 0.35s var(--mk-ease); }
+.group:hover .mk-group-arrow { transform: translateX(4px); }
 
 @media (prefers-reduced-motion: reduce) {
-  .mk-marquee-track,
-  .mk-grid,
-  .mk-glow,
-  .mk-spin-border::before,
-  .mk-live-dot::after { animation: none !important; }
   .mk-btn::before,
   .mk-link::after,
+  .mk-navlink::after,
   .mk-card,
-  .mk-card::before,
-  .mk-draw { transition: none !important; }
-  .mk-card:hover { translate: none; }
+  .mk-item::before,
+  .mk-title-line,
+  .mk-group-arrow,
+  .mk-btn .mk-arrow,
+  .mk-link .mk-arrow { transition: none !important; }
 }
+

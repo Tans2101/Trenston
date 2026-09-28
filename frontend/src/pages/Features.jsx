@@ -43,10 +43,9 @@ function BriefingTicker() {
     return () => clearInterval(t);
   }, []);
   return (
-    <div className="border border-white/15 bg-mk-ink/80 p-6 backdrop-blur-sm">
+    <div className="border border-white/20 bg-mk-ink p-6">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">
-          <span className="mk-live-dot" aria-hidden />
           From a morning Briefing
         </p>
         <span className="font-mono text-[11px] text-mk-gray-dark">
@@ -57,9 +56,9 @@ function BriefingTicker() {
         <AnimatePresence mode="wait">
           <motion.p
             key={idx}
-            initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease }}
             className="font-mono text-base leading-relaxed text-white md:text-lg"
           >
@@ -171,10 +170,8 @@ export default function Features() {
               >
                 <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
                   <div>
-                    <span className="inline-flex h-12 w-12 items-center justify-center bg-mk-navy text-white">
-                      <ActiveIcon className="h-5 w-5" aria-hidden />
-                    </span>
-                    <h2 className="mt-8 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
+                    <ActiveIcon className="h-8 w-8 text-mk-navy" strokeWidth={1.5} aria-hidden />
+                    <h2 className="mt-8 text-4xl font-medium leading-[1.05] tracking-[-0.03em] md:text-5xl">
                       {activeCategory.label}
                     </h2>
                     <p className="mt-5 text-lg leading-relaxed text-mk-gray">{activeCategory.intro}</p>
@@ -190,23 +187,23 @@ export default function Features() {
                   <FeatureShowcase categoryId={activeCategory.id} />
                 </div>
 
-                <div className="mt-20 grid gap-5 md:grid-cols-2">
+                <div className="mt-20 grid gap-x-12 gap-y-14 md:grid-cols-2">
                   {modules.map((mod, i) => (
                     <motion.article
                       key={mod.title}
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 16 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, ease, delay: 0.1 + i * 0.06 }}
-                      className="mk-card group flex flex-col p-7 md:p-8"
+                      transition={{ duration: 0.5, ease, delay: 0.1 + i * 0.05 }}
+                      className="mk-item group flex flex-col"
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{mod.title}</p>
                         <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
                       </div>
-                      <h3 className="mt-5 text-2xl font-semibold leading-snug tracking-tight text-mk-black">{mod.ceoValue}</h3>
+                      <h3 className="mt-5 text-2xl font-medium leading-snug tracking-[-0.02em] text-mk-black">{mod.ceoValue}</h3>
                       <p className="mt-3 leading-relaxed text-mk-gray">{mod.body}</p>
                       {mod.example && (
-                        <p className="mt-6 border-t border-mk-line pt-5 text-sm italic leading-relaxed text-mk-gray">
+                        <p className="mt-5 border-l-2 border-mk-line pl-4 text-sm leading-relaxed text-mk-gray">
                           {mod.example}
                         </p>
                       )}
@@ -227,7 +224,7 @@ export default function Features() {
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
             <Eyebrow dark>Included on {STARTER_PLAN?.label || "Starter"}</Eyebrow>
-            <p className="mt-6 text-7xl font-semibold tracking-[-0.05em]">
+            <p className="mt-6 text-7xl font-medium tracking-[-0.03em]">
               ${STARTER_PLAN?.price}
               <span className="text-2xl font-normal text-mk-gray-dark">/mo</span>
             </p>

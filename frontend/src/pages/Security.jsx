@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import {
   CtaBand,
-  DarkBackdrop,
+  DISPLAY,
   DrawLine,
   Eyebrow,
   MkAccordion,
@@ -22,34 +22,23 @@ import {
   MkPage,
   PageHero,
   Reveal,
+  RuledItem,
   SectionHeader,
 } from "@/components/marketing/mk";
+import { cn } from "@/lib/utils";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { TAGLINE } from "@/lib/marketingCopy";
 
 /**
- * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
+ * Monochrome monogram tiles, not real vendor logos — trademarked marks
  * (Vercel, MongoDB, Cloudflare, Clerk, Render, Paddle) need written
- * permission we don't have, so each card gets a colored initial tile
- * instead. Same policy as the Integrations page — see BRAND_ACCENT there.
+ * permission we don't have. Kept black-and-white to match the site.
  */
-const INFRA_BRAND_ACCENT = {
-  Vercel: "#000000",
-  Render: "#46E3B7",
-  "MongoDB Atlas": "#47A248",
-  "Cloudflare R2": "#F38020",
-  Clerk: "#6C47FF",
-  Paddle: "#1A1B23",
-};
-
 function InfraBadge({ name }) {
-  const color = INFRA_BRAND_ACCENT[name] || "#0B1220";
-  const light = ["Vercel", "Paddle"].includes(name);
   return (
     <div
       aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-sm font-semibold transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110"
-      style={{ backgroundColor: color, color: light ? "#F5F5F0" : "#FFFFFF" }}
+      className="flex h-11 w-11 shrink-0 items-center justify-center bg-mk-black font-mono text-sm font-semibold text-white transition-colors duration-300 group-hover:bg-mk-navy"
     >
       {name.trim().charAt(0)}
     </div>
@@ -232,43 +221,50 @@ export default function Security() {
     document.title = "Security at Trenston";
   }, []);
 
+  const toc = [
+    { id: "infrastructure", label: "Infrastructure" },
+    { id: "encryption", label: "Encryption" },
+    { id: "third-parties", label: "Third parties" },
+    { id: "retention", label: "Retention and access" },
+    { id: "questions", label: "Common questions" },
+  ];
+
   return (
     <MkPage authed={authed} onEnter={enter} active="/security">
       <PageHero
         eyebrow="Security at Trenston"
         lines={["Your company runs on trust.", "Trenston is built to protect it."]}
         sub="Cash, decisions, documents, and connected systems are the operating picture of a company. Trenston is designed so that picture stays inside the workspace that owns it, from sign-in through deletion."
+        toc={toc}
+        size="md"
       >
-        <div className="flex flex-wrap gap-2.5" data-testid="security-trust-badges">
+        <ul className="flex flex-wrap gap-x-6 gap-y-3" data-testid="security-trust-badges">
           {TRUST_BADGES.map(({ icon: Icon, label }) => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-2 border border-white/20 bg-white/[0.04] px-3.5 py-2 text-sm text-white transition-colors duration-300 hover:border-white/60"
-            >
-              <Icon className="h-4 w-4 text-mk-sky" aria-hidden />
+            <li key={label} className="inline-flex items-center gap-2 text-sm text-white">
+              <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden />
               {label}
-            </span>
+            </li>
           ))}
-        </div>
-        <p className="mt-8 text-sm text-mk-gray-dark">
-          Last updated September 19, 2026 · Also see{" "}
-          <MkLink to="/status" className="text-white">Status</MkLink>{" "}
-          <MkLink to="/changelog" className="ml-3 text-white">Changelog</MkLink>{" "}
-          <MkLink to="/privacy" className="ml-3 text-white">Privacy</MkLink>
+        </ul>
+        <p className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-mk-gray-dark">
+          <span>Last updated September 19, 2026</span>
+          <MkLink to="/status" className="text-white">Status</MkLink>
+          <MkLink to="/changelog" className="text-white">Changelog</MkLink>
+          <MkLink to="/privacy" className="text-white">Privacy</MkLink>
         </p>
       </PageHero>
 
       {/* Why this matters */}
       <section className="bg-white px-6 py-24 md:py-28">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1fr]">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2">
           <Reveal>
             <Eyebrow>Why this matters</Eyebrow>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
+            <h2 className={cn("mt-4 text-4xl leading-[1.05] md:text-5xl", DISPLAY)}>
               Companies cannot treat a cockpit as optional infrastructure.
             </h2>
           </Reveal>
           <Reveal i={1} className="self-end">
-            <DrawLine className="bg-mk-navy" />
+            <DrawLine className="bg-mk-black" />
             <p className="mt-8 text-xl leading-relaxed text-mk-black">
               Trenston holds the numbers leadership uses to decide, the files finance and legal attach, and the
               tokens that connect accounting, CRM, and calendar. That is why security is part of the product, not a
@@ -279,10 +275,10 @@ export default function Security() {
       </section>
 
       {/* Infrastructure */}
-      <section className="bg-mk-mist px-6 py-24 md:py-28">
+      <section id="infrastructure" className="scroll-mt-16 bg-mk-mist px-6 py-24 md:py-28">
         <div className="mx-auto max-w-7xl">
           <SectionHeader
-            eyebrow="Enterprise-grade infrastructure"
+            eyebrow="Infrastructure"
             title="Every part of the stack has one job."
             intro="Business records sit in MongoDB Atlas, private files in Cloudflare R2, identity in Clerk, and payments in Paddle, each on infrastructure built for that job."
           />
@@ -291,7 +287,7 @@ export default function Security() {
               <Reveal key={title} i={i % 3} className="mk-card group flex flex-col p-7">
                 <div className="flex items-center justify-between">
                   <InfraBadge name={title} />
-                  <Icon className="h-5 w-5 text-mk-navy" aria-hidden />
+                  <Icon className="h-5 w-5 text-mk-navy" strokeWidth={1.5} aria-hidden />
                 </div>
                 <h3 className="mt-8 text-xl font-semibold tracking-tight">{title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-mk-gray">{body}</p>
@@ -301,27 +297,27 @@ export default function Security() {
         </div>
       </section>
 
-      {/* Encryption — black band */}
-      <section className="relative overflow-hidden bg-mk-black px-6 py-24 text-white md:py-32">
-        <DarkBackdrop />
-        <div className="relative mx-auto max-w-7xl">
+      {/* Encryption — flat black band */}
+      <section id="encryption" className="scroll-mt-16 bg-mk-black px-6 py-24 text-white md:py-28">
+        <div className="mx-auto max-w-7xl">
           <SectionHeader dark eyebrow="Encryption" title="What is encrypted, and how." />
-          <div className="mt-14 grid gap-5 md:grid-cols-3">
+          <div className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
             {ENCRYPTION.map((item, i) => (
-              <Reveal key={item.title} i={i} className="mk-card mk-card-dark group flex flex-col p-8">
-                <span className="mk-icon-tile">
-                  {[<LockKeyhole key="a" className="h-5 w-5" />, <KeyRound key="b" className="h-5 w-5" />, <Database key="c" className="h-5 w-5" />][i] || <ShieldCheck className="h-5 w-5" />}
-                </span>
-                <h3 className="mt-8 text-xl font-semibold tracking-tight">{item.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-mk-gray-dark">{item.body}</p>
-              </Reveal>
+              <RuledItem
+                key={item.title}
+                dark
+                i={i}
+                icon={[LockKeyhole, KeyRound, Database][i] || ShieldCheck}
+                title={item.title}
+                body={item.body}
+              />
             ))}
           </div>
         </div>
       </section>
 
       {/* Third parties */}
-      <section className="bg-white px-6 py-24 md:py-28">
+      <section id="third-parties" className="scroll-mt-16 bg-white px-6 py-24 md:py-28">
         <div className="mx-auto max-w-7xl">
           <SectionHeader
             eyebrow="Third parties"
@@ -334,10 +330,12 @@ export default function Security() {
               <Reveal
                 key={item.name}
                 i={i % 3}
-                className="group grid gap-3 border-b border-mk-line py-7 transition-colors duration-300 hover:bg-mk-mist md:grid-cols-[3rem_18rem_1fr] md:gap-8 md:px-4"
+                className="group grid gap-3 border-b border-mk-line py-7 md:grid-cols-[3rem_18rem_1fr] md:gap-8"
               >
                 <span className="font-mono text-sm text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
-                <p className="text-lg font-semibold tracking-tight text-mk-black transition-colors group-hover:text-mk-navy">{item.name}</p>
+                <p className="text-lg font-semibold tracking-tight text-mk-black">
+                  <span className="mk-title-line">{item.name}</span>
+                </p>
                 <p className="leading-relaxed text-mk-gray">{item.why}</p>
               </Reveal>
             ))}
@@ -346,20 +344,18 @@ export default function Security() {
       </section>
 
       {/* Retention + staff access */}
-      <section className="bg-mk-mist px-6 py-24 md:py-28">
-        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-2">
+      <section id="retention" className="scroll-mt-16 bg-mk-mist px-6 py-24 md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-2">
           {[
             { eyebrow: "Retention & deletion", title: "How long data stays", lines: RETENTION, icon: Trash2 },
             { eyebrow: "Who at Trenston can access data", title: "Staff access", lines: STAFF_ACCESS, icon: UserRoundCheck },
           ].map(({ eyebrow, title, lines, icon: Icon }, i) => (
-            <Reveal key={title} i={i} className="mk-card group p-8 md:p-10">
+            <Reveal key={title} i={i} className="mk-item group">
               <div className="flex items-center justify-between">
                 <Eyebrow>{eyebrow}</Eyebrow>
-                <span className="mk-icon-tile">
-                  <Icon className="h-5 w-5" aria-hidden />
-                </span>
+                <Icon className="h-6 w-6 text-mk-navy" strokeWidth={1.5} aria-hidden />
               </div>
-              <h2 className="mt-6 text-3xl font-semibold tracking-[-0.03em]">{title}</h2>
+              <h2 className={cn("mt-5 text-3xl", DISPLAY)}>{title}</h2>
               <ul className="mt-8 space-y-5">
                 {lines.map((line) => (
                   <li key={line} className="flex gap-3 leading-relaxed text-mk-gray">
@@ -381,18 +377,9 @@ export default function Security() {
             title="Protection built into every layer."
             intro="No single control carries the whole burden. Trenston combines encryption, access boundaries, private storage, validation, and deletion that is meant to complete."
           />
-          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {CONTROLS.map(({ icon: Icon, title, body }, i) => (
-              <Reveal key={title} i={i % 3} className="mk-card group flex flex-col p-7">
-                <div className="flex items-start justify-between">
-                  <span className="mk-icon-tile">
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </span>
-                  <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
-                </div>
-                <h3 className="mt-8 text-xl font-semibold tracking-tight">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-mk-gray">{body}</p>
-              </Reveal>
+          <div className="mt-14 grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+            {CONTROLS.map(({ icon, title, body }, i) => (
+              <RuledItem key={title} i={i % 3} index={i + 1} icon={icon} title={title} body={body} />
             ))}
           </div>
         </div>
@@ -408,12 +395,10 @@ export default function Security() {
             intro="Trenston is not the only system involved in delivering the product. We identify the providers we use and limit each integration to the access needed for its feature."
             action={<MkLink to="/privacy" className="text-white">Read the Privacy Policy</MkLink>}
           />
-          <ul className="mt-14 grid gap-px border border-white/15 bg-white/15 md:grid-cols-2">
+          <ul className="mt-14 grid gap-x-12 border-t border-white/30 md:grid-cols-2">
             {PRACTICES.map((practice, i) => (
-              <Reveal as="li" key={practice} i={i % 2} className="flex gap-4 bg-mk-black p-6 transition-colors duration-300 hover:bg-mk-ink">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-white text-mk-black">
-                  <Check className="h-3.5 w-3.5" aria-hidden />
-                </span>
+              <Reveal as="li" key={practice} i={i % 2} className="flex gap-4 border-b border-white/15 py-6">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-white" aria-hidden />
                 <span className="leading-relaxed text-white/85">{practice}</span>
               </Reveal>
             ))}
@@ -422,13 +407,11 @@ export default function Security() {
       </section>
 
       {/* FAQ */}
-      <section className="bg-white px-6 py-24 md:py-28">
+      <section id="questions" className="scroll-mt-16 bg-white px-6 py-24 md:py-28">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
             <Eyebrow>Common questions</Eyebrow>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
-              What leadership teams ask.
-            </h2>
+            <h2 className={cn("mt-4 text-4xl leading-[1.05] md:text-5xl", DISPLAY)}>What leadership teams ask.</h2>
           </Reveal>
           <Reveal i={1}>
             <MkAccordion items={QUESTIONS} idPrefix="security-faq" />
@@ -436,18 +419,18 @@ export default function Security() {
         </div>
       </section>
 
-      {/* Honest security */}
-      <section className="bg-mk-mist px-6 py-20">
-        <Reveal className="mx-auto grid max-w-7xl gap-8 border-l-4 border-mk-navy bg-white p-8 md:grid-cols-[1fr_auto] md:items-center md:p-12">
+      {/* Honest security — letter-style callout */}
+      <section className="bg-white px-6 pb-24">
+        <Reveal className="mx-auto grid max-w-7xl gap-8 border-l-4 border-mk-navy bg-mk-mist p-8 md:grid-cols-[1fr_auto] md:items-center md:p-12">
           <div>
             <Eyebrow>Honest security</Eyebrow>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">Security is ongoing work.</h2>
+            <h2 className={cn("mt-4 text-3xl", DISPLAY)}>Security is ongoing work.</h2>
             <p className="mt-4 max-w-2xl leading-relaxed text-mk-gray">
               We do not claim certifications we have not earned or promise that any system is invulnerable. We
               review Trenston&apos;s controls, address identified risks, and communicate our current practices plainly.
             </p>
           </div>
-          <MkButton variant="navy" href="mailto:contact@trenston.com?subject=Trenston%20security%20report">
+          <MkButton variant="dark" href="mailto:contact@trenston.com?subject=Trenston%20security%20report">
             Report a concern privately
           </MkButton>
         </Reveal>

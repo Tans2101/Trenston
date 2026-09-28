@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { ArrowUpRight, Instagram } from "lucide-react";
 import FounderCredit from "@/components/marketing/FounderCredit";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
-import trenstonWordmarkWhite from "@/assets/trenston-wordmark-white.svg";
 import {
   CATEGORY,
   COMPANY_LOCATION,
@@ -35,67 +34,62 @@ const FOOTER_LINKS = {
   ],
 };
 
-const linkClass = "mk-link !font-normal text-sm text-mk-gray-dark hover:text-white transition-colors";
+const linkClass = "text-sm text-mk-gray-dark transition-colors hover:text-white hover:underline underline-offset-4";
 
 function FooterLink({ item }) {
-  const inner = <span>{item.label}</span>;
   if (item.href) {
     return (
       <a href={item.href} data-testid={item.testId} className={linkClass}>
-        {inner}
+        {item.label}
       </a>
     );
   }
   return (
     <Link to={item.to} data-testid={item.testId} className={linkClass}>
-      {inner}
+      {item.label}
     </Link>
   );
 }
 
+/** Four-column black footer with a plain legal bar — BlackRock-style. */
 export default function MarketingFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative overflow-hidden bg-mk-black text-white">
-      <div className="mx-auto max-w-7xl px-6 pt-20">
-        <div className="grid gap-14 border-b border-white/15 pb-16 lg:grid-cols-[1.2fr_1fr]">
-          <div className="max-w-md">
+    <footer className="bg-mk-black text-white">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="grid gap-12 border-b border-white/15 py-16 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div className="max-w-sm">
             <MarketingLogo variant="lockup" dark size="sm" />
-            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.18em] text-mk-gray-dark">{CATEGORY}</p>
-            <h2 className="mt-4 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
-              Run a tighter company.
-            </h2>
+            <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">{CATEGORY}</p>
+            <p className="mt-3 text-2xl font-medium tracking-[-0.02em]">Run a tighter company.</p>
             <a
               href={PUBLIC_CONTACT_MAILTO}
               data-testid="footer-contact-link"
-              className="group mt-8 inline-flex items-center gap-2 border-b border-white/30 pb-1 text-lg transition-colors hover:border-white"
+              className="group mt-6 inline-flex items-center gap-1.5 text-sm text-white transition-colors hover:underline hover:underline-offset-4"
             >
               {PUBLIC_CONTACT_EMAIL}
               <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden />
             </a>
-            <p className="mt-3 text-sm text-mk-gray-dark">{COMPANY_LOCATION}</p>
+            <p className="mt-2 text-sm text-mk-gray-dark">{COMPANY_LOCATION}</p>
           </div>
 
-          <nav className="grid grid-cols-2 gap-10 sm:grid-cols-3" aria-label="Footer navigation">
-            {Object.entries(FOOTER_LINKS).map(([group, links]) => (
-              <div key={group}>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white">{group}</p>
-                <ul className="mt-5 flex flex-col gap-3">
-                  {links.map((item) => (
-                    <li key={item.label}>
-                      <FooterLink item={item} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </nav>
+          {Object.entries(FOOTER_LINKS).map(([group, links]) => (
+            <nav key={group} aria-label={`${group} links`}>
+              <p className="text-sm font-semibold text-white">{group}</p>
+              <ul className="mt-5 flex flex-col gap-3">
+                {links.map((item) => (
+                  <li key={item.label}>
+                    <FooterLink item={item} />
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
         </div>
 
-        <div className="flex flex-col gap-4 py-8 text-xs text-mk-gray-dark sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-5">
-            <p>BGC, Manila</p>
+        <div className="flex flex-col gap-4 py-8 text-xs text-mk-gray-dark md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <FounderCredit
               data-testid="footer-founder-credit"
               creditClassName="text-mk-gray-dark"
@@ -111,19 +105,11 @@ export default function MarketingFooter() {
               <Instagram className="h-4 w-4" aria-hidden />
               {PUBLIC_INSTAGRAM_HANDLE}
             </a>
+            <Link to="/privacy" className="transition-colors hover:text-white">Privacy</Link>
+            <Link to="/terms" className="transition-colors hover:text-white">Terms</Link>
           </div>
           <p>© {year} Trenston. All rights reserved.</p>
         </div>
-      </div>
-
-      <div className="border-t border-white/10 px-6 pb-8 pt-10">
-        <img
-          src={trenstonWordmarkWhite}
-          alt=""
-          aria-hidden
-          className="mx-auto w-full max-w-7xl select-none opacity-95"
-          draggable={false}
-        />
       </div>
     </footer>
   );

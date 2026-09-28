@@ -20,27 +20,16 @@ import {
 } from "@/lib/marketingCopy";
 
 /**
- * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
- * need written permission we don't have, so each card gets a colored
- * initial tile instead. Same policy as the in-app Integrations page.
+ * Monochrome monogram tiles, not real vendor logos — trademarked marks need
+ * written permission we don't have. Kept black-and-white to match the site.
  */
-const BRAND_ACCENT = {
-  google: "#4285F4",
-  quickbooks: "#2CA01C",
-  xero: "#13B5EA",
-  sap_b1: "#0870D6",
-  hubspot: "#FF7A59",
-  slack: "#611F69",
-};
-
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
-function IntegrationBadge({ id, name }) {
+function IntegrationBadge({ name }) {
   return (
     <div
       aria-hidden
-      className="flex h-14 w-14 shrink-0 items-center justify-center font-mono text-lg font-semibold text-white transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110"
-      style={{ backgroundColor: BRAND_ACCENT[id] || "#0A0A0A" }}
+      className="flex h-12 w-12 shrink-0 items-center justify-center bg-mk-black font-mono text-lg font-semibold text-white transition-colors duration-300 group-hover:bg-mk-navy"
     >
       {name.trim().charAt(0)}
     </div>
@@ -59,16 +48,24 @@ export default function PublicIntegrations() {
 
   return (
     <MkPage authed={authed} onEnter={enter} active="/integrations">
-      <PageHero eyebrow="Integrations" lines={["Connected", "where it counts."]} sub={PUBLIC_INTEGRATIONS_INTRO}>
+      <PageHero
+        eyebrow="Integrations"
+        lines={["Connected", "where it counts."]}
+        sub={PUBLIC_INTEGRATIONS_INTRO}
+        toc={[
+          { id: "available", label: "Available today" },
+          { id: "planned", label: "Planned connections" },
+        ]}
+      >
         <div className="flex flex-wrap gap-3">
           <MkButton variant="light" onClick={enter}>{authed ? "Open your cockpit" : "Get started free"}</MkButton>
           <MkButton variant="outline-light" href={requestHref}>Request an integration</MkButton>
         </div>
       </PageHero>
 
-      <section className="bg-mk-mist px-6 py-24 md:py-28">
+      <section id="available" className="scroll-mt-16 bg-mk-mist px-6 py-24 md:py-28">
         <div className="mx-auto max-w-7xl">
-          <SectionHeader eyebrow="Live today" title={`${count} connections, each with one clear job.`} />
+          <SectionHeader eyebrow="Available today" title={`${count} connections, each with one clear job.`} />
           <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {PUBLIC_INTEGRATIONS.map((item, i) => (
               <Reveal
@@ -78,11 +75,8 @@ export default function PublicIntegrations() {
                 data-testid={`public-integration-${item.id}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <IntegrationBadge id={item.id} name={item.name} />
-                  <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-mk-gray">
-                    <span className="mk-live-dot" aria-hidden />
-                    Live
-                  </span>
+                  <IntegrationBadge name={item.name} />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mk-gray">Available</span>
                 </div>
                 <p className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{item.category}</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight text-mk-black">{item.name}</h2>
@@ -102,11 +96,11 @@ export default function PublicIntegrations() {
         </div>
       </section>
 
-      <section className="bg-white px-6 py-24 md:py-28">
+      <section id="planned" className="scroll-mt-16 bg-white px-6 py-24 md:py-28">
         <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
           <Reveal>
             <Eyebrow>Coming soon, not shipped</Eyebrow>
-            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
+            <h2 className="mt-4 text-4xl font-medium leading-[1.05] tracking-[-0.03em] md:text-5xl">
               Planned connections.
             </h2>
             <p className="mt-5 max-w-md leading-relaxed text-mk-gray">
