@@ -17,8 +17,9 @@ module.exports = {
       fontFamily: {
         sans: ['DM Sans', 'sans-serif'],
         mono: ['DM Mono', 'monospace'],
-        display: ['Hedvig Letters Sans', 'DM Sans', 'system-ui', 'sans-serif'],
-        'serif-display': ['Hedvig Letters Sans', 'DM Sans', 'system-ui', 'sans-serif'],
+        // Corporate: one sans family everywhere (was Hedvig Letters Sans).
+        display: ['DM Sans', 'system-ui', 'sans-serif'],
+        'serif-display': ['DM Sans', 'system-ui', 'sans-serif'],
       },
       colors: {
         /* Marketing site only (public pages): black / navy / white editorial
@@ -39,10 +40,13 @@ module.exports = {
         },
         helm: {
           navy: HELM_PALETTE.navy,
-          gold: HELM_PALETTE.gold,
-          "gold-hover": HELM_FLAGGED.goldHover,
-          ember: HELM_PALETTE.ember,
-          "ember-hover": HELM_FLAGGED.emberHover,
+          /* Accent is theme-driven (index.css sets --helm-accent per theme):
+           * navy #0B2A5B in light, pale navy-white in dark. The token keeps
+           * its historical "gold" name so 600+ call sites don't churn. */
+          gold: "rgb(var(--helm-accent) / <alpha-value>)",
+          "gold-hover": "rgb(var(--helm-accent-hover) / <alpha-value>)",
+          ember: "rgb(var(--helm-accent) / <alpha-value>)",
+          "ember-hover": "rgb(var(--helm-accent-hover) / <alpha-value>)",
           slate: HELM_PALETTE.slate,
           cream: HELM_PALETTE.cream,
           ink: HELM_FLAGGED.ink,
@@ -57,9 +61,9 @@ module.exports = {
           line: "var(--helm-line)",
         },
         gold: {
-          DEFAULT: HELM_PALETTE.gold,
-          hover: HELM_FLAGGED.goldHover,
-          muted: "rgba(201,162,75,0.15)"
+          DEFAULT: "rgb(var(--helm-accent) / <alpha-value>)",
+          hover: "rgb(var(--helm-accent-hover) / <alpha-value>)",
+          muted: "rgb(var(--helm-accent) / 0.15)"
         },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

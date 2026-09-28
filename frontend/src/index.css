@@ -5,7 +5,10 @@
 @layer base {
     :root {
         --helm-navy: theme("colors.helm.navy");
-        --helm-gold: theme("colors.helm.gold");
+        /* Accent (legacy name "gold"): navy in light, pale navy-white in dark. */
+        --helm-accent: 11 42 91;
+        --helm-accent-hover: 21 59 122;
+        --helm-gold: rgb(var(--helm-accent));
         --helm-slate: theme("colors.helm.slate");
         --helm-cream: theme("colors.helm.cream");
         --helm-ink: theme("colors.helm.ink");
@@ -58,13 +61,13 @@
         --chart-marker-border: oklch(0.85 0.01 260);
         --chart-marker-foreground: oklch(0.3 0.01 260);
         --chart-label: oklch(0.45 0.01 260);
-        /* Trenston gold/cream intensity (empty → strong), not Bklit defaults */
-        --chart-scale-01: rgba(245, 240, 230, 0.12);
-        --chart-scale-02: rgba(201, 168, 75, 0.28);
-        --chart-scale-03: rgba(201, 168, 75, 0.48);
-        --chart-scale-04: rgba(201, 168, 75, 0.72);
-        --chart-scale-05: #C9A24B;
-        --chart-scale-pattern-color: #F5F0E6;
+        /* Trenston accent intensity (empty → strong), not Bklit defaults */
+        --chart-scale-01: rgba(244, 244, 244, 0.12);
+        --chart-scale-02: rgb(var(--helm-accent) / 0.28);
+        --chart-scale-03: rgb(var(--helm-accent) / 0.48);
+        --chart-scale-04: rgb(var(--helm-accent) / 0.72);
+        --chart-scale-05: rgb(var(--helm-accent));
+        --chart-scale-pattern-color: #F4F4F4;
     }
 
     html[data-theme="light"] {
@@ -84,18 +87,18 @@
         /* Popovers match card tone for consistency */
         --popover: 60 5% 98%;
         --popover-foreground: 0 0% 7%;
-        --primary: 41 55% 54%;
-        --primary-foreground: 0 0% 7%;
+        --primary: 217 78% 20%;
+        --primary-foreground: 0 0% 100%;
         --muted-foreground: 0 0% 7%;
         --border: 0 0% 90%;
         --input: 0 0% 90%;
-        --ring: 41 55% 54%;
+        --ring: 217 78% 20%;
         /* Empty heatmap cells need real contrast on white / off-white cards */
         --chart-scale-01: rgba(17, 17, 17, 0.09);
-        --chart-scale-02: rgba(201, 168, 75, 0.32);
-        --chart-scale-03: rgba(201, 168, 75, 0.52);
-        --chart-scale-04: rgba(201, 168, 75, 0.74);
-        --chart-scale-05: #C9A24B;
+        --chart-scale-02: rgb(var(--helm-accent) / 0.32);
+        --chart-scale-03: rgb(var(--helm-accent) / 0.52);
+        --chart-scale-04: rgb(var(--helm-accent) / 0.74);
+        --chart-scale-05: rgb(var(--helm-accent));
         --chart-scale-pattern-color: #111111;
     }
   .dark {
@@ -114,13 +117,13 @@
         --chart-marker-border: oklch(0.4 0.01 260);
         --chart-marker-foreground: oklch(0.9 0 0);
         --chart-label: oklch(0.75 0.01 260);
-        /* Trenston gold/cream intensity on dark UI */
-        --chart-scale-01: rgba(245, 240, 230, 0.08);
-        --chart-scale-02: rgba(201, 168, 75, 0.28);
-        --chart-scale-03: rgba(201, 168, 75, 0.48);
-        --chart-scale-04: rgba(201, 168, 75, 0.72);
-        --chart-scale-05: #C9A24B;
-        --chart-scale-pattern-color: #F5F0E6;
+        /* Trenston accent intensity on dark UI */
+        --chart-scale-01: rgba(244, 244, 244, 0.08);
+        --chart-scale-02: rgb(var(--helm-accent) / 0.28);
+        --chart-scale-03: rgb(var(--helm-accent) / 0.48);
+        --chart-scale-04: rgb(var(--helm-accent) / 0.72);
+        --chart-scale-05: rgb(var(--helm-accent));
+        --chart-scale-pattern-color: #F4F4F4;
     }
 }
 
@@ -239,7 +242,7 @@ input.cl-otpCodeFieldInput {
 html[data-theme="dark"] .app-shell {
   --helm-fg: var(--helm-cream);
   --helm-bg: var(--helm-ink);
-  /* Darkened panel fill (was --helm-ink-card / #121214 — barely lifted off the page) */
+  /* Darkened panel fill (was --helm-ink-card / #141414 — barely lifted off the page) */
   --helm-card: #111111;
   /* Slate (#6B7280) is ~4.1:1 on this background — fails WCAG AA for body text.
      Lighten muted/secondary text so it reads clearly against the dark panels. */
@@ -307,17 +310,20 @@ html[data-theme="light"] .app-shell [class*="text-helm-slate"] {
   color: #6B7280 !important;
 }
 
-/* Keep gold text links readable as gold in light (buttons stay navy-on-gold below). */
+/* Accent text (legacy "gold" class) is navy in light. */
 html[data-theme="light"] .app-shell .text-gold,
 html[data-theme="light"] .app-shell .text-helm-gold {
-  color: #C9A24B !important;
+  color: rgb(var(--helm-accent)) !important;
 }
 
+/* Solid accent fills are navy with white type in light. */
 html[data-theme="light"] .app-shell .bg-gold .text-helm-navy,
 html[data-theme="light"] .app-shell .bg-helm-gold .text-helm-navy,
+html[data-theme="light"] .app-shell .bg-gold [class*="text-helm-"],
+html[data-theme="light"] .app-shell .bg-helm-gold [class*="text-helm-"],
 html[data-theme="light"] .app-shell button.bg-gold,
 html[data-theme="light"] .app-shell button.bg-helm-gold {
-  color: #111111 !important;
+  color: #FFFFFF !important;
 }
 
 html[data-theme="light"] .app-shell [class*="border-white"] {
@@ -333,7 +339,7 @@ html[data-theme="light"] .app-shell [class*="bg-[#0B1020]"] {
   background-color: #FFFFFF !important;
 }
 
-html[data-theme="light"] .app-shell [class*="bg-[#121214]"],
+html[data-theme="light"] .app-shell [class*="bg-[#141414]"],
 html[data-theme="light"] .app-shell [class*="bg-[#141417]"],
 html[data-theme="light"] .app-shell .bg-helm-ink-card,
 html[data-theme="light"] .app-shell [class*="bg-helm-ink-card"] {
@@ -371,19 +377,18 @@ html[data-theme="light"] .app-shell [class*="hover:bg-white"]:hover {
   background-color: color-mix(in srgb, #111111 7%, transparent) !important;
 }
 
-/* Primary gold fills become gold-outline + near-black type so gold is not a large fill */
+/* Primary accent fills: solid navy, white type; hover deepens to black. */
 html[data-theme="light"] .app-shell .bg-gold,
 html[data-theme="light"] .app-shell .bg-helm-gold {
-  background-color: #FFFFFF !important;
-  color: #111111 !important;
-  box-shadow: inset 0 0 0 1px var(--helm-gold);
+  background-color: rgb(var(--helm-accent)) !important;
+  color: #FFFFFF !important;
 }
 html[data-theme="light"] .app-shell .bg-gold:hover,
 html[data-theme="light"] .app-shell .bg-helm-gold:hover,
 html[data-theme="light"] .app-shell .hover\:bg-gold-hover:hover,
 html[data-theme="light"] .app-shell .hover\:bg-helm-gold-hover:hover {
-  background-color: color-mix(in srgb, var(--helm-gold) 16%, #FFFFFF) !important;
-  color: #111111 !important;
+  background-color: #0A0A0A !important;
+  color: #FFFFFF !important;
 }
 
 html[data-theme="light"] .app-shell input,
@@ -447,7 +452,7 @@ html[data-theme="light"] .app-shell .text-amber-600 {
 }
 
 html[data-theme="light"] ::selection {
-  background: color-mix(in srgb, var(--helm-gold) 28%, transparent);
+  background: rgb(var(--helm-accent) / 0.16);
   color: #111111;
 }
 
@@ -456,7 +461,7 @@ html[data-theme="light"] ::-webkit-scrollbar-thumb {
 }
 
 html[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--helm-gold) 45%, transparent);
+  background: rgb(var(--helm-accent) / 0.45);
 }
 
 /* Dark cockpit: keep ink surfaces readable; do not force white fills */
@@ -533,10 +538,11 @@ html[data-theme="dark"] #root {
 }
 
 .app-shell .cir-rail__indicator {
-  /* Soft gold selected pill — readable without becoming the loudest object */
-  background: color-mix(in srgb, var(--helm-gold) 22%, transparent) !important;
-  border: 1px solid color-mix(in srgb, var(--helm-gold) 40%, transparent);
-  box-shadow: none;
+  /* Selected item: faint navy wash with a navy bar on the left edge. */
+  background: rgb(var(--helm-accent) / 0.07) !important;
+  border: 0;
+  box-shadow: inset 2px 0 0 rgb(var(--helm-accent));
+  border-radius: 4px !important;
 }
 
 .app-shell .cir-rail__link {
@@ -644,16 +650,16 @@ html[data-theme="dark"] #root {
 }
 
 html[data-theme="dark"] .app-shell .cir-rail {
-  --cir-cloud: #121214;
-  --cir-edge: color-mix(in srgb, #f5f0e6 16%, transparent);
+  --cir-cloud: #141414;
+  --cir-edge: color-mix(in srgb, #f4f4f4 16%, transparent);
   --cir-mist: #8b93a1;
-  --cir-ink: #f5f0e6;
+  --cir-ink: #f4f4f4;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__link--active,
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__icon,
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__label {
-  color: #f5f0e6 !important;
+  color: #f4f4f4 !important;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__theme-btn[aria-pressed="true"] {
@@ -661,14 +667,14 @@ html[data-theme="dark"] .app-shell .cir-rail__theme-btn[aria-pressed="true"] {
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__link--active .cir-rail__shortcut {
-  color: #f5f0e6 !important;
+  color: #f4f4f4 !important;
   opacity: 0.45;
 }
 
 html[data-theme="dark"] .app-shell .cir-rail__indicator {
-  background: color-mix(in srgb, #c9a24b 28%, transparent) !important;
-  border: 1px solid color-mix(in srgb, #c9a24b 45%, transparent);
-  box-shadow: none;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border: 0;
+  box-shadow: inset 2px 0 0 #ffffff;
 }
 
 @keyframes fadeUp {
@@ -783,15 +789,15 @@ html[data-theme="dark"] .app-shell .cir-rail__indicator {
 }
 
 html[data-theme="dark"] .cir-note {
-  --cir-cloud: #121214;
-  --cir-edge: color-mix(in srgb, #f5f0e6 16%, transparent);
+  --cir-cloud: #141414;
+  --cir-edge: color-mix(in srgb, #f4f4f4 16%, transparent);
   --cir-mist: #8b93a1;
-  --cir-ink: #f5f0e6;
+  --cir-ink: #f4f4f4;
   --cir-signal: #6ea8f0;
 }
 
 html[data-theme="dark"] .cir-note__ico {
-  background: color-mix(in srgb, #f5f0e6 8%, #121214);
+  background: color-mix(in srgb, #f4f4f4 8%, #141414);
 }
 
 html[data-theme="dark"] .cir-note__btn {
@@ -803,7 +809,7 @@ html[data-theme="dark"] .cir-note__btn:hover {
 }
 
 html[data-theme="dark"] .cir-note__close:hover {
-  background: rgba(245, 240, 230, 0.08);
+  background: rgba(244, 244, 244, 0.08);
 }
 
 /* Sonner wrapper for unstyled cir-note toasts */
@@ -980,16 +986,16 @@ html[data-theme="dark"] .cir-note__close:hover {
 }
 
 html[data-theme="dark"] .cir-danger {
-  --cir-cloud: #121214;
-  --cir-ink: #f5f0e6;
+  --cir-cloud: #141414;
+  --cir-ink: #f4f4f4;
   --cir-mist: #8b93a1;
-  --cir-edge: color-mix(in srgb, #f5f0e6 18%, transparent);
-  --cir-panel: color-mix(in srgb, #f5f0e6 6%, #121214);
+  --cir-edge: color-mix(in srgb, #f4f4f4 18%, transparent);
+  --cir-panel: color-mix(in srgb, #f4f4f4 6%, #141414);
   --cir-danger: #f87171;
-  --cir-danger-soft: color-mix(in srgb, #dc2626 28%, #121214);
+  --cir-danger-soft: color-mix(in srgb, #dc2626 28%, #141414);
   --cir-cancel-fg: #e5e7eb;
   box-shadow:
-    0 0 0 1px color-mix(in srgb, #f5f0e6 8%, transparent),
+    0 0 0 1px color-mix(in srgb, #f4f4f4 8%, transparent),
     0 20px 25px -5px rgba(0, 0, 0, 0.45);
 }
 
@@ -1048,7 +1054,7 @@ html[data-theme="dark"] .cir-danger {
 }
 
 html[data-theme="dark"] .cir-delete {
-  background: #f5f0e6;
+  background: #f4f4f4;
   color: #09090b;
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.35),
@@ -1235,3 +1241,143 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
   .mk-link .mk-arrow { transition: none !important; }
 }
 
+
+/* ==========================================================================
+   App (.app-shell) — black / navy / white corporate theme.
+   Light: soft off-white canvas, white bordered cards, navy accent.
+   Dark:  near-black canvas, charcoal cards, pale navy-white accent.
+   Tighter radii, flat full-height sidebar, no gold, no warm tints.
+   ========================================================================== */
+
+html[data-theme="light"] {
+  --helm-accent: 11 42 91;        /* #0B2A5B */
+  --helm-accent-hover: 21 59 122; /* #153B7A */
+}
+html[data-theme="dark"] {
+  --helm-accent: 200 212 236;       /* #C8D4EC — readable on black, not neon */
+  --helm-accent-hover: 225 231 244;
+}
+
+html[data-theme="light"] .app-shell {
+  --helm-bg: #F6F6F4;
+  --helm-card: #FFFFFF;
+  --helm-line: #E3E3E0;
+  --helm-muted: #4B5563;
+  --radius: 0.375rem;
+  background: #F6F6F4;
+}
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root,
+html[data-theme="light"] .app-shell {
+  background-color: #F6F6F4 !important;
+}
+/* Page-level fills follow the canvas; cards stay white. */
+html[data-theme="light"] .app-shell .bg-helm-bg,
+html[data-theme="light"] .app-shell [class*="bg-helm-bg"],
+html[data-theme="light"] .app-shell .bg-helm-cream,
+html[data-theme="light"] .app-shell [class*="bg-helm-cream"],
+html[data-theme="light"] .app-shell .bg-helm-ink,
+html[data-theme="light"] .app-shell [class*="bg-helm-ink/"] {
+  background-color: #F6F6F4 !important;
+}
+html[data-theme="light"] .app-shell .border-helm-line,
+html[data-theme="light"] .app-shell [class*="border-helm-line"] {
+  border-color: #E3E3E0 !important;
+}
+html[data-theme="light"] .app-shell .text-helm-muted,
+html[data-theme="light"] .app-shell [class*="text-helm-muted"],
+html[data-theme="light"] .app-shell .text-helm-slate,
+html[data-theme="light"] .app-shell [class*="text-helm-slate"] {
+  color: #4B5563 !important;
+}
+html[data-theme="light"] .app-shell .text-white,
+html[data-theme="light"] .app-shell .text-helm-fg,
+html[data-theme="light"] .app-shell [class*="text-helm-fg"] {
+  color: #0A0A0A !important;
+}
+/* Keep white type on solid accent fills (the rule above would blacken it). */
+html[data-theme="light"] .app-shell .bg-helm-gold .text-white,
+html[data-theme="light"] .app-shell .bg-helm-gold [class*="text-helm-fg"],
+html[data-theme="light"] .app-shell .bg-gold .text-white {
+  color: #FFFFFF !important;
+}
+html[data-theme="light"] .app-shell .rounded-xl.border.bg-helm-card,
+html[data-theme="light"] .app-shell .rounded-xl.border[class*="bg-helm-card"],
+html[data-theme="light"] .app-shell [data-testid*="card"],
+html[data-theme="light"] .app-shell [data-testid^="kpi-"],
+html[data-theme="light"] .app-shell [data-testid^="briefing-metric-"],
+html[data-theme="light"] .app-shell section.rounded-xl.border {
+  box-shadow: 0 1px 2px rgba(10, 10, 10, 0.04);
+}
+
+html[data-theme="dark"] .app-shell {
+  --helm-fg: #F4F4F4;
+  --helm-bg: #0A0A0A;
+  --helm-card: #121212;
+  --helm-line: #262626;
+  --helm-muted: #C4C4C4;
+  --radius: 0.375rem;
+}
+html[data-theme="dark"] .app-shell .border-helm-line,
+html[data-theme="dark"] .app-shell [class*="border-helm-line"] {
+  border-color: #262626 !important;
+}
+html[data-theme="dark"] .app-shell .rounded-xl.border,
+html[data-theme="dark"] .app-shell [data-testid*="card"],
+html[data-theme="dark"] .app-shell [data-testid^="kpi-"],
+html[data-theme="dark"] .app-shell [data-testid^="briefing-metric-"] {
+  box-shadow: none;
+}
+html[data-theme="dark"] .app-shell .grain::before,
+html[data-theme="dark"] .app-shell.grain::before { display: none; }
+
+/* Corporate radii: nothing pillowy. */
+.app-shell .rounded-3xl { border-radius: 12px; }
+.app-shell .rounded-2xl { border-radius: 10px; }
+.app-shell .rounded-xl { border-radius: 8px; }
+.app-shell .rounded-lg { border-radius: 6px; }
+.app-shell [data-testid="desktop-top-bar"] .rounded-full:not(img):not([class*="h-1"]):not([class*="h-2"]) {
+  border-radius: 6px;
+}
+
+/* Sidebar: flat full-height panel with a hairline edge (was a floating pill card). */
+.app-shell .cir-rail {
+  --cir-cloud: #ffffff;
+  --cir-edge: #e3e3e0;
+  --cir-mist: #4b5563;
+  --cir-ink: #0a0a0a;
+  height: 100%;
+  margin: 0;
+  padding: 0.75rem 0.625rem;
+  border: 0;
+  border-right: 1px solid var(--cir-edge);
+  border-radius: 0;
+  box-shadow: none;
+}
+html[data-theme="dark"] .app-shell .cir-rail {
+  --cir-cloud: #0e0e0e;
+  --cir-edge: #222222;
+  --cir-mist: #a3a3a3;
+  --cir-ink: #f4f4f4;
+}
+.app-shell .cir-rail__link { border-radius: 4px; }
+.app-shell .cir-rail__link--active .cir-rail__label { font-weight: 600; }
+.app-shell .cir-rail__theme { border-radius: 6px; }
+.app-shell .cir-rail__theme-btn { border-radius: 4px; }
+.app-shell .cir-rail__theme-btn[aria-pressed="true"] { box-shadow: none; }
+
+/* Notification card + other uiverse-derived surfaces: neutral, squarer. */
+.cir-note { border-radius: 8px; }
+
+/* Solid accent fills outside the app shell too (loading/error/setup screens):
+   navy with white type in light; the pale dark-mode accent keeps dark type. */
+html[data-theme="light"] .bg-helm-gold.text-helm-navy,
+html[data-theme="light"] .bg-helm-gold .text-helm-navy,
+html[data-theme="light"] .bg-gold.text-helm-navy {
+  color: #FFFFFF !important;
+}
+html[data-theme="dark"] .bg-helm-gold.text-helm-navy,
+html[data-theme="dark"] .bg-helm-gold .text-helm-navy {
+  color: #0A0A0A !important;
+}

@@ -1230,10 +1230,10 @@
     "semantic_hash": "e7dceaecbcb933280c659b9410b75db1"
   },
   "frontend/src/App.js": {
-    "mtime": 1790515659.5650837,
-    "seen": 1790516102.670807,
-    "ast_hash": "b99e5dcbde1d170075d54565e188831d",
-    "semantic_hash": "b99e5dcbde1d170075d54565e188831d"
+    "mtime": 1790590033.7497742,
+    "seen": 1790590399.0882716,
+    "ast_hash": "d8c70bbd07a0cc2d13d233491d3af289",
+    "semantic_hash": "d8c70bbd07a0cc2d13d233491d3af289"
   },
   "frontend/src/components/AiSummaryMeta.jsx": {
     "mtime": 1790515659.5652192,
@@ -1260,10 +1260,10 @@
     "semantic_hash": "79b345afeb47db7581327deac05cd575"
   },
   "frontend/src/components/BriefingCockpitHero.jsx": {
-    "mtime": 1790524155.300273,
-    "seen": 1790524252.0210295,
-    "ast_hash": "7ef4991d54be2b134b4c8ddcd23597d5",
-    "semantic_hash": "7ef4991d54be2b134b4c8ddcd23597d5"
+    "mtime": 1790590033.748819,
+    "seen": 1790590399.0884385,
+    "ast_hash": "0318eb3fe827afb404572c88029946c2",
+    "semantic_hash": "0318eb3fe827afb404572c88029946c2"
   },
   "frontend/src/components/CirDeleteBtn.jsx": {
     "mtime": 1790515659.5653994,
@@ -1338,10 +1338,10 @@
     "semantic_hash": "bc20788201cbf7e061b46b466e71f440"
   },
   "frontend/src/components/ErrorBoundary.jsx": {
-    "mtime": 1790515659.5653994,
-    "seen": 1790516102.670824,
-    "ast_hash": "7645404801268ae4927edf1f6e1ae062",
-    "semantic_hash": "7645404801268ae4927edf1f6e1ae062"
+    "mtime": 1790590200.0848083,
+    "seen": 1790590399.0889263,
+    "ast_hash": "59b27c5bb0fdad1ecc7a5cd3159e2bd3",
+    "semantic_hash": "59b27c5bb0fdad1ecc7a5cd3159e2bd3"
   },
   "frontend/src/components/HelmHowToUse.jsx": {
     "mtime": 1790515659.5653994,
@@ -1350,10 +1350,10 @@
     "semantic_hash": "9479990de87d9e1ed67a925be62fe9ee"
   },
   "frontend/src/components/HelmMark.jsx": {
-    "mtime": 1790515659.5653994,
-    "seen": 1790516102.6708255,
-    "ast_hash": "3962d6806f2f89fc5eaefaefbe1a6c90",
-    "semantic_hash": "3962d6806f2f89fc5eaefaefbe1a6c90"
+    "mtime": 1790590057.6817572,
+    "seen": 1790590399.0889628,
+    "ast_hash": "7a909d2316bf0375356c607abb920034",
+    "semantic_hash": "7a909d2316bf0375356c607abb920034"
   },
   "frontend/src/components/InviteCeoCard.jsx": {
     "mtime": 1790515659.5653994,
@@ -2232,10 +2232,10 @@
     "semantic_hash": "aec063c4f4f7f8afc8758462331f0a4b"
   },
   "frontend/src/design/palette.json": {
-    "mtime": 1790515659.5713685,
-    "seen": 1790516102.670975,
-    "ast_hash": "6b7558cc972b2a9ff089981f6c4e8352",
-    "semantic_hash": "6b7558cc972b2a9ff089981f6c4e8352"
+    "mtime": 1790589928.3699365,
+    "seen": 1790590399.0946074,
+    "ast_hash": "28feea6ea5208dd63960dba183192a09",
+    "semantic_hash": "28feea6ea5208dd63960dba183192a09"
   },
   "frontend/src/hooks/use-debounce.js": {
     "mtime": 1790515659.5713685,
@@ -2562,16 +2562,16 @@
     "semantic_hash": "3c7061429aa2298c7969f0c5d86a1412"
   },
   "frontend/src/pages/Billing.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710324,
-    "ast_hash": "236c70213b94601863e4df721293c19c",
-    "semantic_hash": "236c70213b94601863e4df721293c19c"
+    "mtime": 1790590033.7496688,
+    "seen": 1790590399.0980463,
+    "ast_hash": "25f98c5ecf6eb910c6422a3c47069bd2",
+    "semantic_hash": "25f98c5ecf6eb910c6422a3c47069bd2"
   },
   "frontend/src/pages/Briefing.jsx": {
-    "mtime": 1790524184.0762746,
-    "seen": 1790524252.028324,
-    "ast_hash": "4f6287010ed5222c0111a6d4a325aeab",
-    "semantic_hash": "4f6287010ed5222c0111a6d4a325aeab"
+    "mtime": 1790590033.749888,
+    "seen": 1790590399.0980525,
+    "ast_hash": "0bf1c08afa39651e6b9f012e969f4594",
+    "semantic_hash": "0bf1c08afa39651e6b9f012e969f4594"
   },
   "frontend/src/pages/CalendarPage.jsx": {
     "mtime": 1790515659.573568,
@@ -2610,10 +2610,10 @@
     "semantic_hash": "c2c72fa149716e072680c592d9dfe6f2"
   },
   "frontend/src/pages/Financials.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.6710396,
-    "ast_hash": "5e169ed192e343f2dd239e450621f5f4",
-    "semantic_hash": "5e169ed192e343f2dd239e450621f5f4"
+    "mtime": 1790590033.749303,
+    "seen": 1790590399.0984662,
+    "ast_hash": "f1c30816b1446d88d3f1573c12a06b54",
+    "semantic_hash": "f1c30816b1446d88d3f1573c12a06b54"
   },
   "frontend/src/pages/HR.jsx": {
     "mtime": 1790515659.573568,
@@ -2628,10 +2628,10 @@
     "semantic_hash": "af59b0fb09b76a8c6e9efdbc2109fdf1"
   },
   "frontend/src/pages/Integrations.jsx": {
-    "mtime": 1790525808.0474694,
-    "seen": 1790525883.6316051,
-    "ast_hash": "b17fd81723648c2e90120bb0059feb29",
-    "semantic_hash": "b17fd81723648c2e90120bb0059feb29"
+    "mtime": 1790590215.6601253,
+    "seen": 1790590399.098627,
+    "ast_hash": "242f32d2071ba031cc4f7f2a31547a8c",
+    "semantic_hash": "242f32d2071ba031cc4f7f2a31547a8c"
   },
   "frontend/src/pages/Landing.jsx": {
     "mtime": 1790589430.08002,
@@ -2760,10 +2760,10 @@
     "semantic_hash": "035f72321dd90cc13ea7860ebf50c20a"
   },
   "frontend/src/pages/Telemetry.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1790516102.671063,
-    "ast_hash": "b5af4d3c43b2bfe38b41d1981a91de0c",
-    "semantic_hash": "b5af4d3c43b2bfe38b41d1981a91de0c"
+    "mtime": 1790590033.7495248,
+    "seen": 1790590399.099724,
+    "ast_hash": "14966be2a1a71c43d39a3596ae03ed19",
+    "semantic_hash": "14966be2a1a71c43d39a3596ae03ed19"
   },
   "frontend/src/pages/Terms.jsx": {
     "mtime": 1790588485.7440827,
@@ -2796,10 +2796,10 @@
     "semantic_hash": "b048434ef3eb4cc5b7bf5d3e002a68df"
   },
   "frontend/tailwind.config.js": {
-    "mtime": 1790589036.7833202,
-    "seen": 1790589565.5884287,
-    "ast_hash": "688bd6b4fdba0ae0ac7d963597df7f37",
-    "semantic_hash": "688bd6b4fdba0ae0ac7d963597df7f37"
+    "mtime": 1790589928.3634794,
+    "seen": 1790590399.0999062,
+    "ast_hash": "fe60da8c7b68eac43cd0f7e718f1d5a9",
+    "semantic_hash": "fe60da8c7b68eac43cd0f7e718f1d5a9"
   },
   "frontend/vercel.json": {
     "mtime": 1790515659.573568,
@@ -5554,5 +5554,11 @@
     "seen": 1790589565.583643,
     "ast_hash": "72107fbaad90cd7976922d865bc723f7",
     "semantic_hash": "72107fbaad90cd7976922d865bc723f7"
+  },
+  "frontend/src/lib/accent.js": {
+    "mtime": 1790590033.7283568,
+    "seen": 1790590399.0951724,
+    "ast_hash": "7cb24def6b1ee8b592614342765cd14b",
+    "semantic_hash": "7cb24def6b1ee8b592614342765cd14b"
   }
 }

@@ -18,10 +18,11 @@ import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
 import palette from "@/design/palette.json";
+import { ACCENT, accentAlpha } from "@/lib/accent";
 
-const GOLD = palette.gold;
+const GOLD = ACCENT;
 const CREAM = palette.cream;
-const PIE = [palette.gold, palette.navy, palette.slate, palette.inkCard, palette.ink, palette.cream];
+const PIE = [ACCENT, accentAlpha(0.7), palette.slate, accentAlpha(0.45), "#9CA3AF", accentAlpha(0.25)];
 const REV_CATS = ["Subscriptions", "Enterprise", "Services", "Other"];
 const EXP_CATS = ["Payroll", "Cloud/Infra", "Sales & Mktg", "G&A", "R&D Tools", "Other"];
 const ALLOWED_UPLOAD_TYPES = ["application/pdf", "image/png", "image/jpeg"];

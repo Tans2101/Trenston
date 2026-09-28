@@ -71,9 +71,10 @@ function TrenstonToaster() {
       position="top-right"
       toastOptions={{
         style: {
-          background: light ? palette.cream : palette.inkCard,
-          border: `1px solid ${light ? palette.navy : palette.cream}29`,
-          color: light ? palette.navy : palette.cream,
+          background: light ? "#FFFFFF" : palette.inkCard,
+          border: `1px solid ${light ? "#E3E3E0" : "#262626"}`,
+          color: light ? "#0A0A0A" : palette.cream,
+          borderRadius: "6px",
         },
         classNames: {
           toast: "group",

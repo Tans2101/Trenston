@@ -48,11 +48,9 @@
 /* Screen panel area */
 .screenContent {
   background: #1a1a1a;
-  /* True MacBook Air panel ratio. The source screenshot was 16:9 (wider
-     than 16:10), so object-fit: cover cropped its left/right edges here —
-     the screenshot asset itself was padded top/bottom (matching its own
-     dashboard background color) to a true 16:10 canvas so cover can fill
-     edge-to-edge without cropping the sidebar or right-side panels. */
+  /* True MacBook Air panel ratio. The Briefing screenshot asset is
+     captured at 1440x900 @2x (a true 16:10), so cover fills edge-to-edge
+     without cropping the sidebar or right-side panels. */
   aspect-ratio: 16 / 10;
   overflow: hidden;
   border-radius: 6px 6px 0 0; /* Internal panel rounding beneath bezel */

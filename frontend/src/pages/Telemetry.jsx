@@ -24,8 +24,9 @@ import {
 } from "@/components/charts/heatmap";
 import { cn } from "@/lib/utils";
 import palette from "@/design/palette.json";
+import { ACCENT } from "@/lib/accent";
 
-const GOLD = palette.gold;
+const GOLD = ACCENT;
 const SLATE = palette.slate;
 const CREAM = palette.cream;
 

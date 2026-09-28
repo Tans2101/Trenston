@@ -21,28 +21,28 @@ const ICONS = {
 };
 
 /**
- * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
- * (Google, QuickBooks, Xero, SAP, HubSpot, Slack, GitHub) need written
- * permission we don't have, so each badge is the provider's initial on a
- * brand-colored tile instead. Same policy as IntegrationsShowcase.jsx on
- * the marketing site. See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
+ * Monogram badges, not real vendor logos — trademarked marks (Google,
+ * QuickBooks, Xero, SAP, HubSpot, Slack, GitHub) need written permission we
+ * don't have, so each badge is the provider's initial on the accent tile.
+ * Same policy as the marketing site; see PUBLIC_INTEGRATIONS_ATTRIBUTION.
  */
-const BRAND_ACCENT = {
-  google: { initial: "G", color: "#4285F4" },
-  quickbooks: { initial: "Q", color: "#2CA01C" },
-  xero: { initial: "X", color: "#13B5EA" },
-  sap_b1: { initial: "S", color: "#0870D6" },
-  hubspot: { initial: "H", color: "#FF7A59" },
-  github: { initial: "G", color: "#24292F" },
-  slack: { initial: "S", color: "#611F69" },
+const BRAND_INITIAL = {
+  google: "G",
+  quickbooks: "Q",
+  xero: "X",
+  sap_b1: "S",
+  hubspot: "H",
+  github: "G",
+  slack: "S",
 };
 
+/** Monochrome monogram tile (accent fill) — no vendor colours, no real logos. */
 function BrandBadge({ id, name }) {
-  const brand = BRAND_ACCENT[id];
+  const initial = BRAND_INITIAL[id];
   const Icon = ICONS[id] || Cloud;
-  if (!brand) {
+  if (!initial) {
     return (
-      <div className="w-10 h-10 rounded-lg bg-helm-fg/5 border border-helm-line flex items-center justify-center shrink-0">
+      <div className="w-10 h-10 rounded-md bg-helm-fg/5 border border-helm-line flex items-center justify-center shrink-0">
         <Icon className="w-5 h-5 text-helm-gold" />
       </div>
     );
@@ -50,11 +50,10 @@ function BrandBadge({ id, name }) {
   return (
     <div
       aria-hidden
-      className="w-10 h-10 rounded-lg flex items-center justify-center font-mono text-sm font-semibold text-white shrink-0"
-      style={{ backgroundColor: brand.color }}
+      className="w-10 h-10 rounded-md flex items-center justify-center font-mono text-sm font-semibold shrink-0 bg-helm-gold text-helm-navy"
       title={name}
     >
-      {brand.initial}
+      {initial}
     </div>
   );
 }

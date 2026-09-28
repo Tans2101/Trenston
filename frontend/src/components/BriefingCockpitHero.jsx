@@ -19,6 +19,7 @@ import {
   shouldShowFinanceEmptyCta,
 } from "@/lib/briefingCockpit";
 import palette from "@/design/palette.json";
+import { ACCENT, ACCENT_SCALE } from "@/lib/accent";
 
 const ASSISTANT_PROMPTS = [
   "What's my burn rate?",
@@ -35,10 +36,8 @@ const METRIC_KEYS = [
 ];
 
 function spendColors(dark) {
-  // Avoid cream-on-card washout in light theme (SPEND_COLORS[1] was palette.cream).
-  return dark
-    ? [palette.gold, palette.cream, palette.slate, palette.statusWarning, palette.ember]
-    : [palette.gold, palette.slate, palette.navy, palette.statusWarning, palette.ember];
+  // Monochrome navy scale per theme (no gold / ember in the product UI).
+  return dark ? ACCENT_SCALE.dark : ACCENT_SCALE.light;
 }
 
 function pickMetric(metrics, key) {
@@ -86,13 +85,13 @@ export default function BriefingCockpitHero({
   const moneySymbol = fin?.currency_symbol || workspaceSymbol;
   const [chartOffset, setChartOffset] = useState(0);
   const dark = resolvedTheme === "dark";
-  const currentBar = palette.gold;
-  const lastBar = dark ? "rgba(245, 240, 230, 0.35)" : `${palette.slate}66`;
-  const axisStroke = dark ? "rgba(245, 240, 230, 0.55)" : palette.slate;
+  const currentBar = ACCENT;
+  const lastBar = dark ? "rgba(244, 244, 244, 0.28)" : `${palette.slate}55`;
+  const axisStroke = dark ? "rgba(244, 244, 244, 0.55)" : palette.slate;
   const tooltipFg = dark ? palette.cream : "#111111";
   const tooltipBg = dark ? palette.inkCard : "#FFFFFF";
-  const tooltipBorder = dark ? "rgba(245, 240, 230, 0.22)" : "rgba(17, 17, 17, 0.2)";
-  const cursorFill = dark ? "rgba(245, 240, 230, 0.06)" : "rgba(201,162,75,0.08)";
+  const tooltipBorder = dark ? "rgba(244, 244, 244, 0.18)" : "rgba(10, 10, 10, 0.14)";
+  const cursorFill = dark ? "rgba(244, 244, 244, 0.06)" : "rgba(11, 42, 91, 0.06)";
   const swatches = spendColors(dark);
 
   const heroMetrics = useMemo(() => {

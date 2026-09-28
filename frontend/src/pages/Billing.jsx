@@ -13,6 +13,7 @@ import { Ring } from "@/components/charts/ring";
 import { RingCenter } from "@/components/charts/ring-center";
 import { cn } from "@/lib/utils";
 import palette from "@/design/palette.json";
+import { ACCENT } from "@/lib/accent";
 
 const PLAN_RANK = { free: 0, starter: 1, growth: 2, business: 3 };
 
@@ -34,10 +35,10 @@ async function waitForBillingPlan(targetPlan, { maxAttempts = 20, intervalMs = 1
 }
 
 function usageToneColor(used, limit) {
-  if (!(limit > 0)) return palette.gold;
+  if (!(limit > 0)) return ACCENT;
   if (used > limit) return palette.statusNegative;
   if (used >= limit || used / limit >= 0.8) return palette.statusWarning;
-  return palette.gold;
+  return ACCENT;
 }
 
 function UsageRing({ label, used, limit, unit, testId }) {

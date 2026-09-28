@@ -1,16 +1,19 @@
-import trenstonMark from "@/assets/trenston-mark.svg";
-import trenstonMarkNavy from "@/assets/trenston-mark-navy.svg";
+// Monochrome marks (navy rays) — matches the black / navy / white system.
+import trenstonMark from "@/assets/trenston-mark-mono.svg";
+import trenstonMarkNavy from "@/assets/trenston-mark-mono-white.svg";
 
 /**
- * Approved Trenston medallion (transparent). Use `navy` for the dark-background
- * colorway (cream ring/T — trenston-mark-navy.svg); omit for light/cream surfaces
- * (navy ring/T — trenston-mark.svg).
+ * Approved Trenston medallion (transparent). `navy` forces the dark-background
+ * colorway (white ring/T — trenston-mark-mono-white.svg); omit for light/cream surfaces
+ * (black ring/T — trenston-mark-mono.svg). Omitted, it follows html[data-theme].
  */
-export default function HelmMark({ size = 36, navy = true, className = "", alt = "" }) {
+export default function HelmMark({ size = 36, navy, className = "", alt = "" }) {
   const px = typeof size === "number" ? size : 36;
+  // Default follows the active theme: white mark on dark, black mark on light.
+  const onDark = navy ?? (typeof document !== "undefined" && document.documentElement.dataset.theme === "dark");
   return (
     <img
-      src={navy ? trenstonMarkNavy : trenstonMark}
+      src={onDark ? trenstonMarkNavy : trenstonMark}
       alt={alt}
       width={px}
       height={px}
