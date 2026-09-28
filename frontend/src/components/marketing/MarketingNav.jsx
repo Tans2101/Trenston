@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion, useScroll, useSpring } from "motion/react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
-import SmoothTab, { SmoothTabItem } from "@/components/kokonutui/smooth-tab";
 import { cn } from "@/lib/utils";
 import { PUBLIC_CONTACT_MAILTO } from "@/lib/marketingCopy";
 
 const NAV_LINKS = [
-  { to: "/", label: "Home", match: ["/"] },
-  { to: "/features", label: "Features", match: ["/features"] },
-  { to: "/integrations", label: "Integrations", match: ["/integrations"] },
-  { to: "/about", label: "About", match: ["/about"] },
-  { to: "/security", label: "Security", match: ["/security"] },
-  { to: "/pricing", label: "Pricing", match: ["/pricing"] },
+  { to: "/", label: "Home" },
+  { to: "/features", label: "Features" },
+  { to: "/integrations", label: "Integrations" },
+  { to: "/pricing", label: "Pricing" },
+  { to: "/security", label: "Security" },
+  { to: "/about", label: "About" },
 ];
 
 function isActive(path, active) {
@@ -20,56 +20,63 @@ function isActive(path, active) {
   return active === path || active?.startsWith(path);
 }
 
-export default function MarketingNav({ authed, onEnter, active, bgClassName = "bg-helm-cream/90" }) {
+/**
+ * White editorial nav (black type, navy underline). A thin navy bar under the
+ * header tracks reading progress. (Older call sites may still pass bgClassName; it is ignored.)
+ */
+export default function MarketingNav({ authed, onEnter, active }) {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, restDelta: 0.001 });
 
-  const activeId = NAV_LINKS.find((l) => isActive(l.to, active))?.to || null;
-
-  const renderLink = (l, className) => (
-    <Link key={l.to} to={l.to} className={className} onClick={() => setOpen(false)}>
-      {l.label}
-    </Link>
-  );
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className={cn("fixed top-0 inset-x-0 z-50 border-b border-helm-navy/10 backdrop-blur-md", bgClassName)}>
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex h-16 items-center justify-between">
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b bg-white transition-shadow duration-300",
+        scrolled ? "border-mk-line shadow-[0_8px_30px_-18px_rgba(10,10,10,0.35)]" : "border-mk-line",
+      )}
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="flex h-16 items-center justify-between gap-6">
           <MarketingLogo size="sm" />
 
-          <nav className="hidden md:block" aria-label="Main">
-            <SmoothTab
-              orientation="horizontal"
-              variant="underline"
-              activeId={activeId}
-              className="flex items-center gap-6"
-            >
-              {NAV_LINKS.map((l) => (
-                <SmoothTabItem key={l.to} id={l.to} className="w-fit shrink-0 pb-0.5">
-                  {renderLink(
-                    l,
-                    cn(
-                      "text-base transition-colors",
-                      isActive(l.to, active)
-                        ? "text-helm-navy font-medium"
-                        : "text-helm-slate hover:text-helm-navy",
-                    ),
+          <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
+            {NAV_LINKS.map((l) => {
+              const on = isActive(l.to, active);
+              return (
+                <Link
+                  key={l.to}
+                  to={l.to}
+                  aria-current={on ? "page" : undefined}
+                  className={cn(
+                    "mk-navlink text-[0.9375rem] transition-colors",
+                    on ? "font-semibold text-mk-black" : "text-mk-gray hover:text-mk-black",
                   )}
-                </SmoothTabItem>
-              ))}
-            </SmoothTab>
+                >
+                  {l.label}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-5">
             <a
               href={PUBLIC_CONTACT_MAILTO}
               data-testid="nav-contact-link"
-              className="hidden sm:inline text-sm text-helm-slate hover:text-helm-navy transition-colors"
+              className="hidden text-sm text-mk-gray transition-colors hover:text-mk-black sm:inline"
             >
               Contact
             </a>
             {!authed && (
-              <Link to="/login" className="hidden sm:inline text-sm text-helm-slate hover:text-helm-navy transition-colors">
+              <Link to="/login" className="hidden text-sm text-mk-gray transition-colors hover:text-mk-black sm:inline">
                 Sign in
               </Link>
             )}
@@ -77,54 +84,66 @@ export default function MarketingNav({ authed, onEnter, active, bgClassName = "b
               data-testid="nav-signin-btn"
               type="button"
               onClick={onEnter}
-              className="group hidden sm:flex items-center gap-1.5 rounded-md bg-helm-navy text-helm-cream text-sm font-medium px-4 py-2 transition-colors hover:bg-helm-ink"
+              className="mk-btn mk-btn-dark mk-btn-sm hidden sm:inline-flex"
             >
-              {authed ? "Open cockpit" : "Get started"}
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              <span>{authed ? "Open cockpit" : "Get started"}</span>
+              <ArrowRight className="mk-arrow h-3.5 w-3.5" aria-hidden />
             </button>
             <button
               type="button"
-              className="md:hidden text-helm-slate hover:text-helm-navy p-1"
+              className="p-1 text-mk-black lg:hidden"
               aria-label={open ? "Close menu" : "Open menu"}
+              aria-expanded={open}
               onClick={() => setOpen((o) => !o)}
             >
-              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
+      </div>
 
-        {open && (
-          <nav className="md:hidden mt-2 rounded-xl border border-helm-navy/10 bg-white p-4 space-y-1" aria-label="Mobile">
-            {NAV_LINKS.map((l) =>
-              renderLink(
-                l,
-                `block rounded-lg px-3 py-2.5 text-base ${isActive(l.to, active) ? "bg-helm-navy/5 text-helm-navy" : "text-helm-slate hover:text-helm-navy"}`,
-              ),
-            )}
-            <a
-              href={PUBLIC_CONTACT_MAILTO}
+      {open && (
+        <nav className="border-t border-mk-line bg-white px-6 pb-6 pt-2 lg:hidden" aria-label="Mobile">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
               onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-navy"
+              aria-current={isActive(l.to, active) ? "page" : undefined}
+              className={cn(
+                "flex items-center justify-between border-b border-mk-line py-4 text-lg",
+                isActive(l.to, active) ? "font-semibold text-mk-black" : "text-mk-gray",
+              )}
             >
+              {l.label}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+          ))}
+          <div className="mt-5 flex flex-col gap-3">
+            <a href={PUBLIC_CONTACT_MAILTO} onClick={() => setOpen(false)} className="text-sm text-mk-gray">
               Contact
             </a>
-            <div className="pt-2 border-t border-helm-navy/10 flex flex-col gap-2">
-              {!authed && (
-                <Link to="/login" onClick={() => setOpen(false)} className="block rounded-lg px-3 py-2.5 text-sm text-helm-slate hover:text-helm-navy">
-                  Sign in
-                </Link>
-              )}
-              <button
-                type="button"
-                onClick={() => { setOpen(false); onEnter?.(); }}
-                className="w-full rounded-md bg-helm-navy text-helm-cream text-sm font-medium px-3 py-2.5 hover:bg-helm-ink transition-colors"
-              >
-                {authed ? "Open cockpit" : "Get started"}
-              </button>
-            </div>
-          </nav>
-        )}
-      </div>
+            {!authed && (
+              <Link to="/login" onClick={() => setOpen(false)} className="text-sm text-mk-gray">
+                Sign in
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onEnter?.(); }}
+              className="mk-btn mk-btn-dark w-full"
+            >
+              <span>{authed ? "Open cockpit" : "Get started"}</span>
+            </button>
+          </div>
+        </nav>
+      )}
+
+      <motion.div
+        className="absolute inset-x-0 bottom-[-1px] h-[2px] origin-left bg-mk-navy"
+        style={{ scaleX: progress }}
+        aria-hidden
+      />
     </header>
   );
 }

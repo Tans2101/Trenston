@@ -35,14 +35,14 @@ export default function Changelog() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-white text-mk-black">
       <MarketingNav authed={authed} onEnter={enter} active="/changelog" />
 
       <main>
         <section className="px-6 pb-12 pt-36 md:pb-16 md:pt-44">
           <div className="mx-auto max-w-3xl">
             <motion.p variants={fade} initial="hidden" animate="show" custom={0}
-              className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">
+              className="font-mono text-xs uppercase tracking-[0.3em] text-mk-gray">
               {CATEGORY}
             </motion.p>
             <motion.h1 variants={fade} initial="hidden" animate="show" custom={1}
@@ -50,13 +50,13 @@ export default function Changelog() {
               Changelog
             </motion.h1>
             <motion.p variants={fade} initial="hidden" animate="show" custom={2}
-              className="mt-6 max-w-2xl text-lg leading-relaxed text-helm-slate">
+              className="mt-6 max-w-2xl text-lg leading-relaxed text-mk-gray">
               {CHANGELOG_INTRO}
             </motion.p>
           </div>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-16 md:py-20">
+        <section className="border-t border-mk-black/[0.05] px-6 py-16 md:py-20">
           <ol className="mx-auto max-w-3xl space-y-0">
             {entries.map((entry, i) => (
               <motion.li
@@ -66,25 +66,25 @@ export default function Changelog() {
                 whileInView="show"
                 viewport={{ once: true, margin: "-30px" }}
                 custom={Math.min(i, 6)}
-                className="grid gap-2 border-b border-helm-navy/[0.06] py-8 first:pt-0 md:grid-cols-[7.5rem_1fr] md:gap-8"
+                className="grid gap-2 border-b border-mk-black/[0.06] py-8 first:pt-0 md:grid-cols-[7.5rem_1fr] md:gap-8"
               >
-                <time dateTime={entry.date} className="font-mono text-[11px] uppercase tracking-[0.14em] text-helm-slate">
+                <time dateTime={entry.date} className="font-mono text-[11px] uppercase tracking-[0.14em] text-mk-gray">
                   {formatDate(entry.date)}
                 </time>
                 <div>
-                  <h2 className="text-base font-medium text-helm-navy md:text-lg">{entry.title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-helm-slate">{entry.description}</p>
+                  <h2 className="text-base font-medium text-mk-black md:text-lg">{entry.title}</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-mk-gray">{entry.description}</p>
                 </div>
               </motion.li>
             ))}
           </ol>
-          <p className="mx-auto mt-12 max-w-3xl text-sm text-helm-slate">
+          <p className="mx-auto mt-12 max-w-3xl text-sm text-mk-gray">
             Looking for plans and users?{" "}
-            <Link to="/pricing" className="text-helm-navy hover:text-helm-gold transition-colors">
+            <Link to="/pricing" className="text-mk-black hover:text-mk-navy transition-colors">
               See pricing
             </Link>
             . For live service health, see{" "}
-            <Link to="/status" className="text-helm-navy hover:text-helm-gold transition-colors">
+            <Link to="/status" className="text-mk-black hover:text-mk-navy transition-colors">
               Status
             </Link>
             .
@@ -96,7 +96,7 @@ export default function Changelog() {
             <button
               type="button"
               onClick={enter}
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-cream px-6 py-3 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold"
+              className="mk-btn mk-btn-dark group"
             >
               {authed ? "Open cockpit" : "Get started"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

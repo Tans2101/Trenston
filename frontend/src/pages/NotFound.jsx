@@ -22,7 +22,7 @@ export default function NotFound() {
           <Link
             to={homeTo}
             data-testid="not-found-home-link"
-            className="inline-flex items-center rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"
+            className="mk-btn mk-btn-dark mk-btn-sm"
           >
             {homeLabel}
           </Link>
@@ -36,7 +36,7 @@ export default function NotFound() {
   }
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden flex flex-col" data-testid="not-found">
+    <div className="min-h-screen bg-white text-mk-black overflow-x-hidden flex flex-col" data-testid="not-found">
       <MarketingNav authed={authed} onEnter={enter} />
       <main className="flex-1 px-6 pt-36 md:pt-44 pb-16">
         <div className="mx-auto max-w-xl">{body}</div>

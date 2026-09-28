@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { motion } from "motion/react";
+import { useEffect } from "react";
 import {
-  ArrowRight,
   Check,
-  ChevronDown,
   Cloud,
   CreditCard,
   Database,
@@ -15,19 +11,21 @@ import {
   Trash2,
   UserRoundCheck,
 } from "lucide-react";
-import MarketingNav from "@/components/marketing/MarketingNav";
-import MarketingFooter from "@/components/marketing/MarketingFooter";
+import {
+  CtaBand,
+  DarkBackdrop,
+  DrawLine,
+  Eyebrow,
+  MkAccordion,
+  MkButton,
+  MkLink,
+  MkPage,
+  PageHero,
+  Reveal,
+  SectionHeader,
+} from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
-
-const ease = [0.16, 1, 0.3, 1];
-const fade = {
-  hidden: { opacity: 0, y: 18 },
-  show: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.65, ease, delay: i * 0.08 },
-  }),
-};
+import { TAGLINE } from "@/lib/marketingCopy";
 
 /**
  * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
@@ -50,7 +48,7 @@ function InfraBadge({ name }) {
   return (
     <div
       aria-hidden
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold"
+      className="flex h-11 w-11 shrink-0 items-center justify-center font-mono text-sm font-semibold transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-110"
       style={{ backgroundColor: color, color: light ? "#F5F5F0" : "#FFFFFF" }}
     >
       {name.trim().charAt(0)}
@@ -225,43 +223,6 @@ const QUESTIONS = [
   },
 ];
 
-function FaqAccordion({ items }) {
-  const [openIndex, setOpenIndex] = useState(0);
-
-  return (
-    <div className="mt-10 divide-y divide-helm-navy/[0.08] rounded-2xl border border-helm-navy/[0.08] bg-white">
-      {items.map((item, index) => {
-        const open = openIndex === index;
-        const panelId = `security-faq-panel-${index}`;
-        return (
-          <div key={item.q}>
-            <h3>
-              <button
-                type="button"
-                id={`security-faq-trigger-${index}`}
-                aria-expanded={open}
-                aria-controls={panelId}
-                onClick={() => setOpenIndex(open ? -1 : index)}
-                className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left"
-              >
-                <span className="font-semibold text-helm-navy">{item.q}</span>
-                <ChevronDown
-                  className={`h-4 w-4 shrink-0 text-helm-gold transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-                  aria-hidden
-                />
-              </button>
-            </h3>
-            {open && (
-              <div id={panelId} role="region" aria-labelledby={`security-faq-trigger-${index}`} className="px-6 pb-5">
-                <p className="text-sm leading-relaxed text-helm-navy/85">{item.a}</p>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function Security() {
   const { authed, enter } = useMarketingAuth();
@@ -272,312 +233,232 @@ export default function Security() {
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
-      <MarketingNav authed={authed} onEnter={enter} active="/security" />
+    <MkPage authed={authed} onEnter={enter} active="/security">
+      <PageHero
+        eyebrow="Security at Trenston"
+        lines={["Your company runs on trust.", "Trenston is built to protect it."]}
+        sub="Cash, decisions, documents, and connected systems are the operating picture of a company. Trenston is designed so that picture stays inside the workspace that owns it, from sign-in through deletion."
+      >
+        <div className="flex flex-wrap gap-2.5" data-testid="security-trust-badges">
+          {TRUST_BADGES.map(({ icon: Icon, label }) => (
+            <span
+              key={label}
+              className="inline-flex items-center gap-2 border border-white/20 bg-white/[0.04] px-3.5 py-2 text-sm text-white transition-colors duration-300 hover:border-white/60"
+            >
+              <Icon className="h-4 w-4 text-mk-sky" aria-hidden />
+              {label}
+            </span>
+          ))}
+        </div>
+        <p className="mt-8 text-sm text-mk-gray-dark">
+          Last updated September 19, 2026 · Also see{" "}
+          <MkLink to="/status" className="text-white">Status</MkLink>{" "}
+          <MkLink to="/changelog" className="ml-3 text-white">Changelog</MkLink>{" "}
+          <MkLink to="/privacy" className="ml-3 text-white">Privacy</MkLink>
+        </p>
+      </PageHero>
 
-      <main>
-        <section className="relative px-6 pb-12 pt-32 md:pb-16 md:pt-40 bg-helm-cream">
-          <div className="relative mx-auto max-w-4xl text-center">
-            <motion.div
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={0}
-              className="mx-auto inline-flex items-center gap-2 rounded-full border border-helm-gold/35 bg-helm-gold/12 px-3 py-1.5"
-            >
-              <LockKeyhole className="h-3.5 w-3.5 text-helm-gold" />
-              <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-helm-gold">
-                Security at Trenston
-              </span>
-            </motion.div>
-            <motion.h1
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={1}
-              className="font-display mx-auto mt-7 max-w-3xl text-4xl font-medium leading-[1.08] tracking-tight md:text-6xl"
-            >
-              Your company runs on trust.
-              <span className="block text-helm-slate">Trenston is built to protect it.</span>
-            </motion.h1>
-            <motion.p
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={2}
-              className="mx-auto mt-7 max-w-2xl text-base leading-relaxed text-helm-slate md:text-lg"
-            >
-              Cash, decisions, documents, and connected systems are the operating picture of a company.
-              Trenston is designed so that picture stays inside the workspace that owns it, from sign-in through deletion.
-            </motion.p>
-            <motion.div
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={3}
-              className="mx-auto mt-8 flex max-w-2xl flex-wrap items-center justify-center gap-2.5"
-              data-testid="security-trust-badges"
-            >
-              {TRUST_BADGES.map(({ icon: Icon, label }) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-helm-navy/[0.12] bg-white px-3.5 py-1.5 text-xs font-medium text-helm-navy shadow-sm"
-                >
-                  <Icon className="h-3.5 w-3.5 text-helm-gold" aria-hidden />
-                  {label}
-                </span>
-              ))}
-            </motion.div>
-            <motion.p
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={4}
-              className="mt-6 font-mono text-[11px] uppercase tracking-[0.18em] text-helm-slate"
-            >
-              Last updated September 19, 2026
-            </motion.p>
-            <motion.p
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              custom={5}
-              className="mt-4 text-sm text-helm-slate"
-            >
-              Also see{" "}
-              <Link to="/status" className="text-helm-gold hover:underline">Status</Link>
-              {" · "}
-              <Link to="/changelog" className="text-helm-gold hover:underline">Changelog</Link>
-              {" · "}
-              <Link to="/privacy" className="text-helm-gold hover:underline">Privacy</Link>
-            </motion.p>
-          </div>
-        </section>
-
-        <section className="border-y border-helm-navy/[0.05] px-6 py-12 md:py-14">
-          <div className="mx-auto max-w-5xl">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Why this matters</p>
-            <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
+      {/* Why this matters */}
+      <section className="bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1fr]">
+          <Reveal>
+            <Eyebrow>Why this matters</Eyebrow>
+            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
               Companies cannot treat a cockpit as optional infrastructure.
             </h2>
-            <p className="mt-5 max-w-3xl leading-relaxed text-helm-slate">
-              Trenston holds the numbers leadership uses to decide, the files finance and legal attach,
-              and the tokens that connect accounting, CRM, and calendar. That is why security is
-              part of the product, not a footnote on a pricing page.
+          </Reveal>
+          <Reveal i={1} className="self-end">
+            <DrawLine className="bg-mk-navy" />
+            <p className="mt-8 text-xl leading-relaxed text-mk-black">
+              Trenston holds the numbers leadership uses to decide, the files finance and legal attach, and the
+              tokens that connect accounting, CRM, and calendar. That is why security is part of the product, not a
+              footnote on a pricing page.
             </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Infrastructure */}
+      <section className="bg-mk-mist px-6 py-24 md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Enterprise-grade infrastructure"
+            title="Every part of the stack has one job."
+            intro="Business records sit in MongoDB Atlas, private files in Cloudflare R2, identity in Clerk, and payments in Paddle, each on infrastructure built for that job."
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {WHERE_DATA_LIVES.map(({ icon: Icon, title, body }, i) => (
+              <Reveal key={title} i={i % 3} className="mk-card group flex flex-col p-7">
+                <div className="flex items-center justify-between">
+                  <InfraBadge name={title} />
+                  <Icon className="h-5 w-5 text-mk-navy" aria-hidden />
+                </div>
+                <h3 className="mt-8 text-xl font-semibold tracking-tight">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-mk-gray">{body}</p>
+              </Reveal>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Enterprise-grade infrastructure</p>
-              <h2 className="font-display mt-4 text-3xl font-medium tracking-tight md:text-4xl">
-                Every part of the stack has one job.
-              </h2>
-              <p className="mt-4 leading-relaxed text-helm-slate">
-                Trenston is not a single black box. Business records sit in MongoDB Atlas, private files in
-                Cloudflare R2, identity in Clerk, and payments in Paddle — each on infrastructure built for that job.
-              </p>
-            </div>
-            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {WHERE_DATA_LIVES.map(({ icon: Icon, title, body }, index) => (
-                <motion.article
-                  key={title}
-                  variants={fade}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, margin: "-40px" }}
-                  custom={index}
-                  className="rounded-xl border border-helm-navy/[0.1] bg-white p-6 shadow-sm transition-colors hover:border-helm-navy/20"
-                >
-                  <div className="flex items-center gap-3">
-                    <InfraBadge name={title} />
-                    <Icon className="h-4 w-4 text-helm-gold" aria-hidden />
-                  </div>
-                  <h3 className="mt-4 text-base font-medium text-helm-navy">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
-                </motion.article>
-              ))}
-            </div>
+      {/* Encryption — black band */}
+      <section className="relative overflow-hidden bg-mk-black px-6 py-24 text-white md:py-32">
+        <DarkBackdrop />
+        <div className="relative mx-auto max-w-7xl">
+          <SectionHeader dark eyebrow="Encryption" title="What is encrypted, and how." />
+          <div className="mt-14 grid gap-5 md:grid-cols-3">
+            {ENCRYPTION.map((item, i) => (
+              <Reveal key={item.title} i={i} className="mk-card mk-card-dark group flex flex-col p-8">
+                <span className="mk-icon-tile">
+                  {[<LockKeyhole key="a" className="h-5 w-5" />, <KeyRound key="b" className="h-5 w-5" />, <Database key="c" className="h-5 w-5" />][i] || <ShieldCheck className="h-5 w-5" />}
+                </span>
+                <h3 className="mt-8 text-xl font-semibold tracking-tight">{item.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-mk-gray-dark">{item.body}</p>
+              </Reveal>
+            ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section className="border-y border-helm-navy/[0.05] px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Encryption</p>
-            <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
-              What is encrypted, and how
-            </h2>
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {ENCRYPTION.map((item) => (
-                <article key={item.title} className="rounded-2xl border border-helm-navy/[0.07] bg-white p-6">
-                  <h3 className="text-sm font-medium text-helm-navy">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-helm-slate">{item.body}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Third parties</p>
-            <h2 className="font-display mt-4 max-w-3xl text-3xl font-medium tracking-tight md:text-4xl">
-              Who receives data, and why
-            </h2>
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-helm-slate">
-              Cross-checked against the product integration catalog. Optional connections only run after someone in your
-              workspace connects them. Platform providers below are required to operate Trenston itself.
-            </p>
-            <ul className="mt-10 space-y-3">
-              {THIRD_PARTIES.map((item) => (
-                <li key={item.name} className="rounded-xl border border-helm-navy/[0.06] bg-helm-fg/[0.02] p-5 md:grid md:grid-cols-[14rem_1fr] md:gap-6">
-                  <p className="text-sm font-medium text-helm-navy">{item.name}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-helm-slate md:mt-0">{item.why}</p>
-                </li>
-              ))}
-            </ul>
-            <Link to="/integrations" className="mt-6 inline-flex items-center gap-2 text-sm text-helm-gold hover:text-helm-gold-hover">
-              Public integrations page <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </section>
-
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
-          <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Retention &amp; deletion</p>
-              <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">How long data stays</h2>
-              <ul className="mt-6 space-y-3">
-                {RETENTION.map((line) => (
-                  <li key={line} className="flex gap-3 text-sm leading-relaxed text-helm-slate">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Who at Trenston can access data</p>
-              <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">Staff access</h2>
-              <ul className="mt-6 space-y-3">
-                {STAFF_ACCESS.map((line) => (
-                  <li key={line} className="flex gap-3 text-sm leading-relaxed text-helm-slate">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Layered protection</p>
-              <h2 className="font-display mt-4 text-3xl font-medium tracking-tight md:text-4xl">
-                Protection built into every layer
-              </h2>
-              <p className="mt-4 leading-relaxed text-helm-slate">
-                No single control carries the whole burden. Trenston combines encryption, access boundaries,
-                private storage, validation, and deletion that is meant to complete.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-4 md:grid-cols-3">
-              {CONTROLS.map(({ icon: Icon, title, body }, index) => (
-                <motion.article
-                  key={title}
-                  variants={fade}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, margin: "-50px" }}
-                  custom={index % 3}
-                  className="rounded-xl border border-helm-navy/[0.1] bg-white p-6 shadow-sm transition-colors hover:border-helm-navy/20"
-                >
-                  <Icon className="h-5 w-5 text-helm-gold" aria-hidden />
-                  <h3 className="mt-5 text-base font-medium text-helm-navy">{title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-helm-slate">{body}</p>
-                </motion.article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <div className="max-w-2xl">
-              <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Data boundaries</p>
-              <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">
-                Clear about where data goes
-              </h2>
-              <p className="mt-4 text-sm leading-relaxed text-helm-navy/85">
-                Trenston is not the only system involved in delivering the product. We identify the providers
-                we use and limit each integration to the access needed for its feature.
-              </p>
-              <Link to="/privacy" className="mt-6 inline-flex items-center gap-2 text-sm text-helm-gold hover:text-helm-gold-hover">
-                Read the Privacy Policy <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            <ul className="mt-10 grid gap-4 md:grid-cols-2">
-              {PRACTICES.map((practice) => (
-                <li key={practice} className="flex gap-3 rounded-xl border border-helm-navy/[0.1] bg-white p-5 shadow-sm">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-helm-gold/12">
-                    <Check className="h-3 w-3 text-helm-gold" />
-                  </span>
-                  <span className="text-sm leading-relaxed text-helm-navy/85">{practice}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section className="border-y border-helm-navy/[0.05] bg-helm-cream px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-5xl">
-            <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Common questions</p>
-            <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">What leadership teams ask</h2>
-            <FaqAccordion items={QUESTIONS} />
-          </div>
-        </section>
-
-        <section className="px-6 py-14 md:py-16">
-          <div className="mx-auto max-w-4xl rounded-2xl border border-helm-navy/[0.07] bg-white p-8 md:p-12">
-            <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-end">
-              <div>
-                <p className="font-mono text-xs uppercase tracking-[0.28em] text-helm-gold">Honest security</p>
-                <h2 className="font-display mt-4 text-3xl font-medium tracking-tight">
-                  Security is ongoing work.
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-relaxed text-helm-slate">
-                  We do not claim certifications we have not earned or promise that any system is
-                  invulnerable. We review Trenston&apos;s controls, address identified risks, and communicate
-                  our current practices plainly.
-                </p>
-                <p className="mt-4 text-sm text-helm-slate">
-                  Found a security concern?{" "}
-                  <a className="text-helm-gold hover:underline" href="mailto:contact@trenston.com?subject=Trenston%20security%20report">
-                    Report it privately
-                  </a>
-                  .
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={enter}
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-helm-gold px-6 py-3 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold-hover"
+      {/* Third parties */}
+      <section className="bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Third parties"
+            title="Who receives data, and why."
+            intro="Cross-checked against the product integration catalog. Optional connections only run after someone in your workspace connects them. Platform providers below are required to operate Trenston itself."
+            action={<MkLink to="/integrations" className="text-mk-navy">Public integrations page</MkLink>}
+          />
+          <div className="mt-14 border-t border-mk-black">
+            {THIRD_PARTIES.map((item, i) => (
+              <Reveal
+                key={item.name}
+                i={i % 3}
+                className="group grid gap-3 border-b border-mk-line py-7 transition-colors duration-300 hover:bg-mk-mist md:grid-cols-[3rem_18rem_1fr] md:gap-8 md:px-4"
               >
-                {authed ? "Open your cockpit" : "Get started securely"}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </div>
+                <span className="font-mono text-sm text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
+                <p className="text-lg font-semibold tracking-tight text-mk-black transition-colors group-hover:text-mk-navy">{item.name}</p>
+                <p className="leading-relaxed text-mk-gray">{item.why}</p>
+              </Reveal>
+            ))}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <MarketingFooter />
-    </div>
+      {/* Retention + staff access */}
+      <section className="bg-mk-mist px-6 py-24 md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-2">
+          {[
+            { eyebrow: "Retention & deletion", title: "How long data stays", lines: RETENTION, icon: Trash2 },
+            { eyebrow: "Who at Trenston can access data", title: "Staff access", lines: STAFF_ACCESS, icon: UserRoundCheck },
+          ].map(({ eyebrow, title, lines, icon: Icon }, i) => (
+            <Reveal key={title} i={i} className="mk-card group p-8 md:p-10">
+              <div className="flex items-center justify-between">
+                <Eyebrow>{eyebrow}</Eyebrow>
+                <span className="mk-icon-tile">
+                  <Icon className="h-5 w-5" aria-hidden />
+                </span>
+              </div>
+              <h2 className="mt-6 text-3xl font-semibold tracking-[-0.03em]">{title}</h2>
+              <ul className="mt-8 space-y-5">
+                {lines.map((line) => (
+                  <li key={line} className="flex gap-3 leading-relaxed text-mk-gray">
+                    <Check className="mt-1 h-4 w-4 shrink-0 text-mk-navy" aria-hidden />
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* Layered controls */}
+      <section className="bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Layered protection"
+            title="Protection built into every layer."
+            intro="No single control carries the whole burden. Trenston combines encryption, access boundaries, private storage, validation, and deletion that is meant to complete."
+          />
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {CONTROLS.map(({ icon: Icon, title, body }, i) => (
+              <Reveal key={title} i={i % 3} className="mk-card group flex flex-col p-7">
+                <div className="flex items-start justify-between">
+                  <span className="mk-icon-tile">
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
+                </div>
+                <h3 className="mt-8 text-xl font-semibold tracking-tight">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-mk-gray">{body}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Data boundaries — black band checklist */}
+      <section className="bg-mk-black px-6 py-24 text-white md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            dark
+            eyebrow="Data boundaries"
+            title="Clear about where data goes."
+            intro="Trenston is not the only system involved in delivering the product. We identify the providers we use and limit each integration to the access needed for its feature."
+            action={<MkLink to="/privacy" className="text-white">Read the Privacy Policy</MkLink>}
+          />
+          <ul className="mt-14 grid gap-px border border-white/15 bg-white/15 md:grid-cols-2">
+            {PRACTICES.map((practice, i) => (
+              <Reveal as="li" key={practice} i={i % 2} className="flex gap-4 bg-mk-black p-6 transition-colors duration-300 hover:bg-mk-ink">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-white text-mk-black">
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                </span>
+                <span className="leading-relaxed text-white/85">{practice}</span>
+              </Reveal>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+          <Reveal>
+            <Eyebrow>Common questions</Eyebrow>
+            <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
+              What leadership teams ask.
+            </h2>
+          </Reveal>
+          <Reveal i={1}>
+            <MkAccordion items={QUESTIONS} idPrefix="security-faq" />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Honest security */}
+      <section className="bg-mk-mist px-6 py-20">
+        <Reveal className="mx-auto grid max-w-7xl gap-8 border-l-4 border-mk-navy bg-white p-8 md:grid-cols-[1fr_auto] md:items-center md:p-12">
+          <div>
+            <Eyebrow>Honest security</Eyebrow>
+            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em]">Security is ongoing work.</h2>
+            <p className="mt-4 max-w-2xl leading-relaxed text-mk-gray">
+              We do not claim certifications we have not earned or promise that any system is invulnerable. We
+              review Trenston&apos;s controls, address identified risks, and communicate our current practices plainly.
+            </p>
+          </div>
+          <MkButton variant="navy" href="mailto:contact@trenston.com?subject=Trenston%20security%20report">
+            Report a concern privately
+          </MkButton>
+        </Reveal>
+      </section>
+
+      <CtaBand
+        title={TAGLINE}
+        sub="Sign in with Google or email. Your workspace stays yours, from sign-in through deletion."
+        authed={authed}
+        onEnter={enter}
+      />
+    </MkPage>
   );
 }

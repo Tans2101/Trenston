@@ -30,7 +30,7 @@ export default function LaptopMockup({ src, alt = "", caption, className, childr
         </div>
       </div>
       {caption && (
-        <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
+        <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-mk-gray">
           {caption}
         </p>
       )}

@@ -22,9 +22,9 @@ const fade = {
 
 function toneFor(state) {
   if (state === "operational") return "text-helm-status-positive border-helm-status-positive/35 bg-helm-status-positive/10";
-  if (state === "degraded") return "text-helm-gold border-helm-gold/35 bg-helm-gold/10";
+  if (state === "degraded") return "text-mk-navy border-mk-navy/35 bg-mk-navy/10";
   if (state === "down") return "text-helm-status-negative border-helm-status-negative/35 bg-helm-status-negative/10";
-  return "text-helm-slate border-helm-navy/15 bg-helm-fg/[0.03]";
+  return "text-mk-gray border-mk-black/15 bg-helm-fg/[0.03]";
 }
 
 function labelFor(state) {
@@ -113,14 +113,14 @@ export default function Status() {
   }, "operational");
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-helm-cream text-helm-navy">
+    <div className="min-h-screen overflow-x-hidden bg-white text-mk-black">
       <MarketingNav authed={authed} onEnter={enter} active="/status" />
 
       <main>
         <section className="px-6 pb-12 pt-36 md:pb-16 md:pt-44">
           <div className="mx-auto max-w-3xl">
             <motion.p variants={fade} initial="hidden" animate="show" custom={0}
-              className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">
+              className="font-mono text-xs uppercase tracking-[0.3em] text-mk-gray">
               {CATEGORY}
             </motion.p>
             <motion.h1 variants={fade} initial="hidden" animate="show" custom={1}
@@ -128,7 +128,7 @@ export default function Status() {
               Status
             </motion.h1>
             <motion.p variants={fade} initial="hidden" animate="show" custom={2}
-              className="mt-6 max-w-2xl text-lg leading-relaxed text-helm-slate">
+              className="mt-6 max-w-2xl text-lg leading-relaxed text-mk-gray">
               Live checks against Trenston&apos;s production stack. No invented historical uptime charts.
             </motion.p>
             <motion.div variants={fade} initial="hidden" animate="show" custom={3}
@@ -139,17 +139,17 @@ export default function Status() {
           </div>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-16">
+        <section className="border-t border-mk-black/[0.05] px-6 py-16">
           <div className="mx-auto max-w-3xl">
             <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mk-gray">
                 Components
               </p>
               <button
                 type="button"
                 onClick={refresh}
                 disabled={busy}
-                className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-3 py-1.5 text-xs text-helm-navy hover:border-helm-navy/30 disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-md border border-mk-black/15 px-3 py-1.5 text-xs text-mk-black hover:border-mk-black/30 disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${busy ? "animate-spin" : ""}`} aria-hidden />
                 Refresh
@@ -159,15 +159,15 @@ export default function Status() {
               {rows.map((row) => (
                 <li
                   key={row.id}
-                  className="rounded-xl border border-helm-navy/[0.07] bg-white p-5"
+                  className="rounded-xl border border-mk-black/[0.07] bg-white p-5"
                   data-testid={`status-row-${row.id}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h2 className="text-sm font-medium text-helm-navy">{row.name}</h2>
-                      <p className="mt-1 text-sm leading-relaxed text-helm-slate">{row.detail}</p>
+                      <h2 className="text-sm font-medium text-mk-black">{row.name}</h2>
+                      <p className="mt-1 text-sm leading-relaxed text-mk-gray">{row.detail}</p>
                       {row.note ? (
-                        <p className="mt-2 font-mono text-[11px] text-helm-slate/90">{row.note}</p>
+                        <p className="mt-2 font-mono text-[11px] text-mk-gray/90">{row.note}</p>
                       ) : null}
                     </div>
                     <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium ${toneFor(row.state)}`}>
@@ -178,45 +178,45 @@ export default function Status() {
               ))}
             </ul>
             {checkedAt ? (
-              <p className="mt-4 font-mono text-[11px] text-helm-slate">
+              <p className="mt-4 font-mono text-[11px] text-mk-gray">
                 Last checked {checkedAt.toLocaleString()}
               </p>
             ) : null}
-            <p className="mt-8 text-sm leading-relaxed text-helm-slate">{STATUS_DISCLAIMER}</p>
+            <p className="mt-8 text-sm leading-relaxed text-mk-gray">{STATUS_DISCLAIMER}</p>
           </div>
         </section>
 
-        <section className="border-t border-helm-navy/[0.05] px-6 py-16">
+        <section className="border-t border-mk-black/[0.05] px-6 py-16">
           <div className="mx-auto max-w-3xl">
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mk-gray">
               Incident history
             </p>
             <h2 className="font-display mt-3 text-2xl font-medium tracking-tight">
               Since {STATUS_TRACKING_STARTED}
             </h2>
             {STATUS_INCIDENTS.length === 0 ? (
-              <p className="mt-4 text-sm leading-relaxed text-helm-slate">
+              <p className="mt-4 text-sm leading-relaxed text-mk-gray">
                 No public incidents recorded since status tracking began. When something material happens,
                 we will list it here with a start time and resolution note — not a fabricated uptime percentage.
               </p>
             ) : (
               <ul className="mt-6 space-y-4">
                 {STATUS_INCIDENTS.map((inc) => (
-                  <li key={inc.date + inc.title} className="rounded-xl border border-helm-navy/[0.07] p-5">
-                    <p className="font-mono text-[11px] text-helm-slate">{inc.date}</p>
-                    <h3 className="mt-1 text-sm font-medium text-helm-navy">{inc.title}</h3>
-                    <p className="mt-2 text-sm text-helm-slate">{inc.body}</p>
+                  <li key={inc.date + inc.title} className="rounded-xl border border-mk-black/[0.07] p-5">
+                    <p className="font-mono text-[11px] text-mk-gray">{inc.date}</p>
+                    <h3 className="mt-1 text-sm font-medium text-mk-black">{inc.title}</h3>
+                    <p className="mt-2 text-sm text-mk-gray">{inc.body}</p>
                   </li>
                 ))}
               </ul>
             )}
-            <p className="mt-8 text-sm text-helm-slate">
+            <p className="mt-8 text-sm text-mk-gray">
               Suspect an outage we have not listed?{" "}
-              <a href={PUBLIC_CONTACT_MAILTO} className="text-helm-navy hover:text-helm-gold transition-colors">
+              <a href={PUBLIC_CONTACT_MAILTO} className="text-mk-black hover:text-mk-navy transition-colors">
                 Contact us
               </a>
               {" · "}
-              <Link to="/changelog" className="text-helm-navy hover:text-helm-gold transition-colors">
+              <Link to="/changelog" className="text-mk-black hover:text-mk-navy transition-colors">
                 Changelog
               </Link>
             </p>
@@ -228,7 +228,7 @@ export default function Status() {
             <button
               type="button"
               onClick={enter}
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-cream px-6 py-3 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold"
+              className="mk-btn mk-btn-dark group"
             >
               {authed ? "Open cockpit" : "Get started"}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

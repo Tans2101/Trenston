@@ -1,29 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  Activity,
-  ArrowRight,
-  Check,
-  Factory,
-  Radar,
-  TrendingUp,
-  Users,
-} from "lucide-react";
-import MarketingNav from "@/components/marketing/MarketingNav";
-import MarketingFooter from "@/components/marketing/MarketingFooter";
+import { AnimatePresence, motion } from "motion/react";
+import { Activity, Check, Factory, Radar, TrendingUp, Users } from "lucide-react";
 import FeatureShowcase from "@/components/marketing/FeatureShowcase";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
+import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
+import {
+  CtaBand,
+  Eyebrow,
+  MkButton,
+  MkLink,
+  MkPage,
+  PageHero,
+  Reveal,
+  SectionHeader,
+  ease,
+} from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { CATEGORY, FEATURE_CATEGORIES, FEATURE_MODULES, PLANS, PRO_FEATURES, TAGLINE } from "@/lib/marketingCopy";
-import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import { cn } from "@/lib/utils";
-
-const ease = [0.16, 1, 0.3, 1];
-const fade = {
-  hidden: { opacity: 0, y: 20 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.06 } }),
-};
 
 const CATEGORY_ICONS = {
   intelligence: Radar,
@@ -32,6 +26,7 @@ const CATEGORY_ICONS = {
   people: Users,
 };
 
+/** Illustrative briefing lines (same sample data the page has always used). */
 const HERO_LINES = [
   "Sales: $3.0M confirmed · $5.0M target · gap $2.0M",
   "Procurement: 4 orders late · spend $184k this month",
@@ -41,136 +36,89 @@ const HERO_LINES = [
 
 const STARTER_PLAN = PLANS.find((p) => p.id === "starter");
 
+function BriefingTicker() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % HERO_LINES.length), 3200);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="border border-white/15 bg-mk-ink/80 p-6 backdrop-blur-sm">
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">
+          <span className="mk-live-dot" aria-hidden />
+          From a morning Briefing
+        </p>
+        <span className="font-mono text-[11px] text-mk-gray-dark">
+          {String(idx + 1).padStart(2, "0")} / {String(HERO_LINES.length).padStart(2, "0")}
+        </span>
+      </div>
+      <div className="relative mt-6 min-h-[4.5rem]">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={idx}
+            initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+            transition={{ duration: 0.45, ease }}
+            className="font-mono text-base leading-relaxed text-white md:text-lg"
+          >
+            {HERO_LINES[idx]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+      <div className="mt-6 flex gap-1.5" aria-hidden>
+        {HERO_LINES.map((_, i) => (
+          <span key={i} className="h-0.5 flex-1 overflow-hidden bg-white/15">
+            {i === idx && (
+              <motion.span
+                className="block h-full bg-white"
+                initial={{ width: "0%" }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 3.2, ease: "linear" }}
+              />
+            )}
+            {i < idx && <span className="block h-full w-full bg-white/60" />}
+          </span>
+        ))}
+      </div>
+      <p className="mt-5 font-mono text-[11px] tracking-wide text-mk-gray-dark">
+        4 departments · 1 daily briefing · 0 spreadsheets
+      </p>
+    </div>
+  );
+}
+
 export default function Features() {
   const { authed, enter } = useMarketingAuth();
   const [activeCat, setActiveCat] = useState(FEATURE_CATEGORIES[0]?.id || "intelligence");
-  const [heroIdx, setHeroIdx] = useState(0);
 
-  const modulesByTitle = useMemo(
-    () => Object.fromEntries(FEATURE_MODULES.map((m) => [m.title, m])),
-    [],
-  );
+  const modulesByTitle = useMemo(() => Object.fromEntries(FEATURE_MODULES.map((m) => [m.title, m])), []);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      setHeroIdx((i) => (i + 1) % HERO_LINES.length);
-    }, 3200);
-    return () => clearInterval(t);
-  }, []);
-
   const activeCategory = FEATURE_CATEGORIES.find((c) => c.id === activeCat) || FEATURE_CATEGORIES[0];
   const ActiveIcon = CATEGORY_ICONS[activeCategory?.id] || Activity;
-
-  const selectCategory = (id) => {
-    setActiveCat(id);
-  };
+  const modules = (activeCategory?.modules || []).map((t) => modulesByTitle[t]).filter(Boolean);
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden">
-      <MarketingNav authed={authed} onEnter={enter} active="/features" />
-
-      <section className="px-6 pt-32 md:pt-40 pb-12">
-        <div className="mx-auto max-w-3xl">
-          <motion.p variants={fade} initial="hidden" animate="show" custom={0}
-            className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">{CATEGORY}</motion.p>
-          <motion.h1 variants={fade} initial="hidden" animate="show" custom={1}
-            className="font-display mt-8 text-5xl md:text-6xl font-medium tracking-[-0.03em] leading-[1.05]">
-            Everything in the cockpit
-          </motion.h1>
-          <motion.p variants={fade} initial="hidden" animate="show" custom={2}
-            className="mt-6 text-lg text-helm-slate leading-relaxed">
-            Briefing, decisions, departments, and the rest of the cockpit,
-            each designed to answer a specific leadership question:
-            what changed, what to decide, what to delegate, and whether it landed.
-          </motion.p>
-
-          <motion.div
-            variants={fade}
-            initial="hidden"
-            animate="show"
-            custom={3}
-            className="mt-10 rounded-md border border-helm-navy/[0.08] bg-helm-cream/[0.02] px-4 py-4 md:px-5"
-          >
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-3.5 h-3.5 text-helm-gold" aria-hidden />
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-helm-slate">
-                From a morning Briefing
-              </p>
-            </div>
-            <div className="relative min-h-[3.25rem]">
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={heroIdx}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.35, ease }}
-                  className="font-mono text-sm md:text-[15px] text-helm-navy leading-relaxed"
-                >
-                  {HERO_LINES[heroIdx]}
-                </motion.p>
-              </AnimatePresence>
-            </div>
-            <p className="mt-4 font-mono text-[11px] text-helm-slate tracking-wide">
-              4 departments · 1 daily briefing · 0 spreadsheets
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="px-6 pb-14">
-        <div className="mx-auto max-w-6xl">
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}>
-            <div className="h-px w-10 bg-helm-gold mb-6" aria-hidden />
-            <h2 className="font-display text-3xl md:text-4xl font-medium tracking-tight max-w-xl leading-tight">
-              See each part of the cockpit as it actually looks.
-            </h2>
-          </motion.div>
-          <div className="mt-12">
-            <FeatureShowcase />
-          </div>
-        </div>
-      </section>
-
-      <section className="px-6 pb-14 border-t border-helm-navy/[0.05] pt-12 bg-white">
-        <div className="mx-auto max-w-6xl">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-helm-gold/15" aria-hidden>
-              <Check className="h-4 w-4 text-helm-gold" />
-            </span>
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">
-              Included on Starter
-            </p>
-          </div>
-          <p className="text-sm text-helm-slate mb-6 max-w-xl">
-            What you get on the {STARTER_PLAN?.label || "Starter"} plan
-            {STARTER_PLAN?.price != null ? ` ($${STARTER_PLAN.price}/mo)` : ""}.
-            {" "}
-            <Link to="/pricing" className="text-helm-navy hover:text-helm-gold transition-colors">
-              Compare Free, Growth, and Business →
-            </Link>
-          </p>
-          <div className="rounded-xl border border-helm-navy/[0.08] bg-helm-cream/60 p-6">
-            <ul className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
-              {PRO_FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-sm text-helm-navy/85 border-b border-helm-navy/[0.06] pb-3 last:border-b-0">
-                  <Check className="w-3.5 h-3.5 text-helm-gold shrink-0 mt-0.5" aria-hidden />
-                  <span>{f}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <nav
-        aria-label="Feature categories"
-        className="sticky top-16 z-30 border-y border-helm-navy/[0.06] bg-helm-cream/90 backdrop-blur-md"
+    <MkPage authed={authed} onEnter={enter} active="/features">
+      <PageHero
+        eyebrow={CATEGORY}
+        lines={["Everything", "in the cockpit."]}
+        sub="Briefing, decisions, departments, and the rest of the cockpit, each designed to answer a specific leadership question: what changed, what to decide, what to delegate, and whether it landed."
+        aside={<BriefingTicker />}
       >
-        <div className="mx-auto max-w-6xl px-4 md:px-6">
-          <div className="flex gap-1 overflow-x-auto scrollbar-none py-1 -mx-1 px-1" role="tablist">
+        <div className="flex flex-wrap gap-3">
+          <MkButton variant="light" onClick={enter}>{authed ? "Open your cockpit" : "Get started free"}</MkButton>
+          <MkButton variant="outline-light" to="/pricing">View pricing</MkButton>
+        </div>
+      </PageHero>
+
+      {/* Category tabs */}
+      <nav aria-label="Feature categories" className="sticky top-16 z-30 border-b border-mk-line bg-white">
+        <div className="mx-auto max-w-7xl overflow-x-auto px-6">
+          <div className="flex gap-8" role="tablist">
             {FEATURE_CATEGORIES.map((cat) => {
               const Icon = CATEGORY_ICONS[cat.id] || Activity;
               const active = activeCat === cat.id;
@@ -182,18 +130,22 @@ export default function Features() {
                   aria-selected={active}
                   id={`features-tab-${cat.id}`}
                   aria-controls={`features-panel-${cat.id}`}
-                  onClick={() => selectCategory(cat.id)}
+                  data-testid={`showcase-tab-${cat.id}`}
+                  onClick={() => setActiveCat(cat.id)}
                   className={cn(
-                    "shrink-0 inline-flex items-center gap-2 rounded-md px-3 py-2.5 text-left border-b-2 transition-colors",
-                    active
-                      ? "border-helm-gold text-helm-navy"
-                      : "border-transparent text-helm-slate hover:text-helm-navy",
+                    "relative flex shrink-0 items-center gap-2 py-5 text-sm font-semibold transition-colors",
+                    active ? "text-mk-black" : "text-mk-gray hover:text-mk-black",
                   )}
                 >
-                  <Icon className={cn("w-3.5 h-3.5", active ? "text-helm-gold" : "text-helm-slate")} aria-hidden />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] whitespace-nowrap">
-                    {cat.label}
-                  </span>
+                  <Icon className={cn("h-4 w-4", active ? "text-mk-navy" : "")} aria-hidden />
+                  {cat.label}
+                  {active && (
+                    <motion.span
+                      layoutId="features-tab-underline"
+                      className="absolute inset-x-0 bottom-0 h-[3px] bg-mk-navy"
+                      transition={{ duration: 0.45, ease }}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -203,107 +155,120 @@ export default function Features() {
 
       {activeCategory && (
         <section
-          key={activeCategory.id}
           id={`features-panel-${activeCategory.id}`}
           role="tabpanel"
           aria-labelledby={`features-tab-${activeCategory.id}`}
-          className="px-6 py-12 md:py-14 border-t border-helm-navy/[0.05] bg-white"
+          className="bg-white px-6 py-20 md:py-24"
         >
-          <div className="mx-auto max-w-6xl">
-            <motion.div
-              key={`head-${activeCategory.id}`}
-              variants={fade}
-              initial="hidden"
-              animate="show"
-              className="mb-10 md:mb-12 max-w-2xl"
-            >
-              <ActiveIcon className="w-8 h-8 text-helm-gold mb-5" aria-hidden />
-              <h2 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">
-                {activeCategory.label}
-              </h2>
-              <p className="mt-3 text-helm-slate text-sm md:text-base leading-relaxed">{activeCategory.intro}</p>
-            </motion.div>
-
-            <div className="grid md:grid-cols-2 gap-4 md:gap-5">
-              {activeCategory.modules.map((title, i) => {
-                const mod = modulesByTitle[title];
-                if (!mod) return null;
-                return (
-                  <motion.article
-                    key={mod.title}
-                    variants={fade}
-                    custom={i}
-                    initial="hidden"
-                    animate="show"
-                    className="group rounded-xl border border-helm-navy/[0.08] bg-white p-5 md:p-6 shadow-sm transition-all duration-300 hover:border-helm-gold/30 hover:-translate-y-0.5"
-                  >
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-helm-navy/[0.05]" aria-hidden>
-                      <ActiveIcon className="h-4 w-4 text-helm-gold" />
+          <div className="mx-auto max-w-7xl">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeCategory.id}
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.45, ease }}
+              >
+                <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.1fr]">
+                  <div>
+                    <span className="inline-flex h-12 w-12 items-center justify-center bg-mk-navy text-white">
+                      <ActiveIcon className="h-5 w-5" aria-hidden />
                     </span>
-                    <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">
-                      {mod.title}
-                    </p>
-                    <h3 className="font-display mt-3 text-xl md:text-2xl tracking-tight text-helm-navy leading-snug">
-                      {mod.ceoValue}
-                    </h3>
-                    <p className="mt-3 text-sm text-helm-slate leading-relaxed">{mod.body}</p>
-                    {mod.link ? (
-                      <p className="mt-3">
-                        <Link
-                          to={mod.link.to}
-                          className="text-sm text-helm-navy hover:text-helm-gold transition-colors"
-                        >
-                          {mod.link.label} →
-                        </Link>
-                      </p>
-                    ) : null}
-                    <p className="mt-4 text-sm text-helm-slate/90 leading-relaxed pl-3 border-l border-helm-gold/25">
-                      {mod.example}
-                    </p>
-                  </motion.article>
-                );
-              })}
-            </div>
+                    <h2 className="mt-8 text-4xl font-semibold leading-[1.02] tracking-[-0.035em] md:text-5xl">
+                      {activeCategory.label}
+                    </h2>
+                    <p className="mt-5 text-lg leading-relaxed text-mk-gray">{activeCategory.intro}</p>
+                    <ul className="mt-10 space-y-6">
+                      {modules.slice(0, 3).map((mod) => (
+                        <li key={mod.title} className="border-l-2 border-mk-navy pl-5">
+                          <p className="font-semibold tracking-tight text-mk-black">{mod.ceoValue}</p>
+                          <p className="mt-1 text-sm leading-relaxed text-mk-gray">{mod.body}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <FeatureShowcase categoryId={activeCategory.id} />
+                </div>
+
+                <div className="mt-20 grid gap-5 md:grid-cols-2">
+                  {modules.map((mod, i) => (
+                    <motion.article
+                      key={mod.title}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, ease, delay: 0.1 + i * 0.06 }}
+                      className="mk-card group flex flex-col p-7 md:p-8"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{mod.title}</p>
+                        <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
+                      </div>
+                      <h3 className="mt-5 text-2xl font-semibold leading-snug tracking-tight text-mk-black">{mod.ceoValue}</h3>
+                      <p className="mt-3 leading-relaxed text-mk-gray">{mod.body}</p>
+                      {mod.example && (
+                        <p className="mt-6 border-t border-mk-line pt-5 text-sm italic leading-relaxed text-mk-gray">
+                          {mod.example}
+                        </p>
+                      )}
+                      {mod.link ? (
+                        <MkLink to={mod.link.to} className="mt-5 self-start text-mk-navy">{mod.link.label}</MkLink>
+                      ) : null}
+                    </motion.article>
+                  ))}
+                </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </section>
       )}
+
+      {/* Included on Starter — black band */}
+      <section className="bg-mk-black px-6 py-24 text-white md:py-28">
+        <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-[0.8fr_1.2fr]">
+          <Reveal>
+            <Eyebrow dark>Included on {STARTER_PLAN?.label || "Starter"}</Eyebrow>
+            <p className="mt-6 text-7xl font-semibold tracking-[-0.05em]">
+              ${STARTER_PLAN?.price}
+              <span className="text-2xl font-normal text-mk-gray-dark">/mo</span>
+            </p>
+            <p className="mt-5 max-w-sm leading-relaxed text-mk-gray-dark">
+              What you get on the {STARTER_PLAN?.label || "Starter"} plan, with a {STARTER_PLAN?.trialDays}-day free trial.
+            </p>
+            <MkLink to="/pricing" className="mt-8 text-white">Compare Free, Growth, and Business</MkLink>
+          </Reveal>
+          <ul className="grid gap-px self-start border border-white/15 bg-white/15 sm:grid-cols-2">
+            {PRO_FEATURES.map((f, i) => (
+              <Reveal as="li" key={f} i={i % 2} className="flex items-start gap-3 bg-mk-black p-6">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center bg-white text-mk-black">
+                  <Check className="h-3.5 w-3.5" aria-hidden />
+                </span>
+                <span className="leading-relaxed">{f}</span>
+              </Reveal>
+            ))}
+          </ul>
+        </div>
+      </section>
 
       <DepartmentsShowcase compact />
 
       <IntegrationsShowcase compact />
 
-      <section className="px-6 py-16 border-t border-helm-navy/[0.05] bg-white">
-        <div className="mx-auto max-w-2xl text-center">
-          <div className="mx-auto h-px w-10 bg-helm-gold mb-8" aria-hidden />
-          <p className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy leading-tight">{TAGLINE}</p>
-          <p className="mt-4 text-sm text-helm-slate">
-            Everything below is shipping in the product today. Nothing on this page is a roadmap item.
-          </p>
-          <p className="mt-4 text-sm text-helm-slate">Free to start. Full cockpit on every plan.</p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
-            <button type="button" onClick={enter}
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 hover:bg-helm-gold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold">
-              {authed ? "Open your cockpit" : "Get started free"}
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-            <Link
-              to="/pricing"
-              className="group inline-flex items-center gap-1.5 text-sm font-medium text-helm-navy hover:text-helm-gold transition-colors"
-            >
-              View pricing
-              <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </div>
-          <p className="mt-8 text-sm text-helm-slate flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
-            <Link to="/about" className="hover:text-helm-navy transition-colors">About Trenston</Link>
-            <Link to="/integrations" className="hover:text-helm-navy transition-colors">Integrations</Link>
-            <Link to="/security" className="hover:text-helm-navy transition-colors">Security</Link>
-            <Link to="/changelog" className="hover:text-helm-navy transition-colors">Changelog</Link>
-          </p>
-        </div>
+      <section className="border-t border-mk-line bg-white px-6 py-16">
+        <SectionHeader
+          className="mx-auto max-w-7xl"
+          eyebrow="No roadmap items"
+          title="Everything on this page is shipping in the product today."
+          intro="Free to start. Full cockpit on every plan."
+        />
       </section>
 
-      <MarketingFooter />
-    </div>
+      <CtaBand
+        title={TAGLINE}
+        sub="Open one place and see what the business is actually saying today."
+        authed={authed}
+        onEnter={enter}
+        secondary={<MkButton variant="outline-light" to="/pricing">View pricing</MkButton>}
+      />
+    </MkPage>
   );
 }

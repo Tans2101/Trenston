@@ -1,19 +1,12 @@
-import { Link } from "react-router-dom";
-import { motion } from "motion/react";
 import { INTEGRATIONS_SHOWCASE } from "@/lib/marketingCopy";
-
-const ease = [0.16, 1, 0.3, 1];
-const fade = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.65, ease, delay: i * 0.05 } }),
-};
+import { MkLink, Reveal, SectionHeader } from "@/components/marketing/mk";
 
 /**
  * Brand-adjacent monogram badges, not real vendor logos — trademarked marks
  * (Google, QuickBooks, Xero, SAP, HubSpot, Slack) need written permission
  * we don't have, so each badge is the integration's initial on a
- * brand-colored tile instead. Same policy and palette as the in-app
- * Integrations page. See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
+ * brand-colored tile instead. Same policy as the in-app Integrations page.
+ * See PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
  */
 const BRAND_ACCENT = {
   Google: "#4285F4",
@@ -25,21 +18,11 @@ const BRAND_ACCENT = {
 };
 
 function IntegrationBadge({ name }) {
-  const color = BRAND_ACCENT[name];
-  if (!color) {
-    return (
-      <div
-        aria-hidden
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-helm-navy/[0.1] bg-helm-navy/[0.03] font-mono text-sm text-helm-navy/70"
-      >
-        {name.trim().charAt(0)}
-      </div>
-    );
-  }
+  const color = BRAND_ACCENT[name] || "#0A0A0A";
   return (
     <div
       aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-semibold text-white"
+      className="flex h-12 w-12 shrink-0 items-center justify-center font-mono text-base font-semibold text-white transition-transform duration-500 group-hover:rotate-[-6deg] group-hover:scale-110"
       style={{ backgroundColor: color }}
     >
       {name.trim().charAt(0)}
@@ -50,49 +33,33 @@ function IntegrationBadge({ name }) {
 export default function IntegrationsShowcase({ compact = false }) {
   return (
     <section
-      className={`px-6 border-t border-helm-navy/[0.05] ${compact ? "py-12" : "py-16"}`}
+      className={`bg-white px-6 ${compact ? "py-20" : "py-24 md:py-32"}`}
       data-testid="integrations-showcase"
       aria-label="Works with"
     >
-      <div className="mx-auto max-w-6xl">
-        <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-60px" }}>
-          <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-helm-slate">Works with</p>
-          <h2 className="font-display mt-4 text-2xl md:text-3xl font-medium tracking-tight text-helm-navy max-w-xl">
-            Tools your team already uses.
-          </h2>
-          <p className="mt-3 text-sm text-helm-navy/70 max-w-xl leading-relaxed">
-            Connect what you run today. Nothing requires an integration. Manual entry stays available.
-          </p>
-        </motion.div>
-        <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-6 list-none p-0 m-0">
+      <div className="mx-auto max-w-7xl">
+        <SectionHeader
+          eyebrow="Works with"
+          title="Tools your team already uses."
+          intro="Connect what you run today. Nothing requires an integration. Manual entry stays available."
+          action={<MkLink to="/integrations" className="text-mk-navy">See what each integration does</MkLink>}
+        />
+        <ul className="mt-14 grid list-none gap-px border border-mk-line bg-mk-line p-0 sm:grid-cols-2 lg:grid-cols-3">
           {INTEGRATIONS_SHOWCASE.map((item, i) => (
-            <motion.li
+            <Reveal
+              as="li"
               key={item.name}
-              variants={fade}
-              custom={i}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-40px" }}
-              className="flex items-center gap-3 rounded-lg border border-helm-navy/[0.08] px-4 py-3"
+              i={i % 3}
+              className="group flex items-center gap-5 bg-white p-6 transition-colors duration-300 hover:bg-mk-mist"
             >
               <IntegrationBadge name={item.name} />
               <div>
-                <p className="font-display text-base tracking-tight text-helm-navy">{item.name}</p>
-                <p className="mt-0.5 font-mono text-[10px] uppercase tracking-[0.15em] text-helm-slate">{item.note}</p>
+                <p className="text-lg font-semibold tracking-tight text-mk-black">{item.name}</p>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-mk-gray">{item.note}</p>
               </div>
-            </motion.li>
+            </Reveal>
           ))}
         </ul>
-        <p className="mt-10">
-          <Link
-            to="/integrations"
-            className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-ink transition-colors"
-          >
-            See what each integration does
-            <span aria-hidden>→</span>
-          </Link>
-        </p>
       </div>
     </section>
   );

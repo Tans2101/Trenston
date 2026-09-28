@@ -5,12 +5,12 @@
 
 export function Chrome({ title, children }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-helm-cream/10 bg-helm-ink-card text-left shadow-none">
-      <div className="flex items-center gap-2 border-b border-helm-cream/[0.06] px-3 py-2">
-        <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/20" />
-        <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/20" />
-        <span className="h-1.5 w-1.5 rounded-full bg-helm-cream/20" />
-        <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.18em] text-helm-slate">{title}</span>
+    <div className="overflow-hidden rounded-lg border border-white/10 bg-mk-ink text-left shadow-none">
+      <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+        <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+        <span className="h-1.5 w-1.5 rounded-full bg-white/20" />
+        <span className="ml-2 font-mono text-[9px] uppercase tracking-[0.18em] text-mk-gray-dark">{title}</span>
       </div>
       <div className="p-3 md:p-4">{children}</div>
     </div>
@@ -19,10 +19,10 @@ export function Chrome({ title, children }) {
 
 export function Row({ left, mid, right, tone }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-helm-cream/[0.06] py-2.5 last:border-0">
-      <p className="truncate text-xs text-helm-cream/90">{left}</p>
-      <p className="font-mono text-[10px] text-helm-slate">{mid}</p>
-      <p className={`font-mono text-[10px] tabular-nums ${tone || "text-helm-slate"}`}>{right}</p>
+    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-3 border-b border-white/[0.06] py-2.5 last:border-0">
+      <p className="truncate text-xs text-white/90">{left}</p>
+      <p className="font-mono text-[10px] text-mk-gray-dark">{mid}</p>
+      <p className={`font-mono text-[10px] tabular-nums ${tone || "text-mk-gray-dark"}`}>{right}</p>
     </div>
   );
 }
@@ -30,13 +30,13 @@ export function Row({ left, mid, right, tone }) {
 export function ProductionScreen() {
   return (
     <Chrome title="Production · Work orders">
-      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">Active queue</p>
-      <Row left="WO-1842 · Chassis kit A" mid="Assembly" right="Due Fri" tone="text-helm-cream" />
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-mk-gray-dark">Active queue</p>
+      <Row left="WO-1842 · Chassis kit A" mid="Assembly" right="Due Fri" tone="text-white" />
       <Row left="WO-1839 · Frame weld B" mid="QA" right="On track" />
-      <Row left="WO-1831 · Finish pass" mid="Blocked" right="Parts" tone="text-helm-status-warning" />
-      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
-        <span className="text-[10px] text-helm-slate">3 open · 1 blocked</span>
-        <span className="font-mono text-[10px] text-helm-cream">Avg stage 2.4d</span>
+      <Row left="WO-1831 · Finish pass" mid="Blocked" right="Parts" tone="text-amber-300" />
+      <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+        <span className="text-[10px] text-mk-gray-dark">3 open · 1 blocked</span>
+        <span className="font-mono text-[10px] text-white">Avg stage 2.4d</span>
       </div>
     </Chrome>
   );
@@ -45,13 +45,13 @@ export function ProductionScreen() {
 export function ProcurementScreen() {
   return (
     <Chrome title="Procurement · Purchase requests">
-      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">This week</p>
-      <Row left="Steel coil · 12t" mid="Approved" right="$18.4K" tone="text-helm-cream" />
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-mk-gray-dark">This week</p>
+      <Row left="Steel coil · 12t" mid="Approved" right="$18.4K" tone="text-white" />
       <Row left="Sensor pack · M4" mid="Ordered" right="$2.1K" />
       <Row left="Packaging sleeves" mid="Requested" right="$640" />
-      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
-        <span className="text-[10px] text-helm-slate">Awaiting delivery · 2</span>
-        <span className="font-mono text-[10px] text-helm-cream">Committed $20.5K</span>
+      <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+        <span className="text-[10px] text-mk-gray-dark">Awaiting delivery · 2</span>
+        <span className="font-mono text-[10px] text-white">Committed $20.5K</span>
       </div>
     </Chrome>
   );
@@ -60,14 +60,14 @@ export function ProcurementScreen() {
 export function DecisionScreen() {
   return (
     <Chrome title="Decision Center">
-      <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">Needs you today</p>
-      <p className="text-sm text-helm-cream leading-snug">Approve $40K infrastructure reservation</p>
-      <p className="mt-1.5 text-xs text-helm-cream/70 leading-relaxed">
+      <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-mk-gray-dark">Needs you today</p>
+      <p className="text-sm text-white leading-snug">Approve $40K infrastructure reservation</p>
+      <p className="mt-1.5 text-xs text-white/70 leading-relaxed">
         Pays back in four months. Cloud spend −18%. Owner: Ops.
       </p>
       <div className="mt-4 flex gap-2">
-        <span className="rounded border border-helm-cream/15 px-2.5 py-1 font-mono text-[10px] text-helm-cream">Approve</span>
-        <span className="rounded border border-helm-cream/10 px-2.5 py-1 font-mono text-[10px] text-helm-slate">Defer</span>
+        <span className="rounded border border-white/15 px-2.5 py-1 font-mono text-[10px] text-white">Approve</span>
+        <span className="rounded border border-white/10 px-2.5 py-1 font-mono text-[10px] text-mk-gray-dark">Defer</span>
       </div>
     </Chrome>
   );
@@ -76,13 +76,13 @@ export function DecisionScreen() {
 export function FinanceScreen() {
   return (
     <Chrome title="Sales · Order book">
-      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">This month</p>
-      <Row left="Deal #4102 · Expansion" mid="Won" right="+$42K" tone="text-helm-status-positive" />
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-mk-gray-dark">This month</p>
+      <Row left="Deal #4102 · Expansion" mid="Won" right="+$42K" tone="text-emerald-400" />
       <Row left="Deal #4098 · Renewal" mid="Follow up" right="$18K" />
       <Row left="Deal #4110 · New logo" mid="Proposal" right="$9.5K" />
-      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
-        <span className="text-[10px] text-helm-slate">$3.0M confirmed · $5.0M target</span>
-        <span className="font-mono text-[10px] text-helm-cream">Gap $2.0M</span>
+      <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+        <span className="text-[10px] text-mk-gray-dark">$3.0M confirmed · $5.0M target</span>
+        <span className="font-mono text-[10px] text-white">Gap $2.0M</span>
       </div>
     </Chrome>
   );
@@ -91,13 +91,13 @@ export function FinanceScreen() {
 export function TeamScreen() {
   return (
     <Chrome title="Team & Access">
-      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-helm-slate">Departments</p>
-      <Row left="Sales" mid="4 members" right="Owner" tone="text-helm-cream" />
+      <p className="mb-3 font-mono text-[9px] uppercase tracking-[0.2em] text-mk-gray-dark">Departments</p>
+      <Row left="Sales" mid="4 members" right="Owner" tone="text-white" />
       <Row left="Production" mid="6 members" right="Manager" />
       <Row left="Procurement" mid="2 members" right="Manager" />
-      <div className="mt-3 flex items-center justify-between border-t border-helm-cream/[0.06] pt-3">
-        <span className="text-[10px] text-helm-slate">4 integrations connected</span>
-        <span className="font-mono text-[10px] text-helm-cream">12 seats used</span>
+      <div className="mt-3 flex items-center justify-between border-t border-white/[0.06] pt-3">
+        <span className="text-[10px] text-mk-gray-dark">4 integrations connected</span>
+        <span className="font-mono text-[10px] text-white">12 seats used</span>
       </div>
     </Chrome>
   );

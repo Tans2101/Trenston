@@ -1,28 +1,40 @@
-import { useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { motion } from "motion/react";
-import { ArrowRight, Check, Compass, ListChecks, Sparkles, FileText } from "lucide-react";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
-import MarketingNav from "@/components/marketing/MarketingNav";
-import MarketingFooter from "@/components/marketing/MarketingFooter";
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import { motion, useScroll, useTransform } from "motion/react";
+import { ArrowUpRight, Compass, FileText, ListChecks, Sparkles } from "lucide-react";
 import LaptopMockup from "@/components/marketing/LaptopMockup";
-import SocialProofBar from "@/components/marketing/SocialProofBar";
 import dashboardBriefing from "@/assets/marketing/dashboard-briefing.png";
 import ProductScreens from "@/components/marketing/ProductScreens";
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
+import PlanCards from "@/components/marketing/PlanCards";
+import {
+  CtaBand,
+  DarkBackdrop,
+  DrawLine,
+  Eyebrow,
+  Marquee,
+  MkAccordion,
+  MkButton,
+  MkLink,
+  MkPage,
+  Reveal,
+  SectionHeader,
+  SplitHeadline,
+  ease,
+} from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
-  TAGLINE, CATEGORY, AUDIENCE, HERO_OUTCOME, HERO_SUB,
-  PLANS, PRODUCT_FACTS, HOW_IT_WORKS, FEATURE_HIGHLIGHTS, CEO_DAY, HOME_FAQ,
-  paidPlanRenewalDisclosure,
+  AUDIENCE,
+  CATEGORY,
+  CEO_DAY,
+  FEATURE_HIGHLIGHTS,
+  HERO_OUTCOME,
+  HOME_FAQ,
+  HOW_IT_WORKS,
+  PRODUCT_FACTS,
+  TAGLINE,
 } from "@/lib/marketingCopy";
-
-const ease = [0.16, 1, 0.3, 1];
-const fade = {
-  hidden: { opacity: 0, y: 20 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.7, ease, delay: i * 0.08 } }),
-};
 
 // CEO_DAY has no icon field in marketingCopy.js — map by title here rather
 // than changing the shared data shape (it's also read by
@@ -34,9 +46,28 @@ const CEO_DAY_ICONS = {
   "CEO Pack": FileText,
 };
 
+/** Real module names only — the ticker is a list of what ships today. */
+const MODULES = [
+  "Briefing",
+  "Decision Center",
+  "Ask Trenston",
+  "CEO Pack",
+  "Financials & runway",
+  "Production",
+  "Procurement",
+  "Sales",
+  "Legal",
+  "HR",
+  "Maintenance",
+];
+
 export default function Landing() {
   const { authed, enter } = useMarketingAuth();
   const location = useLocation();
+  const heroRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
+  const laptopY = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  const laptopRotate = useTransform(scrollYProgress, [0, 1], [0, -2]);
 
   useEffect(() => {
     const id = (location.hash || "").replace(/^#/, "");
@@ -44,178 +75,163 @@ export default function Landing() {
       window.scrollTo(0, 0);
       return;
     }
-    const scroll = () => {
-      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
     // Wait a frame so layout (and lazy sections) are ready after route entry.
-    const t = window.setTimeout(scroll, 50);
+    const t = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
     return () => window.clearTimeout(t);
   }, [location.hash, location.pathname]);
 
-  return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy overflow-x-hidden relative">
-      <MarketingNav
-        authed={authed}
-        onEnter={enter}
-        active={location.hash === "#pricing" ? "/#pricing" : "/"}
-        bgClassName="bg-helm-cream/90"
-      />
+  const [line1, line2] = TAGLINE.split(". ");
 
-      {/* Hero — flat ink, typography leads */}
-      <section className="relative z-10 px-6 pt-36 md:pt-48 pb-16 bg-helm-cream">
-        <p
-          aria-hidden
-          className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl] rotate-180"
-        >
-          Production · Live
-        </p>
-        <p
-          aria-hidden
-          className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 lg:block font-mono text-[10px] uppercase tracking-[0.28em] text-helm-slate/40 [writing-mode:vertical-rl]"
-        >
-          Decisions · Tracked
-        </p>
-        <div className="relative mx-auto max-w-7xl grid lg:grid-cols-[0.85fr_1.3fr] gap-12 lg:gap-10 items-center">
+  return (
+    <MkPage authed={authed} onEnter={enter} active={location.hash === "#pricing" ? "/#pricing" : "/"}>
+      {/* Hero — black, typography-led, real product screenshot */}
+      <section ref={heroRef} className="relative overflow-hidden bg-mk-black text-white">
+        <DarkBackdrop />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-6 pb-20 pt-32 md:pt-40 lg:min-h-[92vh] lg:grid-cols-[1.05fr_1fr] lg:pb-24">
           <div>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={0}
-              className="font-mono text-xs uppercase tracking-[0.3em] text-helm-slate">
-              {CATEGORY}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+              <Eyebrow dark>{CATEGORY}</Eyebrow>
+            </motion.div>
+            <SplitHeadline
+              lines={[`${line1}.`, line2]}
+              className="mt-8 text-[3.1rem] font-semibold leading-[0.95] tracking-[-0.045em] sm:text-7xl lg:text-[4.4rem] xl:text-[5.4rem]"
+            />
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease, delay: 0.45 }}
+              className="mt-8 max-w-xl text-lg leading-relaxed text-mk-gray-dark md:text-xl"
+            >
+              {HERO_OUTCOME}
             </motion.p>
-            <motion.h1 variants={fade} initial="hidden" animate="show" custom={1}
-              className="font-display mt-8 text-5xl sm:text-6xl lg:text-[4.25rem] font-semibold tracking-[-0.03em] leading-[1.05] text-helm-navy">
-              {TAGLINE.split(". ").map((part, i, arr) => (
-                <span key={part}>
-                  {i === 0 ? <span className="text-helm-navy">{part}.</span> : part}
-                  {i < arr.length - 1 && i !== 0 ? "." : ""}
-                  {i < arr.length - 1 && <br />}
-                </span>
-              ))}
-            </motion.h1>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={2}
-              className="mt-8 text-xl md:text-2xl text-helm-navy leading-snug max-w-xl font-medium tracking-tight">{HERO_OUTCOME}</motion.p>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={3}
-              className="mt-4 text-base text-helm-navy/75 leading-relaxed max-w-xl">{HERO_SUB}</motion.p>
-            <motion.div variants={fade} initial="hidden" animate="show" custom={4} className="mt-10 flex flex-wrap items-center gap-3 relative z-10">
-              <button data-testid="hero-cta-btn" onClick={enter} type="button"
-                className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-6 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease, delay: 0.6 }}
+              className="mt-10 flex flex-wrap gap-3"
+            >
+              <MkButton variant="light" onClick={enter} data-testid="hero-cta-btn">
                 {authed ? "Open your cockpit" : "Start free"}
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </button>
-              <a href="#how" className="inline-flex items-center gap-2 rounded-md border border-helm-navy/15 px-6 py-3 text-sm text-helm-navy transition-colors hover:border-helm-navy/30 hover:text-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
-                See the 3-minute workflow
-              </a>
+              </MkButton>
+              <MkButton variant="outline-light" href="#how" arrow={false}>
+                See how it works
+              </MkButton>
             </motion.div>
-            <motion.div variants={fade} initial="hidden" animate="show" custom={5} className="mt-8">
-              <SocialProofBar />
-            </motion.div>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={6} className="mt-6 text-xs text-helm-navy/60">{AUDIENCE}</motion.p>
-            <motion.p variants={fade} initial="hidden" animate="show" custom={7} className="mt-3 text-xs text-helm-slate">
-              <Link to="/security" className="text-helm-slate hover:text-helm-navy transition-colors">
-                How Trenston protects company data →
-              </Link>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+              className="mt-10 max-w-md border-l border-white/20 pl-4 text-sm leading-relaxed text-mk-gray-dark"
+            >
+              {AUDIENCE}
             </motion.p>
           </div>
+
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.85, ease, delay: 0.2 }}
-            className="lg:-mr-6 xl:-mr-16 2xl:-mr-28"
+            initial={{ opacity: 0, y: 40, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 1.1, ease, delay: 0.3 }}
+            style={{ y: laptopY, rotate: laptopRotate }}
+            className="lg:-mr-10 xl:-mr-24"
           >
             <LaptopMockup
               src={dashboardBriefing}
               alt="The Briefing screen in Trenston, showing revenue, burn, runway and a revenue-by-month chart"
-              caption="Briefing, as shown in Trenston"
             />
           </motion.div>
         </div>
       </section>
 
-      <section className="relative z-10 px-6 py-16 border-t border-helm-navy/[0.05]">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-8">
-            {PRODUCT_FACTS.map((s, i) => (
-              <motion.div key={s.l} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true }} className="text-left md:text-center">
-                <p className={`font-mono text-3xl md:text-4xl tabular-nums ${i === 0 ? "text-helm-navy" : "text-helm-navy"}`}>{s.v}</p>
-                <p className="mt-2 text-xs text-helm-navy/70 leading-snug">{s.l}</p>
-              </motion.div>
-            ))}
-          </div>
+      {/* Module ticker */}
+      <div className="bg-mk-navy text-white">
+        <Marquee items={MODULES} />
+      </div>
+
+      {/* At a glance */}
+      <section className="bg-white px-6 py-20 md:py-24">
+        <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          {PRODUCT_FACTS.map((s, i) => (
+            <Reveal key={s.l} i={i}>
+              <DrawLine className="bg-mk-black" />
+              <p className="mt-6 text-3xl font-semibold tracking-[-0.03em] text-mk-black">{s.v}</p>
+              <p className="mt-3 text-sm leading-relaxed text-mk-gray">{s.l}</p>
+            </Reveal>
+          ))}
         </div>
       </section>
 
-      <section className="px-6 py-16 border-t border-helm-navy/[0.05]">
-        <div className="mx-auto max-w-6xl">
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
-            <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">What CEOs open Trenston for.</h2>
-          </motion.div>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2">
+      {/* What CEOs open Trenston for */}
+      <section className="bg-white px-6 pb-24 md:pb-32">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader eyebrow="The cockpit" title="What CEOs open Trenston for." />
+          <div className="mt-14 grid gap-5 md:grid-cols-2">
             {CEO_DAY.map((step, i) => {
               const Icon = CEO_DAY_ICONS[step.title] || Compass;
               return (
-                <motion.div
-                  key={step.title}
-                  variants={fade}
-                  custom={i}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, margin: "-60px" }}
-                  className="rounded-lg border border-helm-navy/[0.08] p-6 transition-colors hover:border-helm-navy/20"
-                >
-                  <Icon className="w-5 h-5 text-helm-navy/70" strokeWidth={1.75} aria-hidden />
-                  <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-helm-navy/70">{step.title}</p>
-                  <p className="mt-2 text-sm text-helm-navy/70 leading-relaxed">{step.body}</p>
-                </motion.div>
+                <Reveal key={step.title} i={i % 2} className="mk-card group flex flex-col p-8 md:p-10">
+                  <div className="flex items-start justify-between">
+                    <span className="mk-icon-tile">
+                      <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                    </span>
+                    <span className="font-mono text-sm text-mk-gray">0{i + 1}</span>
+                  </div>
+                  <h3 className="mt-8 text-2xl font-semibold tracking-tight text-mk-black">{step.title}</h3>
+                  <p className="mt-3 max-w-md leading-relaxed text-mk-gray">{step.body}</p>
+                  <ArrowUpRight
+                    className="absolute bottom-8 right-8 h-5 w-5 text-mk-navy opacity-0 transition-all duration-500 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:opacity-100 md:bottom-10 md:right-10"
+                    aria-hidden
+                  />
+                </Reveal>
               );
             })}
           </div>
         </div>
       </section>
 
-      <section id="how" className="px-6 py-16 border-t border-helm-navy/[0.05]">
-        <div className="mx-auto max-w-6xl">
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
-            <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">How Trenston fits together.</h2>
-          </motion.div>
-          <div className="mt-12 grid md:grid-cols-3 gap-8 md:gap-10">
-            {HOW_IT_WORKS.map((s, i) => (
-              <motion.div key={s.n} variants={fade} custom={i} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }}>
-                <p className="font-mono text-helm-slate text-sm">{s.n}</p>
-                <h3 className="font-display mt-4 text-2xl text-helm-navy tracking-tight">{s.title}</h3>
-                <p className="mt-3 text-sm text-helm-navy/70 leading-relaxed">{s.body}</p>
-              </motion.div>
-            ))}
+      {/* How it works — black band */}
+      <section id="how" className="relative scroll-mt-16 overflow-hidden bg-mk-black px-6 py-24 text-white md:py-32">
+        <div className="relative mx-auto max-w-7xl">
+          <SectionHeader dark eyebrow="How it works" title="How Trenston fits together." />
+          <div className="relative mt-16">
+            <DrawLine className="absolute left-0 right-0 top-[3.25rem] hidden bg-white/25 md:block" />
+            <div className="grid gap-12 md:grid-cols-3 md:gap-10">
+              {HOW_IT_WORKS.map((s, i) => (
+                <Reveal key={s.n} i={i} className="relative">
+                  <p className="text-7xl font-semibold leading-none tracking-[-0.05em] text-transparent [-webkit-text-stroke:1.5px_rgba(255,255,255,0.55)] md:text-8xl">
+                    {s.n}
+                  </p>
+                  <span className="relative z-10 mt-6 block h-3 w-3 rotate-45 bg-mk-sky" aria-hidden />
+                  <h3 className="mt-6 text-2xl font-semibold tracking-tight">{s.title}</h3>
+                  <p className="mt-3 leading-relaxed text-mk-gray-dark">{s.body}</p>
+                </Reveal>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-16 border-t border-helm-navy/[0.05]">
-        <div className="mx-auto max-w-6xl">
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} className="max-w-2xl">
-            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
-            <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
-              Everything a CEO needs, nothing they do not.
-            </h2>
-            <p className="mt-5 text-helm-navy/70 leading-relaxed">
-              Real surfaces from the cockpit, not illustrations.
-            </p>
-          </motion.div>
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="mt-14">
+      {/* Product surfaces */}
+      <section className="bg-mk-mist px-6 py-24 md:py-32">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Product"
+            title="Everything a CEO needs, nothing they do not."
+            intro="Real surfaces from the cockpit, not illustrations."
+            action={<MkLink to="/features" className="text-mk-navy">See all features</MkLink>}
+          />
+          <Reveal className="mt-14">
             <ProductScreens />
-          </motion.div>
-          <div className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2 border-t border-helm-navy/[0.06] pt-10">
-            {FEATURE_HIGHLIGHTS.map((f) => (
-              <div key={f.title}>
-                <h3 className="font-display text-xl text-helm-navy tracking-tight">{f.title}</h3>
-                <p className="mt-2 text-sm text-helm-navy/70 leading-relaxed">{f.body}</p>
-              </div>
+          </Reveal>
+          <div className="mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURE_HIGHLIGHTS.map((f, i) => (
+              <Reveal key={f.title} i={i}>
+                <DrawLine className="bg-mk-navy" />
+                <h3 className="mt-5 text-xl font-semibold tracking-tight text-mk-black">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-mk-gray">{f.body}</p>
+              </Reveal>
             ))}
-          </div>
-          <div className="mt-10">
-            <Link to="/features" className="inline-flex items-center gap-2 text-sm text-helm-navy hover:text-helm-navy transition-colors">
-              See all features <ArrowRight className="w-4 h-4" />
-            </Link>
           </div>
         </div>
       </section>
@@ -224,113 +240,38 @@ export default function Landing() {
 
       <DepartmentsShowcase />
 
-      <section id="pricing" className="scroll-mt-24 px-6 py-16 border-t border-helm-navy/[0.05]">
-        <div className="mx-auto max-w-6xl">
-          <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }} className="mb-14 max-w-2xl">
-            <div className="h-px w-10 bg-helm-navy/25 mb-6" aria-hidden />
-            <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">Plans that scale with you</h2>
-            <p className="mt-4 text-helm-navy/70">Start free. Paid plans include a 7-day free trial. Cancel anytime.</p>
-            <Link to="/pricing" className="inline-flex items-center gap-2 mt-4 text-sm text-helm-navy hover:text-helm-navy transition-colors">
-              Full pricing page <ArrowRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-0 border border-helm-navy/[0.08] divide-y sm:divide-y-0 sm:divide-x divide-helm-cream/[0.08]">
-            {PLANS.map((plan) => {
-              const renewalDisclosure = paidPlanRenewalDisclosure(plan);
-              return (
-              <motion.div
-                key={plan.id}
-                variants={fade}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                className="p-6 md:p-8 flex flex-col bg-white"
-              >
-                {plan.highlighted && <div className="h-px w-8 bg-helm-navy/40 mb-4" aria-hidden />}
-                <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-helm-slate">{plan.label}</p>
-                <p className="font-mono text-4xl text-helm-navy mt-3 tabular-nums">
-                  {plan.price === 0 ? "$0" : `$${plan.price}`}
-                  {plan.price > 0 && <span className="text-base text-helm-slate">/mo</span>}
-                </p>
-                <p className="text-sm text-helm-navy/70 mt-2 min-h-[2.5rem]">{plan.for}</p>
-                <p
-                  className={`text-[11px] font-mono mt-1 min-h-[1.25rem] ${
-                    plan.trialDays > 0 ? "text-helm-slate" : "text-transparent select-none"
-                  }`}
-                  aria-hidden={!(plan.trialDays > 0)}
-                >
-                  {plan.trialDays > 0 ? `${plan.trialDays}-day free trial` : " "}
-                </p>
-                <ul className="mt-6 space-y-2.5 flex-1">
-                  {plan.includes.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-helm-navy/75">
-                      <Check className="w-3.5 h-3.5 text-helm-slate shrink-0 mt-0.5" /> {f}
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-8">
-                  <button type="button" onClick={enter} data-testid={`pricing-cta-${plan.id}`}
-                    className="w-full rounded-md font-medium py-3 transition-colors bg-helm-navy text-helm-cream hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
-                    {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
-                  </button>
-                  <p
-                    data-testid={renewalDisclosure ? `pricing-renewal-${plan.id}` : undefined}
-                    className={`mt-3 text-[11px] leading-relaxed min-h-[3.25rem] ${
-                      renewalDisclosure ? "text-helm-slate" : "text-transparent select-none"
-                    }`}
-                    aria-hidden={!renewalDisclosure}
-                  >
-                    {renewalDisclosure || "\u00a0"}
-                  </p>
-                </div>
-              </motion.div>
-              );
-            })}
+      {/* Pricing */}
+      <section id="pricing" className="scroll-mt-16 bg-white px-6 py-24 md:py-32">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Pricing"
+            title="Plans that scale with you."
+            intro="Start free. Paid plans include a 7-day free trial. Cancel anytime."
+            action={<MkLink to="/pricing" className="text-mk-navy">Full pricing page</MkLink>}
+          />
+          <div className="mt-16">
+            <PlanCards authed={authed} onEnter={enter} ctaTestIdPrefix="pricing-cta" renewalTestIdPrefix="pricing-renewal" />
           </div>
-          <div className="mt-14 max-w-2xl text-left">
-            <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-slate mb-2">Common questions</p>
-            <Accordion type="single" collapsible>
-              {HOME_FAQ.map((item) => (
-                <AccordionItem key={item.q} value={item.q} className="border-helm-navy/[0.06]">
-                  <AccordionTrigger className="text-base md:text-lg font-medium text-helm-navy tracking-tight hover:no-underline hover:text-helm-ink">
-                    {item.q}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm md:text-base text-helm-navy/70 leading-relaxed">{item.a}</p>
-                    {item.link ? (
-                      <Link
-                        to={item.link.to}
-                        className="inline-block mt-3 text-sm text-helm-navy hover:text-helm-ink transition-colors"
-                      >
-                        {item.link.label} →
-                      </Link>
-                    ) : null}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+
+          <div className="mt-28 grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
+            <Reveal>
+              <Eyebrow>Questions</Eyebrow>
+              <h2 className="mt-5 text-4xl font-semibold leading-[1.02] tracking-[-0.035em]">Common questions.</h2>
+            </Reveal>
+            <Reveal i={1}>
+              <MkAccordion items={HOME_FAQ} idPrefix="home-faq" />
+            </Reveal>
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 px-6 py-16 border-t border-helm-navy/[0.05]">
-        <motion.div variants={fade} initial="hidden" whileInView="show" viewport={{ once: true }}
-          className="relative mx-auto max-w-2xl text-center">
-          <div className="mx-auto h-px w-10 bg-helm-navy/25 mb-8" aria-hidden />
-          <h2 className="font-display text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">{TAGLINE}</h2>
-          <p className="mt-6 text-helm-navy/70">Quiet control for the owner everyone is counting on.</p>
-          <div className="mt-10">
-            <button data-testid="footer-cta-btn" onClick={enter} type="button"
-              className="group inline-flex items-center gap-2 rounded-md bg-helm-navy text-helm-cream font-medium px-7 py-3 transition-colors hover:bg-helm-ink focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-helm-navy">
-              {authed ? "Open your cockpit" : "Get started"}
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-            </button>
-          </div>
-          <p className="mt-8 text-xs text-helm-slate">Free to start · 7-day free trials · Sign in with Google</p>
-        </motion.div>
-      </section>
-
-      <MarketingFooter />
-    </div>
+      <CtaBand
+        title={TAGLINE}
+        sub="Quiet control for the owner everyone is counting on. Free to start, 7-day free trials, sign in with Google."
+        authed={authed}
+        onEnter={enter}
+        secondary={<MkButton variant="outline-light" to="/features">Explore features</MkButton>}
+      />
+    </MkPage>
   );
 }

@@ -12,7 +12,7 @@ import { clerkAfterAuthRedirect } from "@/lib/clerkRedirect";
 import { CLERK_SIGN_UP_PATH, helmSignInUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
-import TrenstonMark from "@/components/HelmMark";
+import trenstonMarkMono from "@/assets/trenston-mark-mono.svg";
 
 export default function SignUpPage() {
   const { clerkEnabled, configLoading } = useClerkMode();
@@ -21,7 +21,7 @@ export default function SignUpPage() {
   }
   if (!clerkEnabled) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-helm-cream p-8">
+      <div className="min-h-screen flex items-center justify-center bg-white p-8">
         <p className="text-sm text-helm-status-negative">Sign-up is not available. Clerk is not configured on this deployment.</p>
       </div>
     );
@@ -61,14 +61,14 @@ function SignUpClerk() {
 
   if (clerkComplete && !user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-helm-cream p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white p-8">
         <LoadingScreen label={sessionError ? "Sign-up problem" : "Finishing sign-up"} />
         {sessionError && (
           <div className="mt-6 max-w-md text-center space-y-4">
             <p className="text-sm text-helm-status-negative">{sessionError}</p>
             <button
               type="button"
-              className="text-sm text-helm-gold hover:underline"
+              className="text-sm text-mk-navy font-semibold hover:underline"
               onClick={async () => {
                 clearSessionError();
                 await signOut();
@@ -86,25 +86,25 @@ function SignUpClerk() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Auth form — light panel */}
-      <div className="relative flex flex-col items-center justify-center bg-helm-cream px-6 py-24 md:px-10 min-h-screen">
+      <div className="relative flex flex-col items-center justify-center bg-white px-6 py-24 md:px-10 min-h-screen">
         <AuthMarketingHeader />
         <div className="w-full max-w-sm flex flex-col items-center text-center">
-          <TrenstonMark size={48} className="rounded-md" />
-          <h1 className="mt-6 font-display text-2xl md:text-3xl font-semibold tracking-tight text-helm-navy">
+          <img src={trenstonMarkMono} alt="" width={48} height={48} className="h-12 w-12" draggable={false} />
+          <h1 className="mt-6 text-3xl md:text-4xl font-semibold tracking-[-0.035em] text-mk-black">
             Get started with Trenston
           </h1>
-          <p className="mt-2 text-sm text-helm-slate leading-relaxed">
+          <p className="mt-2 text-sm text-mk-gray leading-relaxed">
             Google or email. Activate Trenston after sign-up.
           </p>
           {passwordRequired && (
-            <p className="mt-3 text-xs text-helm-slate leading-relaxed">
+            <p className="mt-3 text-xs text-mk-gray leading-relaxed">
               After Google, Clerk may ask you to set a password
               {passwordMinLength > 8 ? ` (at least ${passwordMinLength} characters)` : ""}
               {captchaEnabled ? ". CAPTCHA may appear" : ""}.
             </p>
           )}
           {!passwordRequired && passwordMinLength > 8 && (
-            <p className="mt-3 text-xs text-helm-slate leading-relaxed">
+            <p className="mt-3 text-xs text-mk-gray leading-relaxed">
               Email passwords need at least {passwordMinLength} characters
               {captchaEnabled ? " (CAPTCHA may appear)" : ""}.
             </p>
@@ -123,18 +123,18 @@ function SignUpClerk() {
             />
           </div>
 
-          <div className="mt-8 w-full space-y-3 border-t border-helm-navy/10 pt-6">
-            <p className="text-sm text-helm-slate">
+          <div className="mt-8 w-full space-y-3 border-t border-mk-line pt-6">
+            <p className="text-sm text-mk-gray">
               Already have an account?{" "}
-              <Link to="/login" className="text-helm-navy font-medium hover:underline">
+              <Link to="/login" className="text-mk-black font-medium hover:underline">
                 Sign in
               </Link>
             </p>
-            <nav className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-helm-slate" aria-label="Legal">
-              <Link to="/privacy" className="hover:text-helm-navy transition-colors">Privacy</Link>
-              <Link to="/terms" className="hover:text-helm-navy transition-colors">Terms</Link>
-              <Link to="/security" className="hover:text-helm-navy transition-colors">Security</Link>
-              <Link to="/refunds" className="hover:text-helm-navy transition-colors">Refunds</Link>
+            <nav className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-mk-gray" aria-label="Legal">
+              <Link to="/privacy" className="hover:text-mk-black transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-mk-black transition-colors">Terms</Link>
+              <Link to="/security" className="hover:text-mk-black transition-colors">Security</Link>
+              <Link to="/refunds" className="hover:text-mk-black transition-colors">Refunds</Link>
             </nav>
           </div>
         </div>

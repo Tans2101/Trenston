@@ -21,6 +21,23 @@ module.exports = {
         'serif-display': ['Hedvig Letters Sans', 'DM Sans', 'system-ui', 'sans-serif'],
       },
       colors: {
+        /* Marketing site only (public pages): black / navy / white editorial
+         * system. Deliberately separate from helm-* so the signed-in app's
+         * palette is untouched. Contrast: gray on white 7.5:1, gray-dark on
+         * black 7.9:1, white on navy 14:1. */
+        mk: {
+          black: "#0A0A0A",
+          ink: "#141414",
+          navy: "#0B2A5B",
+          "navy-2": "#153B7A",
+          "navy-soft": "#E9EEF7",
+          sky: "#9DB5E3",
+          white: "#FFFFFF",
+          mist: "#F4F4F2",
+          line: "#E3E3E0",
+          gray: "#555555",
+          "gray-dark": "#A3A3A3",
+        },
         helm: {
           navy: HELM_PALETTE.navy,
           gold: HELM_PALETTE.gold,

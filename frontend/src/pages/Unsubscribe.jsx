@@ -67,20 +67,20 @@ export default function Unsubscribe() {
             : "Please try again in a moment, or email us and we'll help.";
 
   return (
-    <div className="min-h-screen bg-helm-cream text-helm-navy">
+    <div className="min-h-screen bg-white text-mk-black">
       <div className="relative z-10 mx-auto max-w-lg px-6 py-16 md:py-24">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-helm-slate hover:text-helm-navy transition-colors mb-10">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-mk-gray hover:text-mk-black transition-colors mb-10">
           <TrenstonMark size={24} className="rounded" />
           Back to Trenston
         </Link>
 
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-4">Email preferences</p>
-        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-helm-navy">{title}</h1>
-        <p className="mt-4 text-[15px] text-helm-navy/80 leading-relaxed">{body}</p>
-        <p className="mt-8 text-sm text-helm-slate leading-relaxed">
+        <p className="font-mono text-xs uppercase tracking-[0.25em] text-mk-navy mb-4">Email preferences</p>
+        <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-mk-black">{title}</h1>
+        <p className="mt-4 text-[15px] text-mk-black/80 leading-relaxed">{body}</p>
+        <p className="mt-8 text-sm text-mk-gray leading-relaxed">
           Trenston · {COMPANY_LOCATION}
           <br />
-          <a href={PUBLIC_CONTACT_MAILTO} className="text-helm-gold hover:underline">{PUBLIC_CONTACT_EMAIL}</a>
+          <a href={PUBLIC_CONTACT_MAILTO} className="text-mk-navy hover:underline">{PUBLIC_CONTACT_EMAIL}</a>
         </p>
       </div>
     </div>

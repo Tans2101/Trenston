@@ -17,21 +17,21 @@ const LINKS = [
 export default function AuthMarketingHeader() {
   return (
     <header className="absolute top-0 inset-x-0 z-20 px-6 py-5 md:px-8">
-      <nav className="flex flex-wrap items-center justify-between gap-3 text-sm text-helm-slate" aria-label="Marketing">
-        <Link to="/" className="hover:text-helm-navy transition-colors whitespace-nowrap">
+      <nav className="flex flex-wrap items-center justify-between gap-3 text-sm text-mk-gray" aria-label="Marketing">
+        <Link to="/" className="hover:text-mk-black transition-colors whitespace-nowrap">
           ← Home
         </Link>
         <div className="hidden sm:flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
           {LINKS.filter((l) => l.to !== "/").map((l) => (
-            <Link key={l.to} to={l.to} className="hover:text-helm-navy transition-colors whitespace-nowrap">
+            <Link key={l.to} to={l.to} className="hover:text-mk-black transition-colors whitespace-nowrap">
               {l.label}
             </Link>
           ))}
-          <a href={PUBLIC_CONTACT_MAILTO} className="hover:text-helm-navy transition-colors whitespace-nowrap">
+          <a href={PUBLIC_CONTACT_MAILTO} className="hover:text-mk-black transition-colors whitespace-nowrap">
             Contact
           </a>
         </div>
-        <a href={PUBLIC_CONTACT_MAILTO} className="sm:hidden hover:text-helm-navy transition-colors">
+        <a href={PUBLIC_CONTACT_MAILTO} className="sm:hidden hover:text-mk-black transition-colors">
           Contact
         </a>
       </nav>

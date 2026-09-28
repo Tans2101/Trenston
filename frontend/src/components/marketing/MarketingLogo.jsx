@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import { CATEGORY } from "@/lib/marketingCopy";
-import trenstonMark from "@/assets/trenston-mark.svg";
-import trenstonMarkNavy from "@/assets/trenston-mark-navy.svg";
-import trenstonWordmarkNavy from "@/assets/trenston-wordmark-navy.svg";
-import trenstonWordmarkCream from "@/assets/trenston-wordmark-cream.svg";
+// Marketing uses monochrome marks (black/navy/white system); the signed-in
+// app keeps the original gold-ray mark via HelmMark.
+import trenstonMark from "@/assets/trenston-mark-mono.svg";
+import trenstonMarkNavy from "@/assets/trenston-mark-mono-white.svg";
+import trenstonWordmarkNavy from "@/assets/trenston-wordmark-black.svg";
+import trenstonWordmarkCream from "@/assets/trenston-wordmark-white.svg";
 
 /** Clickable Trenston mark — always routes to the marketing home page. */
 export default function MarketingLogo({
@@ -48,7 +50,7 @@ export default function MarketingLogo({
       <div>
         {wordmarkImg}
         {showTagline && (
-          <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-helm-slate" : "text-helm-slate"}`}>{CATEGORY}</p>
+          <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-mk-gray-dark" : "text-mk-gray"}`}>{CATEGORY}</p>
         )}
       </div>
     );
@@ -59,7 +61,7 @@ export default function MarketingLogo({
         <div>
           {wordmarkImg}
           {showTagline && (
-            <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-helm-slate" : "text-helm-slate"}`}>{CATEGORY}</p>
+            <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-mk-gray-dark" : "text-mk-gray"}`}>{CATEGORY}</p>
           )}
         </div>
       </>
@@ -70,9 +72,9 @@ export default function MarketingLogo({
       <>
         {markImg}
         <div>
-          <p className={`font-semibold tracking-tight leading-none ${name} ${dark ? "text-helm-cream" : "text-helm-navy"}`}>Trenston</p>
+          <p className={`font-semibold tracking-tight leading-none ${name} ${dark ? "text-white" : "text-mk-black"}`}>Trenston</p>
           {showTagline && (
-            <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-helm-slate" : "text-helm-slate"}`}>{CATEGORY}</p>
+            <p className={`text-[10px] font-mono uppercase tracking-[0.2em] mt-1 ${dark ? "text-mk-gray-dark" : "text-mk-gray"}`}>{CATEGORY}</p>
           )}
         </div>
       </>

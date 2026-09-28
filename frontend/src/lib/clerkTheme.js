@@ -1,6 +1,7 @@
-/** Shared Clerk SignIn/SignUp appearance — cream auth panel (light).
+/** Shared Clerk SignIn/SignUp appearance — white auth panel (light), matching
+ * the marketing site's black / navy / white system.
  *
- * Auth pages are cream/navy. Do not use ink/cream dark tokens here — global
+ * Auth pages are white/black. Do not use ink/cream dark tokens here — global
  * dark Clerk CSS used to force cream-on-ink inputs and left black voids under
  * the form. Pill buttons use rounded-full; card radius stays modest.
  */
@@ -8,25 +9,25 @@ import palette from "@/design/palette.json";
 
 export const clerkAppearance = {
   variables: {
-    colorBackground: palette.cream,
+    colorBackground: "#ffffff",
     colorInputBackground: "#ffffff",
-    colorInputText: palette.navy,
-    colorText: palette.navy,
-    colorTextSecondary: palette.slate,
-    colorPrimary: palette.navy,
+    colorInputText: "#0a0a0a",
+    colorText: "#0a0a0a",
+    colorTextSecondary: "#555555",
+    colorPrimary: "#0a0a0a",
     colorDanger: palette.statusNegative,
-    colorNeutral: palette.slate,
+    colorNeutral: "#555555",
     colorShimmer: "#ffffff",
     // Modest shell radius only — never 9999px (that circled the whole card).
-    borderRadius: "0.75rem",
+    borderRadius: "0.25rem",
     fontFamily: "inherit",
   },
   elements: {
     rootBox: "w-full",
-    cardBox: "w-full bg-helm-cream shadow-none border-0",
-    card: "w-full bg-helm-cream shadow-none border-0 p-0 gap-4",
-    main: "bg-helm-cream gap-4",
-    scrollBox: "bg-helm-cream",
+    cardBox: "w-full bg-white shadow-none border-0",
+    card: "w-full bg-white shadow-none border-0 p-0 gap-4",
+    main: "bg-white gap-4",
+    scrollBox: "bg-white",
     header: "hidden",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
@@ -37,24 +38,24 @@ export const clerkAppearance = {
     // Native social buttons — Paths are on www now; custom AuthSocialButtons fought SignUp state.
     socialButtons: "flex flex-col gap-2 w-full",
     socialButtonsBlockButton:
-      "w-full h-11 justify-center rounded-full border border-helm-navy/20 bg-helm-navy text-helm-cream font-medium hover:bg-helm-navy/90 shadow-none",
+      "w-full h-12 justify-center rounded-[2px] border border-mk-black bg-mk-black text-white font-semibold transition-colors hover:bg-mk-navy hover:border-mk-navy shadow-none",
     socialButtonsProviderIcon: "brightness-0 invert",
     dividerRow: "flex items-center gap-3 my-2",
-    dividerLine: "bg-helm-navy/10",
-    dividerText: "text-helm-slate text-xs",
+    dividerLine: "bg-mk-line",
+    dividerText: "text-mk-gray text-xs",
     formButtonPrimary:
-      "w-full justify-center rounded-full bg-helm-navy text-helm-cream border-0 font-medium hover:bg-helm-navy/90 shadow-none h-11",
-    formFieldLabel: "text-helm-slate text-xs",
+      "w-full justify-center rounded-[2px] bg-mk-black text-white border-0 font-semibold transition-colors hover:bg-mk-navy shadow-none h-12",
+    formFieldLabel: "text-mk-gray text-xs",
     formFieldInput:
-      "rounded-full bg-white border border-helm-navy/15 text-helm-navy caret-helm-gold placeholder:text-helm-slate h-11",
-    formFieldInputShowPasswordButton: "text-helm-slate hover:text-helm-navy",
+      "rounded-[2px] bg-white border border-mk-line text-mk-black caret-mk-navy placeholder:text-mk-gray h-12 focus:border-mk-navy",
+    formFieldInputShowPasswordButton: "text-mk-gray hover:text-mk-black",
     otpCodeFieldInputs: "justify-center gap-2",
     otpCodeFieldInput:
-      "bg-white border border-helm-navy/20 text-helm-navy text-lg font-mono caret-helm-gold rounded-lg",
-    formResendCodeLink: "text-helm-navy hover:text-helm-navy/80",
-    alertText: "text-helm-navy",
+      "bg-white border border-mk-line text-mk-black text-lg font-mono caret-mk-navy rounded-[2px]",
+    formResendCodeLink: "text-mk-navy hover:text-mk-black",
+    alertText: "text-mk-black",
     formFieldErrorText: "text-helm-status-negative",
-    identityPreviewEditButton: "text-helm-navy",
+    identityPreviewEditButton: "text-mk-navy",
     // Keep bot-protection widget in layout so signup is not blocked.
     captcha: "min-h-[65px] flex justify-center my-2",
   },
