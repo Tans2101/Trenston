@@ -179,7 +179,7 @@ export default function SalesOrderBook() {
 
   const saveEntry = async () => {
     if (!form.buyer_name.trim() || !form.country.trim() || !form.product.trim()) {
-      toast.error("Buyer, country, and product are required");
+      toast.error("Customer, country, and product or service are required");
       return;
     }
     const price = Number(form.price);
@@ -328,15 +328,15 @@ export default function SalesOrderBook() {
       </div>
 
       {visible.length === 0 ? (
-        <EmptyState title="No order book lines" body="Add buyer / country / product lines to replace the external spreadsheet." />
+        <EmptyState title="No order book lines" body="Add a line per customer order or signed contract (product or service, quantity, expected close) to track confirmed and expected revenue against your monthly target." />
       ) : (
         <div className="overflow-x-auto rounded-md border border-helm-line">
           <table className="w-full text-left text-sm" data-testid="order-book-table">
             <thead>
               <tr className="border-b border-helm-line text-[10px] font-mono uppercase tracking-wide text-helm-muted">
-                <th className="px-3 py-2">Buyer</th>
+                <th className="px-3 py-2">Customer</th>
                 <th className="px-3 py-2">Country</th>
-                <th className="px-3 py-2">Product</th>
+                <th className="px-3 py-2">Product / service</th>
                 <th className="px-3 py-2">Price</th>
                 <th className="px-3 py-2">Qty</th>
                 <th className="px-3 py-2">Total</th>
@@ -395,7 +395,7 @@ export default function SalesOrderBook() {
             </ul>
           </div>
           <div>
-            <SectionLabel className="mb-2">By product</SectionLabel>
+            <SectionLabel className="mb-2">By product / service</SectionLabel>
             <ul className="space-y-1 text-sm">
               {summary.by_product.slice(0, 8).map((r) => (
                 <li key={r.product} className="flex justify-between text-helm-muted">
@@ -417,9 +417,9 @@ export default function SalesOrderBook() {
               <button type="button" onClick={closeForm} className="text-helm-muted"><X className="w-4 h-4" /></button>
             </div>
             {[
-              ["buyer_name", "Buyer"],
+              ["buyer_name", "Customer"],
               ["country", "Country"],
-              ["product", "Product"],
+              ["product", "Product / service"],
             ].map(([key, label]) => (
               <label key={key} className="block space-y-1">
                 <span className="text-[10px] font-mono uppercase text-helm-muted">{label}</span>

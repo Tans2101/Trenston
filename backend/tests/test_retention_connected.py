@@ -405,7 +405,8 @@ def test_sample_apply_before_company_setup_uses_sample_profile():
     ws = build_workspace("ws1", "Fresh Co", "u1", empty=True)
     assert not ws.get("company_setup_done")
     update = _apply_sample(ws)
-    assert update["industry"] == "Industrial Robotics"
+    assert update["industry"] == "SaaS / Software"
+    assert update["mission"] == "Workflow software for mid-market operations teams."
 
 
 # ---------------- Calendar deadline hrefs (item 13) ----------------

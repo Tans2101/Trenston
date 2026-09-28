@@ -40,3 +40,22 @@ def test_company_stages_have_no_funding_rounds():
         assert term not in server.COMPANY_STAGES
     assert "Just starting out" in server.COMPANY_STAGES
     assert "Family-owned / multi-generation" in server.COMPANY_STAGES
+
+
+def _frontend_industries() -> list[str]:
+    import re
+    src = (ROOT.parent / "frontend" / "src" / "lib" / "companySetupCopy.js").read_text()
+    block = src.split("export const INDUSTRIES = [", 1)[1].split("];", 1)[0]
+    return re.findall(r'"([^"]+)"', block)
+
+
+def test_sample_identity_matches_its_saas_numbers():
+    sample = seed_data.build_workspace("ws_sample", "Any Co", "user_1", empty=False)
+    # Seed telemetry is MRR / NRR / churn, so the profile must say software too.
+    assert sample["industry"] == "SaaS / Software"
+    assert sample["industry"] in _frontend_industries()
+    identity = f"{sample['industry']} {sample['mission']}".lower()
+    for term in ("robot", "industrial", "manufactur", "factory", "inspection"):
+        assert term not in identity
+    kpi_labels = {k["label"] for k in sample["telemetry"]["kpis"]}
+    assert "MRR" in kpi_labels

@@ -33,7 +33,7 @@ Rules:
 - type is usually "expense" for bills/invoices you pay; use "revenue" only for incoming invoices you issued.
 - amount is the total in USD (number only, no currency symbols).
 - month is the invoice/bill date as YYYY-MM when possible; otherwise best estimate.
-- category is a grouping label like Payroll, Cloud/Infra, Sales & Mktg, G&A, Subscriptions — not the specific purchase.
+- category is a grouping label like Payroll, Cost of goods, Cloud/Infra, Sales & Mktg, G&A for expenses, or Subscriptions, Product sales, Services for revenue — not the specific purchase. Use Cost of goods for raw materials, inventory, and supplier invoices for things the company resells or builds into its product.
 - name is the specific line-item label (e.g. "MongoDB Database Subscription", "Render Hosting"). Prefer vendor + product/service when both are on the document. Do not copy category into name unless nothing more specific exists.
 - vendor is the payee or issuer name.
 - Do not guess amounts or dates — use confidence "low" when uncertain.

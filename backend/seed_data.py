@@ -1,4 +1,4 @@
-"""Per-workspace data template for Trenston — Northwind Robotics sample + empty scaffold.
+"""Per-workspace data template for Trenston — sample B2B software company + empty scaffold.
 
 Financials are NOT stored here — they are computed from the `financial_entries`
 collection so the finance team can log data straight into Trenston.
@@ -175,9 +175,10 @@ def build_workspace(workspace_id, name, owner_user_id, empty=False, currency=Non
         "stage": "" if empty else "Established, growing",
         "employees": 24 if not empty else 0,
         "founded": "" if empty else "2014",
-        "mission": "Autonomous inspection robots for industrial sites." if not empty else "",
+        "mission": "Workflow software for mid-market operations teams." if not empty else "",
         "onboarding_done": not empty, "company_setup_done": not empty,
-        "industry": "" if empty else "Industrial Robotics",
+        # Must match the SaaS-shaped seed numbers (MRR, NRR, churn) and an INDUSTRIES option.
+        "industry": "" if empty else "SaaS / Software",
         "founder_title": "" if empty else "Founder",
         # Sample template has a team; empty/new leaves has_team unset until CompanySetup.
         "has_team": True if not empty else None,

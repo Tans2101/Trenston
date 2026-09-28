@@ -336,7 +336,7 @@ export default function Briefing() {
             <div className="min-w-0 flex-1">
               <BriefLabel>Exploring with sample data</BriefLabel>
               <p className="mt-1.5 text-sm text-helm-muted leading-relaxed">
-                Northwind Robotics is loaded so you can click around. When you&apos;re ready, remove it and start with your own company data — or keep exploring and clear it later in Settings.
+                A sample company is loaded so you can click around. When you&apos;re ready, remove it and start with your own company data — or keep exploring and clear it later in Settings.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button

@@ -201,7 +201,7 @@ export default function Onboarding() {
           </div>
           <h3 className="mt-5 text-xl text-helm-fg tracking-tight">Explore with sample data</h3>
           <p className="mt-2 text-sm text-helm-muted leading-relaxed flex-1">
-            Load &quot;Northwind Robotics&quot;, a realistic company with financials, decisions, tasks and a team. See exactly how Trenston works in 10 seconds.
+            Load a realistic sample company, a growing B2B software business, with financials, decisions, tasks and a team. See exactly how Trenston works in 10 seconds.
           </p>
           <ul className="mt-4 space-y-1.5">
             {["6 months of financials", "Live briefing & decisions", "Full team & telemetry"].map((f) => (

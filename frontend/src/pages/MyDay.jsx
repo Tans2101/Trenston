@@ -248,7 +248,7 @@ export default function MyDay() {
         {workItems.length === 0 ? (
           <GlassCard className="p-5">
             <p className="text-sm text-helm-fg">Nothing assigned to you right now</p>
-            <p className="text-xs text-helm-muted mt-1">When Production, Legal, Sales, and other departments assign you work, it will show up here.</p>
+            <p className="text-xs text-helm-muted mt-1">When a teammate or one of your departments assigns you work, it will show up here.</p>
           </GlassCard>
         ) : (
           <div className="space-y-2">

@@ -17,6 +17,8 @@ import { thisMonthISO } from "@/lib/dates";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
+import { useCompanyQuery } from "@/hooks/useCompanyQuery";
+import { REVENUE_CATEGORIES as REV_CATS, EXPENSE_CATEGORIES as EXP_CATS, defaultRevenueCategory } from "@/lib/financeCategories";
 import palette from "@/design/palette.json";
 import { ACCENT, accentAlpha } from "@/lib/accent";
 import { dealHref, departmentItemHref, highlightRecord } from "@/lib/signalRoute";
@@ -24,8 +26,6 @@ import { dealHref, departmentItemHref, highlightRecord } from "@/lib/signalRoute
 const GOLD = ACCENT;
 const CREAM = palette.cream;
 const PIE = [ACCENT, accentAlpha(0.7), palette.slate, accentAlpha(0.45), "#9CA3AF", accentAlpha(0.25)];
-const REV_CATS = ["Subscriptions", "Enterprise", "Services", "Other"];
-const EXP_CATS = ["Payroll", "Cloud/Infra", "Sales & Mktg", "G&A", "R&D Tools", "Other"];
 const ALLOWED_UPLOAD_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const CURRENCY_OPTIONS = [
@@ -67,8 +67,8 @@ function PercentTooltip({ active, payload }) {
 // Runway under this many months surfaces a quiet prompt to decide what to do about it.
 const RUNWAY_WARN_MONTHS = 6;
 
-const emptyForm = (tz) => ({
-  type: "revenue", category: "Subscriptions", name: "", amount: "", month: thisMonthISO(tz),
+const emptyForm = (tz, revenueCategory = REV_CATS[0]) => ({
+  type: "revenue", category: revenueCategory, name: "", amount: "", month: thisMonthISO(tz),
   recurring: true, recurrence: "monthly", note: "", source_document_id: null, extract_confidence: null,
 });
 
@@ -95,8 +95,10 @@ export default function Financials() {
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
   const tz = useWorkspaceTimezone();
   const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
+  const { data: company } = useCompanyQuery();
+  const revCategory = defaultRevenueCategory(company?.industry);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(() => emptyForm(tz));
+  const [form, setForm] = useState(() => emptyForm(tz, revCategory));
   const [busy, setBusy] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -312,7 +314,7 @@ export default function Financials() {
     }
     if (!data.can_write) return undefined;
     if (hash === "log-mrr" || hash === "log-entry") {
-      setForm(emptyForm(tz));
+      setForm(emptyForm(tz, revCategory));
       setShowForm(true);
       setShowSettings(false);
     } else if (hash === "cash") {
@@ -328,7 +330,7 @@ export default function Financials() {
     // actually changes — otherwise every refetch re-opens the form.
     navigate(location.pathname, { replace: true });
     return undefined;
-  }, [location.hash, location.pathname, loading, data, tz, navigate, isFetching]);
+  }, [location.hash, location.pathname, loading, data, tz, navigate, isFetching, revCategory]);
 
   if (loading) {
     return (
@@ -408,7 +410,7 @@ export default function Financials() {
       }
       await api.post("/financials/entries", payload);
       toast.success("Entry logged");
-      setForm(emptyForm(tz));
+      setForm(emptyForm(tz, revCategory));
       setShowForm(false);
       reload();
       reloadActs();
@@ -526,7 +528,7 @@ export default function Financials() {
   const runwayMonths = data.runway_months != null ? Number(data.runway_months) : null;
   const runwayLow = runwayMonths != null && Number.isFinite(runwayMonths) && runwayMonths < RUNWAY_WARN_MONTHS;
 
-  const openEntryForm = () => { setForm(emptyForm(tz)); setShowForm(true); };
+  const openEntryForm = () => { setForm(emptyForm(tz, revCategory)); setShowForm(true); };
 
   const headline = [
     { label: "MRR", value: data.mrr_known === false ? "Add data" : data.mrr, fill: openEntryForm },
@@ -554,7 +556,7 @@ export default function Financials() {
     <button
       type="button"
       data-testid="add-entry-btn"
-      onClick={() => { setForm(emptyForm(tz)); setShowForm(true); }}
+      onClick={() => { setForm(emptyForm(tz, revCategory)); setShowForm(true); }}
       className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-gold-hover"
     >
       <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log entry"}
@@ -760,7 +762,7 @@ export default function Financials() {
                 className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold font-medium text-sm px-4 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
                 <Upload className="w-4 h-4" /> {hasAccountingSync ? "Upload one-off bill" : "Upload a bill"}
               </button>
-              <button data-testid="empty-add-entry-btn" onClick={() => { setForm(emptyForm(tz)); setShowForm(true); }}
+              <button data-testid="empty-add-entry-btn" onClick={() => { setForm(emptyForm(tz, revCategory)); setShowForm(true); }}
                 className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">
                 <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log first entry"}
               </button>
@@ -1116,7 +1118,7 @@ export default function Financials() {
                   <button key={t} data-testid={`type-${t}`} onClick={() => setForm((f) => ({
                     ...f,
                     type: t,
-                    category: t === "revenue" ? REV_CATS[0] : EXP_CATS[0],
+                    category: t === "revenue" ? revCategory : EXP_CATS[0],
                     recurring: t === "revenue" ? true : f.recurring,
                     recurrence: f.recurrence || "monthly",
                   }))}
