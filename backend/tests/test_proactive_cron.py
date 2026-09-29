@@ -149,7 +149,7 @@ def test_run_weekly_digest_emails_pdf_and_debounces():
         })
         return {"sent": True, "id": "email_1"}
 
-    async def fake_recipients(wid):
+    async def fake_recipients(wid, **_kw):
         return ["ceo@send.test"] if wid == "ws_send" else []
 
     with (
@@ -309,7 +309,7 @@ def test_run_daily_briefing_emails_and_debounces():
         sent.append({"to": to, "subject": subject, "html": html, "headers": headers})
         return {"sent": True, "id": "email_1"}
 
-    async def fake_recipients(wid):
+    async def fake_recipients(wid, **_kw):
         if wid == "ws_empty":
             return ["empty@test"]
         return ["ceo@send.test"] if wid == "ws_send" else []

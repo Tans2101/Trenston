@@ -232,6 +232,8 @@ export const FEATURE_CATEGORIES = [
       "Deal ownership & follow-ups",
       "Sales order book & monthly target",
       "Telemetry",
+      "Financial Modeling",
+      "Runway warnings",
     ],
   },
   {
@@ -307,6 +309,7 @@ export const PLANS = [
       "Ask Trenston (200 messages/month)",
       "Everything in Starter",
       "Integrations: HubSpot, Slack",
+      "Financial Modeling: runway scenarios with hires and funding",
       "Deeper reporting across a bigger team",
       "7-day free trial",
     ],
@@ -457,6 +460,18 @@ export const FEATURE_MODULES = [
     ceoValue: "Real owners, planned next steps, not free-text ghosts.",
     body: "Deals link to Sales teammates, with next-step and follow-up dates so quiet deals surface before they stall.",
     example: "Riley owns the negotiation. Call-back Thursday is on the card, and Trenston reminds before it slips.",
+  },
+  {
+    title: "Financial Modeling",
+    ceoValue: "See what a hire or a funding round does to runway before you commit.",
+    body: "Sliders for revenue and expense growth, planned hires and one-time events, starting from your last three months of real data. Save scenarios and compare them on one chart. Included in Growth and Business.",
+    example: "Hire two engineers in March and close a seed round in June: runway goes from 9.1 months to over 24.",
+  },
+  {
+    title: "Runway warnings",
+    ceoValue: "Know before cash gets tight, with the maths shown.",
+    body: "Set a minimum cash reserve and Trenston projects when cash will cross it from your burn and its trend. It also flags accelerating burn, falling revenue, a drop in completed tasks, and pipeline that will not cover your sales targets. Too little data means no warning, never a guess.",
+    example: "At your current burn you reach your minimum reserve in about 74 days. Cutting burn by $2,400 a month would move that to about 101 days.",
   },
   {
     title: "Telemetry",

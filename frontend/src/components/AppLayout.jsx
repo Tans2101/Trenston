@@ -7,7 +7,7 @@ import {
   Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search, Bell,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
-  Info, LayoutGrid, Receipt,
+  Info, LayoutGrid, Receipt, LineChart as LineChartIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -38,6 +38,7 @@ const NAV = [
   { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions" },
   { to: "/app/telemetry", label: "Telemetry", icon: Activity, id: "telemetry", section: "telemetry" },
   { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials" },
+  { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials" },
   { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks" },
   { to: "/app/reports", label: "Reports", icon: FileText, id: "reports" },
   { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar" },

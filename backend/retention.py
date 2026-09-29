@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
 from plan_usage import parse_dt
-from decision_engine import is_task_overdue
+from decision_engine import is_financial_signal, is_task_overdue
 
 logger = logging.getLogger("helm.retention")
 
@@ -101,6 +101,7 @@ def collect_change_bullets(
     pending = [
         d for d in (ws.get("decisions") or [])
         if d.get("status") == "pending" and (d.get("title") or "").strip()
+        and not is_financial_signal(d)
     ]
     for d in pending[:3]:
         bullets.append(f"Open decision: {d['title'].strip()}")
@@ -122,6 +123,9 @@ def collect_change_bullets(
 
     for s in (ws.get("decision_suggestions") or []):
         if s.get("status") != "suggested":
+            continue
+        # Recipients may lack Financials access; keep cash/burn/revenue alerts out.
+        if is_financial_signal(s):
             continue
         sev = (s.get("severity") or (s.get("signal") or {}).get("severity") or "").lower()
         title = (s.get("title") or (s.get("signal") or {}).get("summary") or "").strip()

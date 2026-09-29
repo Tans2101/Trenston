@@ -232,7 +232,7 @@ export default function Briefing() {
   const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "there"}`;
   const doneCount = checklist?.steps?.filter((s) => s.done).length ?? 0;
   const stepCount = checklist?.steps?.length ?? 0;
-  const showChecklist = Boolean(checklist && !checklist.complete && !checklist.dismissed);
+  const showChecklist = Boolean(checklist && Array.isArray(checklist.steps) && !checklist.complete && !checklist.dismissed);
   const showIntegrationsPrompt = Boolean(
     canManageIntegrations
     && integPrompt
@@ -442,6 +442,17 @@ export default function Briefing() {
             {" "}anytime.
           </p>
         </section>
+      )}
+
+      {data.reserve_prompt && (
+        <div className="mb-6 flex flex-col gap-2 border-y border-helm-line py-3 sm:flex-row sm:items-center sm:justify-between" data-testid="reserve-prompt">
+          <p className="text-sm text-helm-muted">
+            Set a minimum cash reserve to get runway warnings before cash gets tight.
+          </p>
+          <Link to="/app/financials#reserve" className="shrink-0 text-sm text-helm-gold hover:text-helm-gold-hover">
+            Set reserve
+          </Link>
+        </div>
       )}
 
       {showIntegrationsPrompt && (

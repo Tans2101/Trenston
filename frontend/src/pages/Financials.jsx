@@ -106,6 +106,7 @@ export default function Financials() {
   const [showSettings, setShowSettings] = useState(false);
   const [cash, setCash] = useState("");
   const [gm, setGm] = useState("");
+  const [reserve, setReserve] = useState("");
   const [currency, setCurrency] = useState("usd");
   const [csvPreview, setCsvPreview] = useState(null);
   const [csvBusy, setCsvBusy] = useState(false);
@@ -318,7 +319,8 @@ export default function Financials() {
       setForm(emptyForm(tz, revCategory));
       setShowForm(true);
       setShowSettings(false);
-    } else if (hash === "cash") {
+    } else if (hash === "cash" || hash === "reserve") {
+      setReserve(data.min_cash_reserve != null ? String(data.min_cash_reserve) : "");
       setCash(data.cash_entered ? String(data.settings?.cash ?? 0) : "");
       setGm(data.settings?.gross_margin != null ? String(data.settings.gross_margin) : "");
       setCurrency(data.settings?.currency || data.currency || "usd");
@@ -439,6 +441,13 @@ export default function Financials() {
       toast.error("Enter a valid gross margin");
       return;
     }
+    const reserveRaw = String(reserve ?? "").trim();
+    const reserveValue = reserveRaw === "" ? null : parseFloat(reserveRaw);
+    if (reserveValue != null && (!Number.isFinite(reserveValue) || reserveValue < 0)) {
+      toast.error("Enter a minimum cash reserve of zero or more");
+      return;
+    }
+    const currentReserve = data.min_cash_reserve ?? null;
     setBusy(true);
     try {
       const payload = {
@@ -450,6 +459,9 @@ export default function Financials() {
         payload.cash = cashValue;
       }
       await api.put("/financials/settings", payload);
+      if (reserveValue !== currentReserve) {
+        await api.put("/financials/min-reserve", { value: reserveValue });
+      }
       toast.success("Updated");
       setShowSettings(false);
       reload();
@@ -459,6 +471,7 @@ export default function Financials() {
   };
 
   const openSettings = () => {
+    setReserve(data.min_cash_reserve != null ? String(data.min_cash_reserve) : "");
     setCash(data.cash_entered ? String(data.settings?.cash ?? 0) : "");
     setGm(data.settings?.gross_margin != null ? String(data.settings.gross_margin) : "");
     setCurrency(data.settings?.currency || data.currency || "usd");
@@ -930,6 +943,20 @@ export default function Financials() {
                   </BarChart>
                 </ResponsiveContainer>
               </GlassCard>
+              {data.modeling_allowed ? (
+              <GlassCard className="p-5 fade-up flex flex-col" data-testid="modeling-link-card">
+                <SectionLabel className="mb-2">Runway scenarios</SectionLabel>
+                <p className="text-sm text-helm-muted leading-relaxed flex-1">
+                  Test hires, revenue growth and a funding round against these numbers, save scenarios and compare them.
+                </p>
+                <Link
+                  to="/app/modeling"
+                  className="mt-4 inline-flex items-center gap-1.5 self-start rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy hover:bg-helm-gold-hover"
+                >
+                  Open Financial Modeling <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </GlassCard>
+              ) : (
               <GlassCard className="p-5 fade-up">
                 <SectionLabel className="mb-4">Runway Scenarios</SectionLabel>
                 {scenarios.length === 0 && (
@@ -971,7 +998,13 @@ export default function Financials() {
                     </div>
                   ))}
                 </div>
+                {scenarios.length > 0 && (
+                  <p className="mt-3 text-xs text-helm-muted">
+                    Simple multiples of your current burn. Detailed scenarios are in <Link to="/app/modeling" className="text-helm-gold hover:text-helm-gold-hover">Financial Modeling</Link> on Growth and Business.
+                  </p>
+                )}
               </GlassCard>
+              )}
             </div>
           )}
 
@@ -1206,9 +1239,13 @@ export default function Financials() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowSettings(false)} />
           <GlassCard className="relative w-full max-w-sm m-4 rounded-2xl p-6" data-testid="settings-form">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">Cash & margin</h3><button onClick={() => setShowSettings(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">Cash, reserve & margin</h3><button onClick={() => setShowSettings(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
             <label className="text-xs text-helm-muted block">Cash in bank
               <input data-testid="settings-cash" type="number" value={cash} onChange={(e) => setCash(e.target.value)} placeholder="3100000" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+            </label>
+            <label className="text-xs text-helm-muted block mt-3">Minimum cash reserve (optional)
+              <input data-testid="settings-reserve" type="number" min="0" value={reserve} onChange={(e) => setReserve(e.target.value)} placeholder="Cash you never want to go below" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+              <span className="mt-1 block text-[11px] leading-relaxed">Trenston warns you before cash is projected to fall below this. Leave blank to turn those warnings off.</span>
             </label>
             <label className="text-xs text-helm-muted block mt-3">Gross margin % (optional)
               <input data-testid="settings-gm" type="number" value={gm} onChange={(e) => setGm(e.target.value)} placeholder="74" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />

@@ -44,6 +44,7 @@ const Pipeline = lazy(() => import("@/pages/Pipeline"));
 const Decisions = lazy(() => import("@/pages/Decisions"));
 const Telemetry = lazy(() => import("@/pages/Telemetry"));
 const Financials = lazy(() => import("@/pages/Financials"));
+const FinancialModeling = lazy(() => import("@/pages/FinancialModeling"));
 const Tasks = lazy(() => import("@/pages/Tasks"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
@@ -260,6 +261,7 @@ function AppRoutes() {
           <Route path="decisions" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Decisions /></Suspense>} />
           <Route path="telemetry" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="telemetry"><Telemetry /></SectionGate></Suspense>} />
           <Route path="financials" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><Financials /></SectionGate></Suspense>} />
+          <Route path="modeling" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><FinancialModeling /></SectionGate></Suspense>} />
           <Route path="tasks" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Tasks /></Suspense>} />
           <Route path="reports" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Reports /></Suspense>} />
           <Route path="calendar" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CalendarPage /></Suspense>} />

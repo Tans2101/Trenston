@@ -25,7 +25,7 @@ from fastapi.responses import StreamingResponse, RedirectResponse, Response, JSO
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 import llm as helm_llm
 import document_cleanup
@@ -43,6 +43,7 @@ import google_document_ai as gcp_docai
 import integrations_catalog as integ_catalog
 import clerk_auth
 import decision_engine
+import modeling
 import money_fmt
 from money_fmt import fmt_money, normalize_currency, currency_symbol, CURRENCY_SYMBOLS, entered_cash_amount
 from pagination import clamp_limit, apply_before_filter, next_cursor
@@ -1067,11 +1068,20 @@ async def post_slack_webhook(webhook_url: str, text: str, *, workspace_id: str =
 ALERT_RECIPIENT_PACKS = frozenset({"owner", "exec"})
 
 
-async def _alert_recipient_emails(workspace_id: str) -> list[str]:
+async def _alert_recipient_emails(workspace_id: str, *, financial: bool = False) -> list[str]:
+    """Owner + Executive emails. financial=True keeps only people with Financials access."""
     mems = await db.memberships.find(
         {"workspace_id": workspace_id, "status": "active"},
-        {"_id": 0, "user_id": 1, "pack": 1, "role": 1, "email": 1},
+        {"_id": 0, "user_id": 1, "pack": 1, "role": 1, "email": 1, "section_grants": 1, "department": 1},
     ).to_list(200)
+    if financial:
+        ws = await get_ws(workspace_id)
+        allowed = []
+        for m in mems:
+            principal = {"pack": pack_of(m), "workspace_id": workspace_id, "user_id": m.get("user_id")}
+            if await can_access_financials(principal, membership=m, workspace=ws):
+                allowed.append(m)
+        mems = allowed
     emails = []
     seen = set()
     missing_email_uids = [
@@ -1106,14 +1116,31 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
 
     app_url = APP_URL or FRONTEND_URL or TRENSTON_CANONICAL_ORIGIN
     ws_name = c.get("name") or "Your workspace"
-    html = an.build_alert_email_html(ws_name, fresh, app_url)
-    slack_text = an.build_slack_text(ws_name, fresh, app_url)
-    recipients = await _alert_recipient_emails(workspace_id)
-    email_result = await send_resend_email(
-        to=recipients,
-        subject=f"Trenston alert: {len(fresh)} high-severity signal{'s' if len(fresh) != 1 else ''}: {ws_name}",
-        html=html,
-    )
+    # Financial alerts (cash, burn, revenue, targets) only reach people with
+    # Financials access; everyone else on the alert list gets the rest.
+    fin_alerts = [a for a in fresh if decision_engine.is_financial_signal(a)]
+    other_alerts = [a for a in fresh if not decision_engine.is_financial_signal(a)]
+    fin_recipients = set(await _alert_recipient_emails(workspace_id, financial=True))
+    all_recipients = await _alert_recipient_emails(workspace_id)
+    email_result = {"sent": False}
+    batches = []
+    if fresh and fin_recipients:
+        batches.append(([e for e in all_recipients if e in fin_recipients], fresh))
+    if other_alerts:
+        batches.append(([e for e in all_recipients if e not in fin_recipients], other_alerts))
+    for to, alerts in batches:
+        if not to:
+            continue
+        res = await send_resend_email(
+            to=to,
+            subject=f"Trenston alert: {len(alerts)} high-severity signal{'s' if len(alerts) != 1 else ''}: {ws_name}",
+            html=an.build_alert_email_html(ws_name, alerts, app_url),
+        )
+        if res.get("sent"):
+            email_result = res
+    # A Slack channel may include people without Financials access: financial
+    # alerts go there as a pointer with no figures.
+    slack_text = an.build_slack_text(ws_name, other_alerts, app_url, redacted_financial=len(fin_alerts))
     slack_result = {"ok": False, "reason": "not_configured"}
     webhook = _slack_webhook_plaintext(c)
     if webhook and (c.get("slack_webhook_status") or "") != "broken":
@@ -1981,6 +2008,14 @@ async def compute_financials(
             "months": months,
             "latest_month": latest,
             "horizon_month": horizon,
+            # Raw per-month totals (unrounded) for the modeling baseline and
+            # trend detectors. Last 12 months that have ledger data.
+            "ledger_months": [
+                {"month": m, "revenue": float(rev_by[m]), "expenses": float(exp_by[m])}
+                for m in months[-12:]
+            ],
+            "current_month": ws_now.strftime("%Y-%m"),
+            "min_cash_reserve": _finite_or_none(settings.get("min_cash_reserve")),
             "scheduled_count": len(scheduled),
             "scheduled_entries": [
                 {
@@ -2013,6 +2048,16 @@ async def compute_financials(
     if return_entries:
         fin["entries"] = list(payload["entries"])
     return fin
+
+
+def _finite_or_none(value) -> Optional[float]:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
 
 
 RUNWAY_NO_BURN_LABEL = "No burn, cash growing"
@@ -3984,8 +4029,13 @@ async def briefing(principal=Depends(get_principal)):
     b["team_updates"] = [{"user_name": u.get("user_name"), "text": u.get("text"),
                           "blocker": u.get("blocker", False),
                           "ago": _rel_time(u.get("updated_at", ""))} for u in ups]
-    decide_all = _briefing_what_to_decide_all(c)
+    decide_all = _briefing_what_to_decide_all(c, include_financial=has_fin_access)
     b["what_to_decide"] = decide_all[:5]
+    # Nudge to set a reserve so runway alerts can fire (finance users only).
+    b["reserve_prompt"] = bool(
+        has_fin_access and fin is not None and fin.get("cash_entered")
+        and fin.get("has_data") and fin.get("min_cash_reserve") is None
+    )
     b["what_to_decide_total"] = len(decide_all)
     b["what_to_delegate"] = _briefing_what_to_delegate(c)
     b["insights_generated_at"] = c.get("insights_generated_at")
@@ -4238,16 +4288,22 @@ def _briefing_link_fields(src: dict) -> dict:
     return out
 
 
-def _briefing_what_to_decide(c: dict) -> list:
+def _briefing_what_to_decide(c: dict, *, include_financial: bool = True) -> list:
     """Pending decisions + AI suggestions for the Briefing column (top 5)."""
-    return _briefing_what_to_decide_all(c)[:5]
+    return _briefing_what_to_decide_all(c, include_financial=include_financial)[:5]
 
 
-def _briefing_what_to_decide_all(c: dict) -> list:
-    """Every pending decision + AI suggestion, sorted — callers slice."""
+def _briefing_what_to_decide_all(c: dict, *, include_financial: bool = True) -> list:
+    """Every pending decision + AI suggestion, sorted — callers slice.
+
+    include_financial=False drops cards built from financial signals for users
+    without Financials access.
+    """
     items = []
     for d in c.get("decisions") or []:
         if d.get("status") != "pending":
+            continue
+        if not include_financial and decision_engine.is_financial_signal(d):
             continue
         items.append({
             **_briefing_link_fields(d),
@@ -4263,6 +4319,8 @@ def _briefing_what_to_decide_all(c: dict) -> list:
         })
     for s in c.get("decision_suggestions") or []:
         if s.get("status") != "suggested":
+            continue
+        if not include_financial and decision_engine.is_financial_signal(s):
             continue
         items.append({
             **_briefing_link_fields(s),
@@ -4406,7 +4464,7 @@ def _raw_decision_card_from_signal(sig: dict, *, now: str) -> dict:
         "created_at": now,
         "title": (sig.get("summary") or "Review detected signal")[:200],
         "description": str(sig.get("detail") or "").strip()[:800],
-        "recommendation": "Review the signal and choose a course of action.",
+        "recommendation": str(sig.get("what_would_change") or "Review the signal and choose a course of action.")[:800],
         "confidence": None,
         "confidence_unavailable": True,
         "category": str(sig.get("category") or "General")[:80] or "General",
@@ -4496,6 +4554,19 @@ def _merge_partial_draft_fallbacks(
     return decisions, delegates
 
 
+async def _signal_sales_targets(workspace_id: str, c: dict) -> list:
+    """Sales targets the founder set for this month and the next two (pipeline coverage)."""
+    import sales_order_book as sales_ob
+    months = sales_ob.next_n_months(3, today=tz_utils.workspace_now(c).date())
+    try:
+        return await db.sales_targets.find(
+            {"workspace_id": workspace_id, "month": {"$in": months}}, {"_id": 0},
+        ).to_list(12)
+    except Exception:
+        logger.exception("sales targets load failed for %s", workspace_id)
+        return []
+
+
 async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = True) -> dict:
     """Detect signals, draft AI suggestions, replace workspace suggestion lists."""
     if await doc_rate_limit.insights_over_limit(db, workspace_id):
@@ -4506,10 +4577,9 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
             )
         return {"skipped": "rate_limited"}
 
-    if not helm_llm.anthropic_configured():
-        if raise_on_rate_limit:
-            raise HTTPException(status_code=503, detail="AI is not configured (ANTHROPIC_API_KEY)")
-        return {"skipped": "ai_unconfigured"}
+    # With AI off, cards still ship with the deterministic text each detector
+    # builds (raw fallback cards); AI only rewords, it never computes.
+    ai_on = helm_llm.anthropic_configured()
 
     c = await get_ws(workspace_id)
     fin = await compute_financials(workspace_id, return_entries=True)
@@ -4529,6 +4599,7 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
         currency=currency,
         department_items=department_items,
         now=tz_utils.workspace_now(c),
+        sales_targets=await _signal_sales_targets(workspace_id, c),
     )
     # Detector counts (overdue tasks, stall days, deal age) are computed — zero means
     # none matched, not "not entered". Missing-vs-zero applies to company financials
@@ -4539,6 +4610,9 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
     failed_signals = []
     now = datetime.now(timezone.utc).isoformat()
     for sig in signals:
+        if not ai_on:
+            failed_signals.append(sig)
+            continue
         try:
             if sig.get("type") in decision_engine.DECISION_SIGNAL_TYPES:
                 draft = await helm_llm.draft_decision(sig, company_context)
@@ -4582,7 +4656,7 @@ async def _generate_insights(workspace_id: str, *, raise_on_rate_limit: bool = T
             )
 
     # If every draft failed, keep prior suggestions and do not burn the daily stamp.
-    if signals and not decision_suggestions and not delegate_suggestions:
+    if ai_on and signals and not decision_suggestions and not delegate_suggestions:
         logger.warning(
             "insights draft failure for %s — keeping prior suggestions (%d signals)",
             workspace_id,
@@ -4738,7 +4812,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     # Same live feed builders as GET /briefing — do not ground on seed alone.
     act_items = [_briefing_activity_item(a) for a in acts]
     what_changed = act_items + list(b.get("what_changed") or [])
-    what_to_decide = _briefing_what_to_decide(c)
+    what_to_decide = _briefing_what_to_decide(c, include_financial=has_fin_access)
     metrics = []
     if has_fin_access:
         metrics = _briefing_finance_metrics(fin)
@@ -4840,6 +4914,9 @@ async def decisions(principal=Depends(get_principal)):
             {"$set": {"decisions": decisions_list}},
         )
     suggestions = [s for s in (c.get("decision_suggestions") or []) if s.get("status") == "suggested"]
+    if not await can_access_financials(principal):
+        decisions_list = [d for d in decisions_list if not decision_engine.is_financial_signal(d)]
+        suggestions = [s for s in suggestions if not decision_engine.is_financial_signal(s)]
     return {
         "decisions": decisions_list,
         "suggestions": suggestions,
@@ -4948,9 +5025,13 @@ async def create_decision(payload: DecisionInput, principal=Depends(require_sect
 async def generate_decision_suggestions(principal=Depends(require_section("decisions", "decisions:act"))):
     result = await _generate_insights(principal["workspace_id"], raise_on_rate_limit=True)
     c = await get_ws(principal["workspace_id"])
+    fin_ok = await can_access_financials(principal)
     return {
         **result,
-        "suggestions": [s for s in (c.get("decision_suggestions") or []) if s.get("status") == "suggested"],
+        "suggestions": [
+            s for s in (c.get("decision_suggestions") or [])
+            if s.get("status") == "suggested" and (fin_ok or not decision_engine.is_financial_signal(s))
+        ],
         "delegate_suggestions": [s for s in (c.get("delegate_suggestions") or []) if s.get("status") == "suggested"],
     }
 
@@ -4977,6 +5058,8 @@ async def approve_decision_suggestion(suggestion_id: str, principal=Depends(requ
         "source": "ai_suggested",
         "from_suggestion_id": suggestion_id,
         "signal_type": sug.get("signal_type") or (sug.get("signal") or {}).get("type"),
+        # Financial decisions stay hidden from users without Financials access.
+        "financial": decision_engine.is_financial_signal(sug),
     }
     # Keep the originating signal so the decision can deep-link back to the
     # record that raised it (type, related_id, department_type, employee_id…).
@@ -6062,6 +6145,7 @@ async def _workspace_live_signals(
         currency=currency,
         department_items=department_items,
         now=tz_utils.workspace_now(c),
+        sales_targets=await _signal_sales_targets(workspace_id, c),
     )
 
 
@@ -6276,6 +6360,8 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         signals = await _workspace_live_signals(
             c["workspace_id"], fin=fin, deals=deals, c=c,
         )
+        if not await can_access_financials(principal):
+            signals = [x for x in signals if not decision_engine.is_financial_signal(x)]
         suggested_risks = _telemetry_risk_suggestions_from_signals(signals, cap=5)
     except Exception:
         logger.exception("telemetry risk suggestions failed for %s", c.get("workspace_id"))
@@ -6389,6 +6475,7 @@ async def financials(principal=Depends(require_section("financials", "finance:wr
         "can_manage": "integrations:manage" in perms_for(principal["pack"]),
         "google": gcal.google_capabilities(my_google),
         "accounting": _workspace_accounting_sync(c),
+        "modeling_allowed": workspace_allows(c, helm_plans.FEATURE_FINANCIAL_MODELING),
     }
 
 
@@ -7095,6 +7182,218 @@ async def update_fin_settings(payload: FinSettingsInput, principal=Depends(requi
         {"cash": payload.cash, "runway_months": runway, "currency": cur},
     )
     return {"ok": True, "settings": fin.get("settings"), "currency": cur}
+
+class MinReserveInput(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    # None clears it (reserve alerts go quiet again).
+    value: Optional[float] = Field(None, ge=0, le=1e12)
+
+
+@api_router.put("/financials/min-reserve")
+async def update_min_cash_reserve(
+    payload: MinReserveInput,
+    principal=Depends(require_section("financials", "finance:write")),
+):
+    """Minimum cash the founder wants to keep. Drives runway-forecast alerts on every plan."""
+    value = round(payload.value, 2) if payload.value is not None else None
+    await db.workspaces.update_one(
+        {"workspace_id": principal["workspace_id"]},
+        {"$set": {"financial_settings.min_cash_reserve": value}},
+    )
+    invalidate_financials_cache(principal["workspace_id"])
+    cur = await _workspace_currency(principal["workspace_id"])
+    await log_activity(
+        principal, "financials", "settings.update",
+        f"Set minimum cash reserve to {fmt_money(value, cur)}" if value is not None else "Cleared minimum cash reserve",
+        {"min_cash_reserve": value},
+    )
+    return {"ok": True, "min_cash_reserve": value}
+
+
+# ------------------------- Financial Modeling (Growth / Business) -------------------------
+MODEL_SCENARIO_CAP = 20
+MODELING_PLAN_MESSAGE = "Financial Modeling is included in Growth and Business"
+
+
+async def require_modeling(principal=Depends(get_principal)):
+    """Financials access first (reason=permission), then plan (reason=plan)."""
+    if not await can_access_financials(principal):
+        raise HTTPException(
+            status_code=403,
+            detail={"reason": "permission", "message": FINANCIALS_ACCESS_DENIED_MESSAGE},
+        )
+    c = await get_ws(principal["workspace_id"])
+    if not workspace_allows(c, helm_plans.FEATURE_FINANCIAL_MODELING):
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "reason": "plan",
+                "message": MODELING_PLAN_MESSAGE,
+                "feature": helm_plans.FEATURE_FINANCIAL_MODELING,
+            },
+        )
+    return principal
+
+
+class ModelHireIn(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    label: str = Field("", max_length=modeling.MAX_LABEL_LEN)
+    monthly_cost: float = Field(0, ge=0, le=modeling.MAX_MONEY)
+    start_month: int = Field(1, ge=1, le=max(modeling.HORIZONS))
+
+
+class ModelEventIn(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    label: str = Field("", max_length=modeling.MAX_LABEL_LEN)
+    amount: float = Field(0, ge=-modeling.MAX_MONEY, le=modeling.MAX_MONEY)
+    month: int = Field(1, ge=1, le=max(modeling.HORIZONS))
+
+
+class ModelInputsIn(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    revenue_growth_pct: float = Field(0, ge=modeling.GROWTH_PCT_MIN, le=modeling.GROWTH_PCT_MAX)
+    expense_growth_pct: float = Field(0, ge=modeling.GROWTH_PCT_MIN, le=modeling.GROWTH_PCT_MAX)
+    hires: list[ModelHireIn] = Field(default_factory=list, max_length=modeling.MAX_HIRES)
+    events: list[ModelEventIn] = Field(default_factory=list, max_length=modeling.MAX_EVENTS)
+    min_cash_reserve: Optional[float] = Field(None, ge=0, le=modeling.MAX_MONEY)
+    horizon: int = modeling.DEFAULT_HORIZON
+
+    @model_validator(mode="after")
+    def _check_months(self):
+        if self.horizon not in modeling.HORIZONS:
+            raise ValueError("horizon must be 12, 24, or 36")
+        for h in self.hires:
+            if h.start_month > self.horizon:
+                raise ValueError("A hire starts after the end of the horizon")
+        for e in self.events:
+            if e.month > self.horizon:
+                raise ValueError("An event falls after the end of the horizon")
+        return self
+
+
+class ModelScenarioIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=modeling.MAX_LABEL_LEN)
+    inputs: ModelInputsIn
+
+
+def _scenario_out(doc: dict) -> dict:
+    return {
+        "scenario_id": doc.get("scenario_id"),
+        "name": doc.get("name") or "",
+        "inputs": modeling.sanitize_inputs(doc.get("inputs") or {}),
+        "created_by": doc.get("created_by"),
+        "created_at": doc.get("created_at"),
+        "updated_at": doc.get("updated_at"),
+    }
+
+
+def _clean_scenario_name(name: str) -> str:
+    cleaned = " ".join(str(name or "").split())[: modeling.MAX_LABEL_LEN]
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Scenario name is required")
+    return cleaned
+
+
+def modeling_baseline_from_fin(fin: dict) -> dict:
+    """Real-workspace starting point for the model. Nulls stay null."""
+    current = fin.get("current_month") or datetime.now(timezone.utc).strftime("%Y-%m")
+    avg = modeling.average_recent(fin.get("ledger_months") or [], current)
+    has_ledger = bool(fin.get("has_data")) and bool(avg["months"])
+    used = [r for r in (fin.get("ledger_months") or []) if r.get("month") in set(avg["months"])]
+    cash = fin.get("cash_value") if fin.get("cash_entered") else None
+    return {
+        "cash": _finite_or_none(cash),
+        "revenue": avg["revenue"] if has_ledger else None,
+        "expenses": avg["expenses"] if has_ledger else None,
+        "start_month": current,
+        "months_used": avg["months"] if has_ledger else [],
+        "months_of_data": len(fin.get("ledger_months") or []),
+        "cash_entered": cash is not None,
+        "revenue_known": has_ledger and any(float(r.get("revenue") or 0) > 0 for r in used),
+        "expenses_known": has_ledger and any(float(r.get("expenses") or 0) > 0 for r in used),
+        "min_cash_reserve": fin.get("min_cash_reserve"),
+        "currency": fin.get("currency") or "usd",
+        "currency_symbol": fin.get("currency_symbol") or currency_symbol(fin.get("currency")),
+        "burn_series": fin.get("burn_series") or [],
+    }
+
+
+@api_router.get("/modeling/access")
+async def modeling_access(principal=Depends(get_principal)):
+    """Tells the page which state to render. Never returns financial figures."""
+    c = await get_ws(principal["workspace_id"])
+    has_fin = await can_access_financials(principal)
+    plan_ok = workspace_allows(c, helm_plans.FEATURE_FINANCIAL_MODELING)
+    reason = None if (has_fin and plan_ok) else ("permission" if not has_fin else "plan")
+    return {
+        "allowed": has_fin and plan_ok,
+        "reason": reason,
+        "plan": workspace_plan_id(c),
+        "can_manage_billing": "billing:manage" in perms_for(principal["pack"]),
+        "message": MODELING_PLAN_MESSAGE if reason == "plan" else None,
+    }
+
+
+@api_router.get("/modeling/baseline")
+async def modeling_baseline(principal=Depends(require_modeling)):
+    fin = await compute_financials(principal["workspace_id"])
+    return modeling_baseline_from_fin(fin)
+
+
+@api_router.get("/modeling/scenarios")
+async def list_model_scenarios(principal=Depends(require_modeling)):
+    rows = await db.model_scenarios.find(
+        {"workspace_id": principal["workspace_id"]}, {"_id": 0},
+    ).sort("created_at", 1).to_list(MODEL_SCENARIO_CAP)
+    return {"scenarios": [_scenario_out(r) for r in rows], "cap": MODEL_SCENARIO_CAP}
+
+
+@api_router.post("/modeling/scenarios")
+async def create_model_scenario(payload: ModelScenarioIn, principal=Depends(require_modeling)):
+    ws_id = principal["workspace_id"]
+    if await db.model_scenarios.count_documents({"workspace_id": ws_id}) >= MODEL_SCENARIO_CAP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can save up to {MODEL_SCENARIO_CAP} scenarios. Delete one to add another.",
+        )
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "scenario_id": f"scn_{uuid.uuid4().hex[:12]}",
+        "workspace_id": ws_id,
+        "name": _clean_scenario_name(payload.name),
+        "inputs": modeling.sanitize_inputs(payload.inputs.model_dump()),
+        "created_by": principal.get("user_id"),
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.model_scenarios.insert_one(dict(doc))
+    return _scenario_out(doc)
+
+
+@api_router.put("/modeling/scenarios/{scenario_id}")
+async def update_model_scenario(scenario_id: str, payload: ModelScenarioIn, principal=Depends(require_modeling)):
+    flt = {"workspace_id": principal["workspace_id"], "scenario_id": scenario_id}
+    existing = await db.model_scenarios.find_one(flt, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    updates = {
+        "name": _clean_scenario_name(payload.name),
+        "inputs": modeling.sanitize_inputs(payload.inputs.model_dump()),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.model_scenarios.update_one(flt, {"$set": updates})
+    return _scenario_out({**existing, **updates})
+
+
+@api_router.delete("/modeling/scenarios/{scenario_id}")
+async def delete_model_scenario(scenario_id: str, principal=Depends(require_modeling)):
+    res = await db.model_scenarios.delete_one(
+        {"workspace_id": principal["workspace_id"], "scenario_id": scenario_id},
+    )
+    if not getattr(res, "deleted_count", 0):
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    return {"ok": True}
+
 
 class CsvImportConfirmInput(BaseModel):
     entries: list
@@ -15878,6 +16177,7 @@ _WORKSPACE_COLLECTIONS = (
     "hr_employees", "hr_offboarding_template", "hr_offboarding_instances",
     "hr_leave_requests",
     "department_report_drafts",
+    "model_scenarios",
 )
 
 # Per-provider stamp: who connected the shared workspace OAuth grant.
@@ -16521,7 +16821,8 @@ async def run_weekly_digest_cron() -> dict:
             if not workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS):
                 stats["skipped_plan"] += 1
                 continue
-            recipients = await _alert_recipient_emails(wid)
+            # The pack contains cash and burn figures: Financials access only.
+            recipients = await _alert_recipient_emails(wid, financial=True)
             if not recipients:
                 stats["skipped_no_recipients"] += 1
                 continue
@@ -17003,6 +17304,7 @@ async def _ensure_indexes():
         (db.sales_order_book, [("workspace_id", 1), ("expected_close_month", 1)], {}),
         (db.sales_order_book, [("workspace_id", 1), ("created_at", -1)], {}),
         (db.sales_targets, [("workspace_id", 1), ("month", 1)], {"unique": True}),
+        (db.model_scenarios, [("workspace_id", 1), ("scenario_id", 1)], {"unique": True}),
         (db.maintenance_spares, [("id", 1)], {"unique": True}),
         (db.maintenance_spares, [("department_id", 1)], {}),
         (db.maintenance_spares, [("workspace_id", 1), ("created_at", -1)], {}),

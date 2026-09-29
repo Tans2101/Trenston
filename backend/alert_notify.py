@@ -9,6 +9,9 @@ logger = logging.getLogger(__name__)
 
 def signal_notify_key(signal: dict) -> str:
     """Stable fingerprint for debounce across regenerations."""
+    stable = signal.get("notify_key")
+    if stable:
+        return str(stable)
     t = signal.get("type") or "unknown"
     rid = signal.get("related_id")
     if rid is not None and str(rid).strip():
@@ -69,12 +72,19 @@ def _slack_escape(s: Any) -> str:
     )
 
 
-def build_slack_text(workspace_name: str, alerts: list, app_url: str) -> str:
+def build_slack_text(workspace_name: str, alerts: list, app_url: str, *, redacted_financial: int = 0) -> str:
+    """Slack message. Financial alerts are passed as a count only, never with figures."""
     lines = [f"*Trenston high-severity alert: {_slack_escape(workspace_name)}*"]
     for a in alerts:
         title = a.get("title") or (a.get("signal") or {}).get("summary") or "Alert"
         detail = a.get("description") or (a.get("signal") or {}).get("detail") or ""
         lines.append(f"• {_slack_escape(title)}: {_slack_escape(detail)}")
+    if redacted_financial:
+        n = int(redacted_financial)
+        lines.append(
+            f"• {n} financial alert{'s' if n != 1 else ''} (cash, burn or revenue). "
+            "Details are only shown in Trenston to people with Financials access."
+        )
     link = (app_url or "").rstrip("/") + "/app/decisions"
     lines.append(f"Open: {link}")
     return "\n".join(lines)

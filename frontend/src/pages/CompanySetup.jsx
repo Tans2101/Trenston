@@ -64,7 +64,7 @@ function Segmented({ options, value, onChange, testIdPrefix }) {
             className={cn(
               "px-3.5 py-2 text-sm transition-colors",
               i > 0 && "border-l border-helm-line",
-              on ? "bg-helm-fg text-helm-bg" : "text-helm-muted hover:text-helm-fg hover:bg-helm-fg/[0.04]",
+              on ? "bg-helm-gold text-helm-navy" : "text-helm-muted hover:text-helm-fg hover:bg-helm-fg/[0.04]",
             )}
           >
             {o.label}

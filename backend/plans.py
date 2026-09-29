@@ -31,6 +31,8 @@ FEATURE_INTEGRATIONS = "integrations"
 FEATURE_ADVANCED_REPORTS = "advanced_reports"
 FEATURE_TEAM = "team"
 FEATURE_PRIORITY_SUPPORT = "priority_support"
+# Scenario modeling page (/app/modeling). Growth and Business only.
+FEATURE_FINANCIAL_MODELING = "financial_modeling"
 
 # Company-ledger / CRM / alerts providers gated by plan. Google is per-user on every plan
 # and is never listed here — see plan_allows_provider / connect endpoint.
@@ -73,6 +75,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_ADVANCED_REPORTS: False,
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
+            FEATURE_FINANCIAL_MODELING: False,
         },
         "includes": [
             "Up to 3 Trenston users",
@@ -102,6 +105,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_ADVANCED_REPORTS: True,
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
+            FEATURE_FINANCIAL_MODELING: False,
         },
         "includes": [
             "Up to 7 Trenston users",
@@ -131,6 +135,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_ADVANCED_REPORTS: True,
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
+            FEATURE_FINANCIAL_MODELING: True,
         },
         "includes": [
             "Up to 20 Trenston users",
@@ -138,6 +143,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Ask Trenston (200 messages/month)",
             "Everything in Starter",
             "Integrations: HubSpot, Slack",
+            "Financial Modeling: runway scenarios with hires and funding",
             "Deeper reporting across a bigger team",
             "7-day free trial",
         ],
@@ -161,6 +167,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_ADVANCED_REPORTS: True,
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: True,
+            FEATURE_FINANCIAL_MODELING: True,
         },
         "includes": [
             "Up to 35 Trenston users",

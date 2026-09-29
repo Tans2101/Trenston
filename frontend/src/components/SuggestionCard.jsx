@@ -7,6 +7,49 @@ import { signalRoute } from "@/lib/signalRoute";
 
 const LIST_MOTION = { duration: 0.22, ease: [0.4, 0, 0.2, 1] };
 
+const CONFIDENCE_LABEL = { high: "High", medium: "Medium", low: "Low" };
+
+function fmtValue(v) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return String(v);
+  return Math.abs(n) >= 1000 ? Math.round(n).toLocaleString() : String(Math.round(n * 10) / 10);
+}
+
+/** Inputs behind a predictive alert, so the founder can check the maths. */
+function ForecastDetails({ signal, id }) {
+  const f = signal?.forecast;
+  if (!f || typeof f !== "object") return null;
+  const rows = [
+    ["Measured", f.metric],
+    ["Period", f.window],
+    ["Now", fmtValue(f.current_value)],
+    ["Compared with", fmtValue(f.prior_value)],
+    ["Minimum reserve", fmtValue(f.reserve)],
+    ["Projected date", f.projected_date],
+    ["Confidence", f.confidence ? `${CONFIDENCE_LABEL[f.confidence] || f.confidence} (${f.data_points ?? 0} data points)` : null],
+  ].filter(([, v]) => v !== null && v !== undefined && v !== "");
+  return (
+    <details className="mt-3 group" data-testid={`forecast-details-${id}`}>
+      <summary className="cursor-pointer list-none text-xs text-helm-muted hover:text-helm-fg">
+        How this was worked out
+      </summary>
+      <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-helm-muted">{k}</dt>
+            <dd className="text-helm-fg tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {signal.what_would_change ? (
+        <p className="mt-2 text-xs text-helm-muted"><span className="text-helm-fg">What would change this: </span>{signal.what_would_change}</p>
+      ) : null}
+      <p className="mt-2 text-[11px] text-helm-muted">A projection from your recorded data, not a certainty.</p>
+    </details>
+  );
+}
+
 export default function SuggestionCard({
   s,
   canAct,
@@ -38,6 +81,7 @@ export default function SuggestionCard({
           </div>
           <h3 className="text-lg text-helm-fg font-medium tracking-tight">{s.title}</h3>
           {s.description && <p className="text-sm text-helm-muted mt-1">{s.description}</p>}
+          <ForecastDetails signal={s.signal} id={s.id} />
           {source?.to && (
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
               <Link

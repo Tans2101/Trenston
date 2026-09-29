@@ -30,7 +30,7 @@ function Box({ checked }) {
     <span
       className={cn(
         "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
-        checked ? "border-helm-fg bg-helm-fg text-helm-bg" : "border-helm-line",
+        checked ? "border-helm-gold bg-helm-gold text-helm-navy" : "border-helm-line",
       )}
       aria-hidden
     >

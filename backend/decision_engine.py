@@ -14,6 +14,7 @@ import uuid
 from money_fmt import fmt_money_plain
 from departments_catalog import TYPE_ENGINEERING_MAINTENANCE, TYPE_HR, TYPE_LEGAL, TYPE_PRODUCTION, TYPE_PROCUREMENT
 from department_report_drafts import SPEC_BY_TYPE
+import risk_forecast
 
 
 logger = logging.getLogger("helm.decision_engine")
@@ -65,7 +66,33 @@ DECISION_SIGNAL_TYPES = frozenset({
     "overdue_legal_deadline",
     # Leave request awaiting approval longer than the stale threshold.
     "pending_leave_request",
+    # Predictive risk alerts (risk_forecast.py; deterministic projections).
+    *risk_forecast.SIGNAL_TYPES,
 })
+
+# Signals whose text reveals cash, burn, revenue, runway or revenue targets.
+# Only users with Financials access may see them, on every channel.
+FINANCIAL_SIGNAL_TYPES = frozenset({
+    "runway_risk",
+    "burn_increase",
+    "expense_spike",
+    "new_expense_category",
+    "cash_runway_forecast",
+    "burn_acceleration",
+    "revenue_decline",
+    "pipeline_coverage",
+})
+
+
+def is_financial_signal(item: dict | None) -> bool:
+    """True for a signal, suggestion card or accepted decision built from a financial signal."""
+    if not item:
+        return False
+    if item.get("financial") is True:
+        return True
+    sig = item.get("signal") if isinstance(item.get("signal"), dict) else None
+    t = item.get("signal_type") or (sig or {}).get("type") or item.get("type")
+    return t in FINANCIAL_SIGNAL_TYPES
 DELEGATE_SIGNAL_TYPES = frozenset({
     "overdue_task",
     "recurring_blocker",
@@ -1322,6 +1349,12 @@ def compute_impact_score(signal: dict) -> float:
         except (TypeError, ValueError):
             pass
 
+    # Reserve forecast: sooner crossing = more impact.
+    if signal.get("days_until_reserve") is not None:
+        try:
+            days = max(days, max(0.0, 180.0 - float(signal["days_until_reserve"])))
+        except (TypeError, ValueError):
+            pass
     # Runway pressure: months under the threshold ≈ days of exposure.
     if signal.get("runway_months") is not None:
         try:
@@ -1385,12 +1418,20 @@ def collect_signals(
     currency: str = "usd",
     department_items: list | None = None,
     now: Optional[datetime] = None,
+    sales_targets: list | None = None,
 ) -> list:
     """Run all detectors and return a flat list of signals."""
     signals = []
     runway = detect_runway_risk(fin)
     if runway:
         signals.append(runway)
+    signals.extend(risk_forecast.collect(
+        fin, tasks, deals, sales_targets,
+        today=(now or datetime.now(timezone.utc)).date(),
+        currency=currency,
+    ))
+    # One card per condition (e.g. reserve forecast supersedes "runway < 6 months").
+    signals = risk_forecast.dedupe_overlapping(signals)
     signals.extend(detect_expense_spike(expense_by_month, currency=currency))
     signals.extend(detect_new_expense_category(expense_by_month, currency=currency))
     signals.extend(detect_stalled_deals(deals, currency=currency, now=now))

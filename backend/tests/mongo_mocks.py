@@ -117,10 +117,28 @@ class FakeCollection:
         return res
 
     async def delete_one(self, flt):
+        res = MagicMock()
+        res.deleted_count = 0
         for i, d in enumerate(self.docs):
             if match_filter(d, flt):
                 del self.docs[i]
+                res.deleted_count = 1
                 break
+        return res
+
+    async def update_one(self, flt, update, upsert=False):
+        """Supports $set only (dotted keys are set literally)."""
+        res = MagicMock()
+        res.matched_count = 0
+        res.modified_count = 0
+        for d in self.docs:
+            if match_filter(d, flt or {}):
+                for k, v in ((update or {}).get("$set") or {}).items():
+                    d[k] = v
+                res.matched_count = 1
+                res.modified_count = 1
+                break
+        return res
 
     async def insert_many(self, docs):
         self.docs.extend(dict(d) for d in docs)

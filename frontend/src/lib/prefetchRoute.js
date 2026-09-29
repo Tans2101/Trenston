@@ -9,6 +9,7 @@ const prefetchers = {
   "/app/decisions": () => import("@/pages/Decisions"),
   "/app/telemetry": () => import("@/pages/Telemetry"),
   "/app/financials": () => import("@/pages/Financials"),
+  "/app/modeling": () => import("@/pages/FinancialModeling"),
   "/app/tasks": () => import("@/pages/Tasks"),
   "/app/reports": () => import("@/pages/Reports"),
   "/app/calendar": () => import("@/pages/CalendarPage"),

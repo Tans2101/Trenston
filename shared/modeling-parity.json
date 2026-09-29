@@ -1,0 +1,2253 @@
+{
+ "cases": [
+  {
+   "name": "flat burn, runs out in exactly 5 months",
+   "inputs": {
+    "horizon": 12,
+    "min_cash_reserve": 5000
+   },
+   "baseline": {
+    "cash": 10000,
+    "revenue": 1000,
+    "expenses": 3000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": 5000.0,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 8000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 6000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 4000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 2000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 0.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -2000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -4000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -6000.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -8000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -10000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -12000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -14000.0
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 5.0,
+    "cash_out_month": 6,
+    "reserve_breach_month": 3,
+    "break_even_month": null,
+    "ending_cash": -14000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "profitable company, cash growing",
+   "inputs": {
+    "horizon": 12
+   },
+   "baseline": {
+    "cash": 5000,
+    "revenue": 5000,
+    "expenses": 3000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 7000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 9000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 11000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 13000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 15000.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 17000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 19000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 21000.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 23000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 25000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 27000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 5000.0,
+      "expenses": 3000.0,
+      "net": 2000.0,
+      "cash": 29000.0
+     }
+    ],
+    "runway_status": "cash_growing",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": 1,
+    "ending_cash": 29000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "cash not entered",
+   "inputs": {
+    "horizon": 12,
+    "revenue_growth_pct": 5
+   },
+   "baseline": {
+    "cash": null,
+    "revenue": 1000,
+    "expenses": 3000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 5.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 1050.0,
+      "expenses": 3000.0,
+      "net": -1950.0,
+      "cash": null
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 1102.5,
+      "expenses": 3000.0,
+      "net": -1897.5,
+      "cash": null
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 1157.6250000000002,
+      "expenses": 3000.0,
+      "net": -1842.3749999999998,
+      "cash": null
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 1215.5062500000001,
+      "expenses": 3000.0,
+      "net": -1784.4937499999999,
+      "cash": null
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 1276.2815625000003,
+      "expenses": 3000.0,
+      "net": -1723.7184374999997,
+      "cash": null
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 1340.0956406250004,
+      "expenses": 3000.0,
+      "net": -1659.9043593749996,
+      "cash": null
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 1407.1004226562504,
+      "expenses": 3000.0,
+      "net": -1592.8995773437496,
+      "cash": null
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 1477.455443789063,
+      "expenses": 3000.0,
+      "net": -1522.544556210937,
+      "cash": null
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 1551.3282159785163,
+      "expenses": 3000.0,
+      "net": -1448.6717840214837,
+      "cash": null
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 1628.894626777442,
+      "expenses": 3000.0,
+      "net": -1371.105373222558,
+      "cash": null
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 1710.3393581163143,
+      "expenses": 3000.0,
+      "net": -1289.6606418836857,
+      "cash": null
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 1795.8563260221301,
+      "expenses": 3000.0,
+      "net": -1204.1436739778699,
+      "cash": null
+     }
+    ],
+    "runway_status": "no_cash",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": null,
+    "cash_known": false,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "no ledger at all",
+   "inputs": {
+    "horizon": 12
+   },
+   "baseline": {
+    "cash": 10000,
+    "revenue": null,
+    "expenses": null,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [],
+    "runway_status": "no_ledger",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": null,
+    "cash_known": true,
+    "ledger_known": false
+   }
+  },
+  {
+   "name": "revenue unknown, expenses known",
+   "inputs": {
+    "horizon": 12
+   },
+   "baseline": {
+    "cash": 20000,
+    "revenue": null,
+    "expenses": 2500,
+    "start_month": "2026-12"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2027-01",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 17500.0
+     },
+     {
+      "m": 2,
+      "month": "2027-02",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 15000.0
+     },
+     {
+      "m": 3,
+      "month": "2027-03",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 12500.0
+     },
+     {
+      "m": 4,
+      "month": "2027-04",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 10000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-05",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 7500.0
+     },
+     {
+      "m": 6,
+      "month": "2027-06",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 5000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-07",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 2500.0
+     },
+     {
+      "m": 8,
+      "month": "2027-08",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": 0.0
+     },
+     {
+      "m": 9,
+      "month": "2027-09",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": -2500.0
+     },
+     {
+      "m": 10,
+      "month": "2027-10",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": -5000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-11",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": -7500.0
+     },
+     {
+      "m": 12,
+      "month": "2027-12",
+      "revenue": 0.0,
+      "expenses": 2500.0,
+      "net": -2500.0,
+      "cash": -10000.0
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 8.0,
+    "cash_out_month": 9,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": -10000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "growth, hires and a funding round over 36 months",
+   "inputs": {
+    "horizon": 36,
+    "revenue_growth_pct": 8,
+    "expense_growth_pct": 2,
+    "hires": [
+     {
+      "label": "Engineer",
+      "monthly_cost": 4000,
+      "start_month": 3
+     },
+     {
+      "label": "Sales",
+      "monthly_cost": 2500,
+      "start_month": 7
+     }
+    ],
+    "events": [
+     {
+      "label": "Seed round",
+      "amount": 150000,
+      "month": 6
+     },
+     {
+      "label": "Laptops",
+      "amount": -6000,
+      "month": 3
+     }
+    ],
+    "min_cash_reserve": 20000
+   },
+   "baseline": {
+    "cash": 60000,
+    "revenue": 4000,
+    "expenses": 9000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 8.0,
+    "expense_growth_pct": 2.0,
+    "hires": [
+     {
+      "label": "Engineer",
+      "monthly_cost": 4000.0,
+      "start_month": 3
+     },
+     {
+      "label": "Sales",
+      "monthly_cost": 2500.0,
+      "start_month": 7
+     }
+    ],
+    "events": [
+     {
+      "label": "Seed round",
+      "amount": 150000.0,
+      "month": 6
+     },
+     {
+      "label": "Laptops",
+      "amount": -6000.0,
+      "month": 3
+     }
+    ],
+    "min_cash_reserve": 20000.0,
+    "horizon": 36
+   },
+   "expected": {
+    "horizon": 36,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 4320.0,
+      "expenses": 9180.0,
+      "net": -4860.0,
+      "cash": 55140.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 4665.6,
+      "expenses": 9363.6,
+      "net": -4698.0,
+      "cash": 50442.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 5038.848000000001,
+      "expenses": 13550.872000000001,
+      "net": -14512.024000000001,
+      "cash": 35929.975999999995
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 5441.955840000001,
+      "expenses": 13741.889439999999,
+      "net": -8299.933599999997,
+      "cash": 27630.0424
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 5877.312307200003,
+      "expenses": 13936.7272288,
+      "net": -8059.414921599998,
+      "cash": 19570.6274784
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 6347.497291776002,
+      "expenses": 14135.461773376,
+      "net": 142212.0355184,
+      "cash": 161782.6629968
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 6855.297075118084,
+      "expenses": 16838.17100884352,
+      "net": -9982.873933725437,
+      "cash": 151799.78906307457
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 7403.720841127531,
+      "expenses": 17044.93442902039,
+      "net": -9641.21358789286,
+      "cash": 142158.57547518171
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 7996.018508417733,
+      "expenses": 17255.8331176008,
+      "net": -9259.814609183068,
+      "cash": 132898.76086599866
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 8635.699989091152,
+      "expenses": 17470.949779952818,
+      "net": -8835.249790861666,
+      "cash": 124063.511075137
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 9326.555988218444,
+      "expenses": 17690.36877555187,
+      "net": -8363.812787333425,
+      "cash": 115699.69828780356
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 10072.68046727592,
+      "expenses": 17914.176151062908,
+      "net": -7841.495683786987,
+      "cash": 107858.20260401658
+     },
+     {
+      "m": 13,
+      "month": "2027-10",
+      "revenue": 10878.494904657997,
+      "expenses": 18142.459674084166,
+      "net": -7263.964769426169,
+      "cash": 100594.23783459041
+     },
+     {
+      "m": 14,
+      "month": "2027-11",
+      "revenue": 11748.774497030636,
+      "expenses": 18375.30886756585,
+      "net": -6626.534370535215,
+      "cash": 93967.7034640552
+     },
+     {
+      "m": 15,
+      "month": "2027-12",
+      "revenue": 12688.676456793088,
+      "expenses": 18612.81504491717,
+      "net": -5924.138588124082,
+      "cash": 88043.56487593112
+     },
+     {
+      "m": 16,
+      "month": "2028-01",
+      "revenue": 13703.770573336536,
+      "expenses": 18855.071345815515,
+      "net": -5151.300772478979,
+      "cash": 82892.26410345214
+     },
+     {
+      "m": 17,
+      "month": "2028-02",
+      "revenue": 14800.072219203461,
+      "expenses": 19102.17277273182,
+      "net": -4302.10055352836,
+      "cash": 78590.16354992377
+     },
+     {
+      "m": 18,
+      "month": "2028-03",
+      "revenue": 15984.077996739738,
+      "expenses": 19354.21622818646,
+      "net": -3370.138231446721,
+      "cash": 75220.02531847706
+     },
+     {
+      "m": 19,
+      "month": "2028-04",
+      "revenue": 17262.804236478918,
+      "expenses": 19611.30055275019,
+      "net": -2348.49631627127,
+      "cash": 72871.52900220579
+     },
+     {
+      "m": 20,
+      "month": "2028-05",
+      "revenue": 18643.828575397234,
+      "expenses": 19873.526563805193,
+      "net": -1229.6979884079592,
+      "cash": 71641.83101379783
+     },
+     {
+      "m": 21,
+      "month": "2028-06",
+      "revenue": 20135.33486142901,
+      "expenses": 20140.997095081297,
+      "net": -5.662233652285067,
+      "cash": 71636.16878014554
+     },
+     {
+      "m": 22,
+      "month": "2028-07",
+      "revenue": 21746.161650343336,
+      "expenses": 20413.817036982924,
+      "net": 1332.344613360412,
+      "cash": 72968.51339350596
+     },
+     {
+      "m": 23,
+      "month": "2028-08",
+      "revenue": 23485.8545823708,
+      "expenses": 20692.093377722584,
+      "net": 2793.7612046482172,
+      "cash": 75762.27459815418
+     },
+     {
+      "m": 24,
+      "month": "2028-09",
+      "revenue": 25364.72294896047,
+      "expenses": 20975.935245277033,
+      "net": 4388.787703683436,
+      "cash": 80151.06230183762
+     },
+     {
+      "m": 25,
+      "month": "2028-10",
+      "revenue": 27393.90078487731,
+      "expenses": 21265.45395018258,
+      "net": 6128.446834694732,
+      "cash": 86279.50913653235
+     },
+     {
+      "m": 26,
+      "month": "2028-11",
+      "revenue": 29585.412847667496,
+      "expenses": 21560.763029186226,
+      "net": 8024.64981848127,
+      "cash": 94304.15895501361
+     },
+     {
+      "m": 27,
+      "month": "2028-12",
+      "revenue": 31952.245875480898,
+      "expenses": 21861.97828976995,
+      "net": 10090.267585710946,
+      "cash": 104394.42654072455
+     },
+     {
+      "m": 28,
+      "month": "2029-01",
+      "revenue": 34508.42554551937,
+      "expenses": 22169.21785556535,
+      "net": 12339.207689954019,
+      "cash": 116733.63423067858
+     },
+     {
+      "m": 29,
+      "month": "2029-02",
+      "revenue": 37269.09958916092,
+      "expenses": 22482.60221267666,
+      "net": 14786.497376484262,
+      "cash": 131520.13160716285
+     },
+     {
+      "m": 30,
+      "month": "2029-03",
+      "revenue": 40250.6275562938,
+      "expenses": 22802.254256930195,
+      "net": 17448.373299363608,
+      "cash": 148968.50490652648
+     },
+     {
+      "m": 31,
+      "month": "2029-04",
+      "revenue": 43470.677760797305,
+      "expenses": 23128.299342068796,
+      "net": 20342.37841872851,
+      "cash": 169310.88332525498
+     },
+     {
+      "m": 32,
+      "month": "2029-05",
+      "revenue": 46948.33198166109,
+      "expenses": 23460.86532891017,
+      "net": 23487.466652750918,
+      "cash": 192798.3499780059
+     },
+     {
+      "m": 33,
+      "month": "2029-06",
+      "revenue": 50704.19854019398,
+      "expenses": 23800.082635488376,
+      "net": 26904.115904705606,
+      "cash": 219702.4658827115
+     },
+     {
+      "m": 34,
+      "month": "2029-07",
+      "revenue": 54760.53442340951,
+      "expenses": 24146.084288198144,
+      "net": 30614.450135211366,
+      "cash": 250316.91601792286
+     },
+     {
+      "m": 35,
+      "month": "2029-08",
+      "revenue": 59141.37717728227,
+      "expenses": 24499.00597396211,
+      "net": 34642.37120332016,
+      "cash": 284959.287221243
+     },
+     {
+      "m": 36,
+      "month": "2029-09",
+      "revenue": 63872.68735146486,
+      "expenses": 24858.98609344135,
+      "net": 39013.70125802352,
+      "cash": 323972.9884792665
+     }
+    ],
+    "runway_status": "beyond_horizon",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": 5,
+    "break_even_month": 22,
+    "ending_cash": 323972.9884792665,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "out-of-range and junk inputs are clamped or defaulted",
+   "inputs": {
+    "horizon": 18,
+    "revenue_growth_pct": -80,
+    "expense_growth_pct": "NaN",
+    "hires": [
+     {
+      "label": "  Ops  ",
+      "monthly_cost": -50,
+      "start_month": 99
+     },
+     "junk",
+     {
+      "label": true,
+      "monthly_cost": "1500",
+      "start_month": "0x10"
+     }
+    ],
+    "events": [
+     {
+      "label": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "amount": "1e3",
+      "month": 2.9
+     }
+    ],
+    "min_cash_reserve": -10
+   },
+   "baseline": {
+    "cash": "12000",
+    "revenue": "",
+    "expenses": "2000",
+    "start_month": "2026-01"
+   },
+   "sanitized": {
+    "revenue_growth_pct": -50.0,
+    "expense_growth_pct": 0.0,
+    "hires": [
+     {
+      "label": "Ops",
+      "monthly_cost": 0.0,
+      "start_month": 24
+     },
+     {
+      "label": "",
+      "monthly_cost": 1500.0,
+      "start_month": 1
+     }
+    ],
+    "events": [
+     {
+      "label": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "amount": 1000.0,
+      "month": 2
+     }
+    ],
+    "min_cash_reserve": 0.0,
+    "horizon": 24
+   },
+   "expected": {
+    "horizon": 24,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-02",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": 8500.0
+     },
+     {
+      "m": 2,
+      "month": "2026-03",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -2500.0,
+      "cash": 6000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-04",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": 2500.0
+     },
+     {
+      "m": 4,
+      "month": "2026-05",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -1000.0
+     },
+     {
+      "m": 5,
+      "month": "2026-06",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -4500.0
+     },
+     {
+      "m": 6,
+      "month": "2026-07",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -8000.0
+     },
+     {
+      "m": 7,
+      "month": "2026-08",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -11500.0
+     },
+     {
+      "m": 8,
+      "month": "2026-09",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -15000.0
+     },
+     {
+      "m": 9,
+      "month": "2026-10",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -18500.0
+     },
+     {
+      "m": 10,
+      "month": "2026-11",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -22000.0
+     },
+     {
+      "m": 11,
+      "month": "2026-12",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -25500.0
+     },
+     {
+      "m": 12,
+      "month": "2027-01",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -29000.0
+     },
+     {
+      "m": 13,
+      "month": "2027-02",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -32500.0
+     },
+     {
+      "m": 14,
+      "month": "2027-03",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -36000.0
+     },
+     {
+      "m": 15,
+      "month": "2027-04",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -39500.0
+     },
+     {
+      "m": 16,
+      "month": "2027-05",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -43000.0
+     },
+     {
+      "m": 17,
+      "month": "2027-06",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -46500.0
+     },
+     {
+      "m": 18,
+      "month": "2027-07",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -50000.0
+     },
+     {
+      "m": 19,
+      "month": "2027-08",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -53500.0
+     },
+     {
+      "m": 20,
+      "month": "2027-09",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -57000.0
+     },
+     {
+      "m": 21,
+      "month": "2027-10",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -60500.0
+     },
+     {
+      "m": 22,
+      "month": "2027-11",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -64000.0
+     },
+     {
+      "m": 23,
+      "month": "2027-12",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -67500.0
+     },
+     {
+      "m": 24,
+      "month": "2028-01",
+      "revenue": 0.0,
+      "expenses": 3500.0,
+      "net": -3500.0,
+      "cash": -71000.0
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 3.7142857142857144,
+    "cash_out_month": 4,
+    "reserve_breach_month": 4,
+    "break_even_month": null,
+    "ending_cash": -71000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "already overdrawn",
+   "inputs": {
+    "horizon": 12,
+    "min_cash_reserve": 1000
+   },
+   "baseline": {
+    "cash": -500,
+    "revenue": 1000,
+    "expenses": 1500,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": 1000.0,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -1000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -1500.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -2000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -2500.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -3000.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -3500.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -4000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -4500.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -5000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -5500.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -6000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 1000.0,
+      "expenses": 1500.0,
+      "net": -500.0,
+      "cash": -6500.0
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 0.0,
+    "cash_out_month": 0,
+    "reserve_breach_month": 0,
+    "break_even_month": null,
+    "ending_cash": -6500.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "huge values stay finite",
+   "inputs": {
+    "horizon": 24,
+    "revenue_growth_pct": 100,
+    "expense_growth_pct": 100
+   },
+   "baseline": {
+    "cash": 100000000000.0,
+    "revenue": 1000000000.0,
+    "expenses": 2000000000.0,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 100.0,
+    "expense_growth_pct": 100.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 24
+   },
+   "expected": {
+    "horizon": 24,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 2000000000.0,
+      "expenses": 4000000000.0,
+      "net": -2000000000.0,
+      "cash": 98000000000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 4000000000.0,
+      "expenses": 8000000000.0,
+      "net": -4000000000.0,
+      "cash": 94000000000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 8000000000.0,
+      "expenses": 16000000000.0,
+      "net": -8000000000.0,
+      "cash": 86000000000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 16000000000.0,
+      "expenses": 32000000000.0,
+      "net": -16000000000.0,
+      "cash": 70000000000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 32000000000.0,
+      "expenses": 64000000000.0,
+      "net": -32000000000.0,
+      "cash": 38000000000.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 64000000000.0,
+      "expenses": 128000000000.0,
+      "net": -64000000000.0,
+      "cash": -26000000000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 128000000000.0,
+      "expenses": 256000000000.0,
+      "net": -128000000000.0,
+      "cash": -154000000000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 256000000000.0,
+      "expenses": 512000000000.0,
+      "net": -256000000000.0,
+      "cash": -410000000000.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 512000000000.0,
+      "expenses": 1024000000000.0,
+      "net": -512000000000.0,
+      "cash": -922000000000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 1024000000000.0,
+      "expenses": 2048000000000.0,
+      "net": -1024000000000.0,
+      "cash": -1946000000000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 2048000000000.0,
+      "expenses": 4096000000000.0,
+      "net": -2048000000000.0,
+      "cash": -3994000000000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 4096000000000.0,
+      "expenses": 8192000000000.0,
+      "net": -4096000000000.0,
+      "cash": -8090000000000.0
+     },
+     {
+      "m": 13,
+      "month": "2027-10",
+      "revenue": 8192000000000.0,
+      "expenses": 16384000000000.0,
+      "net": -8192000000000.0,
+      "cash": -16282000000000.0
+     },
+     {
+      "m": 14,
+      "month": "2027-11",
+      "revenue": 16384000000000.0,
+      "expenses": 32768000000000.0,
+      "net": -16384000000000.0,
+      "cash": -32666000000000.0
+     },
+     {
+      "m": 15,
+      "month": "2027-12",
+      "revenue": 32768000000000.0,
+      "expenses": 65536000000000.0,
+      "net": -32768000000000.0,
+      "cash": -65434000000000.0
+     },
+     {
+      "m": 16,
+      "month": "2028-01",
+      "revenue": 65536000000000.0,
+      "expenses": 131072000000000.0,
+      "net": -65536000000000.0,
+      "cash": -130970000000000.0
+     },
+     {
+      "m": 17,
+      "month": "2028-02",
+      "revenue": 131072000000000.0,
+      "expenses": 262144000000000.0,
+      "net": -131072000000000.0,
+      "cash": -262042000000000.0
+     },
+     {
+      "m": 18,
+      "month": "2028-03",
+      "revenue": 262144000000000.0,
+      "expenses": 524288000000000.0,
+      "net": -262144000000000.0,
+      "cash": -524186000000000.0
+     },
+     {
+      "m": 19,
+      "month": "2028-04",
+      "revenue": 524288000000000.0,
+      "expenses": 1048576000000000.0,
+      "net": -524288000000000.0,
+      "cash": -1048474000000000.0
+     },
+     {
+      "m": 20,
+      "month": "2028-05",
+      "revenue": 1048576000000000.0,
+      "expenses": 2097152000000000.0,
+      "net": -1048576000000000.0,
+      "cash": -2097050000000000.0
+     },
+     {
+      "m": 21,
+      "month": "2028-06",
+      "revenue": 2097152000000000.0,
+      "expenses": 4194304000000000.0,
+      "net": -2097152000000000.0,
+      "cash": -4194202000000000.0
+     },
+     {
+      "m": 22,
+      "month": "2028-07",
+      "revenue": 4194304000000000.0,
+      "expenses": 8388608000000000.0,
+      "net": -4194304000000000.0,
+      "cash": -8388506000000000.0
+     },
+     {
+      "m": 23,
+      "month": "2028-08",
+      "revenue": 8388608000000000.0,
+      "expenses": 1.6777216e+16,
+      "net": -8388608000000000.0,
+      "cash": -1.6777114e+16
+     },
+     {
+      "m": 24,
+      "month": "2028-09",
+      "revenue": 1.6777216e+16,
+      "expenses": 3.3554432e+16,
+      "net": -1.6777216e+16,
+      "cash": -3.355433e+16
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 5.59375,
+    "cash_out_month": 6,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": -3.355433e+16,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "slow burn lasts beyond the horizon",
+   "inputs": {
+    "horizon": 12
+   },
+   "baseline": {
+    "cash": 100000,
+    "revenue": 9000,
+    "expenses": 10000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 99000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 98000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 97000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 96000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 95000.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 94000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 93000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 92000.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 91000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 90000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 89000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 9000.0,
+      "expenses": 10000.0,
+      "net": -1000.0,
+      "cash": 88000.0
+     }
+    ],
+    "runway_status": "beyond_horizon",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": 88000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "break-even reached through revenue growth",
+   "inputs": {
+    "horizon": 24,
+    "revenue_growth_pct": 10
+   },
+   "baseline": {
+    "cash": 50000,
+    "revenue": 2000,
+    "expenses": 4000,
+    "start_month": "2026-11"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 10.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 24
+   },
+   "expected": {
+    "horizon": 24,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-12",
+      "revenue": 2200.0,
+      "expenses": 4000.0,
+      "net": -1800.0,
+      "cash": 48200.0
+     },
+     {
+      "m": 2,
+      "month": "2027-01",
+      "revenue": 2420.0000000000005,
+      "expenses": 4000.0,
+      "net": -1579.9999999999995,
+      "cash": 46620.0
+     },
+     {
+      "m": 3,
+      "month": "2027-02",
+      "revenue": 2662.000000000001,
+      "expenses": 4000.0,
+      "net": -1337.999999999999,
+      "cash": 45282.0
+     },
+     {
+      "m": 4,
+      "month": "2027-03",
+      "revenue": 2928.2000000000007,
+      "expenses": 4000.0,
+      "net": -1071.7999999999993,
+      "cash": 44210.2
+     },
+     {
+      "m": 5,
+      "month": "2027-04",
+      "revenue": 3221.020000000001,
+      "expenses": 4000.0,
+      "net": -778.9799999999991,
+      "cash": 43431.22
+     },
+     {
+      "m": 6,
+      "month": "2027-05",
+      "revenue": 3543.1220000000017,
+      "expenses": 4000.0,
+      "net": -456.87799999999834,
+      "cash": 42974.342000000004
+     },
+     {
+      "m": 7,
+      "month": "2027-06",
+      "revenue": 3897.4342000000024,
+      "expenses": 4000.0,
+      "net": -102.56579999999758,
+      "cash": 42871.77620000001
+     },
+     {
+      "m": 8,
+      "month": "2027-07",
+      "revenue": 4287.177620000003,
+      "expenses": 4000.0,
+      "net": 287.1776200000031,
+      "cash": 43158.95382000001
+     },
+     {
+      "m": 9,
+      "month": "2027-08",
+      "revenue": 4715.895382000004,
+      "expenses": 4000.0,
+      "net": 715.8953820000042,
+      "cash": 43874.84920200001
+     },
+     {
+      "m": 10,
+      "month": "2027-09",
+      "revenue": 5187.484920200005,
+      "expenses": 4000.0,
+      "net": 1187.484920200005,
+      "cash": 45062.334122200016
+     },
+     {
+      "m": 11,
+      "month": "2027-10",
+      "revenue": 5706.2334122200045,
+      "expenses": 4000.0,
+      "net": 1706.2334122200045,
+      "cash": 46768.56753442002
+     },
+     {
+      "m": 12,
+      "month": "2027-11",
+      "revenue": 6276.856753442006,
+      "expenses": 4000.0,
+      "net": 2276.8567534420063,
+      "cash": 49045.42428786203
+     },
+     {
+      "m": 13,
+      "month": "2027-12",
+      "revenue": 6904.542428786208,
+      "expenses": 4000.0,
+      "net": 2904.542428786208,
+      "cash": 51949.96671664824
+     },
+     {
+      "m": 14,
+      "month": "2028-01",
+      "revenue": 7594.996671664829,
+      "expenses": 4000.0,
+      "net": 3594.9966716648287,
+      "cash": 55544.96338831307
+     },
+     {
+      "m": 15,
+      "month": "2028-02",
+      "revenue": 8354.496338831312,
+      "expenses": 4000.0,
+      "net": 4354.496338831312,
+      "cash": 59899.45972714438
+     },
+     {
+      "m": 16,
+      "month": "2028-03",
+      "revenue": 9189.945972714444,
+      "expenses": 4000.0,
+      "net": 5189.945972714444,
+      "cash": 65089.40569985882
+     },
+     {
+      "m": 17,
+      "month": "2028-04",
+      "revenue": 10108.94056998589,
+      "expenses": 4000.0,
+      "net": 6108.940569985891,
+      "cash": 71198.34626984471
+     },
+     {
+      "m": 18,
+      "month": "2028-05",
+      "revenue": 11119.834626984479,
+      "expenses": 4000.0,
+      "net": 7119.834626984479,
+      "cash": 78318.18089682919
+     },
+     {
+      "m": 19,
+      "month": "2028-06",
+      "revenue": 12231.818089682929,
+      "expenses": 4000.0,
+      "net": 8231.818089682929,
+      "cash": 86549.99898651212
+     },
+     {
+      "m": 20,
+      "month": "2028-07",
+      "revenue": 13454.999898651222,
+      "expenses": 4000.0,
+      "net": 9454.999898651222,
+      "cash": 96004.99888516334
+     },
+     {
+      "m": 21,
+      "month": "2028-08",
+      "revenue": 14800.499888516346,
+      "expenses": 4000.0,
+      "net": 10800.499888516346,
+      "cash": 106805.49877367969
+     },
+     {
+      "m": 22,
+      "month": "2028-09",
+      "revenue": 16280.549877367981,
+      "expenses": 4000.0,
+      "net": 12280.549877367981,
+      "cash": 119086.04865104768
+     },
+     {
+      "m": 23,
+      "month": "2028-10",
+      "revenue": 17908.604865104782,
+      "expenses": 4000.0,
+      "net": 13908.604865104782,
+      "cash": 132994.65351615247
+     },
+     {
+      "m": 24,
+      "month": "2028-11",
+      "revenue": 19699.46535161526,
+      "expenses": 4000.0,
+      "net": 15699.465351615261,
+      "cash": 148694.11886776774
+     }
+    ],
+    "runway_status": "beyond_horizon",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": 8,
+    "ending_cash": 148694.11886776774,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "zero cash, zero burn edge",
+   "inputs": {
+    "horizon": 12
+   },
+   "baseline": {
+    "cash": 0,
+    "revenue": 0,
+    "expenses": 0,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 12
+   },
+   "expected": {
+    "horizon": 12,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 0.0,
+      "expenses": 0.0,
+      "net": 0.0,
+      "cash": 0.0
+     }
+    ],
+    "runway_status": "cash_growing",
+    "runway_months": null,
+    "cash_out_month": null,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": 0.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  },
+  {
+   "name": "inputs not an object",
+   "inputs": null,
+   "baseline": {
+    "cash": 10000,
+    "revenue": 1000,
+    "expenses": 3000,
+    "start_month": "2026-09"
+   },
+   "sanitized": {
+    "revenue_growth_pct": 0.0,
+    "expense_growth_pct": 0.0,
+    "hires": [],
+    "events": [],
+    "min_cash_reserve": null,
+    "horizon": 24
+   },
+   "expected": {
+    "horizon": 24,
+    "points": [
+     {
+      "m": 1,
+      "month": "2026-10",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 8000.0
+     },
+     {
+      "m": 2,
+      "month": "2026-11",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 6000.0
+     },
+     {
+      "m": 3,
+      "month": "2026-12",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 4000.0
+     },
+     {
+      "m": 4,
+      "month": "2027-01",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 2000.0
+     },
+     {
+      "m": 5,
+      "month": "2027-02",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": 0.0
+     },
+     {
+      "m": 6,
+      "month": "2027-03",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -2000.0
+     },
+     {
+      "m": 7,
+      "month": "2027-04",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -4000.0
+     },
+     {
+      "m": 8,
+      "month": "2027-05",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -6000.0
+     },
+     {
+      "m": 9,
+      "month": "2027-06",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -8000.0
+     },
+     {
+      "m": 10,
+      "month": "2027-07",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -10000.0
+     },
+     {
+      "m": 11,
+      "month": "2027-08",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -12000.0
+     },
+     {
+      "m": 12,
+      "month": "2027-09",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -14000.0
+     },
+     {
+      "m": 13,
+      "month": "2027-10",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -16000.0
+     },
+     {
+      "m": 14,
+      "month": "2027-11",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -18000.0
+     },
+     {
+      "m": 15,
+      "month": "2027-12",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -20000.0
+     },
+     {
+      "m": 16,
+      "month": "2028-01",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -22000.0
+     },
+     {
+      "m": 17,
+      "month": "2028-02",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -24000.0
+     },
+     {
+      "m": 18,
+      "month": "2028-03",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -26000.0
+     },
+     {
+      "m": 19,
+      "month": "2028-04",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -28000.0
+     },
+     {
+      "m": 20,
+      "month": "2028-05",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -30000.0
+     },
+     {
+      "m": 21,
+      "month": "2028-06",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -32000.0
+     },
+     {
+      "m": 22,
+      "month": "2028-07",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -34000.0
+     },
+     {
+      "m": 23,
+      "month": "2028-08",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -36000.0
+     },
+     {
+      "m": 24,
+      "month": "2028-09",
+      "revenue": 1000.0,
+      "expenses": 3000.0,
+      "net": -2000.0,
+      "cash": -38000.0
+     }
+    ],
+    "runway_status": "months",
+    "runway_months": 5.0,
+    "cash_out_month": 6,
+    "reserve_breach_month": null,
+    "break_even_month": null,
+    "ending_cash": -38000.0,
+    "cash_known": true,
+    "ledger_known": true
+   }
+  }
+ ]
+}
