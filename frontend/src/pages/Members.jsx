@@ -11,6 +11,7 @@ import { ASSIGNABLE_PACKS, packMeta, hasPerm } from "@/lib/access";
 import { formatDepartmentNames } from "@/lib/departments";
 import { cn } from "@/lib/utils";
 import { MANAGE_DEPARTMENTS_HREF } from "@/lib/departmentRoutes";
+import { confirmAction } from "@/components/ConfirmHost";
 
 export default function Members() {
   const { user } = useAuth();
@@ -143,7 +144,7 @@ export default function Members() {
 
   const remove = async (m) => {
     const label = m.name || m.email || "this member";
-    if (!window.confirm(`Remove ${label} from this workspace?`)) return;
+    if (!(await confirmAction({ title: `Remove ${label} from this workspace?`, confirmLabel: "Remove", destructive: true }))) return;
     try {
       await api.delete(`/members/${m.membership_id}`);
       reload();

@@ -59,7 +59,7 @@ export default function Unsubscribe() {
     state === "ok"
       ? "You will no longer receive Trenston weekly pack or catch-up reminder emails at this address. Transactional messages (invites, task assignments, and high-severity alerts) are unchanged."
       : state === "working"
-        ? "One moment — we're updating your preferences."
+        ? "One moment, we're updating your preferences."
         : state === "invalid"
           ? "Request a fresh link from a recent Trenston email, or contact us and we'll remove you manually."
           : state === "missing"

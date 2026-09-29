@@ -18,20 +18,19 @@ import {
   PUBLIC_INTEGRATIONS_INTRO,
   TAGLINE,
 } from "@/lib/marketingCopy";
+import BrandLogo from "@/components/BrandLogo";
 
-/**
- * Monochrome monogram tiles, not real vendor logos — trademarked marks need
- * written permission we don't have. Kept black-and-white to match the site.
- */
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
-function IntegrationBadge({ name }) {
+/** Vendor logo, monochrome to match the site, vendor colour on hover. */
+function IntegrationBadge({ id }) {
   return (
     <div
       aria-hidden
-      className="flex h-12 w-12 shrink-0 items-center justify-center bg-mk-black font-mono text-lg font-semibold text-white transition-colors duration-300 group-hover:bg-mk-navy"
+      className="relative flex h-12 w-12 shrink-0 items-center justify-center border border-mk-line bg-white text-mk-black"
     >
-      {name.trim().charAt(0)}
+      <BrandLogo id={id} variant="mono" className="h-6 w-6 transition-opacity duration-300 group-hover:opacity-0" />
+      <BrandLogo id={id} className="absolute h-6 w-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
     </div>
   );
 }
@@ -75,7 +74,7 @@ export default function PublicIntegrations() {
                 data-testid={`public-integration-${item.id}`}
               >
                 <div className="flex items-start justify-between gap-4">
-                  <IntegrationBadge name={item.name} />
+                  <IntegrationBadge id={item.id} />
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mk-gray">Available</span>
                 </div>
                 <p className="mt-8 text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{item.category}</p>

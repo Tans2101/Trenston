@@ -33,10 +33,10 @@ Rules:
 - type is usually "expense" for bills/invoices you pay; use "revenue" only for incoming invoices you issued.
 - amount is the total in USD (number only, no currency symbols).
 - month is the invoice/bill date as YYYY-MM when possible; otherwise best estimate.
-- category is a grouping label like Payroll, Cost of goods, Cloud/Infra, Sales & Mktg, G&A for expenses, or Subscriptions, Product sales, Services for revenue — not the specific purchase. Use Cost of goods for raw materials, inventory, and supplier invoices for things the company resells or builds into its product.
+- category is a grouping label like Payroll, Cost of goods, Cloud/Infra, Sales & Mktg, G&A for expenses, or Subscriptions, Product sales, Services for revenue, not the specific purchase. Use Cost of goods for raw materials, inventory, and supplier invoices for things the company resells or builds into its product.
 - name is the specific line-item label (e.g. "MongoDB Database Subscription", "Render Hosting"). Prefer vendor + product/service when both are on the document. Do not copy category into name unless nothing more specific exists.
 - vendor is the payee or issuer name.
-- Do not guess amounts or dates — use confidence "low" when uncertain.
+- Do not guess amounts or dates. Use confidence "low" when uncertain.
 """
 
 # Workspace missing-vs-zero does not apply to extract_with_claude: the model reads
@@ -59,6 +59,20 @@ def get_client() -> AsyncAnthropic:
     return _client
 
 
+_EM_DASH_RE = re.compile(r"\s*\u2014\s*")
+
+
+def plain_dashes(text: str) -> str:
+    """Replace em dashes in model output with a comma.
+
+    Every prompt already asks the model to avoid em dashes, but models still
+    reach for them; this is the backstop so Trenston's AI copy never shows one.
+    """
+    if not text or "\u2014" not in text:
+        return text
+    return _EM_DASH_RE.sub(", ", text)
+
+
 async def complete(system: SystemPrompt, user: str, *, max_tokens: int = 1200, model: Optional[str] = None) -> str:
     client = get_client()
     msg = await client.messages.create(
@@ -72,7 +86,7 @@ async def complete(system: SystemPrompt, user: str, *, max_tokens: int = 1200, m
         text = getattr(block, "text", None)
         if text:
             parts.append(text)
-    return "".join(parts).strip()
+    return plain_dashes("".join(parts).strip())
 
 
 async def stream_text(
@@ -99,9 +113,25 @@ async def stream_text(
         system=system,
         messages=messages,
     ) as stream:
+        # Trailing whitespace is held back one chunk so an em dash that
+        # arrives at the start of the next chunk still collapses to ", ".
+        pending_ws = ""
+        dash_tail = False
         async for text in stream.text_stream:
-            if text:
-                yield text
+            if not text:
+                continue
+            if dash_tail and text[:1].isspace():
+                # The replacement already supplied the space after the comma.
+                pending_ws = ""
+            combined = pending_ws + text
+            converted = plain_dashes(combined)
+            dash_tail = combined.rstrip().endswith("\u2014")
+            stripped = converted.rstrip()
+            pending_ws = converted[len(stripped):]
+            if stripped:
+                yield stripped
+        if pending_ws:
+            yield pending_ws
 
 
 def _parse_extract_json(text: str) -> dict:
@@ -404,7 +434,7 @@ Rules:
 _REPORTS_DIGEST_SYSTEM = """You are Trenston, combining several already-summarized business reports from the same day into one short briefing for a CEO.
 Write 1-3 short paragraphs. Group related reports together where it makes sense (e.g. multiple reports about the same commodity or topic) rather than listing them one by one.
 Only state a number, date, or figure that appears literally in the input summaries or key_figures. Never invent, average, or estimate a number that is not present. If two reports appear to conflict, say so rather than picking one silently. Write plainly; avoid em dashes unless a sentence genuinely cannot be split any other way.
-Return plain prose only — no JSON, no markdown headings, no bullet lists.
+Return plain prose only. No JSON, no markdown headings, no bullet lists.
 """
 
 
@@ -499,7 +529,7 @@ async def summarize_report_document(
         text = getattr(block_out, "text", None)
         if text:
             parts.append(text)
-    raw = "".join(parts).strip()
+    raw = plain_dashes("".join(parts).strip())
     if not raw:
         raise ValueError("Empty response from model")
     out = _validate_report_summary(_parse_extract_json(raw))
@@ -544,7 +574,7 @@ async def combine_daily_report_digest(items: list[dict]) -> str:
 GMAIL_DRAFT_DISCLAIMER = "(Drafted in Trenston. Edit this in Gmail before you send.)"
 
 _GMAIL_REPLY_SYSTEM = """You draft short professional email replies for a CEO using Trenston.
-Return ONLY the email body as plain text — no subject line, no markdown fences, no preamble.
+Return ONLY the email body as plain text. No subject line, no markdown fences, no preamble.
 
 Rules:
 - Keep it concise (about 4–8 sentences). Sound like a real operator, not a chatbot.
@@ -552,7 +582,7 @@ Rules:
 - When no snippet is provided, write a brief general follow-up based only on the subject.
   Do NOT invent what the other person said, asked, agreed to, or promised.
 - Do not invent facts, commitments, dates, numbers, or meeting details absent from the context.
-- Sign off with "[your name]" — never invent the sender's real name.
+- Sign off with "[your name]". Never invent the sender's real name.
 - Do not include email headers (To/Subject/From).
 """
 
@@ -584,7 +614,7 @@ async def draft_gmail_reply(*, subject: str = "", to_email: str = "", snippet: s
     snippet = (snippet or "").strip()[:500]
     if not anthropic_configured():
         return fallback_gmail_draft_body(subject=subject, snippet=snippet)
-    preview = snippet if snippet else "(none — no preview available; do not invent conversation details)"
+    preview = snippet if snippet else "(none: no preview available; do not invent conversation details)"
     user = (
         f"Subject: {subject or '(none)'}\n"
         f"From: {to_email or '(unknown)'}\n"

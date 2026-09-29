@@ -20,7 +20,7 @@ export const STATUS_COMPONENTS = [
   {
     id: "database",
     name: "Database",
-    detail: "MongoDB Atlas — primary workspace data. Reported via the API health probe.",
+    detail: "MongoDB Atlas: primary workspace data. Reported via the API health probe.",
     check: "mongo",
   },
 ];
@@ -31,4 +31,4 @@ export const STATUS_INCIDENTS = [
 ];
 
 export const STATUS_DISCLAIMER =
-  `Public status tracking started ${STATUS_TRACKING_STARTED}. We do not publish historical uptime percentages from before that date — we have not been collecting them. This page shows a live check of the services we operate today, plus any incidents we record going forward.`;
+  `Public status tracking started ${STATUS_TRACKING_STARTED}. We do not publish historical uptime percentages from before that date because we were not collecting them. This page shows a live check of the services we operate today, plus any incidents we record going forward.`;

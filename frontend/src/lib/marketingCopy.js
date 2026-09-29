@@ -2,7 +2,7 @@
 
 export const TAGLINE = "Run your business. Don't chase it.";
 export const CATEGORY = "Founder & CEO Operating System";
-export const AUDIENCE = "Built for founders and CEOs running real operations — from your first hire to your hundredth.";
+export const AUDIENCE = "Built for founders and CEOs running real operations, from your first hire to your hundredth.";
 export const FOUNDER_NAME = "Tansher Dhawan";
 export const FOUNDER_ROLE = "Founder";
 export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
@@ -21,7 +21,7 @@ export const WHAT_HELM_IS = WHAT_TRENSTON_IS;
 export const ABOUT_PROBLEM =
   "Founders and CEOs running a company of this size often spend their mornings opening a dozen tools and asking people for status updates just to know what is happening. Trenston exists to close that gap.";
 export const FOUNDER_NOTE =
-  "Tansher Dhawan builds and ships Trenston himself — writing the code and handling day-to-day product work. There is no separate product team. What you see in the cockpit is what he is actively shipping.";
+  "I build Trenston myself. I write the code and ship every change, and there is no separate product team between you and me. If something in the cockpit is wrong or missing, tell me and I will see it.";
 
 export const HERO_OUTCOME =
   "Open Trenston and see what changed, what needs a decision, and what you can hand off, synthesized from your live company data.";
@@ -37,7 +37,7 @@ export const ABOUT_DIFFERENTIATOR =
   "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the morning picture is company-wide, not one lane at a time.";
 
 export const ABOUT_STORY =
-  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is an operating system for founders and CEOs — Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales — synthesized into what needs the owner's attention.";
+  "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is an operating system for founders and CEOs: Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales, all synthesized into what needs the owner's attention.";
 
 export const VALUES = [
   {
@@ -100,12 +100,12 @@ export const PRICING_FAQ = [
 export const HOME_FAQ = [
   {
     q: "Billing & cancellation",
-    a: "Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing — it takes effect at the end of the current period, no refunds after payment.",
+    a: "Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing. It takes effect at the end of the current period, no refunds after payment.",
     link: { to: "/pricing", label: "See full pricing" },
   },
   {
     q: "Security",
-    a: "Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control) — Trenston never stores your passwords.",
+    a: "Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control). Trenston never stores your passwords.",
     link: { to: "/security", label: "How Trenston protects company data" },
   },
   {
@@ -137,19 +137,19 @@ export const INTEGRATIONS_PUBLIC_BLURB =
   "Connect the tools you already use so Financials, Briefing, Pipeline, and alerts stay current. Manual entry stays available for one-offs when an accounting system is connected.";
 
 export const PUBLIC_INTEGRATIONS_INTRO =
-  "Trenston connects to the tools your team already uses — nothing to migrate, nothing you must duplicate by hand.";
+  "Trenston connects to the tools your team already uses. Nothing to migrate, nothing you must duplicate by hand.";
 
-/** Public /integrations cards — text wordmarks only (vendor logos need written permission). */
+/** Public /integrations cards. Logos render from components/BrandLogo.jsx. */
 export const PUBLIC_INTEGRATIONS = [
   {
     id: "google",
     name: "Google Calendar & Gmail",
     category: "Calendar & email",
     description:
-      "Each teammate connects their own Google account. Sync your meetings into Trenston Calendar and your briefing — plus Gmail thread surfacing, Sheets export, calendar write, Gmail drafts, and Drive bill import. Teammates never see each other's Google data.",
+      "Each teammate connects their own Google account. Sync your meetings into Trenston Calendar and your briefing, plus Gmail thread surfacing, Sheets export, calendar write, Gmail drafts, and Drive bill import. Teammates never see each other's Google data.",
     feeds: "Feeds Calendar & Briefing",
     scope:
-      "Gmail is snippet-level thread surfacing (sender, subject, preview) plus optional draft replies you review and send in Gmail — not full inbox or message-body access.",
+      "Gmail is snippet-level thread surfacing (sender, subject, preview) plus optional draft replies you review and send in Gmail. This is not full inbox or message-body access.",
   },
   {
     id: "quickbooks",
@@ -191,7 +191,7 @@ export const PUBLIC_INTEGRATIONS = [
       "Paste a Slack Incoming Webhook URL to post high-severity Trenston alerts to a channel.",
     feeds: "Delivers high-severity alerts",
     scope:
-      "Webhook-based alerts only — not a full Slack app. No OAuth, no DMs, no slash commands.",
+      "Webhook-based alerts only, not a full Slack app. No OAuth, no DMs, no slash commands.",
   },
 ];
 
@@ -205,7 +205,7 @@ export const PUBLIC_INTEGRATIONS_COMING_SOON = [
     name: "GitHub",
     category: "Engineering",
     description:
-      "Planned: track PR velocity and engineering delivery alongside business KPIs. Not available to connect today — do not treat this as a live Trenston integration.",
+      "Planned: track PR velocity and engineering delivery alongside business KPIs. Not available to connect today, so do not treat this as a live Trenston integration.",
   },
 ];
 
@@ -479,8 +479,8 @@ export const FEATURE_MODULES = [
   {
     title: "Daily morning briefing",
     ceoValue: "The company picture in your inbox before the first meeting.",
-    body: "One email per day to the founder or CEO covering Sales, Procurement, Production, and Maintenance — separate from the weekly CEO Pack PDF. Metrics with no data yet say so plainly; nothing is invented.",
-    example: "Tuesday 7am: order book vs monthly target, late purchase orders, yesterday’s output shortfall, and two spares below threshold — without opening the app first.",
+    body: "One email per day to the founder or CEO covering Sales, Procurement, Production, and Maintenance, separate from the weekly CEO Pack PDF. Metrics with no data yet say so plainly; nothing is invented.",
+    example: "Tuesday 7am: order book vs monthly target, late purchase orders, yesterday’s output shortfall, and two spares below threshold, without opening the app first.",
   },
   {
     title: "Gmail thread surfacing + AI draft replies",
@@ -509,7 +509,7 @@ export const FEATURE_MODULES = [
   {
     title: "Procurement spend visibility",
     ceoValue: "Know what purchasing actually costs this month.",
-    body: "Total spend with breakdowns by vendor and item, plus a count of requests with no cost recorded so totals are never quietly incomplete. An optional department budget shows actual vs budget only when someone sets it — otherwise you still see actual alone.",
+    body: "Total spend with breakdowns by vendor and item, plus a count of requests with no cost recorded so totals are never quietly incomplete. An optional department budget shows actual vs budget only when someone sets it. Otherwise you still see actual alone.",
     example: "September spend $184k across three vendors. Twelve requests still have no cost. Budget not set, so the card shows actual without a fake percentage.",
   },
   {
@@ -520,7 +520,7 @@ export const FEATURE_MODULES = [
   },
   {
     title: "Maintenance operations",
-    ceoValue: "Spares, schedules, and repair cost — not just tickets when something breaks.",
+    ceoValue: "Spares, schedules, and repair cost, not just tickets when something breaks.",
     body: "Critical spares with a below-threshold flag, per-machine schedules that update last-serviced when a matching ticket is resolved, annual maintenance contract renewals, and overhead repair cost vs an optional budget.",
     example: "Budget $100k/month for repairs; actual hits $1M. Two bearings below minimum, one AMC due in 12 days, and Press #2’s oil change is overdue.",
   },
@@ -696,7 +696,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "What integrations are included on each plan?",
     a:
-      "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps — manual entry stays available everywhere else.",
+      "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps. Manual entry stays available everywhere else.",
   },
   {
     q: "Can my leadership team use Trenston?",

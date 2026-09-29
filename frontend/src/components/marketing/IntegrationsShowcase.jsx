@@ -1,19 +1,27 @@
 import { INTEGRATIONS_SHOWCASE } from "@/lib/marketingCopy";
 import { MkLink, Reveal, SectionHeader } from "@/components/marketing/mk";
+import BrandLogo, { integrationIdFor } from "@/components/BrandLogo";
 
 /**
- * Monochrome monogram tiles, not real vendor logos — trademarked marks
- * (Google, QuickBooks, Xero, SAP, HubSpot, Slack) need written permission we
- * don't have. Kept black-and-white to match the site; see
- * PUBLIC_INTEGRATIONS_ATTRIBUTION in marketingCopy.js.
+ * Vendor logos, monochrome to match the site, shown in the vendor's colour on
+ * hover. See PUBLIC_INTEGRATIONS_ATTRIBUTION for the trademark notice.
  */
 function IntegrationBadge({ name }) {
+  const id = integrationIdFor(name);
   return (
     <div
       aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center bg-mk-black font-mono text-base font-semibold text-white transition-colors duration-300 group-hover:bg-mk-navy"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center border border-mk-line bg-white text-mk-black"
     >
-      {name.trim().charAt(0)}
+      <BrandLogo
+        id={id}
+        variant="mono"
+        className="h-6 w-6 transition-opacity duration-300 group-hover:opacity-0"
+      />
+      <BrandLogo
+        id={id}
+        className="absolute h-6 w-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
     </div>
   );
 }

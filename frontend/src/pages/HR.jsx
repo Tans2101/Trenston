@@ -1297,7 +1297,7 @@ export default function HR() {
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
               />
               <span className="text-[11px] text-helm-muted leading-relaxed block">
-                Optional reference for this hire. Trenston does not email them or create a login from this field — invite people separately in Team &amp; Access.
+                Optional reference for this hire. Trenston does not email them or create a login from this field. Invite people separately in Team &amp; Access.
               </span>
             </label>
             <p className="text-[11px] text-helm-muted">

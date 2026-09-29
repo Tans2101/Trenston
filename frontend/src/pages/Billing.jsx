@@ -196,7 +196,7 @@ export default function Billing() {
               return;
             }
             setBusy(null);
-            toast.message("Payment received — this can take a minute to reflect. Refresh shortly.");
+            toast.message("Payment received. It can take a minute to show here, so refresh shortly.");
             reload();
           })();
         },
@@ -386,7 +386,7 @@ export default function Billing() {
               {askLimit > 0 && (
                 <span className="block mt-1" data-testid="ask-helm-usage-copy">
                   {askOver || askAtLimit
-                    ? `Ask Trenston ${askUsed} / ${askLimit} messages${periodEndLabel ? ` — resets ${periodEndLabel}` : ""}`
+                    ? `Ask Trenston ${askUsed} / ${askLimit} messages${periodEndLabel ? ` (resets ${periodEndLabel})` : ""}`
                     : `Ask Trenston ${askUsed} of ${askLimit} messages used${periodEndLabel ? ` (resets ${periodEndLabel})` : ""}`}
                 </span>
               )}

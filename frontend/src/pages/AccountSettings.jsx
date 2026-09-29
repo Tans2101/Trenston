@@ -705,8 +705,8 @@ export default function AccountSettings() {
             <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Sample data</span>
           </div>
           <p className="text-sm text-helm-muted mb-4 leading-relaxed">
-            You&apos;re exploring with sample company data. Remove it to start fresh with your own numbers —
-            billing, integrations, and company profile stay intact.
+            You&apos;re exploring with sample company data. Remove it to start fresh with your own numbers.
+            Billing, integrations, and company profile stay intact.
           </p>
           {!showClearSampleConfirm ? (
             <button

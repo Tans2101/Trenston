@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { ErrorScreen, EmptyState, GlassCard, PageHeaderSkeleton, SkeletonChart, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { taskHref, decisionHref, departmentItemHref } from "@/lib/signalRoute";
+import { confirmAction } from "@/components/ConfirmHost";
 
 function eventScopeLabel(ev) {
   if (!ev) return null;
@@ -636,7 +637,7 @@ export default function CalendarPage() {
   };
 
   const deleteEvent = async () => {
-    if (!editing || !window.confirm("Delete this event?")) return;
+    if (!editing || !(await confirmAction({ title: "Delete this event?", confirmLabel: "Delete", destructive: true }))) return;
     setBusy(true);
     try {
       await api.delete(`/calendar/events/${editing}`);

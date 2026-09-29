@@ -132,7 +132,7 @@ function VendorPicker({
         />
       ) : null}
       <p className="text-[11px] text-helm-muted leading-relaxed">
-        Reuse a previous vendor when you can — spelling variants split spend. New names show up here next time.
+        Reuse a previous vendor when you can, since spelling variants split spend. New names show up here next time.
       </p>
     </div>
   );
@@ -679,7 +679,7 @@ export default function Procurement() {
               {(spend.unpriced_count || 0) > 0 && (
                 <p className="text-xs text-helm-status-warning mt-1" data-testid="procurement-unpriced-count">
                   {spend.unpriced_count} request{spend.unpriced_count === 1 ? "" : "s"} have no cost
-                  recorded — total above may be incomplete
+                  recorded, so the total above may be incomplete
                 </p>
               )}
               <p className="text-[11px] text-helm-muted mt-1.5">

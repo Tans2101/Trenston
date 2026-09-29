@@ -1,15 +1,43 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Sparkles, PenLine, ArrowRight, Check, Lock } from "lucide-react";
+import { Check } from "lucide-react";
 import { api } from "@/lib/api";
-import { GlassCard, ErrorScreen, SkeletonCardList } from "@/components/kit";
+import { ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { useDepartmentsQuery } from "@/hooks/useDepartmentsQuery";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
-import { departmentIcon } from "@/lib/departmentIcons";
+import { DEPARTMENTS_SECTION } from "@/lib/marketingCopy";
 import { cn } from "@/lib/utils";
 
-/** Auto-enabled on every workspace — shown on, not removable in this step. */
+/** Auto-enabled on every workspace; shown as included, not removable in this step. */
 const LOCKED_TYPES = new Set(["sales", "accounting_finance"]);
+
+const DEPT_BLURB = Object.fromEntries(
+  DEPARTMENTS_SECTION.items.map((d) => [d.name, d.body]),
+);
+
+function StepHeader({ step, title, body }) {
+  return (
+    <div>
+      <p className="text-xs text-helm-muted">Step {step} of 3</p>
+      <h1 className="font-display mt-2 text-3xl font-normal tracking-tight text-helm-fg">{title}</h1>
+      <p className="mt-2 max-w-xl text-sm text-helm-muted leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+function Box({ checked }) {
+  return (
+    <span
+      className={cn(
+        "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
+        checked ? "border-helm-fg bg-helm-fg text-helm-bg" : "border-helm-line",
+      )}
+      aria-hidden
+    >
+      {checked ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+    </span>
+  );
+}
 
 export default function Onboarding() {
   const { data, loading, error, reload } = useDepartmentsQuery();
@@ -45,7 +73,7 @@ export default function Onboarding() {
     if (busy) return;
     setBusy("departments");
     try {
-      // Only POST newly chosen optional types — Sales/Finance are already on.
+      // Only POST newly chosen optional types; Sales/Finance are already on.
       const toEnable = optionalDepts.filter((d) => selected.has(d.type) && !d.enabled);
       for (const dept of toEnable) {
         try {
@@ -76,7 +104,7 @@ export default function Onboarding() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto py-8">
+      <div className="max-w-3xl py-8">
         <SkeletonCardList count={4} />
       </div>
     );
@@ -94,151 +122,142 @@ export default function Onboarding() {
 
   if (step === "departments") {
     return (
-      <div className="max-w-3xl mx-auto py-8 fade-up" data-testid="onboarding-departments-step">
-        <div className="text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.3em] text-helm-gold">Welcome to Trenston</p>
-          <h1 className="font-display mt-4 text-3xl md:text-4xl font-normal tracking-tight text-helm-fg">
-            Choose your departments.
-          </h1>
-          <p className="mt-3 text-helm-muted max-w-lg mx-auto">
-            Sales and Accounting &amp; Finance are already on. Add any others you need now — you can change this later in Settings.
-          </p>
-        </div>
+      <div className="max-w-3xl py-8" data-testid="onboarding-departments-step">
+        <StepHeader
+          step={2}
+          title="Departments"
+          body="Sales and Accounting & Finance are always on. Add the others your company runs today. You can turn any department on or off later in Settings."
+        />
 
-        <div className="mt-10 space-y-2" data-testid="onboarding-department-catalog">
-          {lockedDepts.map((dept) => {
-            const Icon = departmentIcon(dept.icon);
-            return (
-              <div
-                key={dept.type}
-                className="flex items-center gap-3 rounded-md border border-helm-gold/25 bg-helm-gold/[0.06] px-3 py-3"
-                data-testid={`onboarding-dept-locked-${dept.type}`}
-              >
-                <Icon className="w-4 h-4 text-helm-gold shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-helm-fg truncate">{dept.name}</p>
-                  <p className="text-[11px] text-helm-muted">Always included</p>
-                </div>
-                <Lock className="w-3.5 h-3.5 text-helm-muted shrink-0" aria-hidden />
-                <span className="text-[11px] font-mono uppercase tracking-wide text-helm-status-positive shrink-0">
-                  On
-                </span>
+        <ul className="mt-10 border-t border-helm-line" data-testid="onboarding-department-catalog">
+          {lockedDepts.map((dept) => (
+            <li
+              key={dept.type}
+              className="flex items-start gap-4 border-b border-helm-line py-4"
+              data-testid={`onboarding-dept-locked-${dept.type}`}
+            >
+              <Box checked />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-helm-fg">{dept.name}</p>
+                {DEPT_BLURB[dept.name] && (
+                  <p className="mt-0.5 text-xs text-helm-muted leading-relaxed">{DEPT_BLURB[dept.name]}</p>
+                )}
               </div>
-            );
-          })}
+              <span className="shrink-0 text-xs text-helm-muted">Included</span>
+            </li>
+          ))}
 
           {optionalDepts.map((dept) => {
-            const Icon = departmentIcon(dept.icon);
             const checked = selected.has(dept.type);
             return (
-              <button
-                key={dept.type}
-                type="button"
-                data-testid={`onboarding-dept-toggle-${dept.type}`}
-                aria-pressed={checked}
-                onClick={() => toggleOptional(dept.type)}
-                className={cn(
-                  "w-full flex items-center gap-3 rounded-md border px-3 py-3 text-left transition-colors",
-                  checked
-                    ? "border-helm-gold/35 bg-helm-gold/[0.08]"
-                    : "border-helm-line bg-helm-fg/[0.02] hover:border-helm-fg/20",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-4 w-4 items-center justify-center rounded border shrink-0",
-                    checked
-                      ? "border-helm-gold bg-helm-gold text-helm-navy"
-                      : "border-helm-line bg-transparent",
-                  )}
-                  aria-hidden
+              <li key={dept.type} className="border-b border-helm-line">
+                <button
+                  type="button"
+                  data-testid={`onboarding-dept-toggle-${dept.type}`}
+                  aria-pressed={checked}
+                  onClick={() => toggleOptional(dept.type)}
+                  className="flex w-full items-start gap-4 py-4 text-left transition-colors hover:bg-helm-fg/[0.02]"
                 >
-                  {checked ? <Check className="w-3 h-3" /> : null}
-                </span>
-                <Icon className="w-4 h-4 text-helm-muted shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-helm-fg truncate">{dept.name}</p>
-                  <p className="text-[11px] text-helm-muted">Optional</p>
-                </div>
-              </button>
+                  <Box checked={checked} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-helm-fg">{dept.name}</p>
+                    {DEPT_BLURB[dept.name] && (
+                      <p className="mt-0.5 text-xs text-helm-muted leading-relaxed">{DEPT_BLURB[dept.name]}</p>
+                    )}
+                  </div>
+                </button>
+              </li>
             );
           })}
-        </div>
+        </ul>
 
-        <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-helm-muted">
+            {selected.size === 0
+              ? "No extra departments selected."
+              : `${selected.size} extra department${selected.size === 1 ? "" : "s"} selected.`}
+          </p>
           <button
             type="button"
             data-testid="onboarding-departments-continue"
             onClick={confirmDepartments}
             disabled={!!busy}
-            className="group inline-flex items-center justify-center gap-2 rounded-lg bg-helm-gold text-helm-navy font-medium px-5 py-2.5 transition-colors hover:bg-helm-gold-hover disabled:opacity-60"
+            className="rounded-md bg-helm-gold px-5 py-2.5 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold-hover disabled:opacity-50"
           >
             {busy === "departments" ? "Saving…" : "Continue"}
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </button>
-          <p className="text-xs text-helm-muted">
-            {selected.size === 0
-              ? "No extras selected — you can enable more later."
-              : `${selected.size} extra department${selected.size === 1 ? "" : "s"} selected.`}
-          </p>
         </div>
       </div>
     );
   }
 
+  const options = [
+    {
+      id: "clean",
+      testId: "onboarding-clean-btn",
+      title: "Start with my own data",
+      body: hasTeam
+        ? "An empty workspace. Log your financials, invite your team and connect Google or your accounting system. The Briefing fills in as real numbers arrive."
+        : "An empty workspace. Log your financials and connect Google or your accounting system. The Briefing fills in as real numbers arrive.",
+      cta: "Start with my own data",
+      busyLabel: "Setting up…",
+      primary: true,
+    },
+    {
+      id: "sample",
+      testId: "onboarding-sample-btn",
+      title: "Look around with sample data first",
+      body: "Loads an example B2B software company with six months of financials, open decisions, tasks and a team, so you can see how each page works. You can remove it in one click from the Briefing.",
+      cta: "Load sample company",
+      busyLabel: "Loading…",
+      primary: false,
+    },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto py-8 fade-up" data-testid="onboarding-template-step">
-      <div className="text-center">
-        <p className="font-mono text-xs uppercase tracking-[0.3em] text-helm-gold">Welcome to Trenston</p>
-        <h1 className="font-display mt-4 text-3xl md:text-4xl font-normal tracking-tight text-helm-fg">Let&apos;s set up your cockpit.</h1>
-        <p className="mt-3 text-helm-muted max-w-md mx-auto">Explore with a fully-loaded sample company, or start clean and bring in your own data.</p>
+    <div className="max-w-3xl py-8" data-testid="onboarding-template-step">
+      <StepHeader
+        step={3}
+        title="How do you want to start?"
+        body="If you load the sample company, you can remove it later from the Briefing and start fresh."
+      />
+
+      <div className="mt-10 border-t border-helm-line">
+        {options.map((o) => (
+          <div
+            key={o.id}
+            className="grid gap-4 border-b border-helm-line py-6 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-10"
+          >
+            <div>
+              <p className="text-base text-helm-fg">{o.title}</p>
+              <p className="mt-1 max-w-lg text-sm text-helm-muted leading-relaxed">{o.body}</p>
+            </div>
+            <button
+              type="button"
+              data-testid={o.testId}
+              onClick={() => choose(o.id)}
+              disabled={!!busy}
+              className={cn(
+                "whitespace-nowrap rounded-md px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50",
+                o.primary
+                  ? "bg-helm-gold text-helm-navy hover:bg-helm-gold-hover"
+                  : "border border-helm-line text-helm-fg hover:bg-helm-fg/[0.04]",
+              )}
+            >
+              {busy === o.id ? o.busyLabel : o.cta}
+            </button>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-12 grid md:grid-cols-2 gap-5">
-        <GlassCard className="p-7 flex flex-col">
-          <div className="w-11 h-11 rounded-xl bg-helm-gold/12 border border-helm-gold/35 flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-helm-gold" />
-          </div>
-          <h3 className="mt-5 text-xl text-helm-fg tracking-tight">Explore with sample data</h3>
-          <p className="mt-2 text-sm text-helm-muted leading-relaxed flex-1">
-            Load a realistic sample company, a growing B2B software business, with financials, decisions, tasks and a team. See exactly how Trenston works in 10 seconds.
-          </p>
-          <ul className="mt-4 space-y-1.5">
-            {["6 months of financials", "Live briefing & decisions", "Full team & telemetry"].map((f) => (
-              <li key={f} className="flex items-center gap-2 text-xs text-helm-muted"><Check className="w-3.5 h-3.5 text-helm-gold" />{f}</li>
-            ))}
-          </ul>
-          <button data-testid="onboarding-sample-btn" onClick={() => choose("sample")} disabled={!!busy}
-            className="group mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-helm-gold text-helm-navy font-medium py-2.5 transition-colors hover:bg-helm-gold-hover disabled:opacity-60">
-            {busy === "sample" ? "Loading…" : "Explore sample"}
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
-          </button>
-        </GlassCard>
-
-        <GlassCard className="p-7 flex flex-col">
-          <div className="w-11 h-11 rounded-xl bg-helm-fg/[0.04] border border-helm-line flex items-center justify-center">
-            <PenLine className="w-5 h-5 text-helm-gold" />
-          </div>
-          <h3 className="mt-5 text-xl text-helm-fg tracking-tight">Start clean</h3>
-          <p className="mt-2 text-sm text-helm-muted leading-relaxed flex-1">
-            {hasTeam
-              ? "Begin with an empty cockpit and make it yours. Log your financials, invite your team, and connect your tools. Trenston builds your command center around real data."
-              : "Begin with an empty cockpit and make it yours. Log your own financials and connect your tools — Trenston builds your command center around real data."}
-          </p>
-          <ul className="mt-4 space-y-1.5">
-            {(hasTeam
-              ? ["Log financials in Trenston", "Invite your finance team", "Connect Google, QuickBooks & more"]
-              : ["Log your own financials", "Connect Google, QuickBooks & more", "Build your briefing from real numbers"]
-            ).map((f) => (
-              <li key={f} className="flex items-center gap-2 text-xs text-helm-muted"><Check className="w-3.5 h-3.5 text-helm-muted" />{f}</li>
-            ))}
-          </ul>
-          <button data-testid="onboarding-clean-btn" onClick={() => choose("clean")} disabled={!!busy}
-            className="mt-6 inline-flex items-center justify-center gap-2 rounded-lg border border-helm-line text-helm-fg font-medium py-2.5 transition-colors hover:bg-helm-fg/5 disabled:opacity-60">
-            {busy === "clean" ? "Setting up…" : "Start clean"}
-          </button>
-        </GlassCard>
-      </div>
+      <button
+        type="button"
+        onClick={() => setStep("departments")}
+        disabled={!!busy}
+        className="mt-6 text-xs text-helm-muted underline-offset-2 hover:text-helm-fg hover:underline disabled:opacity-50"
+      >
+        Back to departments
+      </button>
     </div>
   );
 }

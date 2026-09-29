@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
   FileText, Calendar, Contact, MessageSquareText,
@@ -149,21 +150,11 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
     } catch (e) { toast.error("Could not switch workspace"); }
   };
 
-  const create = async () => {
-    const name = window.prompt("Name your new company workspace");
-    if (!name) return;
-    try {
-      if (!user?.age_confirmed) {
-        const ok = window.confirm(
-          "Confirm you are 18 or older (or using Trenston under a parent/guardian) to create a company.",
-        );
-        if (!ok) return;
-        await api.patch("/account/age-confirmation", { confirmed: true });
-      }
-      await api.post("/workspaces", withReferralPayload({ name }));
-      consumeReferralCode();
-      window.location.href = "/app";
-    } catch (e) { toast.error(e?.response?.data?.detail || "Could not create workspace"); }
+  const [creating, setCreating] = useState(false);
+
+  const openCreate = () => {
+    setOpen(false);
+    setCreating(true);
   };
 
   if (!active) return null;
@@ -189,13 +180,119 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
               {w.active && <Check className="w-3.5 h-3.5 text-helm-gold" />}
             </button>
           ))}
-          <button onClick={create} data-testid="ws-create-btn"
+          <button onClick={openCreate} data-testid="ws-create-btn"
             className="w-full flex items-center gap-2 px-3 py-2 text-left border-t border-helm-line transition-colors hover:bg-helm-fg/5 text-helm-gold">
             <Plus className="w-3.5 h-3.5" /><span className="text-xs">New company</span>
           </button>
         </div>
       )}
+      {creating && (
+        <NewCompanyDialog
+          needsAgeConfirmation={!user?.age_confirmed}
+          onClose={() => setCreating(false)}
+        />
+      )}
     </div>
+  );
+}
+
+function NewCompanyDialog({ needsAgeConfirmation, onClose }) {
+  const [name, setName] = useState("");
+  const [ageOk, setAgeOk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape" && !busy) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
+
+  const trimmed = name.trim();
+  const canSubmit = trimmed.length >= 2 && (!needsAgeConfirmation || ageOk) && !busy;
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    if (!canSubmit) return;
+    setBusy(true);
+    try {
+      if (needsAgeConfirmation) {
+        await api.patch("/account/age-confirmation", { confirmed: true });
+      }
+      await api.post("/workspaces", withReferralPayload({ name: trimmed }));
+      consumeReferralCode();
+      window.location.href = "/app";
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Could not create company");
+      setBusy(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-company-title"
+      data-testid="new-company-dialog"
+    >
+      <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && onClose()} aria-hidden="true" />
+      <form
+        onSubmit={submit}
+        className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-6 shadow-xl"
+      >
+        <p id="new-company-title" className="text-base font-medium text-helm-fg">New company</p>
+        <p className="mt-1 text-sm text-helm-muted leading-relaxed">
+          Each company gets its own workspace, with separate financials, team and departments. You can switch between them from this menu.
+        </p>
+        <label className="mt-5 block text-xs text-helm-muted">
+          Company name
+          <input
+            ref={inputRef}
+            data-testid="new-company-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Acme Inc."
+            maxLength={80}
+            className="mt-1.5 w-full rounded-md border border-helm-line bg-helm-bg text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/50"
+          />
+        </label>
+        {needsAgeConfirmation && (
+          <label className="mt-4 flex items-start gap-2.5 text-xs text-helm-muted leading-relaxed cursor-pointer">
+            <input
+              type="checkbox"
+              data-testid="new-company-age"
+              checked={ageOk}
+              onChange={(e) => setAgeOk(e.target.checked)}
+              className="mt-0.5 accent-helm-gold"
+            />
+            I am 18 or older, or using Trenston with a parent or guardian.
+          </label>
+        )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="rounded-md border border-helm-line px-3.5 py-2 text-sm text-helm-fg hover:bg-helm-fg/[0.04] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            data-testid="new-company-submit"
+            disabled={!canSubmit}
+            className="rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy hover:bg-helm-gold-hover disabled:opacity-40"
+          >
+            {busy ? "Creating…" : "Create company"}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
   );
 }
 
@@ -679,7 +776,7 @@ export default function AppLayout() {
     return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
   })();
   const planBadge = trialing && trialDaysLeft != null
-    ? `${planLabel} trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
+    ? `${planLabel} trial, ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
     : planLabel;
 
   const openSearch = () => setSearchOpen(true);

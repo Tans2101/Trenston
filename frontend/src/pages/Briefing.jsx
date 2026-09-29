@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, Send, UserCheck, Users, CheckCircle2, Circle, Mail, Plug, X, Eraser } from "lucide-react";
+import { ArrowUpRight, Send, UserCheck, Users, Check, Mail, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useAuth } from "@/context/AuthContext";
@@ -18,6 +18,7 @@ import AiSummaryMeta from "@/components/AiSummaryMeta";
 import BriefingCockpitHero from "@/components/BriefingCockpitHero";
 import { toastGmailDraftNote } from "@/components/CirNote";
 import { decisionHref, taskHref, signalRoute, moduleRoute } from "@/lib/signalRoute";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const toneDot = { positive: "bg-helm-status-positive", negative: "bg-helm-status-negative", neutral: "bg-helm-muted" };
 
@@ -201,7 +202,12 @@ export default function Briefing() {
 
   const clearSampleFromHome = async () => {
     if (clearSampleBusy || !canClearSample) return;
-    if (!window.confirm("Remove all sample data and start fresh? Billing and integrations stay connected.")) {
+    if (!(await confirmAction({
+      title: "Remove all sample data?",
+      description: "You will start with an empty workspace. Billing and integrations stay connected.",
+      confirmLabel: "Remove sample data",
+      destructive: true,
+    }))) {
       return;
     }
     setClearSampleBusy(true);
@@ -336,7 +342,7 @@ export default function Briefing() {
             <div className="min-w-0 flex-1">
               <BriefLabel>Exploring with sample data</BriefLabel>
               <p className="mt-1.5 text-sm text-helm-muted leading-relaxed">
-                A sample company is loaded so you can click around. When you&apos;re ready, remove it and start with your own company data — or keep exploring and clear it later in Settings.
+                A sample company is loaded so you can click around. When you&apos;re ready, remove it and start with your own company data, or keep exploring and clear it later in Settings.
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
@@ -385,7 +391,7 @@ export default function Briefing() {
         <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm" data-testid="onboarding-checklist">
           <div className="flex items-center gap-3 mb-4">
             <BriefLabel>Finish setting up</BriefLabel>
-            <span className="ml-auto text-xs text-helm-muted tabular-nums">{doneCount}/{stepCount}</span>
+            <span className="ml-auto text-xs text-helm-muted tabular-nums">{doneCount} of {stepCount} done</span>
             <button
               type="button"
               data-testid="dismiss-setup-checklist"
@@ -398,29 +404,24 @@ export default function Briefing() {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="h-1 rounded-full bg-helm-fg/[0.06] mb-4 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-helm-gold/70 transition-all"
-              style={{ width: stepCount ? `${(doneCount / stepCount) * 100}%` : "0%" }}
-            />
-          </div>
-          <div className="grid sm:grid-cols-2 gap-2">
+          <div className="border-t border-helm-line">
             {checklist.steps.map((s) => (
               <button
                 key={s.id}
                 data-testid={`setup-${s.id}`}
                 onClick={() => navigate(s.route)}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-colors",
-                  s.done
-                    ? "border-helm-status-positive/35 bg-helm-status-positive/12"
-                    : "border-helm-line bg-helm-fg/[0.02] hover:border-helm-fg/20"
-                )}
+                className="flex w-full items-center gap-3 border-b border-helm-line py-2.5 text-left transition-colors hover:bg-helm-fg/[0.02]"
               >
-                {s.done
-                  ? <CheckCircle2 className="w-4 h-4 text-helm-status-positive shrink-0" />
-                  : <Circle className="w-4 h-4 text-helm-muted shrink-0" />}
-                <span className={cn("text-sm", s.done ? "text-helm-muted line-through" : "text-helm-fg")}>
+                <span
+                  className={cn(
+                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
+                    s.done ? "border-helm-fg/40 bg-helm-fg/10 text-helm-fg" : "border-helm-line",
+                  )}
+                  aria-hidden
+                >
+                  {s.done ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                </span>
+                <span className={cn("text-sm", s.done ? "text-helm-muted" : "text-helm-fg")}>
                   {s.label}
                 </span>
                 {!s.done && <ArrowUpRight className="w-3.5 h-3.5 text-helm-muted ml-auto shrink-0" />}

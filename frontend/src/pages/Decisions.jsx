@@ -12,6 +12,7 @@ import DecisionCard, { statusStyle } from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import { highlightRecord } from "@/lib/signalRoute";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const emptyForm = () => ({ title: "", category: "General", description: "", recommendation: "", due: "", impact: "Medium" });
 
@@ -130,7 +131,7 @@ export default function Decisions() {
   };
 
   const del = async (id) => {
-    if (!window.confirm("Delete this decision?")) return;
+    if (!(await confirmAction({ title: "Delete this decision?", confirmLabel: "Delete", destructive: true }))) return;
     try { await api.delete(`/decisions/${id}`); reload(); toast.success("Decision removed"); }
     catch (e) { toast.error("Could not delete"); }
   };

@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { GlassCard, SectionLabel, ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { departmentIcon } from "@/lib/departmentIcons";
 import { departmentPath } from "@/lib/departmentRoutes";
+import { confirmAction } from "@/components/ConfirmHost";
 
 /**
  * Manage departments — visible to every workspace member.
@@ -87,9 +88,12 @@ export default function DepartmentsSettings() {
   };
 
   const disableDept = async (dept) => {
-    const ok = window.confirm(
-      `Disable ${dept.name}?\n\nThis removes its department tools data (stages, requests, tickets, onboarding, etc.) for everyone. Pipeline deals and financial entries are kept.`,
-    );
+    const ok = await confirmAction({
+      title: `Disable ${dept.name}?`,
+      description: "This removes the department's data (stages, requests, tickets, onboarding and so on) for everyone. Pipeline deals and financial entries are kept.",
+      confirmLabel: "Disable",
+      destructive: true,
+    });
     if (!ok) return;
     setBusyType(dept.type);
     try {

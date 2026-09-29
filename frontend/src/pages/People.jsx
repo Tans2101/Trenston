@@ -10,6 +10,7 @@ import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonK
 import { formatDepartmentNames } from "@/lib/departments";
 import { ASSIGNABLE_PACKS, hasPerm } from "@/lib/access";
 import { cn } from "@/lib/utils";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const emptyForm = () => ({
   name: "",
@@ -134,10 +135,13 @@ export default function People() {
     // Always ask the API — client has_access can be stale after Team & Access removal.
     // Backend blocks only when an active/invited membership still exists.
     if (p.has_access) {
-      if (!window.confirm(
-        `${p.name} still shows Team & Access login. If you already removed them there, continue to remove them from the People roster. Otherwise cancel and remove them from Team & Access first.`,
-      )) return;
-    } else if (!window.confirm(`Remove ${p.name} from the roster?`)) {
+      if (!(await confirmAction({
+        title: `Remove ${p.name} from People?`,
+        description: `${p.name} still shows a Team & Access login. If you already removed them there, continue. Otherwise cancel and remove them from Team & Access first.`,
+        confirmLabel: "Remove",
+        destructive: true,
+      }))) return;
+    } else if (!(await confirmAction({ title: `Remove ${p.name} from the roster?`, confirmLabel: "Remove", destructive: true }))) {
       return;
     }
     try {
@@ -283,7 +287,7 @@ export default function People() {
                 {canWrite && (
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => openEdit(p)} data-testid={`edit-person-${p.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
-                    <CirDeleteBtn onClick={() => del(p)} data-testid={`del-person-${p.id}`} title={p.has_access ? "Has Team & Access login — remove there first, or confirm to try roster remove" : "Remove"} />
+                    <CirDeleteBtn onClick={() => del(p)} data-testid={`del-person-${p.id}`} title={p.has_access ? "Has a Team & Access login. Remove them there first, or confirm to try removing from the roster." : "Remove"} />
                   </div>
                 )}
               </div>

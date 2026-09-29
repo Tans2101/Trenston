@@ -102,7 +102,7 @@ function pricingJsonLd(plans, origin) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: "Trenston",
-    description: "The operating system for founders and CEOs — Briefing, decisions, financials, and department lanes.",
+    description: "The operating system for founders and CEOs: Briefing, decisions, financials, and department lanes.",
     brand: { "@type": "Brand", name: "Trenston" },
     url: `${origin}/pricing`,
     offers: {

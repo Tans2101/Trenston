@@ -99,8 +99,11 @@ describe("marketing claim verification log", () => {
   });
 
   test("founder note stays factual and short (no new personal details)", () => {
-    expect(FOUNDER_NOTE).toMatch(/builds and ships Trenston himself|built Trenston himself/i);
+    expect(FOUNDER_NOTE).toMatch(/^I build Trenston myself/);
+    // Signed by the founder, so it must read in first person.
+    expect(FOUNDER_NOTE).not.toMatch(/\b(he|him|himself|his)\b/i);
     expect(FOUNDER_NOTE).toMatch(/no separate product team/i);
+    expect(FOUNDER_NOTE).not.toMatch(/\u2014/);
     expect(FOUNDER_NOTE.toLowerCase()).not.toMatch(/\b(age|student|family|linkedin|photo)\b/);
   });
 

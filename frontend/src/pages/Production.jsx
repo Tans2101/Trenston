@@ -1161,7 +1161,7 @@ export default function Production() {
               <div>
                 <SectionLabel>Daily production log</SectionLabel>
                 <p className="text-[11px] text-helm-muted mt-0.5">
-                  Each day&apos;s target is set here for this work order only — not shared with other orders of the same product.
+                  Each day&apos;s target is set here for this work order only, not shared with other orders of the same product.
                 </p>
               </div>
               {(dailyRollup || selected.daily_rollup) && (

@@ -9,6 +9,7 @@ import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import BrandLogo, { hasBrandLogo } from "@/components/BrandLogo";
 
 /** Where to go right after a provider connects, so the win is visible. */
 const NEXT_STEP = {
@@ -29,40 +30,19 @@ const ICONS = {
   slack: MessageSquare,
 };
 
-/**
- * Monogram badges, not real vendor logos — trademarked marks (Google,
- * QuickBooks, Xero, SAP, HubSpot, Slack, GitHub) need written permission we
- * don't have, so each badge is the provider's initial on the accent tile.
- * Same policy as the marketing site; see PUBLIC_INTEGRATIONS_ATTRIBUTION.
- */
-const BRAND_INITIAL = {
-  google: "G",
-  quickbooks: "Q",
-  xero: "X",
-  sap_b1: "S",
-  hubspot: "H",
-  github: "G",
-  slack: "S",
-};
-
-/** Monochrome monogram tile (accent fill) — no vendor colours, no real logos. */
+/** Vendor logo on a neutral tile; falls back to a generic icon for unknown ids. */
 function BrandBadge({ id, name }) {
-  const initial = BRAND_INITIAL[id];
   const Icon = ICONS[id] || Cloud;
-  if (!initial) {
-    return (
-      <div className="w-10 h-10 rounded-md bg-helm-fg/5 border border-helm-line flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-helm-gold" />
-      </div>
-    );
-  }
   return (
     <div
-      aria-hidden
-      className="w-10 h-10 rounded-md flex items-center justify-center font-mono text-sm font-semibold shrink-0 bg-helm-gold text-helm-navy"
+      className="w-10 h-10 rounded-md border border-helm-line bg-helm-fg/[0.03] flex items-center justify-center shrink-0 text-helm-fg"
       title={name}
     >
-      {initial}
+      {hasBrandLogo(id) ? (
+        <BrandLogo id={id} className={id === "sap_b1" ? "w-7 h-7" : "w-5 h-5"} />
+      ) : (
+        <Icon className="w-5 h-5 text-helm-gold" />
+      )}
     </div>
   );
 }
@@ -203,7 +183,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
           Google may show <span className="text-helm-fg">“Google hasn&apos;t verified this app.”</span>{" "}
           That&apos;s expected while Trenston finishes Google&apos;s review. Click{" "}
           <span className="text-helm-fg">Advanced</span>, then{" "}
-          <span className="text-helm-fg">Go to Trenston (unsafe)</span> to continue — your connection is still encrypted.
+          <span className="text-helm-fg">Go to Trenston (unsafe)</span> to continue. Your connection is still encrypted.
         </p>
       )}
 
@@ -528,7 +508,7 @@ export default function Integrations() {
 
       <GlassCard className="p-4 mb-8 fade-up border-helm-line">
         <p className="text-sm text-helm-muted leading-relaxed">
-          <span className="text-helm-fg">Google Calendar &amp; Gmail</span> are personal — each teammate connects
+          <span className="text-helm-fg">Google Calendar &amp; Gmail</span> are personal: each teammate connects
           their own Google account and only sees their meetings and threads. Accounting (QuickBooks, Xero, SAP)
           and HubSpot are <span className="text-helm-fg">per company workspace</span>; owners connect those once.
           OAuth apps never share passwords; SAP Business One stores Service Layer credentials encrypted at rest.
@@ -539,7 +519,7 @@ export default function Integrations() {
         <p className="text-xs text-helm-muted mt-3 leading-relaxed" data-testid="google-unverified-page-hint">
           Connecting Google may show <span className="text-helm-fg">“Google hasn&apos;t verified this app.”</span>{" "}
           Click <span className="text-helm-fg">Advanced</span>, then{" "}
-          <span className="text-helm-fg">Go to Trenston (unsafe)</span> — expected until Google finishes reviewing Trenston.
+          <span className="text-helm-fg">Go to Trenston (unsafe)</span>. This is expected until Google finishes reviewing Trenston.
         </p>
       </GlassCard>
 
@@ -624,7 +604,7 @@ export default function Integrations() {
             </p>
             {slackBroken && (
               <p className="text-xs text-helm-status-negative font-mono mt-2" data-testid="slack-reconnect-hint">
-                Slack disconnected — reconnect
+                Slack disconnected. Reconnect it below.
               </p>
             )}
             {slackConfigured && !slackBroken && (

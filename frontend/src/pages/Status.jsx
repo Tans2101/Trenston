@@ -197,7 +197,7 @@ export default function Status() {
             {STATUS_INCIDENTS.length === 0 ? (
               <p className="mt-4 text-sm leading-relaxed text-mk-gray">
                 No public incidents recorded since status tracking began. When something material happens,
-                we will list it here with a start time and resolution note — not a fabricated uptime percentage.
+                we will list it here with a start time and resolution note, not a fabricated uptime percentage.
               </p>
             ) : (
               <ul className="mt-6 space-y-4">

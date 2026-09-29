@@ -72,7 +72,7 @@ def test_error_after_partial_text_is_interrupted():
         raise RuntimeError("connection reset")
 
     body, doc = _run_ask(partial)
-    assert body == "Runway is about " + "\n\n_(Response interrupted — please ask again.)_"
+    assert body == "Runway is about " + "\n\n_(Response interrupted. Please ask again.)_"
     assert doc["interrupted"] is True
     assert "is_error" not in doc
     assert doc["content"] == body

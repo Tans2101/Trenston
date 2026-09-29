@@ -621,7 +621,7 @@ export default function Maintenance() {
               className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg disabled:opacity-50"
             />
             <span className="text-[10px] text-helm-muted">
-              Counted in overhead for the month this ticket is resolved. Blank means not entered — not $0.
+              Counted in overhead for the month this ticket is resolved. Blank means not entered, not $0.
             </span>
           </label>
 

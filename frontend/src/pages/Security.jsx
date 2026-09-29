@@ -91,11 +91,11 @@ const ENCRYPTION = [
     body: "Production traffic uses HTTPS end to end: browsers talk to Vercel over TLS; the API on Render serves HTTPS; outbound calls to Clerk, Paddle, Anthropic, Google, QuickBooks, Xero, HubSpot, SAP Business One, Resend, and R2 use TLS.",
   },
   {
-    title: "At rest — integration secrets",
-    body: "OAuth tokens and ERP credentials (Google, QuickBooks, Xero, HubSpot, SAP Business One) are sealed with Fernet symmetric encryption before they are written to MongoDB. The key is INTEGRATION_ENCRYPTION_KEY in Render environment config — never committed to the repository. Production refuses to boot without a valid key.",
+    title: "At rest: integration secrets",
+    body: "OAuth tokens and ERP credentials (Google, QuickBooks, Xero, HubSpot, SAP Business One) are sealed with Fernet symmetric encryption before they are written to MongoDB. The key is INTEGRATION_ENCRYPTION_KEY in Render environment config and is never committed to the repository. Production refuses to boot without a valid key.",
   },
   {
-    title: "At rest — platform storage",
+    title: "At rest: platform storage",
     body: "MongoDB Atlas and Cloudflare R2 provide their own encrypted storage for the clusters and buckets Trenston uses. Trenston does not claim an additional application-level encryption layer over every document field beyond credential sealing described above.",
   },
 ];
@@ -115,7 +115,7 @@ const THIRD_PARTIES = [
   },
   {
     name: "Slack",
-    why: "Optional Incoming Webhook URL only — high-severity alerts to a channel you choose. Not a full Slack OAuth app.",
+    why: "Optional Incoming Webhook URL only, for high-severity alerts to a channel you choose. Not a full Slack OAuth app.",
   },
   {
     name: "Anthropic",
@@ -128,14 +128,14 @@ const THIRD_PARTIES = [
 ];
 
 const RETENTION = [
-  "Account deletion wipes personal account data immediately — there is no post-deletion hold period for that wipe path.",
+  "Account deletion wipes personal account data immediately. There is no post-deletion hold period for that wipe path.",
   "Workspace owners can delete the company workspace; Trenston removes workspace-scoped MongoDB records and associated private R2 objects. If object storage is unreachable, deletion fails visibly so it can be retried instead of silently leaving files behind.",
   "Workspace owners can export a data package (integration tokens stripped). Non-owners get their own account data plus a membership summary.",
-  "Trial and inactivity retention emails are driven by a daily Render cron (helm-retention-checks) — reminders, not silent data deletion without the controls above.",
+  "Trial and inactivity retention emails are driven by a daily Render cron (helm-retention-checks). They are reminders, not silent data deletion without the controls above.",
 ];
 
 const STAFF_ACCESS = [
-  "Trenston is founder-operated. The people who administer production (Render, Vercel, MongoDB Atlas, Cloudflare R2, Clerk, Paddle) can, in principle, reach infrastructure that holds customer data — the same as any small SaaS with shared ops credentials.",
+  "Trenston is founder-operated. The people who administer production (Render, Vercel, MongoDB Atlas, Cloudflare R2, Clerk, Paddle) can, in principle, reach infrastructure that holds customer data, the same as any small SaaS with shared ops credentials.",
   "There is no separate large support organization with standing read access to every workspace. We do not browse customer financials or documents for marketing or product curiosity.",
   "When access is needed to debug a customer-reported issue, we do it for that purpose and with the customer’s knowledge whenever practical. Prefer contacting contact@trenston.com for security or access questions.",
 ];
@@ -176,13 +176,13 @@ const CONTROLS = [
 const PRACTICES = [
   "Integration access is opt-in and can be disconnected at any time.",
   "Google Calendar and Gmail are personal: each teammate connects their own Google account and only sees their meetings and threads. Shared company OAuth (QuickBooks, Xero, HubSpot, SAP) can be used only by the teammate who connected them, or by a workspace owner. Legacy unstamped company connections are limited to owners until someone reconnects.",
-  "Google is not read-only. Connecting your Google account grants Calendar read and write, Gmail snippets plus drafts, Sheets export, and Drive files you pick in Trenston — not a full mailbox or Drive dump.",
+  "Google is not read-only. Connecting your Google account grants Calendar read and write, Gmail snippets plus drafts, Sheets export, and Drive files you pick in Trenston. It is not a full mailbox or Drive dump.",
   "Workspaces that connected Google under the original Calendar + Gmail read grant keep that narrower access until an owner reconnects and accepts the wider consent screen.",
   "Payment card details are handled by Paddle, not stored on Trenston servers.",
   "Authentication is handled by Clerk using secure session controls.",
   "Sensitive credentials and provider token responses are excluded from application logs.",
   "Uploaded documents are sent to Anthropic only when an AI extract feature needs to process them.",
-  "GitHub is listed as coming soon in the product catalog — it is not a live data connection today.",
+  "GitHub is listed as coming soon in the product catalog. It is not a live data connection today.",
 ];
 
 const QUESTIONS = [
@@ -196,7 +196,7 @@ const QUESTIONS = [
   },
   {
     q: "What Google access does Trenston request now?",
-    a: "Connecting your Google account requests Calendar read and write (Trenston can create or update events when you ask), Gmail read for briefing snippets plus gmail.compose for drafts only (not gmail.send), Google Sheets to create a Financials export spreadsheet, and drive.file so you can pick a bill in Drive. Google’s consent screen may label compose as managing drafts and sending; Trenston only posts to Gmail’s drafts API. Each teammate connects their own Google — never a shared workspace mailbox. Reconnect Google to add missing write scopes.",
+    a: "Connecting your Google account requests Calendar read and write (Trenston can create or update events when you ask), Gmail read for briefing snippets plus gmail.compose for drafts only (not gmail.send), Google Sheets to create a Financials export spreadsheet, and drive.file so you can pick a bill in Drive. Google’s consent screen may label compose as managing drafts and sending; Trenston only posts to Gmail’s drafts API. Each teammate connects their own Google account, never a shared workspace mailbox. Reconnect Google to add missing write scopes.",
   },
   {
     q: "Who can see uploaded bills and legal files?",

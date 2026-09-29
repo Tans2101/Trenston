@@ -22,7 +22,7 @@ export function buildLlmsTxt() {
     AUDIENCE,
     "",
     "Trenston is the operating system for founders and CEOs: one cockpit for money, pipeline, people,",
-    "department work, and decisions — Briefing, Decision Center, Financials,",
+    "department work, and decisions. That covers Briefing, Decision Center, Financials,",
     "Ask Trenston, and department lanes (Production, Procurement, Legal, HR,",
     "Maintenance, Sales).",
     "",

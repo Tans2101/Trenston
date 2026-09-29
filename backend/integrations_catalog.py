@@ -29,7 +29,7 @@ USER_INTEGRATIONS: list[dict[str, Any]] = [
         "kind": "oauth",
         "oauth": True,
         "pro": True,
-        "description": "Connect your Google account once to bring your Calendar, important Gmail threads, Gmail draft replies, Sheets export and Drive bill import into Trenston. Personal to you — teammates never see your Google data.",
+        "description": "Connect your Google account once to bring your Calendar, important Gmail threads, Gmail draft replies, Sheets export and Drive bill import into Trenston. Personal to you: teammates never see your Google data.",
         "value": "Your schedule and important email in your morning briefing, with no tab switching.",
         "cta_route": "/app",
         "cta_label": "Open briefing",

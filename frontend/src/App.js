@@ -17,6 +17,7 @@ import { CLERK_SIGN_IN_PATH, CLERK_SIGN_UP_PATH } from "@/lib/helmUrls";
 import { persistReferralFromSearch } from "@/lib/referral";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import CookieNotice from "@/components/CookieNotice";
+import ConfirmHost from "@/components/ConfirmHost";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import SignUpPage from "@/pages/SignUp";
@@ -324,6 +325,7 @@ function App() {
         <AppRoutes />
         <CookieNotice />
         <TrenstonToaster />
+        <ConfirmHost />
       </BrowserRouter>
       <Analytics />
     </div>

@@ -1493,7 +1493,7 @@ def _reject_future_fin_month(month: str, now: Optional[datetime] = None) -> None
     if fin_recur.is_valid_month(s) and fin_recur.is_future_month(s, now):
         raise HTTPException(
             status_code=400,
-            detail="month cannot be in the future — use the current or a past month",
+            detail="Month cannot be in the future. Use the current or a past month.",
         )
     if not fin_recur.is_valid_month(s):
         raise HTTPException(status_code=400, detail="month must be a valid YYYY-MM")
@@ -2015,7 +2015,7 @@ async def compute_financials(
     return fin
 
 
-RUNWAY_NO_BURN_LABEL = "No burn — cash growing"
+RUNWAY_NO_BURN_LABEL = "No burn, cash growing"
 
 FIGURE_NOT_ENTERED = "not_entered"
 FIGURE_ZERO_CONFIRMED = "zero_confirmed"
@@ -2098,7 +2098,7 @@ def financials_for_synthesis(fin: dict) -> dict:
         "currency": fin.get("currency") or "usd",
         "unknown_fields": unknown,
         "instructions_for_missing_data": (
-            "Fields that are null were never entered — they are not zero. "
+            "Fields that are null were never entered; they are not zero. "
             "If cash_entered is false, tell the CEO to add a cash balance on Financials "
             "to get an accurate runway picture. Never say they are out of runway, have "
             "zero cash, or are technically out of money when cash was not entered. "
@@ -2134,7 +2134,7 @@ def company_profile_for_synthesis(c: dict) -> dict:
         "employees_entered": employees_entered,
         "unknown_fields": unknown,
         "instructions_for_missing_data": (
-            "Null stage or employees were never entered — they are not zero. "
+            "Null stage or employees were never entered; they are not zero. "
             "Do not call this a 0-person company or invent a funding stage."
             if unknown
             else ""
@@ -3457,7 +3457,7 @@ async def update_member_departments(
         if not user_id:
             raise HTTPException(
                 status_code=400,
-                detail=f"{m.get('email') or mid} has not joined yet — department lanes need an active login",
+                detail=f"{m.get('email') or mid} has not joined yet. Department lanes need an active login.",
             )
         wanted = []
         seen = set()
@@ -13565,7 +13565,7 @@ class AskInput(BaseModel):
 
 
 ASK_ERROR_REPLY = "I hit an error reaching my reasoning engine. Please try again."
-ASK_INTERRUPTED_NOTE = "\n\n_(Response interrupted — please ask again.)_"
+ASK_INTERRUPTED_NOTE = "\n\n_(Response interrupted. Please ask again.)_"
 ASK_HISTORY_TURNS = 10
 ASK_HISTORY_MAX_CHARS = 12_000
 
@@ -16471,7 +16471,7 @@ def _weekly_digest_email_html(*, workspace_name: str, app_url: str, unsubscribe_
 <tr><td style="padding:32px 36px 8px 36px;">
 <p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;">Weekly pack</p>
 <h1 style="color:#ffffff;font-size:24px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">This week's briefing for<br><span style="color:#c9a962;">{name}</span></h1>
-<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">Your Trenston weekly pack is attached as a PDF. No need to log in to read it — open the attachment, or review it in the app when you are ready.</p>
+<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">Your Trenston weekly pack is attached as a PDF. No need to log in to read it. Open the attachment, or review it in the app when you are ready.</p>
 <table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
 <td style="background:#c9a962;border-radius:8px;">
 <a href="{link}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Reports in Trenston &rarr;</a>

@@ -22,6 +22,7 @@ import { REVENUE_CATEGORIES as REV_CATS, EXPENSE_CATEGORIES as EXP_CATS, default
 import palette from "@/design/palette.json";
 import { ACCENT, accentAlpha } from "@/lib/accent";
 import { dealHref, departmentItemHref, highlightRecord } from "@/lib/signalRoute";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const GOLD = ACCENT;
 const CREAM = palette.cream;
@@ -401,10 +402,12 @@ export default function Financials() {
       if (hasAccountingSync) {
         const dup = findLikelySyncedDuplicate(payload);
         if (dup) {
-          const ok = window.confirm(
-            `A synced entry for about the same amount already exists in ${dup.month}`
-            + `${dup.name ? ` (${dup.name})` : ""}. Save anyway? Manual duplicates can inflate MRR, burn, and cash.`,
-          );
+          const ok = await confirmAction({
+            title: "This may be a duplicate",
+            description: `A synced entry for about the same amount already exists in ${dup.month}`
+              + `${dup.name ? ` (${dup.name})` : ""}. Manual duplicates can inflate MRR, burn, and cash.`,
+            confirmLabel: "Save anyway",
+          });
           if (!ok) return;
         }
       }
@@ -419,7 +422,7 @@ export default function Financials() {
   };
 
   const del = async (id) => {
-    if (!window.confirm("Remove this entry? This can't be undone.")) return;
+    if (!(await confirmAction({ title: "Remove this entry?", description: "This can't be undone.", confirmLabel: "Remove", destructive: true }))) return;
     try { await api.delete(`/financials/entries/${id}`); reload(); reloadActs(); toast.success("Entry removed"); }
     catch (e) { toast.error("Could not delete"); }
   };
@@ -492,9 +495,11 @@ export default function Financials() {
     if (hasAccountingSync) {
       const overlaps = csvPreview.valid.filter((row) => findLikelySyncedDuplicate(row));
       if (overlaps.length > 0) {
-        const ok = window.confirm(
-          `${overlaps.length} CSV row${overlaps.length === 1 ? "" : "s"} look similar to entries already synced from ${accountingLabel}. Import anyway? Manual duplicates can inflate MRR, burn, and cash.`,
-        );
+        const ok = await confirmAction({
+          title: "Some rows may be duplicates",
+          description: `${overlaps.length} CSV row${overlaps.length === 1 ? "" : "s"} look similar to entries already synced from ${accountingLabel}. Manual duplicates can inflate MRR, burn, and cash.`,
+          confirmLabel: "Import anyway",
+        });
         if (!ok) return;
       }
     }
@@ -539,7 +544,7 @@ export default function Financials() {
         data.runway_months != null
           ? `${data.runway_months} months`
           : data.runway_no_burn
-            ? "No burn — cash growing"
+            ? "No burn, cash growing"
             : "Add data",
       fill: data.cash_entered === false ? () => openSettings() : openEntryForm,
     },
@@ -570,7 +575,7 @@ export default function Financials() {
         subtitle={
           hasAccountingSync
             ? `Numbers sync from ${accountingLabel}. Use manual entry only for items that will not appear in your books.`
-            : "Log revenue and expenses here — or connect QuickBooks, Xero, or SAP Business One under Integrations. Trenston turns it into live MRR, runway, and burn."
+            : "Log revenue and expenses here, or connect QuickBooks, Xero, or SAP Business One under Integrations. Trenston turns it into live MRR, runway, and burn."
         }
         action={actions}
       />

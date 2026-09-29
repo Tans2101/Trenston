@@ -12,6 +12,7 @@ import ReportsDailyDigest from "@/components/ReportsDailyDigest";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import { cn } from "@/lib/utils";
 import { currencySymbol, formatMoney } from "@/lib/money";
+import { confirmAction } from "@/components/ConfirmHost";
 
 // Auto trend cards → the page whose data they summarise.
 const AUTO_REPORT_SOURCES = {
@@ -160,7 +161,7 @@ export default function Reports() {
   };
 
   const del = async (r) => {
-    if (!window.confirm(`Delete "${r.title}"?`)) return;
+    if (!(await confirmAction({ title: `Delete "${r.title}"?`, confirmLabel: "Delete", destructive: true }))) return;
     try { await api.delete(`/reports/${r.id}`); reload(); toast.success("Report removed"); }
     catch (e) { toast.error("Could not delete"); }
   };
