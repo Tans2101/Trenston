@@ -16496,8 +16496,22 @@ async def delete_account(user=Depends(get_user)):
         {"actor_user_id": uid},
         {"$set": {"actor_user_id": None, "actor_name": "Deleted user"}},
     )
+    clerk_id = (user.get("clerk_id") or "").strip() or None
     await db.users.delete_one({"user_id": uid})
-    return {"ok": True}
+    # Best-effort: remove the Clerk identity so they cannot sign back in and
+    # spawn a fresh Trenston row. Local wipe already succeeded above.
+    clerk_deleted = False
+    if clerk_id:
+        try:
+            await clerk_auth.delete_clerk_user(clerk_id)
+            clerk_deleted = True
+        except Exception:
+            logger.exception(
+                "In-app account delete wiped local user %s but Clerk delete failed for %s",
+                uid,
+                clerk_id,
+            )
+    return {"ok": True, "clerk_deleted": clerk_deleted}
 
 
 async def _delete_workspace_data(ws_id: str):

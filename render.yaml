@@ -57,6 +57,10 @@ services:
       - key: CLERK_SECRET_KEY
         sync: false
         # Must be sk_live_ from the clerk.trenston.com Clerk instance (same as CLERK_PUBLISHABLE_KEY).
+      - key: CLERK_WEBHOOK_SIGNING_SECRET
+        sync: false
+        # From Clerk Dashboard → Webhooks → endpoint signing secret (whsec_…).
+        # Required for POST /api/webhook/clerk (user.deleted session revocation).
       - key: CLERK_PUBLISHABLE_KEY
         value: pk_live_Y2xlcmsudHJlbnN0b24uY29tJA
       - key: CLERK_JWKS_URL

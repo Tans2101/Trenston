@@ -227,3 +227,50 @@ async def test_clerk_webhook_user_deleted_revokes(monkeypatch):
         out = await server.clerk_webhook(Req())
     assert out == {"received": True}
     revoke.assert_awaited_once_with("user_abc")
+
+
+@pytest.mark.asyncio
+async def test_delete_clerk_user_success(monkeypatch):
+    class Resp:
+        status_code = 200
+
+    class Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def delete(self, url, headers=None):
+            assert url.endswith("/users/user_del_1")
+            return Resp()
+
+    monkeypatch.setattr(clerk_auth, "CLERK_SECRET_KEY", "sk_live_test")
+    monkeypatch.setattr(clerk_auth.httpx, "AsyncClient", lambda **kw: Client())
+    out = await clerk_auth.delete_clerk_user("user_del_1")
+    assert out["ok"] is True
+    assert out["clerk_id"] == "user_del_1"
+
+
+@pytest.mark.asyncio
+async def test_delete_account_calls_clerk_when_clerk_id(monkeypatch):
+    user = {"user_id": "u9", "clerk_id": "user_del_9"}
+    memberships = MagicMock()
+    memberships.find = MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[])))
+    mock_db = MagicMock()
+    mock_db.memberships = memberships
+    mock_db.memberships.delete_many = AsyncMock()
+    mock_db.user_sessions.delete_many = AsyncMock()
+    mock_db.chat_messages.delete_many = AsyncMock()
+    mock_db.updates.delete_many = AsyncMock()
+    mock_db.private_notes.delete_many = AsyncMock()
+    mock_db.user_google_tokens.delete_many = AsyncMock()
+    mock_db.product_events.delete_many = AsyncMock()
+    mock_db.activities.update_many = AsyncMock()
+    mock_db.users.delete_one = AsyncMock()
+    clerk_delete = AsyncMock(return_value={"ok": True})
+    with patch.object(server, "db", mock_db), \
+         patch.object(clerk_auth, "delete_clerk_user", clerk_delete):
+        out = await server.delete_account(user=user)
+    assert out == {"ok": True, "clerk_deleted": True}
+    clerk_delete.assert_awaited_once_with("user_del_9")

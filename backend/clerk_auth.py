@@ -923,6 +923,36 @@ async def fetch_clerk_user_profile(clerk_user_id: str, *, retries: int = 4) -> d
     )
 
 
+async def delete_clerk_user(clerk_user_id: str) -> dict[str, Any]:
+    """DELETE https://api.clerk.com/v1/users/{id} — remove the Clerk identity after in-app delete.
+
+    Returns a small status dict. 404 is treated as already-gone (ok). Missing secret
+    or API errors raise ValueError so callers can log and decide best-effort policy.
+    """
+    if not clerk_user_id:
+        raise ValueError("clerk_user_id required")
+    if not CLERK_SECRET_KEY:
+        raise ValueError("CLERK_SECRET_KEY is not configured")
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.delete(
+                f"{CLERK_BAPI}/users/{clerk_user_id}",
+                headers=_bapi_headers(),
+            )
+    except httpx.HTTPError as exc:
+        raise ValueError("Clerk API unreachable while deleting user") from exc
+    if r.status_code in (200, 204):
+        return {"ok": True, "clerk_id": clerk_user_id, "status": r.status_code}
+    if r.status_code == 404:
+        return {"ok": True, "clerk_id": clerk_user_id, "status": 404, "already_gone": True}
+    if r.status_code in (401, 403):
+        raise ValueError(
+            "CLERK_SECRET_KEY rejected by Clerk API while deleting user. "
+            "Use sk_live_ from clerk.trenston.com"
+        )
+    raise ValueError(f"Clerk user delete failed ({r.status_code}): {r.text[:200]}")
+
+
 async def verify_clerk_session_token(token: str) -> dict[str, Any]:
     """Validate Clerk session JWT and return stable identity fields for Trenston users."""
     payload = await decode_clerk_jwt(token)

@@ -139,16 +139,15 @@ async def test_snapshot_rotation_keeps_previous_baseline_for_pack_and_cards():
 
 
 @pytest.mark.asyncio
-async def test_weekly_pack_llm_user_prompt_contains_manual_report(mongo):
-    """In-process: mock LLM and assert the prompt includes the manual report text."""
-    from server import weekly_pack, helm_llm
+async def test_weekly_pack_llm_user_prompt_contains_manual_report():
+    """In-process: mock LLM + db (no Motor) so xdist/asyncio loop teardown stays clean."""
+    import server
+    from server import helm_llm
 
-    ws_id = "ws_pack_ctx_test"
     title = f"TEST_PACK_{uuid.uuid4().hex[:6]}"
     summary = "Unique manual report body for LLM context."
-    mongo.workspaces.delete_many({"workspace_id": ws_id})
-    mongo.workspaces.insert_one({
-        "workspace_id": ws_id,
+    ws = {
+        "workspace_id": "ws_pack_ctx_test",
         "name": "Pack Co",
         "plan": "pro",
         "telemetry": {"kpis": []},
@@ -158,7 +157,7 @@ async def test_weekly_pack_llm_user_prompt_contains_manual_report(mongo):
         "manual_reports": [{"id": "rep_x", "title": title, "summary": summary}],
         "reports": [],
         "report_snapshot": None,
-    })
+    }
     captured = {}
 
     async def fake_complete(system, user, **kwargs):
@@ -166,11 +165,23 @@ async def test_weekly_pack_llm_user_prompt_contains_manual_report(mongo):
         captured["user"] = user
         return "# ok"
 
-    principal = {"workspace_id": ws_id, "user_id": "u1", "pack": "owner", "name": "Owner", "email": "o@x.com"}
-    with patch.object(helm_llm, "anthropic_configured", return_value=True), \
+    updates = MagicMock()
+    updates.to_list = AsyncMock(return_value=[])
+    mock_db = MagicMock()
+    mock_db.updates.find.return_value = updates
+    mock_db.workspaces.update_one = AsyncMock()
+    mock_db.financial_entries.find.return_value.sort.return_value.to_list = AsyncMock(return_value=[])
+    principal = {"workspace_id": "ws_pack_ctx_test", "user_id": "u1", "pack": "owner", "name": "Owner", "email": "o@x.com"}
+
+    with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
+         patch.object(server, "compute_financials", new=AsyncMock(return_value={
+             "mrr": "$1K", "arr": "$12K", "runway_months": 10, "burn": "$2K",
+             "mrr_value": 1000, "burn_value": 2000,
+         })), \
+         patch.object(server, "db", mock_db), \
+         patch.object(helm_llm, "anthropic_configured", return_value=True), \
          patch.object(helm_llm, "complete", new=AsyncMock(side_effect=fake_complete)):
-        # Call the route function directly
-        result = await weekly_pack(principal=principal)
+        result = await server.weekly_pack(principal=principal)
     assert result["content"] == "# ok"
     assert title in captured["user"]
     assert summary in captured["user"]

@@ -55,6 +55,7 @@ Usually **not** your code — upload to Render’s builders failed. Try in order
 | `DB_NAME` | No | Yes (`trenston`) |
 | `SESSION_SECRET` | No | Yes |
 | `CLERK_SECRET_KEY` + `CLERK_JWKS_URL` | No | Yes (for login) |
+| `CLERK_WEBHOOK_SIGNING_SECRET` | No | Yes (Clerk `user.deleted` → revoke Trenston sessions; from Clerk Dashboard → Webhooks) |
 | `ANTHROPIC_MODEL` | No | Optional (`claude-sonnet-5` in `render.yaml`) |
 
 Check with the protected setup endpoint:

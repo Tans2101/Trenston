@@ -47,11 +47,13 @@ const NAV = [
   { to: "/app/members", label: "Team & Access", icon: UsersRound, id: "members", perm: "members:invite" },
 ];
 
-function navItemVisible(item, user) {
+function navItemVisible(item, user, { modelingAllowed = false } = {}) {
   // Pack-only perms (e.g. members:invite) — unchanged shallow check.
   if (item.perm && !(user?.perms || []).includes(item.perm)) return false;
   // Grant-aware sections (e.g. telemetry, financials) — includes pack holders via /auth/me.
   if (item.section && !(user?.granted_sections || []).includes(item.section)) return false;
+  // Financial Modeling: hide until Growth+/Business plan allows it (avoid tease for Starter).
+  if (item.id === "modeling" && !modelingAllowed) return false;
   return true;
 }
 
@@ -371,9 +373,16 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
   const location = useLocation();
   const { data: company } = useCompanyQuery();
   const { data: deptData } = useDepartmentsQuery();
+  const canSeeFinancials = (user?.granted_sections || []).includes("financials");
+  // Only ask when Financials is granted — hide Modeling until /modeling/access says allowed.
+  const modelingAccess = useFetch(canSeeFinancials ? "/modeling/access" : null);
+  const modelingAllowed = Boolean(modelingAccess.data?.allowed);
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
   const isPaid = helmIsPaidPlan(company?.plan, billingEnforced, subscriptionStatus);
-  const mainNav = useMemo(() => NAV.filter((item) => navItemVisible(item, user)), [user]);
+  const mainNav = useMemo(
+    () => NAV.filter((item) => navItemVisible(item, user, { modelingAllowed })),
+    [user, modelingAllowed],
+  );
   const deptNav = (deptData?.departments || []).filter((d) => departmentNavVisible(d));
   const canBilling = canManageBilling(user);
 
@@ -544,9 +553,12 @@ function useQuickNavActions() {
   const isOwner = user?.role === "owner" || user?.pack === "owner";
   const canBilling = canManageBilling(user);
   const canExportActivity = isOwner || (user?.perms || []).includes("members:manage");
+  const canSeeFinancials = (user?.granted_sections || []).includes("financials");
+  const modelingAccess = useFetch(canSeeFinancials ? "/modeling/access" : null);
+  const modelingAllowed = Boolean(modelingAccess.data?.allowed);
 
   return useMemo(() => {
-    const navActions = NAV.filter((item) => navItemVisible(item, user)).map((item) => {
+    const navActions = NAV.filter((item) => navItemVisible(item, user, { modelingAllowed })).map((item) => {
       const Icon = item.icon;
       return {
         id: item.id,
@@ -705,7 +717,7 @@ function useQuickNavActions() {
       quickActions,
       departmentActions: deptActions,
     };
-  }, [user, deptData, isOwner, canBilling, canExportActivity]);
+  }, [user, deptData, isOwner, canBilling, canExportActivity, modelingAllowed]);
 }
 
 function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, enableShortcut = true }) {

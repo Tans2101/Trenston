@@ -262,7 +262,7 @@ export default function BriefingCockpitHero({
                     {m.delta != null ? (
                       <span
                         className={cn(
-                          "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs font-medium",
+                          "mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
                           deltaTone(m) === "positive" && "bg-helm-status-positive/12 text-helm-status-positive",
                           deltaTone(m) === "negative" && "bg-helm-status-negative/12 text-helm-status-negative",
                           deltaTone(m) === "neutral" && "bg-helm-fg/[0.06] text-helm-muted",
