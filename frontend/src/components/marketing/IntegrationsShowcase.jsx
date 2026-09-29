@@ -2,26 +2,14 @@ import { INTEGRATIONS_SHOWCASE } from "@/lib/marketingCopy";
 import { MkLink, Reveal, SectionHeader } from "@/components/marketing/mk";
 import BrandLogo, { integrationIdFor } from "@/components/BrandLogo";
 
-/**
- * Vendor logos, monochrome to match the site, shown in the vendor's colour on
- * hover. See PUBLIC_INTEGRATIONS_ATTRIBUTION for the trademark notice.
- */
+/** Vendor logos in their own brand colours. See PUBLIC_INTEGRATIONS_ATTRIBUTION for the trademark notice. */
 function IntegrationBadge({ name }) {
-  const id = integrationIdFor(name);
   return (
     <div
       aria-hidden
-      className="relative flex h-11 w-11 shrink-0 items-center justify-center border border-mk-line bg-white text-mk-black"
+      className="flex h-11 w-11 shrink-0 items-center justify-center border border-mk-line bg-white"
     >
-      <BrandLogo
-        id={id}
-        variant="mono"
-        className="h-6 w-6 transition-opacity duration-300 group-hover:opacity-0"
-      />
-      <BrandLogo
-        id={id}
-        className="absolute h-6 w-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-      />
+      <BrandLogo id={integrationIdFor(name)} className="h-6 w-6" />
     </div>
   );
 }

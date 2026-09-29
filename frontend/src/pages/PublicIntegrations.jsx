@@ -22,15 +22,14 @@ import BrandLogo from "@/components/BrandLogo";
 
 const NUMBER_WORDS = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"];
 
-/** Vendor logo, monochrome to match the site, vendor colour on hover. */
+/** Vendor logo in its own brand colours. */
 function IntegrationBadge({ id }) {
   return (
     <div
       aria-hidden
-      className="relative flex h-12 w-12 shrink-0 items-center justify-center border border-mk-line bg-white text-mk-black"
+      className="flex h-12 w-12 shrink-0 items-center justify-center border border-mk-line bg-white"
     >
-      <BrandLogo id={id} variant="mono" className="h-6 w-6 transition-opacity duration-300 group-hover:opacity-0" />
-      <BrandLogo id={id} className="absolute h-6 w-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <BrandLogo id={id} className="h-6 w-6" />
     </div>
   );
 }

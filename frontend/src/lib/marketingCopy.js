@@ -21,7 +21,7 @@ export const WHAT_HELM_IS = WHAT_TRENSTON_IS;
 export const ABOUT_PROBLEM =
   "Founders and CEOs running a company of this size often spend their mornings opening a dozen tools and asking people for status updates just to know what is happening. Trenston exists to close that gap.";
 export const FOUNDER_NOTE =
-  "I build Trenston myself. I write the code and ship every change, and there is no separate product team between you and me. If something in the cockpit is wrong or missing, tell me and I will see it.";
+  "I built Trenston because as a founder, I grew tired of fighting the daily chaos of fragmented spreadsheets and single-feature apps. We needed a single source of truth, so we created a unified CEO and Founder Operating System that consolidates your business into one cohesive dashboard. Our mission is to eliminate operational noise and give you the absolute clarity needed to start scaling and growing your vision.";
 
 export const HERO_OUTCOME =
   "Open Trenston and see what changed, what needs a decision, and what you can hand off, synthesized from your live company data.";
