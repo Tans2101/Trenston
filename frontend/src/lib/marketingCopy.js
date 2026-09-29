@@ -226,14 +226,14 @@ export const FEATURE_CATEGORIES = [
   {
     id: "finance",
     label: "Finance & growth",
-    intro: "Pipeline and financials are connected: won deals land as revenue, not a spreadsheet chase.",
+    intro: "Model what a hire or a funding round does to runway, get warned before cash gets tight, and keep pipeline and financials connected.",
     modules: [
+      "Financial Modeling",
+      "Runway warnings",
       "Won deals become revenue",
       "Deal ownership & follow-ups",
       "Sales order book & monthly target",
       "Telemetry",
-      "Financial Modeling",
-      "Runway warnings",
     ],
   },
   {
@@ -464,13 +464,16 @@ export const FEATURE_MODULES = [
   {
     title: "Financial Modeling",
     ceoValue: "See what a hire or a funding round does to runway before you commit.",
-    body: "Sliders for revenue and expense growth, planned hires and one-time events, starting from your last three months of real data. Save scenarios and compare them on one chart. Included in Growth and Business.",
+    body: "Sliders for revenue and expense growth, planned hires and one-time events, starting from your last three months of real data. Save scenarios and compare them on one chart.",
+    plan: "Growth and Business",
+    link: { to: "/pricing", label: "Compare plans" },
     example: "Hire two engineers in March and close a seed round in June: runway goes from 9.1 months to over 24.",
   },
   {
     title: "Runway warnings",
     ceoValue: "Know before cash gets tight, with the maths shown.",
-    body: "Set a minimum cash reserve and Trenston projects when cash will cross it from your burn and its trend. It also flags accelerating burn, falling revenue, a drop in completed tasks, and pipeline that will not cover your sales targets. Too little data means no warning, never a guess.",
+    body: "Set a minimum cash reserve and Trenston projects when cash will cross it from your burn and its trend. It also flags accelerating burn, falling revenue, a drop in completed tasks, and pipeline that will not cover your sales targets.",
+    plan: "Every plan",
     example: "At your current burn you reach your minimum reserve in about 74 days. Cutting burn by $2,400 a month would move that to about 101 days.",
   },
   {

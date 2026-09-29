@@ -46,3 +46,16 @@ test("no em dashes in user-facing prose", () => {
   const hits = sourceFiles(SRC).flatMap(proseEmDashes);
   expect(hits).toEqual([]);
 });
+
+function jsonStrings(value, out = []) {
+  if (typeof value === "string") out.push(value);
+  else if (Array.isArray(value)) value.forEach((v) => jsonStrings(v, out));
+  else if (value && typeof value === "object") Object.values(value).forEach((v) => jsonStrings(v, out));
+  return out;
+}
+
+test("no em dashes in user-facing JSON copy (changelog)", () => {
+  const data = JSON.parse(fs.readFileSync(path.join(SRC, "lib", "changelog.json"), "utf8"));
+  const hits = jsonStrings(data).filter((t) => t.includes(EM) && t.trim() !== EM);
+  expect(hits.map((t) => t.slice(0, 80))).toEqual([]);
+});

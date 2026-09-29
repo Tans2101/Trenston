@@ -178,7 +178,12 @@ export default function Features() {
                     <ul className="mt-10 space-y-6">
                       {modules.slice(0, 3).map((mod) => (
                         <li key={mod.title} className="border-l-2 border-mk-navy pl-5">
-                          <p className="font-semibold tracking-tight text-mk-black">{mod.ceoValue}</p>
+                          <p className="font-semibold tracking-tight text-mk-black">
+                            {mod.ceoValue}
+                            {mod.plan && mod.plan !== "Every plan" ? (
+                              <span className="ml-2 align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-mk-gray">{mod.plan}</span>
+                            ) : null}
+                          </p>
                           <p className="mt-1 text-sm leading-relaxed text-mk-gray">{mod.body}</p>
                         </li>
                       ))}
@@ -198,7 +203,14 @@ export default function Features() {
                     >
                       <div className="flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-mk-navy">{mod.title}</p>
-                        <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
+                        <span className="flex items-center gap-3">
+                          {mod.plan ? (
+                            <span className="border border-mk-line px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-mk-gray" data-testid={`feature-plan-${i}`}>
+                              {mod.plan}
+                            </span>
+                          ) : null}
+                          <span className="font-mono text-xs text-mk-gray">{String(i + 1).padStart(2, "0")}</span>
+                        </span>
                       </div>
                       <h3 className="mt-5 text-2xl font-medium leading-snug tracking-[-0.02em] text-mk-black">{mod.ceoValue}</h3>
                       <p className="mt-3 leading-relaxed text-mk-gray">{mod.body}</p>
@@ -255,7 +267,7 @@ export default function Features() {
           className="mx-auto max-w-7xl"
           eyebrow="No roadmap items"
           title="Everything on this page is shipping in the product today."
-          intro="Free to start. Full cockpit on every plan."
+          intro="Free to start. Financial Modeling is included in Growth and Business."
         />
       </section>
 
