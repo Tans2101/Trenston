@@ -240,7 +240,7 @@ export default function BriefingCockpitHero({
                 <p className="text-sm font-medium text-helm-fg">{m.label}</p>
                 {m.missing ? (
                   <>
-                    <p className="mt-2 font-display text-3xl md:text-4xl font-bold text-helm-muted/50 tracking-tight tabular-nums">
+                    <p className="mt-2 font-mono text-2xl md:text-3xl text-helm-muted/50 tabular-nums">
                       —
                     </p>
                     <button
@@ -256,7 +256,7 @@ export default function BriefingCockpitHero({
                   </>
                 ) : (
                   <>
-                    <p className="mt-2 font-display text-3xl md:text-4xl font-bold text-helm-fg tracking-tight tabular-nums">
+                    <p className="mt-2 font-mono text-2xl md:text-3xl text-helm-fg tabular-nums">
                       {m.value || "—"}
                     </p>
                     {m.delta != null ? (
