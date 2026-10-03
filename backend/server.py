@@ -16178,6 +16178,11 @@ _WORKSPACE_COLLECTIONS = (
     "hr_leave_requests",
     "department_report_drafts",
     "model_scenarios",
+    # Added so workspace export and deletion cover every workspace-keyed collection.
+    "production_daily_logs",
+    "maintenance_schedules", "maintenance_spares", "maintenance_costs", "maintenance_contracts",
+    "sales_order_book", "sales_targets",
+    "document_usage_periods", "seat_usage",
 )
 
 # Per-provider stamp: who connected the shared workspace OAuth grant.

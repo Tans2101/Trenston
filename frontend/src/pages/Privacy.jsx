@@ -171,6 +171,14 @@ export default function Privacy() {
               submit data you are not authorized to process with third-party AI providers. Trenston does not claim SOC 2,
               HIPAA, GDPR, or similar certifications based solely on this disclosure.
             </p>
+            <p className="mt-3">
+              Trenston reaches Anthropic through its commercial API. Under Anthropic&apos;s commercial terms, inputs and
+              outputs are not used to train its models by default, and Anthropic processes them on our behalf. Trenston
+              itself does not train or fine-tune any model on customer data. When enabled, bill and receipt uploads may
+              first be read by Google Cloud Document AI (Invoice Parser) to pull out vendor, date, and amounts, with
+              Anthropic used when that parser is unavailable or not confident. That processing is run by Trenston and
+              is separate from any Google account a teammate connects.
+            </p>
           </section>
 
           <section>
@@ -200,6 +208,7 @@ export default function Privacy() {
               <li><span className="text-mk-black">Cloudflare R2</span>: uploaded document files (private bucket)</li>
               <li><span className="text-mk-black">Clerk</span>: authentication and login/session data</li>
               <li><span className="text-mk-black">Anthropic</span>: processes AI feature inputs (documents, Ask Trenston context, summaries)</li>
+              <li><span className="text-mk-black">Google Cloud Document AI</span>: optional first read of uploaded bills and receipts</li>
               <li><span className="text-mk-black">Paddle</span>: payment processing</li>
               <li><span className="text-mk-black">Resend</span>: transactional email</li>
               <li><span className="text-mk-black">Vercel</span>: hosting and cookieless web analytics (page views)</li>
@@ -215,12 +224,20 @@ export default function Privacy() {
           <section>
             <h2 className="text-lg text-mk-black font-normal tracking-tight mb-2">Retention &amp; deletion</h2>
             <p>
-              When you delete your account, your personal data is wiped immediately. There is no retention period after deletion.
-              Workspace owners can export a full data package for companies they own (workspace records with integration
-              tokens stripped). Non-owner members receive their own account data plus a summary of workspaces they belong to.
-              You can export and delete from{" "}
+              When you delete your account, your personal data is removed from Trenston&apos;s database immediately, with
+              no hold period on our side, and any workspace where you are the only owner is deleted with it. Where
+              other people worked in a workspace, their history stays and your name in the activity log becomes
+              &quot;Deleted user&quot;. Our database and storage providers keep their own backups for a limited time, so
+              a deleted record may remain in a provider backup until it ages out.
+            </p>
+            <p className="mt-3">
+              Workspace owners can export a data package for companies they own (database records as JSON, up to
+              5,000 rows per collection, integration tokens stripped, original uploaded files not included).
+              Non-owner members receive their own account data plus a summary of workspaces they belong to. Account
+              export is available on every plan. You can export and delete from{" "}
               <Link to="/app/settings" className="text-mk-navy hover:underline">Account Settings</Link>
-              {" "}(<span className="font-mono text-xs text-mk-gray">/app/settings</span>).
+              {" "}(<span className="font-mono text-xs text-mk-gray">/app/settings</span>). The full picture is on our{" "}
+              <Link to="/security#your-data" className="text-mk-navy hover:underline">Security</Link> page.
             </p>
           </section>
 

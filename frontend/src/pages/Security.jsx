@@ -49,7 +49,7 @@ const TRUST_BADGES = [
   { icon: LockKeyhole, label: "End-to-End TLS Encryption" },
   { icon: ShieldCheck, label: "Workspace Isolation" },
   { icon: KeyRound, label: "Fernet Token Sealing" },
-  { icon: Trash2, label: "Zero Residual Retention" },
+  { icon: Trash2, label: "Export and Delete Anytime" },
 ];
 
 const WHERE_DATA_LIVES = [
@@ -119,7 +119,11 @@ const THIRD_PARTIES = [
   },
   {
     name: "Anthropic",
-    why: "AI features (Ask Trenston, bill/receipt extract, briefing and digest summaries, decision suggestions) send the minimum workspace context needed for that request.",
+    why: "AI features (Ask Trenston, bill/receipt extract, briefing and digest summaries, decision suggestions) send the workspace context needed for that request through Anthropic's commercial API. Under Anthropic's commercial terms, inputs and outputs are not used to train its models by default, and Anthropic acts as our processor. Trenston does not train or fine-tune models on customer data.",
+  },
+  {
+    name: "Google Cloud Document AI",
+    why: "When enabled, a bill or receipt you upload may first be read by Google's Invoice Parser to pull out vendor, date, and amounts. Anything it cannot read confidently falls back to Anthropic. This is run by Trenston, not through your Google account.",
   },
   {
     name: "Clerk, Paddle, Resend, Vercel Analytics",
@@ -128,10 +132,37 @@ const THIRD_PARTIES = [
 ];
 
 const RETENTION = [
-  "Account deletion wipes personal account data immediately. There is no post-deletion hold period for that wipe path.",
+  "Account deletion removes your personal account data from Trenston's database immediately, with no hold period on our side. Copies in infrastructure provider backups age out on the provider's own schedule.",
   "Workspace owners can delete the company workspace; Trenston removes workspace-scoped MongoDB records and associated private R2 objects. If object storage is unreachable, deletion fails visibly so it can be retried instead of silently leaving files behind.",
   "Workspace owners can export a data package (integration tokens stripped). Non-owners get their own account data plus a membership summary.",
   "Trial and inactivity retention emails are driven by a daily Render cron (helm-retention-checks). They are reminders, not silent data deletion without the controls above.",
+];
+
+const DATA_EXIT = [
+  {
+    title: "It is your data",
+    body: "Everything your team enters or connects stays yours. Trenston uses it to run your workspace and for nothing else: no selling, no advertising, no model training.",
+  },
+  {
+    title: "Export it",
+    body: "Any user can download their own account data from Account Settings, on any plan, including Free. Workspace owners can also download a package of the whole workspace as JSON with integration tokens stripped. The package holds database records, up to 5,000 rows per collection (a flag marks any collection that was cut), and not the original uploaded files. Financials also export as PDF and Excel, or to Google Sheets.",
+  },
+  {
+    title: "Delete a workspace",
+    body: "Owners can delete a company workspace. Trenston removes the private files from storage first, then every workspace record, then the workspace itself. If storage is unreachable the deletion stops and says so, so nothing is left behind unnoticed.",
+  },
+  {
+    title: "Delete your account",
+    body: "Deleting your account removes your personal data immediately and deletes any workspace where you are the only owner. Where other people worked in a workspace, their history is kept and your name on the activity log becomes \"Deleted user\".",
+  },
+  {
+    title: "If you stop paying",
+    body: "Paid features lock, and your data is not deleted automatically. Account export is not tied to a paid plan, so leaving never means losing your records.",
+  },
+  {
+    title: "What can linger",
+    body: "Our database and storage providers keep their own backups for a limited time, so a deleted record can exist in a provider backup until it ages out. Ask contact@trenston.com if you need specifics.",
+  },
 ];
 
 const STAFF_ACCESS = [
@@ -181,7 +212,7 @@ const PRACTICES = [
   "Payment card details are handled by Paddle, not stored on Trenston servers.",
   "Authentication is handled by Clerk using secure session controls.",
   "Sensitive credentials and provider token responses are excluded from application logs.",
-  "Uploaded documents are sent to Anthropic only when an AI extract feature needs to process them.",
+  "Uploaded documents are sent to Anthropic (and, when enabled, Google Cloud Document AI) only when an AI extract feature needs to process them.",
   "GitHub is listed as coming soon in the product catalog. It is not a live data connection today.",
 ];
 
@@ -226,6 +257,7 @@ export default function Security() {
     { id: "encryption", label: "Encryption" },
     { id: "third-parties", label: "Third parties" },
     { id: "retention", label: "Retention and access" },
+    { id: "your-data", label: "Your data, your exit" },
     { id: "questions", label: "Common questions" },
   ];
 
@@ -366,6 +398,23 @@ export default function Security() {
               </ul>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* Your data, your exit */}
+      <section id="your-data" className="scroll-mt-16 bg-white px-6 py-24 md:py-28">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow="Your data, your exit"
+            title="Take it with you, or erase it."
+            intro="You should never be locked in by your own records. Here is exactly what you can export and delete, and what to expect afterwards."
+            action={<MkLink to="/app/settings" className="text-mk-navy">Account Settings</MkLink>}
+          />
+          <div className="mt-14 grid gap-x-10 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+            {DATA_EXIT.map(({ title, body }, i) => (
+              <RuledItem key={title} i={i % 3} index={i + 1} icon={[Database, Cloud, Trash2, UserRoundCheck, CreditCard, ShieldCheck][i] || ShieldCheck} title={title} body={body} />
+            ))}
+          </div>
         </div>
       </section>
 

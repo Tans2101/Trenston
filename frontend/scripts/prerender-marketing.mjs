@@ -29,6 +29,7 @@ import {
   loadHelpFaq,
 } from "./loadMarketingPlans.mjs";
 import { writeLlmsTxt } from "./sync-llms-txt.mjs";
+import { staticBodyFor, textLength } from "./staticPageText.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = join(__dirname, "..");
@@ -261,6 +262,19 @@ function main() {
     }
     if (path === "/help") {
       html = injectHelpFaq(html, helpFaq, origin);
+    }
+    if (!["/pricing", "/help"].includes(path)) {
+      // Everything else: real text in #root for readers that do not run JavaScript.
+      const body = staticBodyFor(path, page);
+      html = html.replace(/<div id="root"><\/div>/i, `<div id="root">${body}</div>`);
+      if (!html.includes("helm-prerender-page")) {
+        console.error(`prerender-marketing: could not inject body for ${path}`);
+        process.exit(1);
+      }
+      if (["/security", "/privacy", "/terms", "/refunds"].includes(path) && textLength(body) < 1500) {
+        console.error(`prerender-marketing: ${path} prerendered text is suspiciously short (${textLength(body)} chars)`);
+        process.exit(1);
+      }
     }
     const outFile =
       path === "/"
