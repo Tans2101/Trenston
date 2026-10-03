@@ -53,11 +53,15 @@ export default function DecisionCard({
   const reduceMotion = useReducedMotion();
   const navigate = useNavigate();
   const [delegateTo, setDelegateTo] = useState("");
+  const [followUpBusy, setFollowUpBusy] = useState(false);
   const source = signalRoute(d.signal);
+  const statusClass = statusStyle[d.status] || statusStyle.pending;
 
   const createFollowUp = async () => {
+    if (followUpBusy) return;
+    setFollowUpBusy(true);
     try {
-      const res = await api.post("/tasks", { title: `Follow up: ${d.title}`.slice(0, 200), tag: "Decision", column: "backlog" });
+      const res = await api.post("/tasks", { title: `Follow up: ${d.title || "decision"}`.slice(0, 200), tag: "Decision", column: "backlog" });
       const taskId = res?.data?.task?.id;
       toast.success("Follow-up task created", taskId
         ? { action: { label: "Open task", onClick: () => navigate(taskHref(taskId)) } }
@@ -65,6 +69,8 @@ export default function DecisionCard({
     } catch (e) {
       const detail = e?.response?.data?.detail;
       toast.error(detail == null ? "Could not create the follow-up task" : apiErrorMessage(detail, "Could not create the follow-up task"));
+    } finally {
+      setFollowUpBusy(false);
     }
   };
 
@@ -100,7 +106,7 @@ export default function DecisionCard({
         <div className="flex-1">
           <div className="flex items-center gap-2 flex-wrap mb-2">
             <span className="text-[10px] font-mono uppercase tracking-wider text-helm-muted border border-helm-line rounded px-1.5 py-0.5">{d.category}</span>
-            <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status])}>{d.status}</span>
+            <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusClass)}>{d.status || "pending"}</span>
             {isAi && (
               <span className="text-[10px] font-mono uppercase tracking-wider text-helm-status-warning/90 border border-helm-status-warning/35 rounded px-1.5 py-0.5">
                 From Trenston

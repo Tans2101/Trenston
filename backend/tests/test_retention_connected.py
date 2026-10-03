@@ -158,7 +158,7 @@ def test_approve_suggestion_copies_signal():
             "confidence": 70, "impact": "High",
         }],
     }
-    update = AsyncMock()
+    update = AsyncMock(return_value=MagicMock(matched_count=1, modified_count=1))
     mock_db = MagicMock()
     mock_db.workspaces.update_one = update
     with patch.object(server, "get_ws", AsyncMock(return_value=ws)), \
@@ -170,13 +170,15 @@ def test_approve_suggestion_copies_signal():
     assert d["signal_type"] == "overdue_legal_deadline"
     assert d["signal"] == SIGNAL
     assert d["confidence"] == 70
-    stored = update.await_args.args[1]["$set"]["decisions"][0]
+    stored = update.await_args.args[1]["$push"]["decisions"]
     assert stored["signal"]["related_id"] == "lm_1"
     assert stored["signal"]["department_type"] == "legal"
     # GET /decisions returns stored decisions as-is → signal comes through.
     ws_after = {**ws, "decisions": [stored], "decision_suggestions": []}
     with patch.object(server, "get_ws", AsyncMock(return_value=ws_after)), \
-         patch.object(server, "can_section_write", AsyncMock(return_value=True)):
+         patch.object(server, "can_access_financials", AsyncMock(return_value=True)), \
+         patch.object(server, "can_section_write", AsyncMock(return_value=True)), \
+         patch.object(server, "workspace_is_pro", return_value=True):
         listed = asyncio.run(server.decisions(PRINCIPAL))
     assert listed["decisions"][0]["signal"]["employee_id"] == "emp_9"
 

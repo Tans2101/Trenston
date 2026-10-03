@@ -4908,6 +4908,18 @@ def _heal_self_delegated_decisions(principal: dict, decisions: list) -> bool:
     return changed
 
 
+def _decision_list_sort_key(x: dict):
+    """High → Medium → Low, then due date, then id (same order as Briefing)."""
+    due = (x.get("due") or "").strip()
+    if not due or due == "—":
+        due = "9999"
+    return (
+        _IMPACT_RANK.get(x.get("impact"), 9),
+        due,
+        x.get("id") or "",
+    )
+
+
 @api_router.get("/decisions")
 async def decisions(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
@@ -4921,6 +4933,8 @@ async def decisions(principal=Depends(get_principal)):
     if not await can_access_financials(principal):
         decisions_list = [d for d in decisions_list if not decision_engine.is_financial_signal(d)]
         suggestions = [s for s in suggestions if not decision_engine.is_financial_signal(s)]
+    decisions_list.sort(key=_decision_list_sort_key)
+    suggestions.sort(key=_decision_list_sort_key)
     return {
         "decisions": decisions_list,
         "suggestions": suggestions,
@@ -5069,12 +5083,22 @@ async def approve_decision_suggestion(suggestion_id: str, principal=Depends(requ
     # record that raised it (type, related_id, department_type, employee_id…).
     if isinstance(sug.get("signal"), dict):
         decision["signal"] = dict(sug["signal"])
-    decisions = list(c.get("decisions") or []) + [decision]
-    suggestions = [s for s in suggestions if s.get("id") != suggestion_id]
-    await db.workspaces.update_one(
-        {"workspace_id": c["workspace_id"]},
-        {"$set": {"decisions": decisions, "decision_suggestions": suggestions}},
+    # Atomic pull+push so a concurrent create/approve cannot wipe sibling rows
+    # (full-array $set was a lost-update race).
+    result = await db.workspaces.update_one(
+        {
+            "workspace_id": c["workspace_id"],
+            "decision_suggestions": {
+                "$elemMatch": {"id": suggestion_id, "status": "suggested"},
+            },
+        },
+        {
+            "$pull": {"decision_suggestions": {"id": suggestion_id}},
+            "$push": {"decisions": decision},
+        },
     )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     await log_activity(principal, "decisions", "suggestion.approve", f"Accepted Trenston suggestion: {decision['title']}", related_id=decision["id"])
     return {"ok": True, "decision": decision}
@@ -5086,19 +5110,21 @@ async def dismiss_decision_suggestion(suggestion_id: str, principal=Depends(requ
     c = await get_ws(principal["workspace_id"])
     suggestions = list(c.get("decision_suggestions") or [])
     sug = next((s for s in suggestions if s.get("id") == suggestion_id), None)
-    before = len(suggestions)
-    suggestions = [s for s in suggestions if s.get("id") != suggestion_id]
-    if len(suggestions) == before:
+    if not sug:
         raise HTTPException(status_code=404, detail="Suggestion not found")
     # Allow re-notify if the same signal recurs after dismiss
-    notified = list(c.get("notified_signal_ids") or [])
-    if sug:
-        key = an.signal_notify_key(sug.get("signal") or sug)
-        notified = [k for k in notified if k != key]
-    await db.workspaces.update_one(
-        {"workspace_id": c["workspace_id"]},
-        {"$set": {"decision_suggestions": suggestions, "notified_signal_ids": notified}},
+    key = an.signal_notify_key(sug.get("signal") or sug)
+    result = await db.workspaces.update_one(
+        {"workspace_id": c["workspace_id"], "decision_suggestions.id": suggestion_id},
+        {
+            "$pull": {
+                "decision_suggestions": {"id": suggestion_id},
+                "notified_signal_ids": key,
+            },
+        },
     )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Suggestion not found")
     return {"ok": True}
 
 
@@ -5194,10 +5220,14 @@ async def edit_decision(decision_id: str, payload: DecisionInput, principal=Depe
     # omitted fields to their model defaults.
     sent = set(payload.model_dump(exclude_unset=True).keys())
     fields = {k: v for k, v in fields.items() if k in sent}
+    if "title" in sent and not (payload.title or "").strip():
+        raise HTTPException(status_code=400, detail="Title is required")
     # Never wipe an AI decision's confidence: the manual edit form always
     # sends confidence=null. Only an explicit number updates it.
     if payload.confidence is None:
         fields.pop("confidence", None)
+    if not fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
     set_fields = {f"decisions.$[d].{k}": v for k, v in fields.items()}
     result = await db.workspaces.update_one(
         {"workspace_id": c["workspace_id"], "decisions.id": decision_id},
@@ -5217,7 +5247,9 @@ async def delete_decision(decision_id: str, principal=Depends(require_section("d
         {"workspace_id": c["workspace_id"]},
         {"$pull": {"decisions": {"id": decision_id}}},
     )
-    if result.matched_count == 0:
+    # matched_count only proves the workspace exists; modified_count means a
+    # decision row was actually removed.
+    if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Not found")
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
     return {"ok": True}

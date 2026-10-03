@@ -5,12 +5,18 @@ import { Plus, RefreshCw, X, Sparkles } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { AnimatePresence } from "motion/react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
-import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
+import { useDecisionActions, buildDelegateOptions } from "@/hooks/useDecisionActions";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
 import DecisionCard, { statusStyle } from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import { highlightRecord } from "@/lib/signalRoute";
+import {
+  isFatalDecisionsLoad,
+  isActionableDecision,
+  isResolvedDecision,
+  sortDecisionsByImpact,
+} from "@/lib/decisionsUi";
 import { cn } from "@/lib/utils";
 import { confirmAction } from "@/components/ConfirmHost";
 
@@ -44,6 +50,7 @@ export default function Decisions() {
   const focusId = searchParams.get("focus");
   const wantsNew = searchParams.get("new") === "1";
   const highlightedRef = useRef(null);
+  const softRefreshToastKey = useRef(null);
 
   // Open the add form from another screen: state.openAdd / state.prefill, or ?new=1.
   // Waits for data so we know whether this user can log decisions at all.
@@ -80,7 +87,23 @@ export default function Decisions() {
     highlightRecord(focusId);
   }, [focusId, data, isFetching]);
 
-  if (loading) {
+  // Only block on first load — keep cached UI when a background refetch fails.
+  const showSkeleton = loading && !data;
+  const fatalError = isFatalDecisionsLoad({ error, data });
+  const softRefreshError = Boolean(error && data);
+
+  useEffect(() => {
+    if (!softRefreshError) {
+      softRefreshToastKey.current = null;
+      return;
+    }
+    const key = error?.message || error?.code || "soft-refresh";
+    if (softRefreshToastKey.current === key) return;
+    softRefreshToastKey.current = key;
+    toast.error(fetchErrorMessage(error, "Could not refresh decisions. Showing last loaded data."));
+  }, [softRefreshError, error]);
+
+  if (showSkeleton) {
     return (
       <div>
         <PageHeader title="Decision Center" subtitle="Every open decision, ranked by impact. Trenston drafts suggestions from live signals. You confirm before anything becomes a real call." />
@@ -88,7 +111,7 @@ export default function Decisions() {
       </div>
     );
   }
-  if (error || !data) {
+  if (fatalError) {
     return (
       <ErrorScreen
         label="Could not load decisions"
@@ -98,20 +121,20 @@ export default function Decisions() {
     );
   }
   const canAct = data.can_act;
-  const suggestions = data.suggestions || [];
-  const decisions = data.decisions || [];
+  const suggestions = sortDecisionsByImpact(data.suggestions || []);
+  const decisions = sortDecisionsByImpact(data.decisions || []);
   const { selfMember, delegateMembers, selfLabel, selfOptionLabel } = buildDelegateOptions(membersData);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm()); setShowForm(true); };
   const openEdit = (d) => {
     setEditing(d.id);
     setForm({
-      title: d.title,
-      category: d.category,
+      title: d.title || "",
+      category: d.category || "General",
       description: d.description || "",
       recommendation: d.recommendation || "",
-      due: d.due === "—" ? "" : d.due,
-      impact: d.impact,
+      due: !d.due || d.due === "—" ? "" : d.due,
+      impact: d.impact || "Medium",
     });
     setShowForm(true);
   };
@@ -166,12 +189,25 @@ export default function Decisions() {
     </div>
   ) : null;
 
-  const pending = decisions.filter((d) => isOpenDecision(d, selfLabel));
-  const resolved = decisions.filter((d) => !isOpenDecision(d, selfLabel));
+  const pending = decisions.filter(isActionableDecision);
+  const resolved = decisions.filter(isResolvedDecision);
 
   return (
     <div>
       <PageHeader title="Decision Center" subtitle="Every open decision, ranked by impact. Trenston drafts suggestions from live signals. You confirm before anything becomes a real call." action={addBtn} />
+
+      {softRefreshError ? (
+        <div
+          className="mb-4 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 text-sm text-helm-fg"
+          data-testid="decisions-soft-refresh-error"
+          role="status"
+        >
+          Could not refresh. Showing last loaded decisions.{" "}
+          <button type="button" onClick={reload} className="text-helm-gold hover:text-helm-gold-hover font-medium underline-offset-2 hover:underline">
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <div className={cn(suggestions.length > 0 && "mb-8")} data-testid="suggested-decisions">
         {suggestions.length > 0 && (
@@ -231,7 +267,7 @@ export default function Decisions() {
               <div className="space-y-2">
                 {resolved.map((d) => (
                   <div key={d.id} className="flex items-center gap-3 rounded-lg border border-helm-line bg-helm-fg/[0.02] px-4 py-3" data-testid={`resolved-${d.id}`} data-deeplink={d.id}>
-                    <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status])}>{d.status}</span>
+                    <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status] || statusStyle.pending)}>{d.status}</span>
                     <span className="text-sm text-helm-fg flex-1">{d.title}</span>
                     <span className="text-xs text-helm-muted">{d.owner ? `→ ${d.owner}` : ""}</span>
                     {canAct && <CirDeleteBtn onClick={() => del(d.id)} title="Delete decision" />}

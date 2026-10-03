@@ -22,7 +22,7 @@ const MUTATION_INVALIDATIONS = [
   { match: "/financials", paths: ["/financials", "/briefing", "/telemetry"] },
   { match: "/documents", paths: ["/financials", "/documents"] },
   { match: "/tasks", paths: ["/tasks", "/tasks/me", "/me/work-items", "/calendar", "/briefing"] },
-  { match: "/decisions", paths: ["/decisions", "/briefing", "/me/work-items"] },
+  { match: "/decisions", paths: ["/decisions", "/briefing", "/me/work-items", "/calendar"] },
   { match: "/delegates", paths: ["/briefing", "/decisions", "/tasks", "/me/work-items"] },
   { match: "/notes", paths: ["/notes"] },
   { match: "/updates", paths: ["/updates/me", "/updates/today", "/briefing"] },

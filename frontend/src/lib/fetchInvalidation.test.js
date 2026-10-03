@@ -65,4 +65,12 @@ describe("fetchPathsToInvalidate", () => {
     expect(paths).toContain("/tasks");
     expect(paths).toContain("/me/work-items");
   });
+
+  test("maps decisions write to calendar and briefing", () => {
+    const paths = fetchPathsToInvalidate("POST", "/decisions");
+    expect(paths).toContain("/decisions");
+    expect(paths).toContain("/briefing");
+    expect(paths).toContain("/me/work-items");
+    expect(paths).toContain("/calendar");
+  });
 });

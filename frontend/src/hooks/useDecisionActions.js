@@ -99,8 +99,9 @@ export function decisionOwnerIsSelf(owner, selfLabel) {
 }
 
 /**
- * Open decisions stay actionable. "Delegated to myself" is ownership, not a
- * final resolution — keep those in the open list so approve/reject still work.
+ * My Day "Needs your call": pending, or delegated to the current user.
+ * Decision Center uses isActionableDecision / isResolvedDecision instead —
+ * delegated-to-others stays open there (hand-off ≠ resolution).
  */
 export function isOpenDecision(d, selfLabel) {
   if (!d) return false;
