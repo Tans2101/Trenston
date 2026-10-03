@@ -52,6 +52,12 @@ describe("fetchPathsToInvalidate", () => {
     expect(paths).toContain("/maintenance/settings");
   });
 
+  test("maps maintenance ticket write to briefing", () => {
+    const paths = fetchPathsToInvalidate("POST", "/maintenance/tickets");
+    expect(paths).toContain("/maintenance/tickets");
+    expect(paths).toContain("/briefing");
+  });
+
   test("maps delegates assign to briefing/decisions/tasks", () => {
     const paths = fetchPathsToInvalidate("POST", "/delegates/suggestions/sug_1/assign");
     expect(paths).toContain("/briefing");

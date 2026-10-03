@@ -270,9 +270,7 @@ export default function BriefingCockpitHero({
                       >
                         {m.delta > 0 ? "▲" : m.delta < 0 ? "▼" : "•"} {Math.abs(m.delta)}% vs last period
                       </span>
-                    ) : (
-                      <span className="mt-2 inline-flex items-center text-sm text-helm-muted">vs last period</span>
-                    )}
+                    ) : null}
                   </>
                 )}
               </div>

@@ -13,7 +13,7 @@ const MUTATION_INVALIDATIONS = [
   { match: "/procurement/settings", paths: ["/procurement/requests", "/procurement/settings", "/briefing"] },
   { match: "/maintenance/settings", paths: ["/maintenance/tickets", "/maintenance/settings", "/briefing"] },
   { match: "/legal/matters", paths: ["/legal/matters", "/me/work-items", "/calendar", "/briefing"] },
-  { match: "/maintenance/tickets", paths: ["/maintenance/tickets", "/me/work-items", "/calendar", "/production/work-orders"] },
+  { match: "/maintenance/tickets", paths: ["/maintenance/tickets", "/me/work-items", "/calendar", "/production/work-orders", "/briefing"] },
   { match: "/hr/", paths: ["/hr/", "/me/work-items", "/members", "/briefing"] },
   { match: "/sales/targets", paths: ["/sales/order-book", "/briefing"] },
   { match: "/sales/order-book", paths: ["/sales/order-book", "/briefing"] },

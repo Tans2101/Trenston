@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { Link, useNavigate } from "react-router-dom";
@@ -74,11 +74,20 @@ export default function Briefing() {
   });
   const softRefreshError = Boolean((briefingError || companyError) && data && company);
   const reload = () => { reloadBriefing(); reloadCompany(); };
+  // Toast once per soft-refresh failure episode — remounts must not re-spam.
+  const softRefreshToastKey = useRef(null);
 
   useEffect(() => {
-    if (!softRefreshError) return;
+    if (!softRefreshError) {
+      softRefreshToastKey.current = null;
+      return;
+    }
+    const err = briefingError || companyError;
+    const key = err?.message || err?.code || "soft-refresh";
+    if (softRefreshToastKey.current === key) return;
+    softRefreshToastKey.current = key;
     toast.error(
-      fetchErrorMessage(briefingError || companyError, "Could not refresh briefing. Showing last loaded data."),
+      fetchErrorMessage(err, "Could not refresh briefing. Showing last loaded data."),
     );
   }, [softRefreshError, briefingError, companyError]);
 
@@ -606,7 +615,7 @@ export default function Briefing() {
                     <button
                       type="button"
                       data-testid={`gmail-draft-${i}`}
-                      disabled={gmailDraftBusy === (t.id || i)}
+                      disabled={gmailDraftBusy != null}
                       onClick={async () => {
                         const draftKey = t.id || i;
                         if (gmailDraftBusy != null) return;

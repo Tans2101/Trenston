@@ -3888,7 +3888,8 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
         {
             "label": "MRR",
             "value": format_mrr_display(fin),
-            "delta": mrr_delta if mrr_known else 0,
+            # null when unknown so the hero does not invent "0% vs last period"
+            "delta": mrr_delta if mrr_known else None,
             "tone": mrr_tone,
             "missing": not mrr_known,
             "state": fin.get("mrr_state") or _figure_state(mrr_known, fin.get("mrr_value")),
@@ -3898,7 +3899,8 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
         {
             "label": "Runway",
             "value": format_runway_display(fin),
-            "delta": 0,
+            # Point-in-time figure — no MoM % comparison.
+            "delta": None,
             "tone": runway_tone,
             "missing": not runway_ready,
             "state": fin.get("runway_state") or _runway_state(
@@ -3919,8 +3921,9 @@ def _briefing_finance_metrics(fin: dict) -> list[dict]:
         {
             "label": "Burn",
             "value": format_burn_display(fin),
-            "delta": 0,
-            "tone": fin["burn_tone"] if burn_known else "neutral",
+            # Point-in-time figure — no MoM % comparison.
+            "delta": None,
+            "tone": fin.get("burn_tone") if burn_known else "neutral",
             "missing": not burn_known,
             "state": fin.get("burn_state") or _figure_state(burn_known, fin.get("burn_value")),
             "href": None if burn_known else "/app/financials#log-entry",
@@ -4024,8 +4027,9 @@ async def briefing(principal=Depends(get_principal)):
     b["metrics"] = metrics
     act_items = [_briefing_activity_item(a) for a in acts]
     b["what_changed"] = act_items + list(b.get("what_changed", []))
-    # Prefer calendar weekday over static seed strings ("Monday" / "Today").
-    b["date"] = datetime.now(timezone.utc).strftime("%A")
+    # Workspace-local weekday (not UTC) — default TZ is Asia/Manila, so UTC
+    # would show yesterday's name for much of the morning.
+    b["date"] = tz_utils.workspace_now(c).strftime("%A")
     b["team_updates"] = [{"user_name": u.get("user_name"), "text": u.get("text"),
                           "blocker": u.get("blocker", False),
                           "ago": _rel_time(u.get("updated_at", ""))} for u in ups]

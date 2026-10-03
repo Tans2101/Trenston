@@ -105,11 +105,36 @@ def test_briefing_missing_metrics_link_to_add_data():
     assert metrics["MRR"]["href"] == "/app/financials#log-mrr"
     assert metrics["Burn"]["href"] == "/app/financials#log-entry"
     assert metrics["Runway"]["href"] == "/app/financials#cash"
+    # No invented MoM % when the figure is missing or point-in-time only.
+    assert metrics["MRR"]["delta"] is None
+    assert metrics["Burn"]["delta"] is None
+    assert metrics["Runway"]["delta"] is None
 
     with_cash = _run_compute([], {"cash": 10000, "currency": "usd"})
     runway = next(m for m in server._briefing_finance_metrics(with_cash) if m["label"] == "Runway")
     assert runway["missing"] is True
     assert runway["href"] == "/app/financials#log-entry"
+
+
+def test_briefing_burn_runway_never_fake_zero_delta():
+    """Burn/Runway are point-in-time — hero must not show '0% vs last period'."""
+    fin = _run_compute(
+        [
+            {
+                "type": "expense",
+                "category": "Payroll",
+                "amount": 8000,
+                "month": "2026-09",
+                "recurring": True,
+            },
+        ],
+        {"cash": 80000, "currency": "usd"},
+    )
+    metrics = {m["label"]: m for m in server._briefing_finance_metrics(fin)}
+    assert metrics["Burn"]["missing"] is False
+    assert metrics["Runway"]["missing"] is False
+    assert metrics["Burn"]["delta"] is None
+    assert metrics["Runway"]["delta"] is None
 
 
 def test_report_money_card_uses_add_data_not_dash():
