@@ -7561,6 +7561,9 @@ async def my_tasks(principal=Depends(get_principal)):
     return {"items": items, "columns": _normalize_task_columns(c["tasks"])["columns"]}
 
 
+VALID_TASK_COLUMNS = {"backlog", "in_progress", "review", "done"}
+
+
 class TaskInput(BaseModel):
     title: str
     priority: str = "Medium"
@@ -7574,6 +7577,8 @@ class TaskInput(BaseModel):
 async def create_task(payload: TaskInput, principal=Depends(require_pro_perm("tasks:create"))):
     if not payload.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
+    if payload.column and payload.column not in VALID_TASK_COLUMNS:
+        raise HTTPException(status_code=400, detail=f"Invalid column: {payload.column}")
     c = await get_ws(principal["workspace_id"])
     t = c["tasks"]
     assignee_uid = principal["user_id"]
@@ -7636,6 +7641,8 @@ async def patch_task(task_id: str, payload: TaskPatch, principal=Depends(require
     before = dict(target)
 
     if "column" in fields and fields["column"] is not None:
+        if fields["column"] not in VALID_TASK_COLUMNS:
+            raise HTTPException(status_code=400, detail=f"Invalid column: {fields['column']}")
         prev_col = target.get("column")
         target["column"] = fields["column"]
         if fields["column"] == "done":
