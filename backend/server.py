@@ -6400,6 +6400,12 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         if not await can_access_financials(principal):
             signals = [x for x in signals if not decision_engine.is_financial_signal(x)]
         suggested_risks = _telemetry_risk_suggestions_from_signals(signals, cap=5)
+        resolved_signals = {r.get("source_signal") for r in risks if r.get("source_signal")}
+        if resolved_signals:
+            suggested_risks = [
+                s for s in suggested_risks
+                if s.get("source_signal") not in resolved_signals
+            ]
     except Exception:
         logger.exception("telemetry risk suggestions failed for %s", c.get("workspace_id"))
     can_write = await can_section_write(principal, "telemetry", "telemetry:write")
@@ -6456,6 +6462,7 @@ async def update_telemetry(payload: TelemetryRiskInput, principal=Depends(requir
             "likelihood": max(1, min(5, int(r.get("likelihood") or 3))),
             "impact": max(1, min(5, int(r.get("impact") or 3))),
             "category": (r.get("category") or "General").strip()[:40],
+            "source_signal": r.get("source_signal"),
         })
     prior = dict(c.get("telemetry_manual") or {})
     manual = {

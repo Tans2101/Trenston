@@ -179,6 +179,7 @@ export default function Telemetry() {
         category: seedRisk.category || "General",
         likelihood: 3,
         impact: 3,
+        source_signal: seedRisk.source_signal,
       });
     }
     setRisks(base.length ? base : [{ ...emptyRisk() }]);
