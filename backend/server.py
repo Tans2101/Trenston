@@ -6185,18 +6185,19 @@ async def _workspace_live_signals(
     )
 
 
-async def _activity_heatmap_for_workspace(workspace_id: str, weeks: int = 12) -> dict:
+async def _activity_heatmap_for_workspace(workspace_id: str, today: date, weeks: int = 12) -> dict:
     """Aggregate db.activities into a Bklit heatmap grid (Sunday-first week columns).
 
     Returns {"columns": [...], "total": int} where each bin.count is the raw
     activity count for that calendar day (frontend/chart levels via Bklit's
     getHeatmapContributionLevel). Dates are ISO date strings for JSON.
+    Window edges and future-day cutoff use workspace-local ``today``; activity
+    bucketing stays UTC date of stored created_at timestamps.
     """
-    now = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-    days_since_sunday = (now.weekday() + 1) % 7
-    this_sunday = now - timedelta(days=days_since_sunday)
+    days_since_sunday = (today.weekday() + 1) % 7
+    this_sunday = today - timedelta(days=days_since_sunday)
     start_sunday = this_sunday - timedelta(weeks=max(1, weeks) - 1)
-    start_iso = start_sunday.isoformat()
+    start_iso = datetime.combine(start_sunday, datetime.min.time(), tzinfo=timezone.utc).isoformat()
 
     counts: dict[str, int] = {}
     cursor = db.activities.find(
@@ -6221,8 +6222,8 @@ async def _activity_heatmap_for_workspace(workspace_id: str, weeks: int = 12) ->
         week_start = start_sunday + timedelta(weeks=week_i)
         bins = []
         for day_i in range(7):
-            day = (week_start + timedelta(days=day_i)).date()
-            raw_count = 0 if day > now.date() else int(counts.get(day.isoformat(), 0))
+            day = week_start + timedelta(days=day_i)
+            raw_count = 0 if day > today else int(counts.get(day.isoformat(), 0))
             total += raw_count
             bins.append({
                 "bin": day_i,
@@ -6399,12 +6400,22 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         if not await can_access_financials(principal):
             signals = [x for x in signals if not decision_engine.is_financial_signal(x)]
         suggested_risks = _telemetry_risk_suggestions_from_signals(signals, cap=5)
+        resolved_signals = {r.get("source_signal") for r in risks if r.get("source_signal")}
+        if resolved_signals:
+            suggested_risks = [
+                s for s in suggested_risks
+                if s.get("source_signal") not in resolved_signals
+            ]
     except Exception:
         logger.exception("telemetry risk suggestions failed for %s", c.get("workspace_id"))
     can_write = await can_section_write(principal, "telemetry", "telemetry:write")
     activity_heatmap = {"columns": [], "total": 0}
     try:
-        activity_heatmap = await _activity_heatmap_for_workspace(c["workspace_id"], weeks=12)
+        activity_heatmap = await _activity_heatmap_for_workspace(
+            c["workspace_id"],
+            today=tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"])),
+            weeks=12,
+        )
     except Exception:
         logger.exception("telemetry activity heatmap failed for %s", c.get("workspace_id"))
     freshness = await helm_freshness.resolve_workspace_data_as_of(db, c)
@@ -6451,6 +6462,7 @@ async def update_telemetry(payload: TelemetryRiskInput, principal=Depends(requir
             "likelihood": max(1, min(5, int(r.get("likelihood") or 3))),
             "impact": max(1, min(5, int(r.get("impact") or 3))),
             "category": (r.get("category") or "General").strip()[:40],
+            "source_signal": r.get("source_signal"),
         })
     prior = dict(c.get("telemetry_manual") or {})
     manual = {

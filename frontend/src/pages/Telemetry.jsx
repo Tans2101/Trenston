@@ -179,6 +179,7 @@ export default function Telemetry() {
         category: seedRisk.category || "General",
         likelihood: 3,
         impact: 3,
+        source_signal: seedRisk.source_signal,
       });
     }
     setRisks(base.length ? base : [{ ...emptyRisk() }]);
@@ -522,8 +523,10 @@ export default function Telemetry() {
                   <input
                     type="number"
                     step="0.1"
+                    min="-100"
+                    max="1000"
                     value={growthPct}
-                    onChange={(e) => setGrowthPct(e.target.value)}
+                    onChange={(e) => setGrowthPct(Math.max(-100, Math.min(1000, Number(e.target.value) || 0)))}
                     data-testid="target-growth-pct"
                     className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
                   />
@@ -629,13 +632,19 @@ export default function Telemetry() {
               })}
             </div>
 
-            <button
-              type="button"
-              onClick={() => setRisks((prev) => [...prev, emptyRisk()])}
-              className="mt-3 inline-flex items-center gap-1.5 text-xs text-helm-gold hover:text-helm-gold-hover"
-            >
-              <Plus className="w-3.5 h-3.5" /> Add another risk
-            </button>
+            {risks.length >= 20 ? (
+              <p className="mt-3 text-xs text-helm-muted">
+                Limit of 20 risks reached — remove one to add another.
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setRisks((prev) => [...prev, emptyRisk()])}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs text-helm-gold hover:text-helm-gold-hover"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add another risk
+              </button>
+            )}
 
             <div className="flex gap-2 mt-5">
               <button type="button" onClick={() => setEditing(false)} className="rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2.5 hover:bg-helm-fg/5">Cancel</button>
