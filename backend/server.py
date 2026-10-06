@@ -7533,6 +7533,13 @@ async def import_financials_csv_confirm(
 async def tasks(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
     t = _normalize_task_columns(dict(c["tasks"]))
+    today = tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"]))
+    for item in t["items"]:
+        item["overdue"] = bool(
+            item.get("due")
+            and item.get("column") != "done"
+            and item["due"][:10] < today.isoformat()
+        )
     t["can_create"] = "tasks:create" in perms_for(principal["pack"])
     t["can_assign"] = await can_section_write(principal, "tasks", "tasks:assign")
     t["my_user_id"] = principal["user_id"]

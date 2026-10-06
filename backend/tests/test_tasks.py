@@ -105,3 +105,47 @@ def test_patch_task_accepts_valid_columns(column):
         out = asyncio.run(server.patch_task("t1", server.TaskPatch(column=column), PRINCIPAL))
     assert out["ok"] is True
     mock_db.workspaces.update_one.assert_called_once()
+
+
+def test_get_tasks_marks_overdue_for_past_due_open_items():
+    ws = _task_ws(items=[
+        {
+            "id": "open_past",
+            "title": "Past open",
+            "column": "in_progress",
+            "due": "2020-01-01",
+            "assignee_user_id": "u_owner",
+        },
+        {
+            "id": "done_past",
+            "title": "Past done",
+            "column": "done",
+            "due": "2020-01-01",
+            "assignee_user_id": "u_owner",
+        },
+        {
+            "id": "open_future",
+            "title": "Future open",
+            "column": "backlog",
+            "due": "2099-01-01",
+            "assignee_user_id": "u_owner",
+        },
+        {
+            "id": "no_due",
+            "title": "No due",
+            "column": "review",
+            "due": "",
+            "assignee_user_id": "u_owner",
+        },
+    ])
+    with patch.object(server, "get_ws", AsyncMock(return_value=ws)), \
+         patch.object(server, "_workspace_tz_doc", AsyncMock(return_value={"timezone": "UTC"})), \
+         patch.object(server.tz_utils, "workspace_today", return_value=date(2026, 10, 6)), \
+         patch.object(server, "can_section_write", AsyncMock(return_value=True)), \
+         patch.object(server, "perms_for", return_value={"tasks:create"}):
+        out = asyncio.run(server.tasks(PRINCIPAL))
+    by_id = {i["id"]: i for i in out["items"]}
+    assert by_id["open_past"]["overdue"] is True
+    assert by_id["done_past"]["overdue"] is False
+    assert by_id["open_future"]["overdue"] is False
+    assert by_id["no_due"]["overdue"] is False
