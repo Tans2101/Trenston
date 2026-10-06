@@ -8,10 +8,6 @@ import { PageHeader, GlassCard, ErrorScreen, EmptyState, SkeletonCardList } from
 import { cn } from "@/lib/utils";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 import { highlightRecord } from "@/lib/signalRoute";
-import { todayISO } from "@/lib/dates";
-import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const priorityStyle = {
   High: "text-helm-status-negative bg-helm-status-negative/12",
@@ -31,7 +27,6 @@ export default function Tasks() {
   const [form, setForm] = useState(emptyTask());
   const [busy, setBusy] = useState(false);
   const [clearingDone, setClearingDone] = useState(false);
-  const tz = useWorkspaceTimezone();
   const hasItems = Boolean(data?.items?.length);
 
   // ?task=<id> deep link — scroll to and flash the card once the board renders.
@@ -62,7 +57,6 @@ export default function Tasks() {
     );
   }
 
-  const today = todayISO(tz);
   const canCreate = data.can_create;
   const canAssign = data.can_assign;
   const taskAssigneeOptions = buildAssigneeOptions(membersData?.members || [], data.my_user_id, {
@@ -178,16 +172,17 @@ export default function Tasks() {
             <div className="space-y-2">
               {items.map((t) => {
                 const mine = t.assignee_user_id === data.my_user_id;
-                const overdue = t.column !== "done" && ISO_DATE.test(String(t.due || "")) && t.due < today;
                 const fromTrenston = t.source === "ai_suggested" || Boolean(t.from_suggestion_id);
+                const canDrag = mine || data.can_assign;
                 return (
                 <div key={t.id}
-                  draggable
-                  onDragStart={() => setDragId(t.id)}
+                  draggable={canDrag}
+                  onDragStart={() => canDrag && setDragId(t.id)}
                   data-testid={`task-${t.id}`}
                   data-deeplink={t.id}
                   className={cn(
-                    "group rounded-lg border border-helm-line bg-helm-card p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-helm-gold/35",
+                    "group rounded-lg border border-helm-line bg-helm-card p-3 transition-colors hover:border-helm-gold/35",
+                    canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default",
                     mine && "border-l-2 border-l-helm-gold/60",
                     focusTaskId === t.id && "ring-1 ring-helm-gold/35 border-helm-gold/35",
                   )}>
@@ -209,12 +204,12 @@ export default function Tasks() {
                         {t.due && (
                           <span
                             className={cn(
-                              "text-[10px] font-mono ml-auto",
-                              overdue ? "text-helm-status-negative" : "text-helm-muted",
+                              "text-[10px] font-mono ml-auto text-helm-muted",
+                              t.overdue ? "text-helm-status-negative" : "",
                             )}
-                            data-testid={overdue ? `task-overdue-${t.id}` : undefined}
+                            data-testid={t.overdue ? `task-overdue-${t.id}` : undefined}
                           >
-                            {overdue ? `Overdue · ${t.due}` : t.due}
+                            {t.due}
                           </span>
                         )}
                       </div>

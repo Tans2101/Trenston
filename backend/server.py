@@ -7533,6 +7533,13 @@ async def import_financials_csv_confirm(
 async def tasks(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
     t = _normalize_task_columns(dict(c["tasks"]))
+    today = tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"]))
+    for item in t["items"]:
+        item["overdue"] = bool(
+            item.get("due")
+            and item.get("column") != "done"
+            and item["due"][:10] < today.isoformat()
+        )
     t["can_create"] = "tasks:create" in perms_for(principal["pack"])
     t["can_assign"] = await can_section_write(principal, "tasks", "tasks:assign")
     t["my_user_id"] = principal["user_id"]
@@ -7561,6 +7568,9 @@ async def my_tasks(principal=Depends(get_principal)):
     return {"items": items, "columns": _normalize_task_columns(c["tasks"])["columns"]}
 
 
+VALID_TASK_COLUMNS = {"backlog", "in_progress", "review", "done"}
+
+
 class TaskInput(BaseModel):
     title: str
     priority: str = "Medium"
@@ -7574,6 +7584,8 @@ class TaskInput(BaseModel):
 async def create_task(payload: TaskInput, principal=Depends(require_pro_perm("tasks:create"))):
     if not payload.title.strip():
         raise HTTPException(status_code=400, detail="Title is required")
+    if payload.column and payload.column not in VALID_TASK_COLUMNS:
+        raise HTTPException(status_code=400, detail=f"Invalid column: {payload.column}")
     c = await get_ws(principal["workspace_id"])
     t = c["tasks"]
     assignee_uid = principal["user_id"]
@@ -7636,6 +7648,8 @@ async def patch_task(task_id: str, payload: TaskPatch, principal=Depends(require
     before = dict(target)
 
     if "column" in fields and fields["column"] is not None:
+        if fields["column"] not in VALID_TASK_COLUMNS:
+            raise HTTPException(status_code=400, detail=f"Invalid column: {fields['column']}")
         prev_col = target.get("column")
         target["column"] = fields["column"]
         if fields["column"] == "done":
