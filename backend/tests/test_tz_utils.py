@@ -70,6 +70,13 @@ def test_new_workspace_defaults_to_manila():
     assert seed_data.build_workspace("ws1", "Acme", "u1", empty=True)["timezone"] == "Asia/Manila"
 
 
+def test_sample_you_task_sets_assignee_user_id():
+    ws = seed_data.build_workspace("ws1", "Acme", "owner_42", empty=False)
+    you = next(t for t in ws["tasks"]["items"] if t["id"] == "t3")
+    assert you["assignee"] == "You"
+    assert you["assignee_user_id"] == "owner_42"
+
+
 def test_updates_me_uses_workspace_local_day(frozen):
     fake_db = MagicMock()
     fake_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})

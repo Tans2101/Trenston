@@ -1,14 +1,20 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { Send, CheckCircle2, Circle, AlertTriangle, Plus, Users, Lock, PenLine, Briefcase, Scale } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { todayISO } from "@/lib/dates";
 import { dayPartGreeting } from "@/lib/greeting";
-import { GlassCard, SectionLabel, ErrorScreen, EmptyState, PageHeaderSkeleton, SkeletonCardList } from "@/components/kit";
+import {
+  hasMyDaySoftRefreshError,
+  isMyDayInitialLoading,
+} from "@/lib/myDayUi";
+import { GlassCard, SectionLabel, EmptyState, PageHeaderSkeleton, SkeletonCardList } from "@/components/kit";
 import DecisionCard from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import { departmentIcon } from "@/lib/departmentIcons";
@@ -34,16 +40,39 @@ const colStyle = {
 
 const colLabel = { backlog: "To-Do", in_progress: "in progress", review: "review", done: "done" };
 
+function SectionError({ label, error, onRetry }) {
+  return (
+    <GlassCard className="p-5" data-testid="myday-section-error">
+      <p className="text-sm text-helm-fg">{label}</p>
+      <p className="text-xs text-helm-muted mt-1">{fetchErrorMessage(error, "Could not load this section.")}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 text-xs text-helm-gold hover:text-helm-gold-hover font-medium"
+        >
+          Retry
+        </button>
+      ) : null}
+    </GlassCard>
+  );
+}
+
+function SectionSkeleton({ count = 2 }) {
+  return <SkeletonCardList count={count} />;
+}
+
 export default function MyDay() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tz = useWorkspaceTimezone();
   const { data: notesData, loading: l0, error: e0, reload: reloadNotes } = useFetch("/notes");
   const { data: mine, loading: l1, error: e1, reload: reloadMine } = useFetch("/updates/me");
   const { data: tasks, loading: l2, error: e2, reload: reloadTasks } = useFetch("/tasks/me");
   const { data: today, loading: l3, error: e3, reload: reloadToday } = useFetch("/updates/today");
-  const { data: decisionsData, loading: lDec, reload: reloadDecisions } = useFetch("/decisions");
+  const { data: decisionsData, loading: lDec, error: eDec, reload: reloadDecisions } = useFetch("/decisions");
   const canActDecisions = !!decisionsData?.can_act;
-  const { data: membersData } = useFetch(canActDecisions ? "/members" : null);
+  const { data: membersData, loading: lMembers } = useFetch(canActDecisions ? "/members" : null);
   const { busy: decisionBusy, act, approveSuggestion, dismissSuggestion } = useDecisionActions(reloadDecisions);
   const { data: workData, loading: lWork, error: eWork, reload: reloadWork } = useFetch("/me/work-items");
 
@@ -55,13 +84,47 @@ export default function MyDay() {
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDue, setTaskDue] = useState("");
   const [taskBusy, setTaskBusy] = useState(false);
+  const [taskMovingId, setTaskMovingId] = useState(null);
   const [editingNote, setEditingNote] = useState(null);
   const [noteText, setNoteText] = useState("");
   const [noteColor, setNoteColor] = useState("gold");
   const [noteBusy, setNoteBusy] = useState(false);
   const [showNoteComposer, setShowNoteComposer] = useState(false);
 
-  if (l0 || l1 || l2 || l3 || lDec || lWork) {
+  const requiredFeeds = [
+    { loading: l0, data: notesData, error: e0 },
+    { loading: l1, data: mine, error: e1 },
+    { loading: l2, data: tasks, error: e2 },
+    { loading: l3, data: today, error: e3 },
+    { loading: lWork, data: workData, error: eWork },
+  ];
+  const softRefreshError = hasMyDaySoftRefreshError(requiredFeeds);
+  const softRefreshToastKey = useRef(null);
+
+  const reloadAll = () => {
+    reloadNotes();
+    reloadMine();
+    reloadTasks();
+    reloadToday();
+    reloadDecisions();
+    reloadWork();
+  };
+
+  useEffect(() => {
+    if (!softRefreshError) {
+      softRefreshToastKey.current = null;
+      return;
+    }
+    const err = e0 || e1 || e2 || e3 || eWork;
+    const key = err?.message || err?.code || "soft-refresh";
+    if (softRefreshToastKey.current === key) return;
+    softRefreshToastKey.current = key;
+    toast.error(fetchErrorMessage(err, "Could not refresh your day. Showing last loaded data."));
+  }, [softRefreshError, e0, e1, e2, e3, eWork]);
+
+  // Only full-page skeleton when every required feed is on first load (no cache).
+  // Decisions never block the rest of My Day.
+  if (isMyDayInitialLoading(requiredFeeds)) {
     return (
       <div>
         <PageHeaderSkeleton />
@@ -73,26 +136,18 @@ export default function MyDay() {
       </div>
     );
   }
-  const dayError = e0 || e1 || e2 || e3 || eWork;
-  if (dayError || !notesData || !mine || !tasks || !today || !workData) {
-    return (
-      <ErrorScreen
-        label="Could not load your day"
-        message={fetchErrorMessage(dayError, "Your day view is unavailable right now.")}
-        onRetry={() => { reloadNotes(); reloadMine(); reloadTasks(); reloadToday(); reloadDecisions(); reloadWork(); }}
-      />
-    );
-  }
 
   const first = user?.name?.split(" ")[0] || "there";
-  const { greeting } = dayPartGreeting();
+  const { greeting } = dayPartGreeting(new Date(), tz);
   const hasPosted = !!mine?.update;
-  const notes = notesData.notes || [];
+  const notes = notesData?.notes || [];
   const suggestions = decisionsData?.suggestions || [];
   const { selfMember, delegateMembers, selfLabel, selfOptionLabel } = buildDelegateOptions(membersData);
   const pendingDecisions = (decisionsData?.decisions || []).filter((d) => isOpenDecision(d, selfLabel));
   const needsCallEmpty = suggestions.length === 0 && pendingDecisions.length === 0;
   const workItems = workData?.items || [];
+  const membersReady = !canActDecisions || !!membersData;
+  const delegateDisabled = canActDecisions && (lMembers || !membersReady);
 
   const saveNote = async () => {
     if (!noteText.trim()) { toast.error("Write something first"); return; }
@@ -149,7 +204,7 @@ export default function MyDay() {
   };
 
   const addTask = async () => {
-    if (!taskTitle.trim()) return;
+    if (!taskTitle.trim()) { toast.error("Add a title"); return; }
     setTaskBusy(true);
     try {
       await api.post("/tasks", { title: taskTitle.trim(), tag: "Personal", column: "backlog", due: taskDue });
@@ -161,14 +216,18 @@ export default function MyDay() {
   };
 
   const moveTask = async (t, column) => {
+    if (taskMovingId) return;
+    setTaskMovingId(t.id);
     try { await api.patch(`/tasks/${t.id}`, { column }); reloadTasks(); }
     catch (e) { toast.error("Could not update task"); }
+    finally { setTaskMovingId(null); }
   };
 
   const myItems = tasks?.items || [];
   const openItems = myItems.filter((t) => t.column !== "done");
   const doneItems = myItems.filter((t) => t.column === "done");
   const teamUpdates = (today?.updates || []).filter((u) => u.user_id !== user?.user_id);
+  const workspaceToday = todayISO(tz);
 
   // Turn a teammate's blocker into a decision, with the context already filled in.
   const logDecisionFromBlocker = (u) => {
@@ -195,7 +254,33 @@ export default function MyDay() {
         <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">Your private notes, tasks, and optional team update. Start with what matters to you.</p>
       </div>
 
-      {canActDecisions && (
+      {softRefreshError ? (
+        <div
+          className="mb-4 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 text-sm text-helm-fg"
+          data-testid="myday-soft-refresh-error"
+          role="status"
+        >
+          Could not refresh. Showing last loaded data.{" "}
+          <button type="button" onClick={reloadAll} className="text-helm-gold hover:text-helm-gold-hover font-medium underline-offset-2 hover:underline">
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {/* Needs your call — never blocks the rest of the page */}
+      {(lDec && !decisionsData) ? (
+        <div className="mb-8 fade-up" data-testid="needs-your-call-loading">
+          <SectionLabel>Needs your call</SectionLabel>
+          <div className="mt-4"><SectionSkeleton count={2} /></div>
+        </div>
+      ) : eDec && !decisionsData ? (
+        <div className="mb-8 fade-up" data-testid="needs-your-call">
+          <SectionLabel>Needs your call</SectionLabel>
+          <div className="mt-4">
+            <SectionError label="Could not load decisions" error={eDec} onRetry={reloadDecisions} />
+          </div>
+        </div>
+      ) : canActDecisions ? (
         <div className="mb-8 fade-up" data-testid="needs-your-call">
           <div className="flex items-center justify-between gap-3 mb-4">
             <SectionLabel>Needs your call</SectionLabel>
@@ -203,6 +288,15 @@ export default function MyDay() {
               See all decisions →
             </Link>
           </div>
+          {eDec ? (
+            <div
+              className="mb-3 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-3 py-2 text-xs text-helm-fg"
+              role="status"
+            >
+              Could not refresh decisions.{" "}
+              <button type="button" onClick={reloadDecisions} className="text-helm-gold hover:text-helm-gold-hover font-medium">Retry</button>
+            </div>
+          ) : null}
           {needsCallEmpty ? (
             <GlassCard className="p-5">
               <p className="text-sm text-helm-fg">Nothing needs your call right now</p>
@@ -225,7 +319,7 @@ export default function MyDay() {
                   key={d.id}
                   d={d}
                   canAct
-                  busy={decisionBusy}
+                  busy={decisionBusy || delegateDisabled}
                   onApprove={(id) => act(id, "approved")}
                   onReject={(id) => act(id, "rejected")}
                   onDelegate={(id, owner) => act(id, "delegated", owner)}
@@ -238,17 +332,21 @@ export default function MyDay() {
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       <div className="mb-8 fade-up" data-testid="my-work-feed">
         <div className="flex items-center gap-2 mb-4">
           <Briefcase className="w-3.5 h-3.5 text-helm-gold" />
           <SectionLabel>My Work</SectionLabel>
         </div>
-        {workItems.length === 0 ? (
+        {lWork && !workData ? (
+          <SectionSkeleton count={2} />
+        ) : eWork && !workData ? (
+          <SectionError label="Could not load My Work" error={eWork} onRetry={reloadWork} />
+        ) : workItems.length === 0 ? (
           <GlassCard className="p-5">
-            <p className="text-sm text-helm-fg">Nothing assigned to you right now</p>
-            <p className="text-xs text-helm-muted mt-1">When a teammate or one of your departments assigns you work, it will show up here.</p>
+            <p className="text-sm text-helm-fg">No department work assigned to you right now</p>
+            <p className="text-xs text-helm-muted mt-1">Personal tasks are listed below. Department and deal work assigned to you shows up here.</p>
           </GlassCard>
         ) : (
           <div className="space-y-2">
@@ -328,14 +426,16 @@ export default function MyDay() {
                   className="ml-auto inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-3 py-1.5 hover:bg-helm-gold-hover disabled:opacity-60">
                   {noteBusy ? "Saving…" : editingNote ? "Save" : "Add note"}
                 </button>
-                {editingNote && (
-                  <button type="button" onClick={cancelNote} className="text-xs text-helm-muted hover:text-helm-fg">Cancel</button>
-                )}
+                <button type="button" data-testid="cancel-note-btn" onClick={cancelNote} className="text-xs text-helm-muted hover:text-helm-fg">Cancel</button>
               </div>
             </GlassCard>
           )}
 
-          {notes.length === 0 && !showNoteComposer ? (
+          {l0 && !notesData ? (
+            <SectionSkeleton count={2} />
+          ) : e0 && !notesData ? (
+            <SectionError label="Could not load notes" error={e0} onRetry={reloadNotes} />
+          ) : notes.length === 0 && !showNoteComposer ? (
             <EmptyState title="No private notes yet" body="Sticky notes here are only visible to you, and are great for priorities, reminders, and scratch ideas."
               action={<button type="button" onClick={openNewNote} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Add your first note</button>} />
           ) : (
@@ -365,19 +465,29 @@ export default function MyDay() {
             </button>
             {showTeam && (
               <div className="mt-3 pt-3 border-t border-helm-line" data-testid="team-update-form">
-                <textarea value={teamText} onChange={(e) => setTeamText(e.target.value)} rows={3}
-                  placeholder="What did you move forward? Any blocker or ask?"
-                  className="w-full rounded-lg border border-helm-line bg-helm-card text-helm-fg text-sm p-3 focus:outline-none focus:border-helm-gold/40 resize-none" />
-                <div className="flex flex-wrap items-center gap-3 mt-3">
-                  <label className="flex items-center gap-2 text-sm text-helm-fg cursor-pointer">
-                    <input type="checkbox" checked={blocker} onChange={(e) => setBlocker(e.target.checked)} className="accent-helm-gold w-4 h-4" />
-                    <AlertTriangle className="w-3.5 h-3.5 text-helm-status-warning" /> Blocked
-                  </label>
-                  <button onClick={submitTeam} disabled={busy}
-                    className="ml-auto inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2 hover:bg-helm-gold-hover disabled:opacity-60">
-                    {busy ? "Posting…" : "Post to team"} <Send className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                {l1 && !mine ? (
+                  <p className="text-xs text-helm-muted">Loading your update…</p>
+                ) : e1 && !mine ? (
+                  <p className="text-xs text-helm-muted">Could not load your update.{" "}
+                    <button type="button" onClick={reloadMine} className="text-helm-gold">Retry</button>
+                  </p>
+                ) : (
+                  <>
+                    <textarea value={teamText} onChange={(e) => setTeamText(e.target.value)} rows={3}
+                      placeholder="What did you move forward? Any blocker or ask?"
+                      className="w-full rounded-lg border border-helm-line bg-helm-card text-helm-fg text-sm p-3 focus:outline-none focus:border-helm-gold/40 resize-none" />
+                    <div className="flex flex-wrap items-center gap-3 mt-3">
+                      <label className="flex items-center gap-2 text-sm text-helm-fg cursor-pointer">
+                        <input type="checkbox" checked={blocker} onChange={(e) => setBlocker(e.target.checked)} className="accent-helm-gold w-4 h-4" />
+                        <AlertTriangle className="w-3.5 h-3.5 text-helm-status-warning" /> Blocked
+                      </label>
+                      <button onClick={submitTeam} disabled={busy}
+                        className="ml-auto inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2 hover:bg-helm-gold-hover disabled:opacity-60">
+                        {busy ? "Posting…" : "Post to team"} <Send className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </GlassCard>
@@ -385,30 +495,46 @@ export default function MyDay() {
 
         <GlassCard className="p-5 fade-up" data-testid="team-updates-card">
           <div className="flex items-center gap-1.5 mb-4 text-helm-gold"><Users className="w-3.5 h-3.5" /><SectionLabel>Today across the team</SectionLabel></div>
-          {teamUpdates.length === 0 ? (
-            <p className="text-sm text-helm-muted py-6 text-center">No teammate updates yet today.</p>
+          {l3 && !today ? (
+            <SectionSkeleton count={2} />
+          ) : e3 && !today ? (
+            <SectionError label="Could not load team updates" error={e3} onRetry={reloadToday} />
           ) : (
             <div className="space-y-3 max-h-[320px] overflow-y-auto">
-              {teamUpdates.map((u) => (
-                <div key={u.update_id} className="text-sm" data-testid={`team-update-${u.update_id}`}>
+              {mine?.update ? (
+                <div className="text-sm pb-3 border-b border-helm-line" data-testid="my-team-update">
                   <div className="flex items-center gap-2">
-                    <span className="text-helm-fg text-xs font-medium">{u.user_name}</span>
-                    {u.blocker && <span className="text-[10px] text-helm-fg bg-helm-status-warning/12 rounded px-1.5 py-0.5 font-mono uppercase">Blocked</span>}
-                    <span className="text-[10px] text-helm-muted ml-auto font-mono">{u.ago}</span>
+                    <span className="text-helm-fg text-xs font-medium">You</span>
+                    {mine.update.blocker && <span className="text-[10px] text-helm-fg bg-helm-status-warning/12 rounded px-1.5 py-0.5 font-mono uppercase">Blocked</span>}
+                    <span className="text-[10px] text-helm-muted ml-auto font-mono">today</span>
                   </div>
-                  <p className="text-helm-muted text-xs mt-1 leading-relaxed">{u.text}</p>
-                  {u.blocker && canActDecisions && (
-                    <button
-                      type="button"
-                      data-testid={`log-decision-${u.update_id}`}
-                      onClick={() => logDecisionFromBlocker(u)}
-                      className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-helm-gold hover:text-helm-gold-hover font-medium"
-                    >
-                      <Scale className="w-3 h-3" /> Log decision
-                    </button>
-                  )}
+                  <p className="text-helm-muted text-xs mt-1 leading-relaxed">{mine.update.text}</p>
                 </div>
-              ))}
+              ) : null}
+              {teamUpdates.length === 0 && !mine?.update ? (
+                <p className="text-sm text-helm-muted py-6 text-center">No teammate updates yet today.</p>
+              ) : (
+                teamUpdates.map((u) => (
+                  <div key={u.update_id} className="text-sm" data-testid={`team-update-${u.update_id}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-helm-fg text-xs font-medium">{u.user_name}</span>
+                      {u.blocker && <span className="text-[10px] text-helm-fg bg-helm-status-warning/12 rounded px-1.5 py-0.5 font-mono uppercase">Blocked</span>}
+                      <span className="text-[10px] text-helm-muted ml-auto font-mono">{u.ago}</span>
+                    </div>
+                    <p className="text-helm-muted text-xs mt-1 leading-relaxed">{u.text}</p>
+                    {u.blocker && canActDecisions && (
+                      <button
+                        type="button"
+                        data-testid={`log-decision-${u.update_id}`}
+                        onClick={() => logDecisionFromBlocker(u)}
+                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-helm-gold hover:text-helm-gold-hover font-medium"
+                      >
+                        <Scale className="w-3 h-3" /> Log decision
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           )}
         </GlassCard>
@@ -417,7 +543,7 @@ export default function MyDay() {
       <div className="mt-6">
         <div className="flex items-center justify-between mb-4">
           <SectionLabel>My tasks</SectionLabel>
-          <button data-testid="myday-add-task-btn" onClick={() => setShowTask((s) => !s)}
+          <button data-testid="myday-add-task-btn" onClick={() => { setShowTask((s) => !s); if (!showTask && !taskDue) setTaskDue(workspaceToday); }}
             className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-1.5 hover:bg-helm-fg/5">
             <Plus className="w-3.5 h-3.5" /> New task
           </button>
@@ -429,7 +555,7 @@ export default function MyDay() {
               <input data-testid="myday-task-input" value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addTask()} placeholder="What do you need to get done?"
                 className="flex-1 rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
-              <input data-testid="myday-task-due" type="date" value={taskDue} onChange={(e) => setTaskDue(e.target.value)}
+              <input data-testid="myday-task-due" type="date" value={taskDue} min={workspaceToday} onChange={(e) => setTaskDue(e.target.value)}
                 className="rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-2 py-2 focus:outline-none focus:border-helm-gold/40" />
               <button data-testid="myday-task-save" onClick={addTask} disabled={taskBusy}
                 className="rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover disabled:opacity-60">{taskBusy ? "…" : "Add"}</button>
@@ -437,25 +563,50 @@ export default function MyDay() {
           </GlassCard>
         )}
 
-        {myItems.length === 0 ? (
+        {l2 && !tasks ? (
+          <SectionSkeleton count={2} />
+        ) : e2 && !tasks ? (
+          <SectionError label="Could not load tasks" error={e2} onRetry={reloadTasks} />
+        ) : myItems.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="No tasks assigned to you" body="Add a personal task above, or your manager can assign work from the Tasks board." />
         ) : (
           <div className="space-y-2">
-            {openItems.map((t) => (
-              <GlassCard key={t.id} className="p-3 fade-up flex items-center gap-3" data-testid={`myday-task-${t.id}`}>
-                <button onClick={() => moveTask(t, "done")} className="text-helm-muted hover:text-helm-status-positive shrink-0"><Circle className="w-4 h-4" /></button>
-                <Link to={taskHref(t.id)} className="flex-1 min-w-0 group" data-testid={`myday-task-link-${t.id}`}>
-                  <p className="text-sm text-helm-fg truncate group-hover:text-helm-gold transition-colors">{t.title}</p>
-                  <span className={cn("text-[10px] font-mono uppercase tracking-wide", colStyle[t.column])}>
-                    {colLabel[t.column] || String(t.column || "").replace("_", " ")}{t.tag ? ` · ${t.tag}` : ""}
-                  </span>
-                </Link>
-                {t.due && <span className="text-[11px] font-mono text-helm-muted shrink-0">{t.due}</span>}
-              </GlassCard>
-            ))}
+            {openItems.map((t) => {
+              const overdue = t.due && /^\d{4}-\d{2}-\d{2}$/.test(t.due) && t.due < workspaceToday;
+              return (
+                <GlassCard key={t.id} className="p-3 fade-up flex items-center gap-3" data-testid={`myday-task-${t.id}`}>
+                  <button
+                    type="button"
+                    disabled={taskMovingId === t.id}
+                    onClick={() => moveTask(t, "done")}
+                    className="text-helm-muted hover:text-helm-status-positive shrink-0 disabled:opacity-50"
+                  >
+                    <Circle className="w-4 h-4" />
+                  </button>
+                  <Link to={taskHref(t.id)} className="flex-1 min-w-0 group" data-testid={`myday-task-link-${t.id}`}>
+                    <p className="text-sm text-helm-fg truncate group-hover:text-helm-gold transition-colors">{t.title}</p>
+                    <span className={cn("text-[10px] font-mono uppercase tracking-wide", colStyle[t.column])}>
+                      {colLabel[t.column] || String(t.column || "").replace("_", " ")}{t.tag ? ` · ${t.tag}` : ""}
+                    </span>
+                  </Link>
+                  {t.due && (
+                    <span className={cn("text-[11px] font-mono shrink-0", overdue ? "text-helm-status-negative" : "text-helm-muted")}>
+                      {t.due}
+                    </span>
+                  )}
+                </GlassCard>
+              );
+            })}
             {doneItems.map((t) => (
               <GlassCard key={t.id} className="p-3 flex items-center gap-3 opacity-60" data-testid={`myday-task-${t.id}`}>
-                <button onClick={() => moveTask(t, "in_progress")} className="text-helm-status-positive shrink-0"><CheckCircle2 className="w-4 h-4" /></button>
+                <button
+                  type="button"
+                  disabled={taskMovingId === t.id}
+                  onClick={() => moveTask(t, "in_progress")}
+                  className="text-helm-status-positive shrink-0 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                </button>
                 <Link to={taskHref(t.id)} className="text-sm text-helm-muted line-through truncate flex-1 hover:text-helm-fg transition-colors">{t.title}</Link>
               </GlassCard>
             ))}

@@ -248,6 +248,7 @@ def work_api():
     maintenance = DocStore([])
     hr_onb = DocStore([])
     hr_off = DocStore([])
+    hr_leave = DocStore([])
 
     mock_db = MagicMock()
     mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "Asia/Manila"})
@@ -260,6 +261,7 @@ def work_api():
     mock_db.maintenance_tickets = maintenance
     mock_db.hr_onboarding_instances = hr_onb
     mock_db.hr_offboarding_instances = hr_off
+    mock_db.hr_leave_requests = hr_leave
 
     principal = {"current": MEMBER}
 
@@ -355,3 +357,63 @@ def test_overdue_sort_and_flag(work_api):
     # Within overdue group, sooner due first
     overdue_dates = [i["due_date"] for i in overdue]
     assert overdue_dates == sorted(overdue_dates)
+
+
+def test_hr_leave_appears_for_requester_and_lead(work_api):
+    mock_db = server.db
+    mock_db.departments.rows.append({
+        "department_id": "dept_hr",
+        "workspace_id": WS,
+        "type": "hr",
+        "name": "HR",
+        "enabled": True,
+    })
+    mock_db.department_members.rows.append(
+        {"department_id": "dept_hr", "user_id": "u_mem", "role": "member"},
+    )
+    mock_db.department_members.rows.append(
+        {"department_id": "dept_hr", "user_id": "u_ceo", "role": "lead"},
+    )
+    tomorrow = work_api["tomorrow"]
+    mock_db.hr_leave_requests.rows.extend([
+        {
+            "id": "hrleave_mem",
+            "workspace_id": WS,
+            "department_id": "dept_hr",
+            "employee_name": "Mem",
+            "type": "vacation",
+            "title": "Vacation — Mem",
+            "start_date": tomorrow,
+            "end_date": tomorrow,
+            "status": "pending",
+            "requested_by": "u_mem",
+        },
+        {
+            "id": "hrleave_other",
+            "workspace_id": WS,
+            "department_id": "dept_hr",
+            "employee_name": "Alex",
+            "type": "sick",
+            "title": "Sick — Alex",
+            "start_date": tomorrow,
+            "end_date": tomorrow,
+            "status": "pending",
+            "requested_by": "u_other",
+        },
+    ])
+
+    r = work_api["client"].get("/api/me/work-items")
+    assert r.status_code == 200
+    by_id = {i["id"]: i for i in r.json()["items"]}
+    assert "hrleave_mem" in by_id
+    assert by_id["hrleave_mem"]["relationship"] == "requested_by_me"
+    assert by_id["hrleave_mem"]["url"] == "/app/departments/hr?tab=leave&request=hrleave_mem"
+    # Member is not HR lead — other pending leave stays hidden
+    assert "hrleave_other" not in by_id
+
+    work_api["principal"]["current"] = CEO
+    r2 = work_api["client"].get("/api/me/work-items")
+    assert r2.status_code == 200
+    ceo_ids = {i["id"] for i in r2.json()["items"]}
+    assert "hrleave_other" in ceo_ids
+    assert "hrleave_mem" in ceo_ids

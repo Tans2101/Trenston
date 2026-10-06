@@ -58,7 +58,11 @@ WORKLOAD_DEPARTMENT_TYPES = (
 
 
 def due_info(raw, today: date) -> tuple[Optional[str], bool]:
-    """Normalize a due date string and flag overdue (past calendar day, UTC)."""
+    """Normalize a due date string and flag overdue (past calendar day vs ``today``).
+
+    Callers pass workspace-local today from ``/me/work-items`` (or UTC date when
+    omitted in lower-level helpers).
+    """
     due = (str(raw).strip()[:10] if raw else "") or None
     if not due:
         return None, False
@@ -78,6 +82,7 @@ def work_row(
     status: str,
     today: date,
     relationship: str = "assigned_to_me",
+    url: Optional[str] = None,
 ) -> dict:
     due, overdue = due_info(due_raw, today)
     entry = dept_catalog.catalog_entry(department_type) or {}
@@ -87,7 +92,7 @@ def work_row(
         "title": (title or item_id).strip() or item_id,
         "due_date": due,
         "status": status or "",
-        "url": work_item_url(department_type, item_id),
+        "url": url if url is not None else work_item_url(department_type, item_id),
         "relationship": relationship,
         "overdue": overdue,
         "icon": entry.get("icon") or "briefcase",
@@ -127,8 +132,15 @@ async def collect_for_user(
     department_ids_by_type: dict[str, Optional[list[str]]],
     today: Optional[date] = None,
     include_procurement: bool = True,
+    hr_leave_approve_dept_ids: Optional[list[str]] = None,
 ) -> list[dict]:
-    """Open items for one user, scoped to the provided department id lists (None = skip type)."""
+    """Open items for one user, scoped to the provided department id lists (None = skip type).
+
+    ``hr_leave_approve_dept_ids`` — HR department ids where this user may approve
+    leave (lead/CEO). Pending leave in those depts appears as ``assigned_to_me``.
+    Own open leave (pending/approved) always appears as ``requested_by_me`` when
+    the user has HR access.
+    """
     today = today or datetime.now(timezone.utc).date()
     uid = user_id
     items: list[dict] = []
@@ -218,6 +230,63 @@ async def collect_for_user(
                         status=step.get("status") or "",
                         today=today,
                     ))
+
+        # Leave requests: own open leave + pending approvals for HR leads.
+        leave_seen: set[str] = set()
+        own_leave = await db.hr_leave_requests.find(
+            {
+                "workspace_id": workspace_id,
+                "department_id": {"$in": hr_ids},
+                "requested_by": uid,
+                "status": {"$in": ["pending", "approved"]},
+            },
+            {"_id": 0},
+        ).to_list(200)
+        for r in own_leave:
+            lid = r.get("id") or ""
+            if not lid or lid in leave_seen:
+                continue
+            leave_seen.add(lid)
+            person = (r.get("employee_name") or "").strip() or "Employee"
+            leave_type = (r.get("type") or "leave").replace("_", " ")
+            items.append(work_row(
+                item_id=lid,
+                department_type=dept_catalog.TYPE_HR,
+                title=r.get("title") or f"Leave · {person}: {leave_type}",
+                due_raw=r.get("end_date") or r.get("start_date"),
+                status=r.get("status") or "",
+                today=today,
+                relationship="requested_by_me",
+                url=hr_leave_request_url(lid),
+            ))
+
+        approve_ids = [d for d in (hr_leave_approve_dept_ids or []) if d and d in set(hr_ids)]
+        if approve_ids:
+            pending_leave = await db.hr_leave_requests.find(
+                {
+                    "workspace_id": workspace_id,
+                    "department_id": {"$in": approve_ids},
+                    "status": "pending",
+                },
+                {"_id": 0},
+            ).to_list(200)
+            for r in pending_leave:
+                lid = r.get("id") or ""
+                if not lid or lid in leave_seen:
+                    continue
+                leave_seen.add(lid)
+                person = (r.get("employee_name") or "").strip() or "Employee"
+                leave_type = (r.get("type") or "leave").replace("_", " ")
+                items.append(work_row(
+                    item_id=lid,
+                    department_type=dept_catalog.TYPE_HR,
+                    title=r.get("title") or f"Approve leave · {person}: {leave_type}",
+                    due_raw=r.get("start_date") or r.get("end_date"),
+                    status=r.get("status") or "",
+                    today=today,
+                    relationship="assigned_to_me",
+                    url=hr_leave_request_url(lid),
+                ))
 
     sales_ids = department_ids_by_type.get(dept_catalog.TYPE_SALES)
     if sales_ids is not None:

@@ -1,6 +1,7 @@
 """Department-scoped calendar read visibility (helm events + derived deadlines)."""
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -312,3 +313,78 @@ def test_member_two_departments_sees_both(vis_db):
     ids = {e["id"] for e in r.json()["events"] if e.get("source") == "helm"}
     assert ids == {"helm_fin", "helm_proc"}
     assert "preq_1" in {u["id"] for u in r.json()["upcoming"]}
+
+
+def test_meetings_today_uses_workspace_timezone_not_utc(vis_db):
+    """18:00 UTC Sep 24 = 02:00 Sep 25 in Manila — meetings filter must use Manila today."""
+    frozen = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+
+    class _FrozenDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen if tz is None or tz is timezone.utc else frozen.astimezone(tz)
+
+    ws = {
+        "workspace_id": "ws_vis",
+        "timezone": "Asia/Manila",
+        "calendar": {"meetings": [], "helm_events": []},
+        "decisions": [],
+        "tasks": {"items": []},
+        "google_tokens": None,
+    }
+
+    async def snap(_c, week_anchor, _principal):
+        return {
+            "live": True,
+            "events": [
+                {
+                    "id": "manila_today",
+                    "title": "Manila morning",
+                    "date": "2026-09-25",
+                    "all_day": False,
+                    "start_at": "2026-09-25T01:00:00+00:00",
+                    "end_at": "2026-09-25T01:30:00+00:00",
+                },
+                {
+                    "id": "utc_today",
+                    "title": "UTC day leftover",
+                    "date": "2026-09-24",
+                    "all_day": False,
+                    "start_at": "2026-09-24T09:00:00+00:00",
+                    "end_at": "2026-09-24T09:30:00+00:00",
+                },
+            ],
+            "meetings": [],
+            "focus_hours": 0,
+            "meeting_hours": 0,
+            "week_start": week_anchor.strftime("%Y-%m-%d"),
+        }
+
+    import tz_utils
+
+    async def as_principal():
+        return CEO
+
+    server.simple_cache.clear()
+    dept_access.clear_access_ids_cache()
+    server.app.dependency_overrides[server.get_principal] = as_principal
+    try:
+        with patch.object(server, "db", vis_db), \
+             patch.object(server, "get_ws", AsyncMock(return_value=ws)), \
+             patch.object(server, "_google_calendar_snapshot", side_effect=snap), \
+             patch.object(server, "_user_google_tokens_present", AsyncMock(return_value=True)), \
+             patch.object(server, "_user_google_tokens", AsyncMock(return_value={"access_token": "x"})), \
+             patch.object(server, "can_section_write", AsyncMock(return_value=True)), \
+             patch.object(server, "BILLING_ENFORCED", False), \
+             patch.object(tz_utils, "datetime", _FrozenDatetime):
+            client = TestClient(server.app)
+            r = client.get("/api/calendar", params={"week_start": "2026-09-20"})
+    finally:
+        server.app.dependency_overrides.clear()
+        dept_access.clear_access_ids_cache()
+        server.simple_cache.clear()
+
+    assert r.status_code == 200
+    meeting_ids = {m["id"] for m in r.json()["meetings"]}
+    assert "manila_today" in meeting_ids
+    assert "utc_today" not in meeting_ids

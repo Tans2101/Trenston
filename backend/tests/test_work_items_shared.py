@@ -87,6 +87,7 @@ async def test_collect_for_user_respects_dept_scope():
     mock_db.maintenance_tickets.find = MagicMock(return_value=_cursor([]))
     mock_db.hr_onboarding_instances.find = MagicMock(return_value=_cursor([]))
     mock_db.hr_offboarding_instances.find = MagicMock(return_value=_cursor([]))
+    mock_db.hr_leave_requests.find = MagicMock(return_value=_cursor([]))
     mock_db.deals.find = MagicMock(return_value=_cursor([]))
     mock_db.procurement_requests.find = MagicMock(return_value=_cursor([]))
 
@@ -106,3 +107,72 @@ async def test_collect_for_user_respects_dept_scope():
     assert len(items) == 1
     assert items[0]["title"] == "WO-1"
     mock_db.legal_matters.find.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_collect_for_user_includes_hr_leave():
+    tomorrow = (date.today() + timedelta(days=1)).isoformat()
+    mock_db = MagicMock()
+    mock_db.production_work_orders.find = MagicMock(return_value=_cursor([]))
+    mock_db.legal_matters.find = MagicMock(return_value=_cursor([]))
+    mock_db.maintenance_tickets.find = MagicMock(return_value=_cursor([]))
+    mock_db.hr_onboarding_instances.find = MagicMock(return_value=_cursor([]))
+    mock_db.hr_offboarding_instances.find = MagicMock(return_value=_cursor([]))
+    mock_db.deals.find = MagicMock(return_value=_cursor([]))
+    mock_db.procurement_requests.find = MagicMock(return_value=_cursor([]))
+
+    own = {
+        "id": "hrleave_mine",
+        "employee_name": "Mem",
+        "type": "vacation",
+        "title": "Vacation — Mem",
+        "start_date": tomorrow,
+        "end_date": tomorrow,
+        "status": "pending",
+        "requested_by": "u_me",
+        "department_id": "d_hr",
+    }
+    other = {
+        "id": "hrleave_other",
+        "employee_name": "Alex",
+        "type": "sick",
+        "title": "Sick — Alex",
+        "start_date": tomorrow,
+        "end_date": tomorrow,
+        "status": "pending",
+        "requested_by": "u_other",
+        "department_id": "d_hr",
+    }
+
+    def leave_find(query, projection=None):
+        rows = []
+        if query.get("requested_by") == "u_me":
+            rows.append(own)
+        if query.get("status") == "pending" and "requested_by" not in query:
+            rows.append(other)
+            rows.append(own)
+        return _cursor(rows)
+
+    mock_db.hr_leave_requests.find = MagicMock(side_effect=leave_find)
+
+    items = await wi.collect_for_user(
+        mock_db,
+        "ws1",
+        "u_me",
+        department_ids_by_type={
+            "production": None,
+            "legal": None,
+            "engineering_maintenance": None,
+            "hr": ["d_hr"],
+            "sales": None,
+            "procurement": None,
+        },
+        hr_leave_approve_dept_ids=["d_hr"],
+    )
+    by_id = {i["id"]: i for i in items}
+    assert "hrleave_mine" in by_id
+    assert by_id["hrleave_mine"]["relationship"] == "requested_by_me"
+    assert by_id["hrleave_mine"]["url"] == "/app/departments/hr?tab=leave&request=hrleave_mine"
+    assert "hrleave_other" in by_id
+    assert by_id["hrleave_other"]["relationship"] == "assigned_to_me"
+    assert by_id["hrleave_other"]["url"].endswith("request=hrleave_other")

@@ -7539,10 +7539,25 @@ async def tasks(principal=Depends(get_principal)):
     return t
 
 
+def _task_is_mine(task: dict, principal: dict) -> bool:
+    """True when the task is assigned to this user (id) or legacy sample 'You'/name match."""
+    uid = principal["user_id"]
+    if task.get("assignee_user_id") == uid:
+        return True
+    if task.get("assignee_user_id"):
+        return False
+    # Legacy / sample rows before assignee_user_id existed.
+    label = (task.get("assignee") or "").strip().lower()
+    if label in ("you", "me"):
+        return True
+    name = (principal.get("name") or "").strip().lower()
+    return bool(name) and label == name
+
+
 @api_router.get("/tasks/me")
 async def my_tasks(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
-    items = [t for t in c["tasks"]["items"] if t.get("assignee_user_id") == principal["user_id"]]
+    items = [t for t in c["tasks"]["items"] if _task_is_mine(t, principal)]
     return {"items": items, "columns": _normalize_task_columns(c["tasks"])["columns"]}
 
 
@@ -7918,6 +7933,18 @@ async def my_work_items(principal=Depends(get_principal)):
         dept_catalog.TYPE_PROCUREMENT,
     )
     department_ids_by_type = await _me_work_dept_ids_by_type(principal, types)
+    hr_leave_approve_dept_ids: list[str] = []
+    hr_ids = department_ids_by_type.get(dept_catalog.TYPE_HR) or []
+    if hr_ids:
+        if dept_access.is_workspace_ceo(principal):
+            hr_leave_approve_dept_ids = list(hr_ids)
+        else:
+            for did in hr_ids:
+                membership = await dept_access.get_department_membership(
+                    db, did, principal["user_id"],
+                )
+                if membership and membership.get("role") == "lead":
+                    hr_leave_approve_dept_ids.append(did)
     items = await helm_work_items.collect_for_user(
         db,
         principal["workspace_id"],
@@ -7925,6 +7952,7 @@ async def my_work_items(principal=Depends(get_principal)):
         department_ids_by_type=department_ids_by_type,
         today=tz_utils.workspace_today(await _workspace_tz_doc(principal["workspace_id"])),
         include_procurement=True,
+        hr_leave_approve_dept_ids=hr_leave_approve_dept_ids or None,
     )
     return {"items": items}
 
@@ -9204,7 +9232,7 @@ async def calendar(
         if ev["id"] not in existing_ids:
             events.append(ev)
     data["events"] = events
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_str = tz_utils.workspace_today_iso(c)
     data["meetings"] = [e for e in events if e.get("date") == today_str and not e.get("all_day")]
     if "focus_hours" not in data:
         data["focus_hours"], data["meeting_hours"] = gcal._compute_hours(data["meetings"])

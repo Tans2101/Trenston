@@ -100,8 +100,9 @@ def test_daily_update_empty_400(member):
 
 
 def test_daily_update_create_then_edit_single_per_day(member, mongo):
-    # clean up today's update for member first
-    day = datetime.now(timezone.utc).date().isoformat()
+    # Workspace-local day (not UTC) — match production /updates/* keys.
+    me0 = member.get(f"{BASE_URL}/api/updates/me").json()
+    day = me0["day"]
     mongo.updates.delete_many({"workspace_id": WS_ID, "user_id": "test-user-2", "day": day})
 
     r = member.post(f"{BASE_URL}/api/updates",
@@ -129,7 +130,7 @@ def test_daily_update_create_then_edit_single_per_day(member, mongo):
 
 def test_updates_today_visible_to_owner(owner, member, mongo):
     # ensure member has posted (previous test) — post again if needed
-    day = datetime.now(timezone.utc).date().isoformat()
+    day = member.get(f"{BASE_URL}/api/updates/me").json()["day"]
     if not mongo.updates.find_one({"workspace_id": WS_ID, "user_id": "test-user-2", "day": day}):
         member.post(f"{BASE_URL}/api/updates", json={"text": "TEST_owner-visible", "blocker": False})
     d = owner.get(f"{BASE_URL}/api/updates/today").json()
@@ -137,7 +138,6 @@ def test_updates_today_visible_to_owner(owner, member, mongo):
 
 
 def test_briefing_team_updates_and_what_changed(owner, member, mongo):
-    day = datetime.now(timezone.utc).date().isoformat()
     # force a fresh post to move to top of activities
     member.post(f"{BASE_URL}/api/updates", json={"text": "TEST_briefing_probe", "blocker": True})
     b = owner.get(f"{BASE_URL}/api/briefing").json()
