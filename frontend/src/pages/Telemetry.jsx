@@ -523,8 +523,10 @@ export default function Telemetry() {
                   <input
                     type="number"
                     step="0.1"
+                    min="-100"
+                    max="1000"
                     value={growthPct}
-                    onChange={(e) => setGrowthPct(e.target.value)}
+                    onChange={(e) => setGrowthPct(Math.max(-100, Math.min(1000, Number(e.target.value) || 0)))}
                     data-testid="target-growth-pct"
                     className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
                   />
