@@ -634,7 +634,7 @@ export default function Telemetry() {
 
             {risks.length >= 20 ? (
               <p className="mt-3 text-xs text-helm-muted">
-                Limit of 20 risks reached — remove one to add another.
+                Limit of 20 risks reached. Remove one to add another.
               </p>
             ) : (
               <button
