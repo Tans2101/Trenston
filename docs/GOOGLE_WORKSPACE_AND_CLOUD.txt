@@ -205,6 +205,52 @@ E. Quick check after paste
 5. Calendar: add an event with "Also add to Google Calendar".
 6. Briefing: Draft reply in Gmail — confirm it is a draft, not sent.
 
+---------------------------------------------------------------------------
+F. Google OAuth verification package (not yet Verified — do not claim otherwise)
+---------------------------------------------------------------------------
+
+Publishing status "In production" is not the same as Verification status
+"Verified". Trenston currently requests sensitive + restricted scopes and will
+show Google's unverified-app warning until Trust & Safety approves brand +
+scopes (and CASA if required for Gmail-restricted server use).
+
+Consent / Branding (must match live product)
+  App name:            Trenston
+  User support email:  contact@trenston.com (or a mailbox you monitor daily)
+  Developer contact:   same founder inbox Google will email
+  Home page:           https://www.trenston.com
+  Privacy policy:      https://www.trenston.com/privacy
+                       (must include Limited Use / Google API Services User
+                       Data Policy language — see Privacy → Google data)
+  Terms of service:    https://www.trenston.com/terms
+  Authorized domains:  trenston.com (Search Console ownership)
+
+Scopes to declare (exact match to backend/server.py GOOGLE_SCOPES)
+  openid
+  https://www.googleapis.com/auth/userinfo.email
+  https://www.googleapis.com/auth/calendar.readonly
+  https://www.googleapis.com/auth/calendar.events
+  https://www.googleapis.com/auth/gmail.readonly      (restricted)
+  https://www.googleapis.com/auth/gmail.compose       (restricted)
+  https://www.googleapis.com/auth/spreadsheets
+  https://www.googleapis.com/auth/drive.file
+
+Demo video (unlisted YouTube, English)
+  Show: Integrations → Connect Google → consent (app name + client ID in
+  URL) → Calendar sync → Briefing Gmail snippets → Draft reply in Gmail
+  (draft only) → Financials Export to Sheets → From Drive bill pick.
+  Cover every sensitive/restricted scope once.
+
+CASA note
+  Restricted Gmail scopes with tokens stored on Trenston's server usually
+  trigger an annual Cloud Application Security Assessment (Google-empanelled
+  assessor). Budget calendar time and assessor cost; this is not a Console
+  toggle. Brand verification alone does not clear restricted-scope review.
+
+Until Verified: customers may use Advanced → Continue to Trenston on the
+unverified interstitial; track the ~100-user lifetime cap for unapproved
+sensitive/restricted scopes. No Trenston deploy removes the warning.
+
 Code entry points
   backend/google_oauth.py          Calendar, Gmail, Sheets, Drive user APIs
   backend/google_document_ai.py    Invoice Parser (service account)

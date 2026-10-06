@@ -26,6 +26,8 @@ describe("public pages show real text without JavaScript", () => {
     const privacy = body("/privacy");
     expect(privacy).toContain("AI processing");
     expect(privacy).toContain("Retention &amp; deletion");
+    expect(privacy).toContain("Limited Use");
+    expect(privacy).toContain("Google API Services User Data Policy");
     const terms = body("/terms");
     expect(terms).toContain("BGC, Taguig, Philippines");
   });

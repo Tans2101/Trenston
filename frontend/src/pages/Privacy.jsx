@@ -87,6 +87,21 @@ export default function Privacy() {
               Company-shared OAuth grants (QuickBooks, Xero, HubSpot, SAP) may only be used by the teammate who
               connected them, or by a workspace owner.
             </p>
+            <p className="mt-3">
+              Trenston&apos;s use of information received from Google APIs adheres to the{" "}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                className="text-mk-navy hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Google API Services User Data Policy
+              </a>
+              , including the Limited Use requirements. We use Google user data only to provide and improve the
+              features you trigger in Trenston (Calendar, Briefing email snippets, Gmail drafts, Sheets export, and
+              Drive file pick). We do not sell Google user data, do not use it for advertising, and do not transfer it
+              to third parties except as needed to operate those features or as required by law.
+            </p>
           </section>
 
           <section>

@@ -64,13 +64,26 @@ GOOGLE_PICKER_API_KEY
 GOOGLE_CLOUD_PROJECT_NUMBER
 ```
 
-**Intuit Developer → your app → Keys → Redirect URI**
+**Intuit Developer → your app → Keys & OAuth → Redirect URI** (Production tab for live companies)
 
 ```
 https://www.trenston.com/api/oauth/quickbooks/callback
 ```
 
 Scopes needed: Accounting (`com.intuit.quickbooks.accounting`).
+
+**Intuit app URLs** (Production Settings — required before production keys / assessment):
+
+| Field | Value |
+|-------|--------|
+| Host domain | `trenston.com` (no `https://`) |
+| Launch URL | `https://www.trenston.com` |
+| Disconnect URL | `https://www.trenston.com/integrations` |
+| Connect / Reconnect URL | `https://www.trenston.com/integrations` |
+| Privacy Policy URL | `https://www.trenston.com/privacy` |
+| EULA / Terms URL | `https://www.trenston.com/terms` |
+
+Paste Client ID / Client secret on Render as `QUICKBOOKS_CLIENT_ID` / `QUICKBOOKS_CLIENT_SECRET` (`sync: false` in `render.yaml`). Keep `QUICKBOOKS_ENV=production` with Production keys (or `sandbox` with Development keys — never mix).
 
 **Xero Developer → your app → Redirect URI**
 
