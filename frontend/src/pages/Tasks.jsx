@@ -180,14 +180,16 @@ export default function Tasks() {
                 const mine = t.assignee_user_id === data.my_user_id;
                 const overdue = t.column !== "done" && ISO_DATE.test(String(t.due || "")) && t.due < today;
                 const fromTrenston = t.source === "ai_suggested" || Boolean(t.from_suggestion_id);
+                const canDrag = mine || data.can_assign;
                 return (
                 <div key={t.id}
-                  draggable
-                  onDragStart={() => setDragId(t.id)}
+                  draggable={canDrag}
+                  onDragStart={() => canDrag && setDragId(t.id)}
                   data-testid={`task-${t.id}`}
                   data-deeplink={t.id}
                   className={cn(
-                    "group rounded-lg border border-helm-line bg-helm-card p-3 cursor-grab active:cursor-grabbing transition-colors hover:border-helm-gold/35",
+                    "group rounded-lg border border-helm-line bg-helm-card p-3 transition-colors hover:border-helm-gold/35",
+                    canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default",
                     mine && "border-l-2 border-l-helm-gold/60",
                     focusTaskId === t.id && "ring-1 ring-helm-gold/35 border-helm-gold/35",
                   )}>
