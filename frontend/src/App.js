@@ -140,6 +140,19 @@ function DocumentSeo() {
       el.setAttribute("content", value);
     };
 
+    // Auth / app shells must not compete with marketing URLs in Google.
+    const privatePath =
+      path.startsWith("/app") ||
+      path === "/login" ||
+      path === "/sign-up" ||
+      path.startsWith("/payment");
+    if (privatePath) {
+      setMeta("name", "robots", "noindex, nofollow");
+    } else {
+      const robots = document.querySelector('meta[name="robots"]');
+      if (robots) robots.remove();
+    }
+
     if (page) {
       setMeta("name", "description", page.description);
       setMeta("property", "og:title", page.ogTitle || page.title);

@@ -1,20 +1,12 @@
 User-agent: *
 Allow: /
-Allow: /about
-Allow: /features
-Allow: /pricing
-Allow: /integrations
-Allow: /help
-Allow: /security
-Allow: /changelog
-Allow: /status
-Allow: /terms
-Allow: /privacy
-Allow: /refunds
 Allow: /llms.txt
 Disallow: /app/
-Disallow: /login/sso-callback
-Disallow: /sign-up/sso-callback
+Disallow: /login
+Disallow: /login/
+Disallow: /sign-up
+Disallow: /sign-up/
 Disallow: /payment/
+Disallow: /payment
 
 Sitemap: https://www.trenston.com/sitemap.xml

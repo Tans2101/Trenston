@@ -78,6 +78,7 @@
     "test": "craco test",
     "prerender": "node scripts/prerender-marketing.mjs",
     "sync-llms": "node scripts/sync-llms-txt.mjs",
+    "sync-sitemap": "node scripts/sync-sitemap.mjs",
     "check-pricing-drift": "node scripts/check-pricing-drift.mjs"
   },
   "browserslist": {

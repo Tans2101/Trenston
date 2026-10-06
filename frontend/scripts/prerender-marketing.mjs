@@ -4,11 +4,13 @@
  *
  * Copies build/index.html into per-route static files with route-specific
  * <title>, description, canonical, and Open Graph / Twitter tags rewritten
- * in the head. For /pricing, also injects visible plan HTML + JSON-LD into
- * #root so non-JS fetchers (AI crawlers, curl) see real dollar figures from
- * marketingCopy.js — not just meta tags. For /about, injects Person JSON-LD
- * (founder name, role, LinkedIn sameAs) from the same marketingCopy constants.
- * For /help, injects visible FAQ HTML + FAQPage JSON-LD from HOW_TO_USE_FAQ.
+ * in the head. Injects WebPage JSON-LD on every marketing route. For /pricing,
+ * also injects visible plan HTML + Product JSON-LD into #root so non-JS
+ * fetchers see real dollar figures from marketingCopy.js. For /about, injects
+ * Person JSON-LD. For /help and `/`, injects FAQPage JSON-LD. Other routes get
+ * visible body HTML from staticPageText.mjs (marketingCopy / legal / changelog).
+ *
+ * Also refreshes public+build sitemap.xml (lastmod = build date) and llms.txt.
  *
  * Output:
  *   build/index.html
@@ -16,6 +18,7 @@
  *   build/pricing/index.html
  *   …
  *   build/llms.txt (+ refreshes public/llms.txt)
+ *   build/sitemap.xml (+ refreshes public/sitemap.xml)
  *
  * Vercel serves these static files before the SPA rewrite catch-all.
  */
@@ -27,8 +30,10 @@ import {
   formatPlanPrice,
   loadFounderIdentity,
   loadHelpFaq,
+  loadHomeFaq,
 } from "./loadMarketingPlans.mjs";
 import { writeLlmsTxt } from "./sync-llms-txt.mjs";
+import { syncSitemapToBuild } from "./sync-sitemap.mjs";
 import { staticBodyFor, textLength } from "./staticPageText.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -66,9 +71,41 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+function stripEmptyGoogleVerification(html) {
+  // Empty verification meta is noise (and fails HTML-tag verification). Keep the
+  // tag only when CRA substituted a non-empty REACT_APP_GOOGLE_SITE_VERIFICATION.
+  return html.replace(
+    /<meta\s+name=["']google-site-verification["']\s+content=["']\s*["']\s*\/?>\s*/i,
+    "",
+  );
+}
+
+function webPageJsonLd({ path, page, origin }) {
+  const url = path === "/" ? `${origin}/` : `${origin}${path}`;
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "@id": `${url}#webpage`,
+    url,
+    name: page.title,
+    description: page.description,
+    isPartOf: { "@id": `${origin}/#website` },
+    about: { "@id": `${origin}/#organization` },
+    inLanguage: "en",
+  };
+}
+
+function injectWebPageJsonLd(html, { path, page, origin }) {
+  const jsonLd = `<script type="application/ld+json" id="helm-webpage-jsonld">${JSON.stringify(webPageJsonLd({ path, page, origin }))}</script>`;
+  if (/id="helm-webpage-jsonld"/i.test(html)) {
+    return html.replace(/<script type="application\/ld\+json" id="helm-webpage-jsonld">[\s\S]*?<\/script>/i, jsonLd);
+  }
+  return html.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
+}
+
 function applySeo(html, { path, page, origin, ogImage }) {
   const canonical = path === "/" ? `${origin}/` : `${origin}${path}`;
-  let out = html;
+  let out = stripEmptyGoogleVerification(html);
   out = upsertTitle(out, page.title);
   out = upsertMeta(out, "name", "description", page.description);
   out = upsertLink(out, "canonical", canonical);
@@ -79,6 +116,7 @@ function applySeo(html, { path, page, origin, ogImage }) {
   out = upsertMeta(out, "name", "twitter:title", page.ogTitle || page.title);
   out = upsertMeta(out, "name", "twitter:description", page.ogDescription || page.description);
   out = upsertMeta(out, "name", "twitter:image", ogImage);
+  out = injectWebPageJsonLd(out, { path, page, origin });
   return out;
 }
 
@@ -241,6 +279,30 @@ function injectHelpFaq(html, faq, origin) {
   return out;
 }
 
+function homeFaqJsonLd(faq, origin) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faq.map((item) => ({
+      "@type": "Question",
+      name: item.q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.a,
+      },
+    })),
+    url: `${origin}/`,
+  };
+}
+
+function injectHomeFaqJsonLd(html, faq, origin) {
+  const jsonLd = `<script type="application/ld+json" id="helm-home-faq-jsonld">${JSON.stringify(homeFaqJsonLd(faq, origin))}</script>`;
+  if (/id="helm-home-faq-jsonld"/i.test(html)) {
+    return html.replace(/<script type="application\/ld\+json" id="helm-home-faq-jsonld">[\s\S]*?<\/script>/i, jsonLd);
+  }
+  return html.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
+}
+
 function main() {
   if (!existsSync(indexPath)) {
     console.error("prerender-marketing: build/index.html missing — run build first");
@@ -251,6 +313,7 @@ function main() {
   const { PLANS } = loadMarketingPlans();
   const founder = loadFounderIdentity();
   const helpFaq = loadHelpFaq();
+  const homeFaq = loadHomeFaq();
 
   for (const [path, page] of Object.entries(pages)) {
     let html = applySeo(shell, { path, page, origin, ogImage });
@@ -263,6 +326,9 @@ function main() {
     if (path === "/help") {
       html = injectHelpFaq(html, helpFaq, origin);
     }
+    if (path === "/") {
+      html = injectHomeFaqJsonLd(html, homeFaq, origin);
+    }
     if (!["/pricing", "/help"].includes(path)) {
       // Everything else: real text in #root for readers that do not run JavaScript.
       const body = staticBodyFor(path, page);
@@ -271,7 +337,9 @@ function main() {
         console.error(`prerender-marketing: could not inject body for ${path}`);
         process.exit(1);
       }
-      if (["/security", "/privacy", "/terms", "/refunds"].includes(path) && textLength(body) < 1500) {
+      const richPaths = ["/", "/about", "/features", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
+      const minLen = ["/", "/about", "/features", "/integrations", "/changelog"].includes(path) ? 800 : 1500;
+      if (richPaths.includes(path) && textLength(body) < minLen) {
         console.error(`prerender-marketing: ${path} prerendered text is suspiciously short (${textLength(body)} chars)`);
         process.exit(1);
       }
@@ -289,6 +357,10 @@ function main() {
   const buildLlms = join(buildDir, "llms.txt");
   copyFileSync(publicLlms, buildLlms);
   console.log(`prerender-marketing: wrote ${buildLlms.slice(frontendRoot.length + 1)}`);
+
+  const { publicPath: publicSitemap, buildPath: buildSitemap } = syncSitemapToBuild(buildDir);
+  console.log(`prerender-marketing: wrote ${publicSitemap.slice(frontendRoot.length + 1)}`);
+  console.log(`prerender-marketing: wrote ${buildSitemap.slice(frontendRoot.length + 1)}`);
   console.log("prerender-marketing: ok");
 }
 

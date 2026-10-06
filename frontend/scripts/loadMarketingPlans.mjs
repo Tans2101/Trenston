@@ -56,6 +56,21 @@ export function loadHelpFaq() {
   return faq;
 }
 
+/** Homepage FAQ accordion — FAQPage JSON-LD on `/` (HOME_FAQ in marketingCopy.js). */
+export function loadHomeFaq() {
+  const src = readFileSync(marketingCopyPath, "utf8");
+  const faq = extractExport(src, "HOME_FAQ");
+  if (!Array.isArray(faq) || faq.length < 1) {
+    throw new Error("loadHomeFaq: HOME_FAQ empty or invalid");
+  }
+  for (const item of faq) {
+    if (!item?.q || !item?.a) {
+      throw new Error("loadHomeFaq: each FAQ item needs q and a");
+    }
+  }
+  return faq;
+}
+
 export function formatPlanPrice(plan) {
   const n = Number(plan.price);
   if (!(n > 0)) return "$0";

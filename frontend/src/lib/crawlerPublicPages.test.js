@@ -35,5 +35,27 @@ describe("public pages show real text without JavaScript", () => {
   test("prerender script wires every public page through the static body", () => {
     const src = readFileSync(join(frontendRoot, "scripts/prerender-marketing.mjs"), "utf8");
     expect(src).toContain("staticBodyFor");
+    expect(src).toContain("syncSitemapToBuild");
+    expect(src).toContain("injectHomeFaqJsonLd");
+  });
+
+  test("homepage and features prerender carry real marketing copy", () => {
+    const home = body("/");
+    expect(home).toContain("Run your business");
+    expect(home).toContain("Decision Center");
+    expect(home.length).toBeGreaterThan(800);
+    const features = body("/features");
+    expect(features).toContain("Briefing");
+    expect(features).toContain("Ask Trenston");
+    expect(features.length).toBeGreaterThan(800);
+  });
+
+  test("robots disallows app and auth shells; allows marketing", () => {
+    const robots = readFileSync(join(frontendRoot, "public/robots.txt"), "utf8");
+    expect(robots).toContain("Allow: /");
+    expect(robots).toContain("Disallow: /app/");
+    expect(robots).toContain("Disallow: /login");
+    expect(robots).toContain("Disallow: /sign-up");
+    expect(robots).toContain("Sitemap: https://www.trenston.com/sitemap.xml");
   });
 });
