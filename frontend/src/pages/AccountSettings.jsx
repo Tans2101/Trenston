@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Download, ScrollText, Sun, Monitor, ShieldCheck, Plug, Building2, Eraser, UserRound, ImageIcon, Globe } from "lucide-react";
+import { Download, ScrollText, Sun, Moon, Monitor, ShieldCheck, Plug, Building2, Eraser, UserRound, ImageIcon, Globe } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -12,7 +12,6 @@ import DepartmentsSettings from "@/components/DepartmentsSettings";
 import DocumentsLibrarySettings from "@/components/DocumentsLibrarySettings";
 import InviteCeoCard from "@/components/InviteCeoCard";
 import { useTheme } from "@/context/ThemeContext";
-import SwitchButton from "@/components/kokonutui/switch-button";
 import { cn } from "@/lib/utils";
 import { canManageBilling, hasPerm } from "@/lib/access";
 import { addDaysISO, DEFAULT_TIMEZONE, supportedTimezones, todayISO } from "@/lib/dates";
@@ -376,51 +375,31 @@ export default function AccountSettings() {
           Your choice is saved to your account and follows you across devices.
         </p>
         <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Color theme">
-          <SwitchButton
-            mode={theme === "system" ? resolvedTheme : theme}
-            resolvedMode={resolvedTheme}
-            data-testid={
-              (theme === "system" ? resolvedTheme : theme) === "dark" ? "theme-dark" : "theme-light"
-            }
-            onToggle={() => {
-              const current = theme === "system" ? resolvedTheme : theme;
-              applyTheme(current === "dark" ? "light" : "dark");
-            }}
-          />
-          {(theme === "system" ? resolvedTheme : theme) === "dark" ? (
-            <button
-              type="button"
-              data-testid="theme-light"
-              className="sr-only"
-              onClick={() => applyTheme("light")}
-            >
-              Light
-            </button>
-          ) : (
-            <button
-              type="button"
-              data-testid="theme-dark"
-              className="sr-only"
-              onClick={() => applyTheme("dark")}
-            >
-              Dark
-            </button>
-          )}
-          <button
-            type="button"
-            data-testid="theme-system"
-            aria-pressed={theme === "system"}
-            onClick={() => applyTheme("system")}
-            className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm transition-colors",
-              theme === "system"
-                ? "border-helm-gold/35 bg-helm-gold/12 text-helm-fg"
-                : "border-helm-line bg-helm-card text-helm-muted hover:text-helm-fg hover:border-helm-gold/35",
-            )}
-          >
-            <Monitor className={cn("h-4 w-4", theme === "system" ? "text-helm-gold" : "text-helm-muted")} />
-            System
-          </button>
+          {[
+            { id: "light", label: "Light", icon: Sun },
+            { id: "dark", label: "Dark", icon: Moon },
+            { id: "system", label: "Auto", icon: Monitor },
+          ].map(({ id, label, icon: Icon }) => {
+            const on = theme === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                data-testid={`theme-${id}`}
+                aria-pressed={on}
+                onClick={() => applyTheme(id)}
+                className={cn(
+                  "inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm transition-colors",
+                  on
+                    ? "border-helm-gold/35 bg-helm-gold/12 text-helm-fg"
+                    : "border-helm-line bg-helm-card text-helm-muted hover:text-helm-fg hover:border-helm-gold/35",
+                )}
+              >
+                <Icon className={cn("h-4 w-4", on ? "text-helm-gold" : "text-helm-muted")} />
+                {label}
+              </button>
+            );
+          })}
         </div>
         {theme === "system" && (
           <p className="mt-3 text-xs text-helm-muted">

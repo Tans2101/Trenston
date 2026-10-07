@@ -168,7 +168,7 @@ export default function TrenstonHowToUse({ className, inApp }) {
             ? "Quick reference after you know the concepts. Select any card to open that part of Trenston."
             : "Quick reference after you know the concepts. Paths below are what you will see inside the signed-in app; they are not links on this public page."}
         </p>
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {HOW_TO_USE_MODULES.map((m) => {
             const card = (
               <GlassCard

@@ -208,7 +208,7 @@ export default function People() {
       )}
 
       <SectionLabel className="mb-4">Roster</SectionLabel>
-      <div className="grid md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {roster.map((p) => {
           const hrLine = hrSecondaryLine(p);
           const departed = p.hr_status === "departed";

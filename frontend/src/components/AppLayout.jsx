@@ -304,7 +304,7 @@ const QUICK_ACTION_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
 function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
   const [dismissed, setDismissed] = useState(() => {
     try {
-      return window.sessionStorage.getItem("helm_sidebar_promo_dismissed") === "1";
+      return window.localStorage.getItem("helm_sidebar_promo_dismissed") === "1";
     } catch {
       return false;
     }
@@ -331,7 +331,8 @@ function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
 
   const dismiss = () => {
     try {
-      window.sessionStorage.setItem("helm_sidebar_promo_dismissed", "1");
+      // Remember across visits; a dismissed nudge that returns every session reads as nagging.
+      window.localStorage.setItem("helm_sidebar_promo_dismissed", "1");
     } catch {
       /* ignore */
     }

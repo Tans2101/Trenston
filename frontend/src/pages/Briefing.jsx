@@ -97,7 +97,7 @@ export default function Briefing() {
         <PageHeaderSkeleton />
         <BriefingCockpitHero loading />
         <SkeletonKPIRow count={4} />
-        <div className="grid lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <SkeletonCardList count={3} />
           <SkeletonCardList count={3} />
           <SkeletonCardList count={3} />
@@ -654,7 +654,7 @@ export default function Briefing() {
         </GlassCard>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <GlassCard className="p-5 fade-up">
           <BriefLabel className="mb-4">What changed</BriefLabel>
           <div className="space-y-4">
@@ -809,7 +809,7 @@ export default function Briefing() {
             <BriefLabel>Today&apos;s team updates</BriefLabel>
             <span className="text-xs tabular-nums text-helm-muted ml-auto">{data.team_updates.length}</span>
           </div>
-          <div className="grid md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {data.team_updates.map((u, i) => (
               <div key={i} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`team-update-${i}`}>
                 <div className="flex items-center gap-2">

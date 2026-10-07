@@ -189,7 +189,7 @@ export default function AskHelm() {
                 <Sparkles className="w-4 h-4" />
                 <span className="font-mono text-xs uppercase tracking-[0.2em]">Try asking</span>
               </div>
-              <div className="grid sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {suggestions.map((s) => (
                   <button
                     key={s}

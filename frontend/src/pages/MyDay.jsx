@@ -129,7 +129,7 @@ export default function MyDay() {
       <div>
         <PageHeaderSkeleton />
         <SkeletonCardList count={2} className="mb-6" />
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <SkeletonCardList count={3} />
           <SkeletonCardList count={3} />
         </div>
@@ -386,7 +386,7 @@ export default function MyDay() {
         )}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -439,7 +439,7 @@ export default function MyDay() {
             <EmptyState title="No private notes yet" body="Sticky notes here are only visible to you, and are great for priorities, reminders, and scratch ideas."
               action={<button type="button" onClick={openNewNote} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Add your first note</button>} />
           ) : (
-            <div className="grid sm:grid-cols-2 gap-3" data-testid="sticky-notes-grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" data-testid="sticky-notes-grid">
               {notes.map((n) => (
                 <div
                   key={n.note_id}

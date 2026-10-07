@@ -98,7 +98,7 @@ export default function Billing() {
       <div className="max-w-5xl mx-auto">
         <PageHeaderSkeleton />
         <SkeletonCardList count={1} className="mb-8" />
-        <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <SkeletonCardList count={1} />
           <SkeletonCardList count={1} />
           <SkeletonCardList count={1} />
@@ -436,7 +436,7 @@ export default function Billing() {
         )}
       </GlassCard>
 
-      <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
         {plans.map((plan) => {
           const isCurrent = currentPlan === plan.id;
           const highlighted = plan.id === "starter" || plan.highlighted;

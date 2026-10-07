@@ -171,7 +171,7 @@ export default function BriefingCockpitHero({
       <div className="mb-8 space-y-4 animate-pulse" data-testid="briefing-cockpit-skeleton">
         <div className="h-28 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
         <div className="h-56 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
-        <div className="grid lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
           <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
           <div className="h-48 rounded-xl border border-helm-line bg-helm-card shadow-sm" />
@@ -394,7 +394,7 @@ export default function BriefingCockpitHero({
       </div>
 
       {/* C. Three columns */}
-      <div className="grid lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-helm-gold" />

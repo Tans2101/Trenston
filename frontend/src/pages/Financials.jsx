@@ -340,7 +340,7 @@ export default function Financials() {
       <div>
         <PageHeader title="Financials" subtitle="Your finance team logs revenue and expenses here. Trenston turns it into live MRR, runway and burn across the whole cockpit." />
         <SkeletonKPIRow count={4} />
-        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <SkeletonChart />
           <SkeletonCardList count={3} />
         </div>
@@ -893,7 +893,7 @@ export default function Financials() {
             </GlassCard>
           )}
 
-          <div className="grid lg:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <GlassCard className="p-5 lg:col-span-2 fade-up">
               <SectionLabel className="mb-4">Revenue vs Expenses</SectionLabel>
               <ResponsiveContainer width="100%" height={260}>
@@ -930,7 +930,7 @@ export default function Financials() {
           </div>
 
           {burnSeries.length > 0 && (
-            <div className="grid lg:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
               <GlassCard className="p-5 lg:col-span-2 fade-up">
                 <SectionLabel className="mb-4">Monthly Net Burn</SectionLabel>
                 <ResponsiveContainer width="100%" height={200}>

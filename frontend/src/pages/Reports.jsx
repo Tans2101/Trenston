@@ -78,7 +78,7 @@ export default function Reports() {
       <div>
         <PageHeader title="Reports" subtitle="Understand the week, add context, and create an update you can share." />
         <SkeletonKPIRow count={3} className="lg:grid-cols-3" />
-        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <SkeletonChart />
           <SkeletonCardList count={3} />
         </div>
@@ -302,7 +302,7 @@ export default function Reports() {
           <p className="text-sm text-helm-muted mb-3">
             Rollups of completed department work this week. Review before they become a report. They are not published until you say so.
           </p>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {drafts.map((d, i) => (
               <GlassCard key={d.id} className="p-5 fade-up border-helm-gold/35" style={{ animationDelay: `${i * 60}ms` }} data-testid={`draft-${d.id}`}>
                 <div className="flex items-center gap-2 mb-3">
@@ -351,7 +351,7 @@ export default function Reports() {
       {manual.length > 0 && (
         <>
           <SectionLabel className="mb-3">Your reports</SectionLabel>
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {manual.map((r, i) => (
               <ReportCard key={r.id} report={r} index={i} canWrite={canWrite} onEdit={() => openEdit(r)} onDelete={() => del(r)} badge="Manual" />
             ))}

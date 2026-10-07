@@ -39,7 +39,7 @@ export default function Tasks() {
     return (
       <div>
         <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your tasks are marked in gold." />
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <SkeletonCardList count={3} />
           <SkeletonCardList count={2} />
           <SkeletonCardList count={2} />

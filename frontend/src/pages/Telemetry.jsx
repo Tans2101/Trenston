@@ -139,7 +139,7 @@ export default function Telemetry() {
       <div>
         <PageHeader title="Telemetry" subtitle="Live KPIs and growth trends from your real data." />
         <SkeletonKPIRow count={3} className="lg:grid-cols-3" />
-        <div className="grid lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <SkeletonChart />
           <SkeletonChart />
         </div>
@@ -276,7 +276,7 @@ export default function Telemetry() {
         })}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <GlassCard className="p-5 fade-up">
           <SectionLabel className="mb-4">{hasTargetLine ? "Revenue vs Target" : "Monthly revenue"}</SectionLabel>
           {!hasRevenue ? (
@@ -379,7 +379,7 @@ export default function Telemetry() {
             <p className="text-sm text-helm-muted mb-4 leading-relaxed border-l-2 border-helm-gold/35 pl-3">{data.notes}</p>
           )}
           {!editing && data.risks?.length > 0 && (
-            <div className="grid sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {data.risks.map((r) => {
                 const score = (r.likelihood || 1) * (r.impact || 1);
                 return (
