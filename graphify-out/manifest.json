@@ -2598,9 +2598,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/DepartmentPlaceholder.jsx": {
-    "mtime": 1791365654.9081557,
-    "seen": 1791366159.5643597,
-    "ast_hash": "b8a26eaaa04f1a75262f3ea39804de35",
+    "mtime": 1791366395.1531062,
+    "seen": 1791366458.6330647,
+    "ast_hash": "8da1f801dea3d08e2460f00927938e20",
     "semantic_hash": ""
   },
   "frontend/src/pages/Features.jsx": {
@@ -2616,9 +2616,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/HR.jsx": {
-    "mtime": 1791365654.9081557,
-    "seen": 1791366159.5643675,
-    "ast_hash": "dbfa74c86d96f9d809b9a7f5ef51a015",
+    "mtime": 1791366395.1525965,
+    "seen": 1791366458.6330698,
+    "ast_hash": "26a6cf286138f8390336c894e1d68d94",
     "semantic_hash": ""
   },
   "frontend/src/pages/Help.jsx": {
@@ -2760,9 +2760,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Telemetry.jsx": {
-    "mtime": 1791365654.9161556,
-    "seen": 1791366159.56442,
-    "ast_hash": "f195de3e3ab36376594fbd2e2172eb70",
+    "mtime": 1791366395.1516607,
+    "seen": 1791366458.633092,
+    "ast_hash": "84f3c9822d0353e10243fa7520c12eb1",
     "semantic_hash": ""
   },
   "frontend/src/pages/Terms.jsx": {
@@ -2778,10 +2778,10 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/WorkspaceGate.jsx": {
-    "mtime": 1790247406.4983218,
-    "seen": 1791366159.5644262,
-    "ast_hash": "530981f85ef97283638fd148433a2e2f",
-    "semantic_hash": "530981f85ef97283638fd148433a2e2f"
+    "mtime": 1791366332.4747758,
+    "seen": 1791366458.6330943,
+    "ast_hash": "e0dae1701bebc89d0ee566a40b673b56",
+    "semantic_hash": ""
   },
   "frontend/src/pages/teamAccessInvite.test.js": {
     "mtime": 1790247406.4983218,
@@ -5142,8 +5142,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791366097.5925617,
-    "seen": 1791366159.565228,
+    "mtime": 1791366425.3002014,
+    "seen": 1791366458.6335084,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
