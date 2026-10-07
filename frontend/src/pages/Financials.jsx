@@ -895,7 +895,19 @@ export default function Financials() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <GlassCard className="p-5 lg:col-span-2 fade-up">
-              <SectionLabel className="mb-4">Revenue vs Expenses</SectionLabel>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <SectionLabel>Revenue vs Expenses</SectionLabel>
+                <div className="flex items-center gap-4 font-mono text-[11px] text-helm-muted" data-testid="revenue-expenses-legend">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: GOLD }} />
+                    Revenue
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: palette.slate }} />
+                    Expenses
+                  </span>
+                </div>
+              </div>
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={data.revenue_series} margin={{ left: -8, right: 8, top: 8 }}>
                   <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GOLD} stopOpacity={0.35} /><stop offset="100%" stopColor={GOLD} stopOpacity={0} /></linearGradient></defs>

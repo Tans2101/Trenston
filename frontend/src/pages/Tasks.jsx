@@ -220,7 +220,7 @@ export default function Tasks() {
                       )}
                       <div className="flex items-center gap-1.5 mt-2">
                         <span className="w-4 h-4 rounded-full bg-helm-gold/12 border border-helm-gold/35 flex items-center justify-center text-[9px] text-helm-gold">{(t.assignee || "?")[0]}</span>
-                        <span className="text-[11px] text-helm-muted">{t.assignee}{mine && " · you"}</span>
+                        <span className="text-[11px] text-helm-muted">{t.assignee}{mine && !/^you$/i.test(String(t.assignee || "").trim()) && " · you"}</span>
                         {/* Touch + keyboard alternative to drag-and-drop. */}
                         <select
                           value={t.column}

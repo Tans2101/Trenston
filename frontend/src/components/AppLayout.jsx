@@ -378,6 +378,23 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
   // Only ask when Financials is granted — hide Modeling until /modeling/access says allowed.
   const modelingAccess = useFetch(canSeeFinancials ? "/modeling/access" : null);
   const modelingAllowed = Boolean(modelingAccess.data?.allowed);
+  // Fade the bottom of the nav while links are hidden below, so departments are discoverable.
+  const navRef = useRef(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+  useEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return undefined;
+    const update = () => setMoreBelow(nav.scrollHeight - nav.scrollTop - nav.clientHeight > 4);
+    update();
+    nav.addEventListener("scroll", update, { passive: true });
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(update) : null;
+    observer?.observe(nav);
+    if (nav.firstElementChild) observer?.observe(nav.firstElementChild);
+    return () => {
+      nav.removeEventListener("scroll", update);
+      observer?.disconnect();
+    };
+  }, []);
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
   const isPaid = helmIsPaidPlan(company?.plan, billingEnforced, subscriptionStatus);
   const mainNav = useMemo(
@@ -450,7 +467,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
 
       <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
 
-      <nav className="flex-1 overflow-y-auto py-2" aria-label="App">
+      <nav ref={navRef} className="flex-1 overflow-y-auto py-2" aria-label="App">
         <SmoothTab
           orientation="vertical"
           variant="pill"
@@ -515,6 +532,14 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
             );
           })}
         </SmoothTab>
+        {moreBelow && (
+          <div
+            aria-hidden="true"
+            data-testid="sidebar-more-below"
+            className="pointer-events-none sticky bottom-0 -mt-10 h-10"
+            style={{ background: "linear-gradient(to bottom, transparent, var(--cir-cloud))" }}
+          />
+        )}
       </nav>
 
       <div className="px-1 pb-2 space-y-2">
