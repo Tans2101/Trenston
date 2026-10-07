@@ -1,7 +1,7 @@
+import { Suspense } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import AppLayout from "@/components/AppLayout";
-import WorkspaceGate from "@/pages/WorkspaceGate";
+import { AppLayout, WorkspaceGate } from "@/components/lazyAppShell";
 import { LoadingScreen } from "@/components/kit";
 
 export default function ProtectedRoute() {
@@ -9,6 +9,9 @@ export default function ProtectedRoute() {
 
   if (loading) return <LoadingScreen label="Loading cockpit" />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.needs_workspace) return <WorkspaceGate />;
-  return <AppLayout />;
+  return (
+    <Suspense fallback={<LoadingScreen label="Loading cockpit" />}>
+      {user.needs_workspace ? <WorkspaceGate /> : <AppLayout />}
+    </Suspense>
+  );
 }

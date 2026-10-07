@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth as useClerkAuth, useSession, useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/context/AuthContext";
-import AppLayout from "@/components/AppLayout";
-import WorkspaceGate from "@/pages/WorkspaceGate";
+import { AppLayout, WorkspaceGate } from "@/components/lazyAppShell";
 import { LoadingScreen } from "@/components/kit";
 import ClerkLoadError from "@/components/ClerkLoadError";
 import { useClerkReady } from "@/hooks/useClerkReady";
@@ -58,8 +57,11 @@ export default function ProtectedRouteClerk() {
   }
 
   if (user) {
-    if (user.needs_workspace) return <WorkspaceGate />;
-    return <AppLayout />;
+    return (
+      <Suspense fallback={<LoadingScreen label="Loading cockpit" />}>
+        {user.needs_workspace ? <WorkspaceGate /> : <AppLayout />}
+      </Suspense>
+    );
   }
 
   if (sessionStatus === "pending" && !user) {
