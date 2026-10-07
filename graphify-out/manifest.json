@@ -2340,10 +2340,10 @@
     "semantic_hash": "15882fc5ebebbb473c5cb42748d4c9c9"
   },
   "frontend/src/lib/clerkTheme.js": {
-    "mtime": 1791365654.9001555,
-    "seen": 1791366159.5642395,
-    "ast_hash": "eaa4827915ae7097d245e649d58b19cd",
-    "semantic_hash": "eaa4827915ae7097d245e649d58b19cd"
+    "mtime": 1791411984.143125,
+    "seen": 1791412057.8532004,
+    "ast_hash": "5469c17844e12dc08b70c3be350777b9",
+    "semantic_hash": ""
   },
   "frontend/src/lib/clerkToken.js": {
     "mtime": 1790247406.4859881,
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791411093.1415827,
-    "seen": 1791411147.3192403,
+    "mtime": 1791412018.0318346,
+    "seen": 1791412057.8540096,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5811,6 +5811,12 @@
     "mtime": 1791411061.6295807,
     "seen": 1791411147.3187933,
     "ast_hash": "dd10f80ee5f07f5ada8948932f7868ed",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/clerkTheme.test.js": {
+    "mtime": 1791411984.143528,
+    "seen": 1791412057.8532033,
+    "ast_hash": "280e8d6bf62d6825a612ba3e72ba84b9",
     "semantic_hash": ""
   }
 }
