@@ -14,6 +14,7 @@ import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { invalidateFetchQueries } from "@/lib/fetchInvalidation";
+import { friendlyRequestError } from "@/lib/friendlyErrors";
 
 /** Short client stale window — safety net / dedupe only; writes invalidate. */
 export const FETCH_STALE_MS = 5_000;
@@ -92,8 +93,10 @@ export function fetchErrorMessage(error, fallback = "Could not load data. Check 
   const detail = error?.response?.data?.detail;
   if (typeof detail === "string" && detail.trim()) return detail;
   if (Array.isArray(detail) && detail.length) return detail.map((d) => d.msg || String(d)).join(", ");
-  if (error?.message === "clerk-token-timeout") return "Sign-in is still loading. Wait a moment and try again.";
-  if (error?.code === "ECONNABORTED") return "Request timed out. The server may be busy. Try again.";
+  const friendly = friendlyRequestError(error);
+  if (friendly) return friendly;
+  // Axios' own messages ("Network Error", "Request failed with status code 500") are not user copy.
+  if (error?.isAxiosError) return fallback;
   return error?.message || fallback;
 }
 

@@ -1,7 +1,7 @@
 import "@/App.css";
 // Patch sonner toast.error before any page imports it (object details crash React).
 import "@/lib/notify";
-import { lazy, Suspense, useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
 import { useClerk } from "@clerk/clerk-react";
@@ -16,6 +16,8 @@ import SectionGate from "@/components/SectionGate";
 import { CLERK_SIGN_IN_PATH, CLERK_SIGN_UP_PATH } from "@/lib/helmUrls";
 import { persistReferralFromSearch } from "@/lib/referral";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { lazyWithReload } from "@/lib/chunkReload";
+import { friendlyRequestError, shouldReportGlobalError } from "@/lib/friendlyErrors";
 import CookieNotice from "@/components/CookieNotice";
 import ConfirmHost from "@/components/ConfirmHost";
 import Landing from "@/pages/Landing";
@@ -26,42 +28,42 @@ import { useTheme } from "@/context/ThemeContext";
 import palette from "@/design/palette.json";
 import { seoForPath, canonicalForPath, DEFAULT_OG_IMAGE } from "@/lib/seoPages";
 
-const About = lazy(() => import("@/pages/About"));
-const Features = lazy(() => import("@/pages/Features"));
-const Pricing = lazy(() => import("@/pages/Pricing"));
-const Changelog = lazy(() => import("@/pages/Changelog"));
-const StatusPage = lazy(() => import("@/pages/Status"));
-const PublicIntegrations = lazy(() => import("@/pages/PublicIntegrations"));
-const Help = lazy(() => import("@/pages/Help"));
-const Security = lazy(() => import("@/pages/Security"));
-const Privacy = lazy(() => import("@/pages/Privacy"));
-const Terms = lazy(() => import("@/pages/Terms"));
-const Refunds = lazy(() => import("@/pages/Refunds"));
-const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
-const Briefing = lazy(() => import("@/pages/Briefing"));
-const MyDay = lazy(() => import("@/pages/MyDay"));
-const Pipeline = lazy(() => import("@/pages/Pipeline"));
-const Decisions = lazy(() => import("@/pages/Decisions"));
-const Telemetry = lazy(() => import("@/pages/Telemetry"));
-const Financials = lazy(() => import("@/pages/Financials"));
-const FinancialModeling = lazy(() => import("@/pages/FinancialModeling"));
-const Tasks = lazy(() => import("@/pages/Tasks"));
-const Reports = lazy(() => import("@/pages/Reports"));
-const CalendarPage = lazy(() => import("@/pages/CalendarPage"));
-const People = lazy(() => import("@/pages/People"));
-const AskTrenston = lazy(() => import("@/pages/AskHelm"));
-const Members = lazy(() => import("@/pages/Members"));
-const Integrations = lazy(() => import("@/pages/Integrations"));
-const Billing = lazy(() => import("@/pages/Billing"));
-const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
-const AppHelp = lazy(() => import("@/pages/AppHelp"));
-const DepartmentPlaceholder = lazy(() => import("@/pages/DepartmentPlaceholder"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
-const Production = lazy(() => import("@/pages/Production"));
-const Procurement = lazy(() => import("@/pages/Procurement"));
-const Legal = lazy(() => import("@/pages/Legal"));
-const Maintenance = lazy(() => import("@/pages/Maintenance"));
-const HR = lazy(() => import("@/pages/HR"));
+const About = lazyWithReload(() => import("@/pages/About"));
+const Features = lazyWithReload(() => import("@/pages/Features"));
+const Pricing = lazyWithReload(() => import("@/pages/Pricing"));
+const Changelog = lazyWithReload(() => import("@/pages/Changelog"));
+const StatusPage = lazyWithReload(() => import("@/pages/Status"));
+const PublicIntegrations = lazyWithReload(() => import("@/pages/PublicIntegrations"));
+const Help = lazyWithReload(() => import("@/pages/Help"));
+const Security = lazyWithReload(() => import("@/pages/Security"));
+const Privacy = lazyWithReload(() => import("@/pages/Privacy"));
+const Terms = lazyWithReload(() => import("@/pages/Terms"));
+const Refunds = lazyWithReload(() => import("@/pages/Refunds"));
+const Unsubscribe = lazyWithReload(() => import("@/pages/Unsubscribe"));
+const Briefing = lazyWithReload(() => import("@/pages/Briefing"));
+const MyDay = lazyWithReload(() => import("@/pages/MyDay"));
+const Pipeline = lazyWithReload(() => import("@/pages/Pipeline"));
+const Decisions = lazyWithReload(() => import("@/pages/Decisions"));
+const Telemetry = lazyWithReload(() => import("@/pages/Telemetry"));
+const Financials = lazyWithReload(() => import("@/pages/Financials"));
+const FinancialModeling = lazyWithReload(() => import("@/pages/FinancialModeling"));
+const Tasks = lazyWithReload(() => import("@/pages/Tasks"));
+const Reports = lazyWithReload(() => import("@/pages/Reports"));
+const CalendarPage = lazyWithReload(() => import("@/pages/CalendarPage"));
+const People = lazyWithReload(() => import("@/pages/People"));
+const AskTrenston = lazyWithReload(() => import("@/pages/AskHelm"));
+const Members = lazyWithReload(() => import("@/pages/Members"));
+const Integrations = lazyWithReload(() => import("@/pages/Integrations"));
+const Billing = lazyWithReload(() => import("@/pages/Billing"));
+const AccountSettings = lazyWithReload(() => import("@/pages/AccountSettings"));
+const AppHelp = lazyWithReload(() => import("@/pages/AppHelp"));
+const DepartmentPlaceholder = lazyWithReload(() => import("@/pages/DepartmentPlaceholder"));
+const NotFound = lazyWithReload(() => import("@/pages/NotFound"));
+const Production = lazyWithReload(() => import("@/pages/Production"));
+const Procurement = lazyWithReload(() => import("@/pages/Procurement"));
+const Legal = lazyWithReload(() => import("@/pages/Legal"));
+const Maintenance = lazyWithReload(() => import("@/pages/Maintenance"));
+const HR = lazyWithReload(() => import("@/pages/HR"));
 
 
 function TrenstonToaster() {
@@ -320,12 +322,15 @@ function AppRoutes() {
 
 function App() {
   useEffect(() => {
-    const onError = () => {
-      toast.error("Something went wrong. Please try again");
+    const report = (error, message) => {
+      if (!shouldReportGlobalError(error, message)) return;
+      // Fixed id: a burst of the same failure updates one toast instead of stacking.
+      toast.error(friendlyRequestError(error) || "Something went wrong. Please try again", {
+        id: "unexpected-error",
+      });
     };
-    const onRejection = () => {
-      toast.error("Something went wrong. Please try again");
-    };
+    const onError = (event) => report(event.error, event.message);
+    const onRejection = (event) => report(event.reason);
     window.addEventListener("error", onError);
     window.addEventListener("unhandledrejection", onRejection);
     return () => {

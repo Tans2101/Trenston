@@ -1,6 +1,7 @@
 import axios from "axios";
 import { invalidateFetchAfterMutation } from "@/lib/fetchInvalidation";
 import { clearClerkTokenCache } from "@/lib/clerkToken";
+import { friendlyRequestError } from "@/lib/friendlyErrors";
 
 /** Empty string = same-origin `/api` (Vercel rewrite → Render). Local: http://localhost:8001 */
 export const BACKEND_URL = (process.env.REACT_APP_BACKEND_URL || "").replace(/\/$/, "");
@@ -12,9 +13,7 @@ export const api = axios.create({
   timeout: 20000,
 });
 
-/** Normalize FastAPI `detail` (string | {message, reason} | validation list) for UI copy. */
-export function apiErrorMessage(detailOrError, fallback = "Something went wrong") {
-  const detail = detailOrError?.response?.data?.detail ?? detailOrError?.detail ?? detailOrError;
+function detailMessage(detail) {
   if (typeof detail === "string" && detail.trim()) return detail;
   if (detail && typeof detail === "object") {
     if (typeof detail.message === "string" && detail.message.trim()) return detail.message;
@@ -25,10 +24,18 @@ export function apiErrorMessage(detailOrError, fallback = "Something went wrong"
       if (parts.length) return parts.join("; ");
     }
   }
-  if (typeof detailOrError?.message === "string" && detailOrError.message.trim()) {
-    return detailOrError.message;
-  }
-  return fallback;
+  return null;
+}
+
+/** Normalize FastAPI `detail` (string | {message, reason} | validation list) for UI copy. */
+export function apiErrorMessage(detailOrError, fallback = "Something went wrong") {
+  const serverMessage = detailMessage(detailOrError?.response?.data?.detail ?? detailOrError?.detail);
+  if (serverMessage) return serverMessage;
+  const friendly = friendlyRequestError(detailOrError);
+  if (friendly) return friendly;
+  // Axios' own messages ("Request failed with status code 400") are not user copy.
+  if (detailOrError?.isAxiosError) return fallback;
+  return detailMessage(detailOrError) || fallback;
 }
 
 /** `permission` | `plan` | null from a 403 body (Ask Trenston, billing gates). */
