@@ -159,6 +159,27 @@ async def test_ensure_referral_code_allocates():
 
 
 @pytest.mark.asyncio
+async def test_ensure_referral_code_allocates_when_projection_is_empty():
+    """Real Mongo returns {} when the projected field is missing; the user still exists."""
+    docs = [{"user_id": "u1", "email": "owner@example.com"}]
+    users = _users_store(docs)
+    plain_find_one = users.find_one
+
+    async def projected_find_one(query, projection=None):
+        doc = await plain_find_one(query, projection)
+        if doc is None or not projection:
+            return doc
+        keep = [k for k, v in projection.items() if v and k != "_id"]
+        return {k: doc[k] for k in keep if k in doc}
+
+    users.find_one = projected_find_one
+    db = _db(users=users, referrals=_referrals_store([]), workspaces=_workspaces_store([]))
+    code = await helm_referrals.ensure_referral_code(db, "u1")
+    assert helm_referrals._CODE_RE.match(code)
+    assert docs[0]["referral_code"] == code
+
+
+@pytest.mark.asyncio
 async def test_ensure_referral_code_missing_user_not_invite_wording():
     """Must not raise 'User not found' — that string looked like invite-field validation."""
     from fastapi import HTTPException
