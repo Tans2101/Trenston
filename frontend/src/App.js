@@ -4,14 +4,8 @@ import "@/lib/notify";
 import { Suspense, useEffect } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { BrowserRouter, Routes, Route, useLocation, Navigate, Outlet } from "react-router-dom";
-import { useClerk } from "@clerk/clerk-react";
 import { Toaster, toast } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
-import ClerkHelmBridge from "@/components/ClerkHelmBridge";
-import AppearanceSync from "@/components/AppearanceSync";
-import ClerkProviderBootstrap, { useClerkMode } from "@/components/ClerkProviderBootstrap";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import ProtectedRouteClerk from "@/components/ProtectedRouteClerk";
 import SectionGate from "@/components/SectionGate";
 import { CLERK_SIGN_IN_PATH, CLERK_SIGN_UP_PATH } from "@/lib/helmUrls";
 import { persistReferralFromSearch } from "@/lib/referral";
@@ -21,13 +15,16 @@ import { friendlyRequestError, shouldReportGlobalError } from "@/lib/friendlyErr
 import CookieNotice from "@/components/CookieNotice";
 import ConfirmHost from "@/components/ConfirmHost";
 import Landing from "@/pages/Landing";
-import Login from "@/pages/Login";
-import SignUpPage from "@/pages/SignUp";
 import { LoadingScreen } from "@/components/kit";
 import { useTheme } from "@/context/ThemeContext";
 import palette from "@/design/palette.json";
 import { seoForPath, canonicalForPath, DEFAULT_OG_IMAGE } from "@/lib/seoPages";
 
+// Sign-in and the signed-in app load on demand; public pages never need Clerk.
+const GatedLayout = lazyWithReload(() => import("@/GatedApp"));
+const AppProtectedGate = lazyWithReload(() => import("@/GatedApp").then((m) => ({ default: m.AppProtectedGate })));
+const Login = lazyWithReload(() => import("@/pages/Login"));
+const SignUpPage = lazyWithReload(() => import("@/pages/SignUp"));
 const About = lazyWithReload(() => import("@/pages/About"));
 const Features = lazyWithReload(() => import("@/pages/Features"));
 const Pricing = lazyWithReload(() => import("@/pages/Pricing"));
@@ -187,69 +184,15 @@ function PublicShell() {
 }
 
 
-function AppProtectedGate() {
-  const { clerkEnabled, configLoading } = useClerkMode();
-  if (configLoading) {
-    return <LoadingScreen label="Loading cockpit" />;
-  }
-  const Protected = clerkEnabled ? ProtectedRouteClerk : ProtectedRoute;
-  return <Protected />;
-}
-
-
-function ClerkAuthShell() {
-  const { signOut } = useClerk();
-  const location = useLocation();
-  if (location.hash?.includes("session_id=")) {
-    return <Navigate to="/login?error=session_retired" replace />;
-  }
-  return (
-    <AuthProvider onLogoutExtra={() => signOut()} deferInitialAuth>
-      <ErrorBoundary>
-        <AppearanceSync />
-        <ClerkHelmBridge />
-        <Outlet />
-      </ErrorBoundary>
-    </AuthProvider>
-  );
-}
-
-
-function TrenstonAppShell() {
-  const location = useLocation();
-  if (location.hash?.includes("session_id=")) {
-    return <Navigate to="/login?error=session_retired" replace />;
-  }
-  return (
-    <AuthProvider>
-      <ErrorBoundary>
-        <AppearanceSync />
-        <Outlet />
-      </ErrorBoundary>
-    </AuthProvider>
-  );
-}
-
-
-/** /login, /sign-up, /app/* — wait on useClerkMode (/api/auth/config). */
-function ClerkGatedShell() {
-  const { clerkEnabled, configLoading } = useClerkMode();
-  if (configLoading) {
-    return <LoadingScreen label="Loading" />;
-  }
-  return clerkEnabled ? <ClerkAuthShell /> : <TrenstonAppShell />;
-}
-
-
 function AppRoutes() {
   return (
     <Routes>
       {/* Auth-gated first so /login, /sign-up, /app win over public splat */}
       <Route
         element={(
-          <ClerkProviderBootstrap>
-            <ClerkGatedShell />
-          </ClerkProviderBootstrap>
+          <Suspense fallback={<LoadingScreen label="Loading" />}>
+            <GatedLayout />
+          </Suspense>
         )}
       >
         {/* Path routing: SignIn/SignUp own /sso-callback and /continue */}
@@ -269,7 +212,14 @@ function AppRoutes() {
             </Suspense>
           )}
         />
-        <Route path="/app" element={<AppProtectedGate />}>
+        <Route
+          path="/app"
+          element={(
+            <Suspense fallback={<LoadingScreen label="Loading cockpit" />}>
+              <AppProtectedGate />
+            </Suspense>
+          )}
+        >
           <Route index element={<Suspense fallback={<LoadingScreen label="Loading" />}><Briefing /></Suspense>} />
           <Route path="me" element={<Suspense fallback={<LoadingScreen label="Loading" />}><MyDay /></Suspense>} />
           <Route path="sales" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Pipeline /></Suspense>} />
