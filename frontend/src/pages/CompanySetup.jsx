@@ -10,8 +10,8 @@ import {
 import TrenstonMark from "@/components/HelmMark";
 import { CURRENCY_SYMBOLS } from "@/lib/money";
 
-// New companies are Philippines-first; the backend stores php on new workspaces.
-const DEFAULT_SETUP_CURRENCY = "php";
+// Matches the backend default for new workspaces (money_fmt.DEFAULT_CURRENCY).
+const DEFAULT_SETUP_CURRENCY = "usd";
 
 const INPUT =
   "w-full rounded-md border border-helm-line bg-helm-bg text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/50";
