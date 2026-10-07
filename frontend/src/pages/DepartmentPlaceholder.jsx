@@ -64,6 +64,15 @@ export default function DepartmentPlaceholder() {
           icon={Icon}
           title={`${name} coming soon`}
           body={`${name} tools are coming soon. Reach out if there's a specific workflow you want prioritized.`}
+          action={(
+            <a
+              href={`mailto:contact@trenston.com?subject=${encodeURIComponent(`${name} workflow request`)}`}
+              data-testid="dept-placeholder-contact"
+              className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]"
+            >
+              Request a workflow
+            </a>
+          )}
         />
       </GlassCard>
     </div>

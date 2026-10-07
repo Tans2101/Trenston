@@ -156,7 +156,7 @@ export default function Telemetry() {
       />
     );
   }
-  if ((data.kpis || []).length === 0) return <div><PageHeader title="Telemetry" subtitle="Live KPIs and growth trends from your real data." /><EmptyState title="No telemetry yet" body="Log financials and add your team. Your KPIs build from real data." /></div>;
+  if ((data.kpis || []).length === 0) return <div><PageHeader title="Telemetry" subtitle="Live KPIs and growth trends from your real data." /><EmptyState title="No telemetry yet" body="Log financials and add your team. Your KPIs build from real data." action={<div className="flex flex-wrap justify-center gap-2"><Link to="/app/financials" data-testid="telemetry-empty-financials" className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">Log financials</Link><Link to="/app/members" data-testid="telemetry-empty-team" className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">Invite your team</Link></div>} /></div>;
 
   const asOf = data.data_as_of ? new Date(data.data_as_of).toLocaleString() : null;
   const canWrite = data.can_write;

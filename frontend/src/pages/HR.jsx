@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, X, Users, ChevronUp, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
 import {
@@ -791,6 +791,11 @@ export default function HR() {
               icon={Users}
               title="No employees yet"
               body="People from Team & Access appear here automatically. You can also complete an onboarding checklist for a new hire."
+              action={(
+                <Link to="/app/members" data-testid="hr-empty-team-access" className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">
+                  Open Team &amp; Access
+                </Link>
+              )}
             />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line mb-6">
@@ -1026,6 +1031,11 @@ export default function HR() {
               icon={Users}
               title={offAll.length ? "No open offboardings" : "No offboardings yet"}
               body="Start offboarding from an employee record. Status becomes departed only after every step is done."
+              action={(
+                <button type="button" data-testid="hr-empty-offboarding-employees" onClick={() => setTab("employees")} className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">
+                  View employees
+                </button>
+              )}
             />
           ) : (
             <div className="overflow-x-auto rounded-md border border-helm-line mb-6">

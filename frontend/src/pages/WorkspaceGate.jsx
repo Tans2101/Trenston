@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Building2, KeyRound, ArrowRight, LogOut } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { GlassCard } from "@/components/kit";
 import { consumeReferralCode, withReferralPayload } from "@/lib/referral";
@@ -30,7 +30,7 @@ export default function WorkspaceGate() {
       consumeReferralCode();
       window.location.href = "/app";
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not create company");
+      toast.error(apiErrorMessage(e, "Could not create company"));
       setBusy(false);
     }
   };
@@ -40,8 +40,13 @@ export default function WorkspaceGate() {
     setBusy(true);
     try {
       const { data } = await api.post("/workspaces/join", { code: code.trim() });
-      if (data.ok) window.location.href = "/app";
-    } catch (e) { toast.error(e?.response?.data?.detail || "Invalid invite code"); setBusy(false); }
+      if (data?.ok) {
+        window.location.href = "/app";
+        return;
+      }
+      toast.error("That invite code didn't work. Check it with your admin and try again.");
+      setBusy(false);
+    } catch (e) { toast.error(apiErrorMessage(e, "Invalid invite code")); setBusy(false); }
   };
 
   return (
@@ -84,7 +89,7 @@ export default function WorkspaceGate() {
         {mode === "join" && (
           <GlassCard className="mt-10 p-6 fade-up">
             <label className="text-xs text-helm-muted">Invite code
-              <input data-testid="gate-code-input" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Paste your invite code"
+              <input data-testid="gate-code-input" autoFocus value={code} onChange={(e) => setCode(e.target.value)} placeholder="Paste your invite code"
                 onKeyDown={(e) => e.key === "Enter" && join()}
                 autoCapitalize="off"
                 autoCorrect="off"
@@ -101,7 +106,7 @@ export default function WorkspaceGate() {
         {mode === "create" && (
           <GlassCard className="mt-10 p-6 fade-up">
             <label className="text-xs text-helm-muted">Company name
-              <input data-testid="gate-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Inc."
+              <input data-testid="gate-name-input" autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Acme Inc."
                 onKeyDown={(e) => e.key === "Enter" && create()}
                 className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/40" />
             </label>
