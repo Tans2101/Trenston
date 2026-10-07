@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791367130.3139157,
-    "seen": 1791367569.9646862,
-    "ast_hash": "2feb5ecc831cabf86f1033f7dfb9ea2c",
+    "mtime": 1791404918.2648005,
+    "seen": 1791405014.0761986,
+    "ast_hash": "9d0bfbb38e73505778f41920e3acfcbb",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -2604,9 +2604,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Financials.jsx": {
-    "mtime": 1791367111.6590915,
-    "seen": 1791367569.9649372,
-    "ast_hash": "561d340add0d31ffbef8af5cdd961e08",
+    "mtime": 1791404918.2655566,
+    "seen": 1791405014.0764554,
+    "ast_hash": "9408e94bab54833885a93ec32ba8545c",
     "semantic_hash": ""
   },
   "frontend/src/pages/HR.jsx": {
@@ -2748,9 +2748,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Tasks.jsx": {
-    "mtime": 1791367111.6566584,
-    "seen": 1791367569.9649591,
-    "ast_hash": "9e78403ee01989e238530a3568e7e633",
+    "mtime": 1791404918.2662115,
+    "seen": 1791405014.0764754,
+    "ast_hash": "f803d90ed97663d6395205a4d9f38854",
     "semantic_hash": ""
   },
   "frontend/src/pages/Telemetry.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791367536.1882675,
-    "seen": 1791367569.9654188,
+    "mtime": 1791404970.1499767,
+    "seen": 1791405014.0768328,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },

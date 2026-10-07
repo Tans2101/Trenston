@@ -20817,7 +20817,7 @@
       "file_type": "code",
       "norm_label": "applayout()",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L763"
+      "source_location": "L788"
     },
     {
       "id": "frontend_src_components_applayout_departmentnavto",
@@ -20913,7 +20913,7 @@
       "file_type": "code",
       "norm_label": "quicknavpalette()",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L724"
+      "source_location": "L749"
     },
     {
       "id": "frontend_src_components_applayout_sidebarcontent",
@@ -20949,7 +20949,7 @@
       "file_type": "code",
       "norm_label": "usequicknavactions()",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L551"
+      "source_location": "L576"
     },
     {
       "id": "frontend_src_components_subscriptiongate_subscriptiongate",
@@ -165992,7 +165992,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L769",
+      "source_location": "L794",
       "weight": 1.0
     },
     {
@@ -166004,7 +166004,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L770",
+      "source_location": "L795",
       "weight": 1.0
     },
     {
@@ -166016,7 +166016,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L771",
+      "source_location": "L796",
       "weight": 1.0
     },
     {
@@ -166028,7 +166028,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L775",
+      "source_location": "L800",
       "weight": 1.0
     },
     {
@@ -166040,7 +166040,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L777",
+      "source_location": "L802",
       "weight": 1.0
     },
     {
@@ -166052,7 +166052,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L779",
+      "source_location": "L804",
       "weight": 1.0
     },
     {
@@ -166100,7 +166100,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L726",
+      "source_location": "L751",
       "weight": 1.0
     },
     {
@@ -166160,7 +166160,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L381",
+      "source_location": "L398",
       "weight": 1.0
     },
     {
@@ -166172,7 +166172,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L382",
+      "source_location": "L399",
       "weight": 1.0
     },
     {
@@ -166184,7 +166184,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L384",
+      "source_location": "L401",
       "weight": 1.0
     },
     {
@@ -166196,7 +166196,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L387",
+      "source_location": "L404",
       "weight": 1.0
     },
     {
@@ -166208,7 +166208,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L388",
+      "source_location": "L405",
       "weight": 1.0
     },
     {
@@ -166220,7 +166220,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L391",
+      "source_location": "L408",
       "weight": 1.0
     },
     {
@@ -166232,7 +166232,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L391",
+      "source_location": "L408",
       "weight": 1.0
     },
     {
@@ -166244,7 +166244,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L397",
+      "source_location": "L414",
       "weight": 1.0
     },
     {
@@ -166256,7 +166256,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L404",
+      "source_location": "L421",
       "weight": 1.0
     },
     {
@@ -166268,7 +166268,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L462",
+      "source_location": "L479",
       "weight": 1.0
     },
     {
@@ -166280,7 +166280,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L469",
+      "source_location": "L486",
       "weight": 1.0
     },
     {
@@ -166292,7 +166292,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L496",
+      "source_location": "L513",
       "weight": 1.0
     },
     {
@@ -166304,7 +166304,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L532",
+      "source_location": "L557",
       "weight": 1.0
     },
     {
@@ -166340,7 +166340,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L552",
+      "source_location": "L577",
       "weight": 1.0
     },
     {
@@ -166352,7 +166352,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L553",
+      "source_location": "L578",
       "weight": 1.0
     },
     {
@@ -166364,7 +166364,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L555",
+      "source_location": "L580",
       "weight": 1.0
     },
     {
@@ -166376,7 +166376,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L558",
+      "source_location": "L583",
       "weight": 1.0
     },
     {
@@ -166388,7 +166388,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L562",
+      "source_location": "L587",
       "weight": 1.0
     },
     {
@@ -166400,7 +166400,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L573",
+      "source_location": "L598",
       "weight": 1.0
     },
     {
@@ -166412,7 +166412,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L575",
+      "source_location": "L600",
       "weight": 1.0
     },
     {
@@ -166424,7 +166424,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L579",
+      "source_location": "L604",
       "weight": 1.0
     },
     {
@@ -176216,7 +176216,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Financials.jsx",
-      "source_location": "L1091",
+      "source_location": "L1103",
       "weight": 1.0
     },
     {
@@ -176228,7 +176228,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Financials.jsx",
-      "source_location": "L1100",
+      "source_location": "L1112",
       "weight": 1.0
     },
     {
@@ -176336,7 +176336,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Financials.jsx",
-      "source_location": "L904",
+      "source_location": "L916",
       "weight": 1.0
     },
     {
@@ -304505,7 +304505,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L551",
+      "source_location": "L576",
       "weight": 1.0
     },
     {
@@ -304549,7 +304549,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L724",
+      "source_location": "L749",
       "weight": 1.0
     },
     {
@@ -304560,7 +304560,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/AppLayout.jsx",
-      "source_location": "L763",
+      "source_location": "L788",
       "weight": 1.0
     },
     {
@@ -344066,5 +344066,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c02367078b084309fed6f1fe4a53bfe49fd97fe5"
+  "built_at_commit": "78d6e0bd13917afa8ae849d0cc7cbe1650277922"
 }
