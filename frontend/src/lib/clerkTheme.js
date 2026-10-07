@@ -23,11 +23,13 @@ export const clerkAppearance = {
     fontFamily: "inherit",
   },
   elements: {
-    rootBox: "w-full",
-    cardBox: "w-full bg-white shadow-none border-0",
-    card: "w-full bg-white shadow-none border-0 p-0 gap-4",
-    main: "bg-white gap-4",
-    scrollBox: "bg-white",
+    // Clerk's "Last used" pill hangs partly above the first social button, so none of the
+    // containers around that button may clip (!overflow-visible beats Clerk's own rule).
+    rootBox: "w-full !overflow-visible",
+    cardBox: "w-full bg-white shadow-none border-0 !overflow-visible",
+    card: "w-full bg-white shadow-none border-0 p-0 gap-4 !overflow-visible",
+    main: "bg-white gap-4 !overflow-visible",
+    scrollBox: "bg-white !overflow-visible",
     header: "hidden",
     headerTitle: "hidden",
     headerSubtitle: "hidden",
@@ -36,9 +38,9 @@ export const clerkAppearance = {
     footerAction: "hidden",
     footerActionLink: "hidden",
     // Native social buttons — Paths are on www now; custom AuthSocialButtons fought SignUp state.
-    socialButtons: "flex flex-col gap-2 w-full",
+    socialButtons: "flex flex-col gap-2 w-full !overflow-visible",
     socialButtonsBlockButton:
-      "w-full h-12 justify-center rounded-[2px] border border-mk-black bg-mk-black text-white font-semibold transition-colors hover:bg-mk-navy hover:border-mk-navy shadow-none",
+      "w-full h-12 justify-center rounded-[2px] border border-mk-black bg-mk-black text-white font-semibold transition-colors hover:bg-mk-navy hover:border-mk-navy shadow-none !overflow-visible",
     socialButtonsProviderIcon: "brightness-0 invert",
     dividerRow: "flex items-center gap-3 my-2",
     dividerLine: "bg-mk-line",
