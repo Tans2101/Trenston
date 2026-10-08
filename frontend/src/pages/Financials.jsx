@@ -2,15 +2,18 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  AreaChart, Area, BarChart, Bar, Cell, ReferenceLine,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
-import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug } from "lucide-react";
+import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
-import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList } from "@/components/kit";
-import { Gauge } from "@/components/charts/gauge";
+import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList, Delta } from "@/components/kit";
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
 import { thisMonthISO } from "@/lib/dates";
@@ -20,13 +23,11 @@ import { formatMoney } from "@/lib/money";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { REVENUE_CATEGORIES as REV_CATS, EXPENSE_CATEGORIES as EXP_CATS, defaultRevenueCategory } from "@/lib/financeCategories";
 import palette from "@/design/palette.json";
-import { ACCENT, accentAlpha } from "@/lib/accent";
+import { ACCENT, ACCENT_SCALE } from "@/lib/accent";
 import { dealHref, departmentItemHref, highlightRecord } from "@/lib/signalRoute";
 import { confirmAction } from "@/components/ConfirmHost";
 
 const GOLD = ACCENT;
-const CREAM = palette.cream;
-const PIE = [ACCENT, accentAlpha(0.7), palette.slate, accentAlpha(0.45), "#9CA3AF", accentAlpha(0.25)];
 const ALLOWED_UPLOAD_TYPES = ["application/pdf", "image/png", "image/jpeg"];
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const CURRENCY_OPTIONS = [
@@ -50,17 +51,6 @@ function ChartTooltip({ active, payload, label, symbol }) {
           <span style={{ color: p.color }}>●</span> {p.name}: {fmt(p.value, symbol)}
         </p>
       ))}
-    </div>
-  );
-}
-
-// Expense breakdown values are whole-number percentages, not money.
-function PercentTooltip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0];
-  return (
-    <div className="rounded-md border border-helm-line bg-helm-card px-3 py-2 text-xs">
-      <p className="text-helm-fg font-mono">{p.name}: {p.value}%</p>
     </div>
   );
 }
@@ -89,6 +79,108 @@ function itemNameFromExtract(extracted) {
   return String(extracted?.vendor || "").trim();
 }
 
+// Month key "2026-10" to "Oct 2026" for captions.
+function monthLabel(iso) {
+  const [y, m] = String(iso || "").split("-").map(Number);
+  if (!y || !m) return "";
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+// Ledger amount shown in home currency, net of tax when the server provides it.
+function entryDisplayAmount(e) {
+  const gross = Number(e.amount) || 0;
+  const net = e.amount_net != null ? Number(e.amount_net) : null;
+  const home = e.amount_home != null ? Number(e.amount_home) : null;
+  const netHome = e.amount_net_home != null ? Number(e.amount_net_home) : null;
+  let display;
+  if (netHome != null) display = Math.abs(netHome);
+  else if (net != null && home != null && gross) display = Math.abs(home) * (Math.abs(net) / Math.abs(gross));
+  else if (home != null) display = Math.abs(home);
+  else if (net != null) display = Math.abs(net);
+  else display = Math.abs(gross);
+  return { display, showNetHint: net != null && Math.abs(net) !== Math.abs(gross) };
+}
+
+const PILL_TONE = {
+  positive: "border-helm-status-positive/30 bg-helm-status-positive/10 text-helm-status-positive",
+  warning: "border-helm-status-warning/30 bg-helm-status-warning/10 text-helm-status-warning",
+  negative: "border-helm-status-negative/30 bg-helm-status-negative/10 text-helm-status-negative",
+};
+const METER_TONE = {
+  positive: "bg-helm-status-positive",
+  warning: "bg-helm-status-warning",
+  negative: "bg-helm-status-negative",
+};
+
+function StatusPill({ tone, children }) {
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider", PILL_TONE[tone])}>
+      {children}
+    </span>
+  );
+}
+
+function runwayStatus(noBurn, months) {
+  if (noBurn) return { tone: "positive", label: "Profitable" };
+  if (months == null || !Number.isFinite(months)) return null;
+  if (months < RUNWAY_WARN_MONTHS) return { tone: "negative", label: "Low" };
+  if (months < 12) return { tone: "warning", label: "Watch" };
+  return { tone: "positive", label: "Healthy" };
+}
+
+// Runway against a 24-month scale, tinted by status.
+function RunwayMeter({ months, tone }) {
+  const pct = Math.max(0, Math.min(months / 24, 1)) * 100;
+  return (
+    <div className="mt-5" aria-hidden data-testid="runway-meter">
+      <div className="relative h-1.5 overflow-hidden rounded-full bg-helm-fg/10">
+        <div className={cn("absolute inset-y-0 left-0 rounded-full", METER_TONE[tone] || "bg-helm-gold")} style={{ width: `${pct}%` }} />
+      </div>
+      <div className="mt-1.5 flex justify-between font-mono text-[10px] text-helm-muted">
+        <span>0</span><span>6m</span><span>12m</span><span>18m</span><span>24m+</span>
+      </div>
+    </div>
+  );
+}
+
+const KPI_LABEL = "font-mono text-[11px] uppercase tracking-[0.15em] text-helm-muted";
+
+function AddDataButton({ onClick, testId, large }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-testid={testId}
+      className={cn(
+        "mt-3 inline-flex items-center gap-1.5 font-mono text-helm-gold hover:text-helm-gold-hover",
+        large ? "text-xl" : "text-lg",
+      )}
+    >
+      Add data <ArrowRight className="h-4 w-4" />
+    </button>
+  );
+}
+
+const SOURCE_LABELS = {
+  manual: "Manual",
+  csv_import: "CSV",
+  csv: "CSV",
+  ai_upload: "AI upload",
+  deal: "Deal",
+  procurement: "Procurement",
+};
+
+function sourceLabel(src) {
+  const s = String(src || "");
+  if (SOURCE_LABELS[s]) return SOURCE_LABELS[s];
+  if (s.startsWith("qbo") || s.includes("quickbooks")) return "QuickBooks";
+  if (s.startsWith("xero")) return "Xero";
+  if (s.startsWith("sap")) return "SAP B1";
+  return s ? s.replace(/_/g, " ") : "Manual";
+}
+
+const LEDGER_PAGE = 15;
+
 export default function Financials() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +203,10 @@ export default function Financials() {
   const [csvPreview, setCsvPreview] = useState(null);
   const [csvBusy, setCsvBusy] = useState(false);
   const [sheetsBusy, setSheetsBusy] = useState(false);
+  const [ledgerFilter, setLedgerFilter] = useState("all");
+  // A deep link to one entry must not land on a row hidden behind "Show all".
+  const [ledgerExpanded, setLedgerExpanded] = useState(() => (location.hash || "").startsWith("#entry-"));
+  const { resolvedTheme } = useTheme();
   const fileInputRef = useRef(null);
   const csvInputRef = useRef(null);
 
@@ -548,50 +644,154 @@ export default function Financials() {
 
   const openEntryForm = () => { setForm(emptyForm(tz, revCategory)); setShowForm(true); };
 
-  const headline = [
-    { label: "MRR", value: data.mrr_known === false ? "Add data" : data.mrr, fill: openEntryForm },
-    { label: "ARR", value: data.mrr_known === false ? "Add data" : data.arr, fill: openEntryForm },
-    {
-      label: "Runway",
-      value:
-        data.runway_months != null
-          ? `${data.runway_months} months`
-          : data.runway_no_burn
-            ? "No burn, cash growing"
-            : "Add data",
-      fill: data.cash_entered === false ? () => openSettings() : openEntryForm,
-    },
-    { label: "Net Burn", value: data.burn_known === false ? "Add data" : data.burn, fill: openEntryForm },
-    { label: "Cash", value: data.cash_entered === false ? "Add data" : data.cash, fill: () => openSettings() },
-    {
-      label: "Gross Margin",
-      value: !data.gross_margin || data.gross_margin === "—" ? "Add data" : data.gross_margin,
-      fill: () => openSettings(),
-    },
-  ];
+  // Average net burn over the last three ledger months, matching the server's runway basis.
+  const recentBurn = burnSeries.slice(-3).map((b) => Math.max(Number(b.burn) || 0, 0));
+  const avgBurn = recentBurn.length ? recentBurn.reduce((s, v) => s + v, 0) / recentBurn.length : null;
+  const latestLabel = monthLabel(data.latest_month);
+  const latestTotals = (data.ledger_months || []).slice(-1)[0] || null;
+  const burnValue = data.burn_value != null ? Number(data.burn_value) : null;
+  const netPositive = burnValue != null && burnValue < 0;
+  const status = runwayStatus(data.runway_no_burn, runwayMonths);
+  const cashMissing = data.cash_entered === false;
+  const cashZero = data.cash_state === "zero_confirmed";
+  const mrrMissing = data.mrr_known === false;
+  const gmMissing = !data.gross_margin || data.gross_margin === "—";
+  const currencyCode = (data.currency || workspaceCurrency).toUpperCase();
+
+  const dark = resolvedTheme === "dark";
+  const gridStroke = dark ? "rgba(244, 244, 244, 0.06)" : "rgba(10, 10, 10, 0.06)";
+  const axisStroke = dark ? "rgba(244, 244, 244, 0.5)" : palette.slate;
+  const expenseStroke = dark ? "rgba(244, 244, 244, 0.45)" : palette.slate;
+  const cursorFill = dark ? "rgba(244, 244, 244, 0.04)" : "rgba(10, 10, 10, 0.04)";
+  const swatches = dark ? ACCENT_SCALE.dark : ACCENT_SCALE.light;
+
+  const filteredEntries = ledgerFilter === "all" ? entries : entries.filter((e) => e.type === ledgerFilter);
+  const visibleEntries = ledgerExpanded ? filteredEntries : filteredEntries.slice(0, LEDGER_PAGE);
+  const revenueCount = entries.filter((e) => e.type === "revenue").length;
+
+  const importLabel = uploadBusy ? "Reading bill…" : csvBusy ? "Reading CSV…" : "Import";
+  const menuItemClass = "cursor-pointer items-start gap-3 rounded-sm px-2.5 py-2.5 text-sm text-helm-fg focus:bg-helm-fg/5 focus:text-helm-fg";
 
   const actions = canWrite ? (
-    <button
-      type="button"
-      data-testid="add-entry-btn"
-      onClick={() => { setForm(emptyForm(tz, revCategory)); setShowForm(true); }}
-      className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-gold-hover"
-    >
-      <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log entry"}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-testid="import-menu-btn"
+            disabled={uploadBusy || csvBusy}
+            className="inline-flex items-center gap-1.5 rounded-md border border-helm-line px-3 py-2 text-sm font-medium text-helm-fg transition-colors hover:bg-helm-fg/5 disabled:opacity-60"
+          >
+            <Upload className="h-4 w-4" /> {importLabel} <ChevronDown className="h-3.5 w-3.5 text-helm-muted" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" sideOffset={6} className="w-72 rounded-md border border-helm-line bg-helm-card p-1 text-helm-fg shadow-xl">
+          <DropdownMenuItem data-testid="upload-bill-btn" className={menuItemClass} onSelect={() => fileInputRef.current?.click()}>
+            <Upload className="mt-0.5 h-4 w-4 text-helm-muted" />
+            <span>
+              <span className="block">{hasAccountingSync ? "Upload a one-off bill" : "Upload a bill"}</span>
+              <span className="block text-xs text-helm-muted">PDF, PNG or JPEG up to 15MB. Read and pre-filled for you to confirm.</span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem data-testid="import-drive-btn" className={menuItemClass} onSelect={importFromDrive}>
+            <FileText className="mt-0.5 h-4 w-4 text-helm-muted" />
+            <span>
+              <span className="block">From Google Drive</span>
+              <span className="block text-xs text-helm-muted">Pick a bill or invoice stored in Drive.</span>
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem data-testid="import-csv-btn" className={menuItemClass} onSelect={() => csvInputRef.current?.click()}>
+            <FileSpreadsheet className="mt-0.5 h-4 w-4 text-helm-muted" />
+            <span>
+              <span className="block">{hasAccountingSync ? "Import one-off CSV" : "Import CSV"}</span>
+              <span className="block text-xs text-helm-muted">Preview every row before anything is saved.</span>
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <button
+        type="button"
+        data-testid="add-entry-btn"
+        onClick={openEntryForm}
+        className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy transition-colors hover:bg-helm-gold-hover"
+      >
+        <Plus className="h-4 w-4" /> {hasAccountingSync ? "Add one-off entry" : "Log entry"}
+      </button>
+    </div>
   ) : null;
 
+  const onPageDragOver = (e) => {
+    if (!canWrite || !Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+    e.preventDefault();
+    setDragOver(true);
+  };
+  const onPageDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+  };
+  const onPageDrop = (e) => {
+    if (!canWrite) return;
+    onDrop(e);
+  };
+
   return (
-    <div>
+    <div
+      data-testid="bill-dropzone"
+      onDragOver={onPageDragOver}
+      onDragLeave={onPageDragLeave}
+      onDrop={onPageDrop}
+      className="relative"
+    >
       <PageHeader
         title="Financials"
         subtitle={
           hasAccountingSync
-            ? `Numbers sync from ${accountingLabel}. Use manual entry only for items that will not appear in your books.`
-            : "Log revenue and expenses here, or connect QuickBooks, Xero, or SAP Business One under Integrations. Trenston turns it into live MRR, runway, and burn."
+            ? `Synced from ${accountingLabel}. Add entries here only for items that will not appear in your books.`
+            : "Log revenue and expenses, or connect your accounting system under Integrations. Trenston turns them into MRR, burn and runway."
         }
         action={actions}
       />
+
+      {canWrite && (
+        <>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+            className="hidden"
+            data-testid="bill-file-input"
+            onChange={onFilePick}
+          />
+          <input
+            ref={csvInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            data-testid="csv-file-input"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              previewCsv(f);
+            }}
+          />
+        </>
+      )}
+
+      {dragOver && canWrite && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-helm-ink/60 p-6" data-testid="bill-drop-overlay">
+          <div className="rounded-xl border border-dashed border-helm-gold/50 bg-helm-card px-10 py-8 text-center shadow-xl">
+            <Upload className="mx-auto h-6 w-6 text-helm-gold" />
+            <p className="mt-3 text-sm text-helm-fg">Drop a bill to read it</p>
+            <p className="mt-1 text-xs text-helm-muted">PDF, PNG or JPEG up to 15MB. You confirm before it is saved.</p>
+          </div>
+        </div>
+      )}
+
+      {uploadBusy && (
+        <GlassCard className="mb-6 flex items-center gap-3 px-4 py-3 fade-up" data-testid="bill-reading">
+          <Sparkles className="h-4 w-4 text-helm-gold" />
+          <p className="text-sm text-helm-fg">Reading your bill. This can take up to a minute.</p>
+        </GlassCard>
+      )}
 
       {csvPreview && (
         <GlassCard className="p-5 mb-6 fade-up" data-testid="csv-import-preview">
@@ -602,34 +802,34 @@ export default function Financials() {
           )}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-gold">CSV import preview</p>
+              <SectionLabel>CSV import preview</SectionLabel>
               <p className="text-sm text-helm-muted mt-1">
                 {csvPreview.valid_count} ready · {csvPreview.skipped_count} skipped
                 {csvPreview.filename ? ` · ${csvPreview.filename}` : ""}. Nothing is saved until you confirm.
               </p>
             </div>
-            <button type="button" onClick={() => setCsvPreview(null)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
+            <button type="button" aria-label="Close preview" onClick={() => setCsvPreview(null)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
           </div>
           {csvPreview.valid?.length > 0 && (
-            <div className="overflow-x-auto mb-4 max-h-48 overflow-y-auto">
+            <div className="overflow-x-auto mb-4 max-h-56 overflow-y-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-helm-muted border-b border-helm-line">
-                    <th className="py-2 pr-3">Month</th><th className="py-2 pr-3">Type</th>
-                    <th className="py-2 pr-3">Name</th><th className="py-2 pr-3">Category</th>
-                    <th className="py-2 pr-3 text-right">Amount</th>
-                    <th className="py-2">Note</th>
+                    <th className="py-2 pr-3 font-medium">Month</th><th className="py-2 pr-3 font-medium">Type</th>
+                    <th className="py-2 pr-3 font-medium">Name</th><th className="py-2 pr-3 font-medium">Category</th>
+                    <th className="py-2 pr-3 font-medium text-right">Amount</th>
+                    <th className="py-2 font-medium">Note</th>
                   </tr>
                 </thead>
                 <tbody>
                   {csvPreview.valid.slice(0, 50).map((r, i) => (
-                    <tr key={i} className="border-b border-helm-fg/[0.03]" data-testid={`csv-valid-${i}`}>
-                      <td className="py-1.5 pr-3 font-mono text-helm-muted">{r.month}</td>
-                      <td className="py-1.5 pr-3 text-helm-fg">{r.type}</td>
-                      <td className="py-1.5 pr-3 text-helm-fg">{r.name || r.category}</td>
-                      <td className="py-1.5 pr-3 text-helm-muted">{r.category}</td>
-                      <td className="py-1.5 pr-3 text-right font-mono text-helm-fg">{fmt(r.amount, sym)}</td>
-                      <td className="py-1.5 text-helm-muted truncate max-w-[140px]">{r.note || "—"}</td>
+                    <tr key={i} className="border-b border-helm-line/60" data-testid={`csv-valid-${i}`}>
+                      <td className="py-2 pr-3 font-mono text-helm-muted">{r.month}</td>
+                      <td className="py-2 pr-3 text-helm-fg capitalize">{r.type}</td>
+                      <td className="py-2 pr-3 text-helm-fg">{r.name || r.category}</td>
+                      <td className="py-2 pr-3 text-helm-muted">{r.category}</td>
+                      <td className="py-2 pr-3 text-right font-mono text-helm-fg tabular-nums">{fmt(r.amount, sym)}</td>
+                      <td className="py-2 text-helm-muted truncate max-w-[140px]">{r.note || ""}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -665,468 +865,552 @@ export default function Financials() {
           </div>
         </GlassCard>
       )}
-      {canWrite && (
-        <div className="mb-6 fade-up">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-            className="hidden"
-            data-testid="bill-file-input"
-            onChange={onFilePick}
+
+      {!data.has_data ? (
+        <>
+          <EmptyState icon={Wallet} title="No financials logged yet"
+            body={
+              hasAccountingSync
+                ? `Connect and sync ${accountingLabel} under Integrations, or add a one-off entry for anything sync will not include.`
+                : "Log your revenue and expenses and Trenston computes MRR, ARR, runway and burn automatically. You can also drop a bill anywhere on this page."
+            }
+            action={canWrite ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button data-testid="empty-upload-bill-btn" onClick={() => fileInputRef.current?.click()} disabled={uploadBusy}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg font-medium text-sm px-4 py-2 hover:bg-helm-fg/5 disabled:opacity-60">
+                  <Upload className="w-4 h-4" /> {hasAccountingSync ? "Upload one-off bill" : "Upload a bill"}
+                </button>
+                <button data-testid="empty-add-entry-btn" onClick={openEntryForm}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">
+                  <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log first entry"}
+                </button>
+                <button data-testid="empty-settings-btn" onClick={openSettings}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg font-medium text-sm px-4 py-2 hover:bg-helm-fg/5">
+                  <PenLine className="w-4 h-4" /> Cash & currency
+                </button>
+              </div>
+            ) : <p className="text-sm text-helm-muted">Ask a workspace owner or finance teammate to add data.</p>}
           />
-          <input
-            ref={csvInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            data-testid="csv-file-input"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              previewCsv(f);
-            }}
-          />
-          <div
-            data-testid="bill-dropzone"
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={onDrop}
-            className={cn(
-              "rounded-xl border border-dashed px-4 py-4 sm:px-5 sm:py-5 transition-colors",
-              dragOver ? "border-helm-gold/35 bg-helm-gold/12" : "border-helm-line bg-helm-fg/[0.02]",
-              uploadBusy && "opacity-70 pointer-events-none",
-            )}
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-lg bg-helm-gold/12 border border-helm-gold/35 flex items-center justify-center shrink-0">
-                  <Upload className="w-4 h-4 text-helm-gold" />
+          {!hasAccountingSync && data.can_manage && (
+            <p className="-mt-6 mb-10 text-center text-xs text-helm-muted" data-testid="empty-connect-accounting">
+              <button type="button" onClick={() => navigate("/app/integrations")} className="inline-flex items-center gap-1 hover:text-helm-fg">
+                <Plug className="w-3 h-3" /> Or connect QuickBooks, Xero, or SAP Business One to sync automatically
+              </button>
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Where you stand: cash, runway, and this month's result */}
+          <section className="mb-10 fade-up" aria-labelledby="fin-position-heading">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <SectionLabel><span id="fin-position-heading">Where you stand</span></SectionLabel>
+              <p className="text-[11px] text-helm-muted" data-testid="fin-totals-basis">
+                Figures net of tax, in {currencyCode}
+                {data.scheduled_count > 0 && (
+                  <> · {data.scheduled_count} future-dated entr{data.scheduled_count === 1 ? "y" : "ies"} not counted until their month</>
+                )}
+              </p>
+            </div>
+
+            <GlassCard className="grid grid-cols-1 divide-y divide-helm-line md:grid-cols-3 md:divide-x md:divide-y-0">
+              <div className="p-6" data-testid="fin-Cash">
+                <div className="flex items-center justify-between gap-2">
+                  <p className={KPI_LABEL}>Cash in bank</p>
+                  {canWrite && (
+                    <button
+                      type="button"
+                      data-testid="edit-settings-btn"
+                      onClick={openSettings}
+                      className="inline-flex items-center gap-1 text-xs text-helm-muted hover:text-helm-fg"
+                    >
+                      <PenLine className="h-3.5 w-3.5" /> Edit
+                    </button>
+                  )}
                 </div>
-                <div className="min-w-0 text-left">
+                {cashMissing ? (
+                  canWrite ? <AddDataButton large onClick={openSettings} testId="fin-Cash-add" /> : <p className="mt-3 font-mono text-xl text-helm-muted">Not set</p>
+                ) : (
+                  <p className="mt-3 font-mono text-3xl text-helm-fg tabular-nums md:text-4xl">{data.cash}</p>
+                )}
+                <p className="mt-3 text-xs leading-relaxed text-helm-muted">
+                  {cashMissing
+                    ? "Add your bank balance to calculate runway."
+                    : cashZero
+                      ? `Set to ${sym}0. Update it so runway reflects your real balance.`
+                      : data.min_cash_reserve != null
+                        ? `Entered manually. Reserve floor ${fmt(data.min_cash_reserve, sym)}.`
+                        : "Entered manually. Update it whenever your balance moves."}
+                </p>
+              </div>
+
+              <div className="p-6" data-testid="fin-Runway">
+                <div className="flex items-center justify-between gap-2">
+                  <p className={KPI_LABEL}>Runway</p>
+                  {status && <StatusPill tone={status.tone}>{status.label}</StatusPill>}
+                </div>
+                {runwayMonths != null ? (
+                  <p className="mt-3 font-mono text-3xl text-helm-fg tabular-nums md:text-4xl">
+                    {runwayMonths} <span className="text-lg text-helm-muted">month{runwayMonths === 1 ? "" : "s"}</span>
+                  </p>
+                ) : data.runway_no_burn ? (
+                  <p className="mt-3 font-mono text-3xl text-helm-fg md:text-4xl">No burn</p>
+                ) : canWrite ? (
+                  <AddDataButton large onClick={cashMissing ? openSettings : openEntryForm} testId="fin-Runway-add" />
+                ) : (
+                  <p className="mt-3 font-mono text-xl text-helm-muted">Not enough data</p>
+                )}
+                {runwayMonths != null && <RunwayMeter months={runwayMonths} tone={status?.tone} />}
+                <p className="mt-3 text-xs leading-relaxed text-helm-muted">
+                  {data.runway_no_burn
+                    ? "Revenue covers expenses over the last 3 months."
+                    : cashZero && runwayMonths != null
+                      ? "Shows 0 because cash in bank is set to zero."
+                      : runwayMonths != null && avgBurn
+                      ? `Cash divided by ${fmt(avgBurn, sym)} a month, the average net burn over the last 3 months.`
+                      : cashMissing
+                        ? "Needs cash in bank and at least one month of entries."
+                        : "Appears once expenses outpace revenue."}
+                </p>
+              </div>
+
+              <div className="p-6" data-testid="fin-Net Burn">
+                <div className="flex items-center justify-between gap-2">
+                  <p className={KPI_LABEL}>{netPositive ? "Net income" : "Net burn"}</p>
+                  {latestLabel && <span className="font-mono text-[11px] text-helm-muted">{latestLabel}</span>}
+                </div>
+                {data.burn_known === false ? (
+                  canWrite ? <AddDataButton large onClick={openEntryForm} testId="fin-Net Burn-add" /> : <p className="mt-3 font-mono text-xl text-helm-muted">Not set</p>
+                ) : (
+                  <p className={cn("mt-3 font-mono text-3xl tabular-nums md:text-4xl", netPositive ? "text-helm-status-positive" : "text-helm-fg")}>
+                    {netPositive ? `+${fmt(Math.abs(burnValue), sym)}` : data.burn}
+                  </p>
+                )}
+                {latestTotals && (
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-helm-line pt-3 text-xs">
+                    <div>
+                      <dt className="text-helm-muted">Revenue</dt>
+                      <dd className="mt-0.5 font-mono text-sm text-helm-fg tabular-nums">{fmt(latestTotals.revenue, sym)}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-helm-muted">Expenses</dt>
+                      <dd className="mt-0.5 font-mono text-sm text-helm-fg tabular-nums">{fmt(latestTotals.expenses, sym)}</dd>
+                    </div>
+                  </dl>
+                )}
+              </div>
+            </GlassCard>
+
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <GlassCard className="p-5" data-testid="fin-MRR">
+                <div className="flex items-center justify-between gap-2">
+                  <p className={KPI_LABEL}>MRR</p>
+                  {!mrrMissing && <Delta value={data.mrr_delta} />}
+                </div>
+                {mrrMissing ? (
+                  canWrite ? <AddDataButton onClick={openEntryForm} testId="fin-MRR-add" /> : <p className="mt-3 font-mono text-lg text-helm-muted">Not set</p>
+                ) : (
+                  <p className="mt-3 font-mono text-2xl text-helm-fg tabular-nums">{data.mrr}</p>
+                )}
+                <p className="mt-2 text-xs text-helm-muted">
+                  {mrrMissing ? "Mark revenue as recurring to track it." : "Recurring revenue this month."}
+                </p>
+              </GlassCard>
+              <GlassCard className="p-5" data-testid="fin-ARR">
+                <p className={KPI_LABEL}>ARR</p>
+                {mrrMissing ? (
+                  canWrite ? <AddDataButton onClick={openEntryForm} testId="fin-ARR-add" /> : <p className="mt-3 font-mono text-lg text-helm-muted">Not set</p>
+                ) : (
+                  <p className="mt-3 font-mono text-2xl text-helm-fg tabular-nums">{data.arr}</p>
+                )}
+                <p className="mt-2 text-xs text-helm-muted">MRR × 12, annualised.</p>
+              </GlassCard>
+              <GlassCard className="p-5" data-testid="fin-Gross Margin">
+                <p className={KPI_LABEL}>Gross margin</p>
+                {gmMissing ? (
+                  canWrite ? <AddDataButton onClick={openSettings} testId="fin-Gross Margin-add" /> : <p className="mt-3 font-mono text-lg text-helm-muted">Not set</p>
+                ) : (
+                  <p className="mt-3 font-mono text-2xl text-helm-fg tabular-nums">{data.gross_margin}</p>
+                )}
+                <p className="mt-2 text-xs text-helm-muted">Set by you in cash and margin settings.</p>
+              </GlassCard>
+            </div>
+          </section>
+
+          {runwayLow && (
+            <GlassCard className="mb-10 border-helm-status-warning/35 p-4 fade-up" data-testid="runway-warning">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-helm-status-warning" />
                   <p className="text-sm text-helm-fg">
-                    {hasAccountingSync ? "Add a one-off not in your synced books" : "Add bills & ledger data"}
+                    {cashZero
+                      ? "Runway shows 0 months because cash in bank is set to zero."
+                      : `Runway is ${runwayMonths} month${runwayMonths === 1 ? "" : "s"} at current net burn.`}
+                    <span className="text-helm-muted">
+                      {cashZero ? " Update your balance if that is not right." : " Worth a deliberate call on spend or revenue."}
+                    </span>
                   </p>
-                  <p className="text-xs text-helm-muted mt-0.5 leading-relaxed">
-                    {hasAccountingSync
-                      ? `Financials sync from ${accountingLabel}. Use upload, CSV, or a manual entry only for reimbursements, cash payments, or other items sync will not catch.`
-                      : "Drop a PDF, PNG, or JPEG here · up to 15MB · Claude reads it and pre-fills an entry to confirm"}
-                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {cashZero && canWrite ? (
+                    <button
+                      type="button"
+                      data-testid="runway-update-cash-btn"
+                      onClick={openSettings}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-helm-line px-3 py-1.5 text-sm text-helm-fg hover:bg-helm-fg/5"
+                    >
+                      <PenLine className="h-3.5 w-3.5" /> Update cash
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        data-testid="runway-ask-btn"
+                        onClick={() => navigate("/app/ask", {
+                          state: {
+                            prefill: `Our runway is ${runwayMonths} months at ${data.burn} net burn with ${data.cash} cash. What are the most realistic ways to extend it, based on our current expenses and revenue?`,
+                          },
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-helm-line px-3 py-1.5 text-sm text-helm-fg hover:bg-helm-fg/5"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-helm-gold" /> Ask Trenston
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="runway-decision-btn"
+                        onClick={() => navigate("/app/decisions", {
+                          state: {
+                            openAdd: true,
+                            prefill: {
+                              title: `Extend runway beyond ${runwayMonths} month${runwayMonths === 1 ? "" : "s"}`,
+                              description: `Runway is ${runwayMonths} month${runwayMonths === 1 ? "" : "s"} at ${data.burn} net burn with ${data.cash} cash in bank. Decide what to change on spend or revenue.`,
+                              category: "Finance",
+                            },
+                          },
+                        })}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-warning/35 bg-helm-status-warning/12 px-3 py-1.5 text-sm text-helm-fg hover:bg-helm-status-warning/20"
+                      >
+                        Log a decision <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end shrink-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    data-testid="upload-bill-btn"
-                    disabled={uploadBusy || csvBusy}
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-gold/10 disabled:opacity-60"
-                  >
-                    <Upload className="w-4 h-4" />
-                    {uploadBusy ? "Reading bill…" : (hasAccountingSync ? "Upload one-off bill" : "Upload a bill")}
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="import-drive-btn"
-                    disabled={uploadBusy || csvBusy}
-                    onClick={importFromDrive}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-fg/5 disabled:opacity-60"
-                  >
-                    <FileText className="w-4 h-4" />
-                    From Drive
-                  </button>
+            </GlassCard>
+          )}
+
+          {/* Trends */}
+          <section className="mb-10 fade-up" aria-label="Trends">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <GlassCard className="p-6 lg:col-span-2">
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <SectionLabel>Revenue vs expenses</SectionLabel>
+                    <p className="mt-1 text-xs text-helm-muted">Monthly totals, last {data.revenue_series?.length || 0} months with entries.</p>
+                  </div>
+                  <div className="flex items-center gap-4 font-mono text-[11px] text-helm-muted" data-testid="revenue-expenses-legend">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: GOLD }} />
+                      Revenue
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: expenseStroke }} />
+                      Expenses
+                    </span>
+                  </div>
                 </div>
-                <span className="hidden sm:block w-px h-5 bg-helm-line self-center" aria-hidden />
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    data-testid="import-csv-btn"
-                    disabled={uploadBusy || csvBusy}
-                    onClick={() => csvInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-muted font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-fg/5 hover:text-helm-fg disabled:opacity-60"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    {csvBusy ? "Reading CSV…" : (hasAccountingSync ? "Import one-off CSV" : "Import CSV")}
-                  </button>
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart data={data.revenue_series} margin={{ left: -8, right: 8, top: 8 }}>
+                    <CartesianGrid stroke={gridStroke} vertical={false} />
+                    <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={52} />
+                    <Tooltip content={<ChartTooltip symbol={sym} />} />
+                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke={GOLD} strokeWidth={2} fill={GOLD} fillOpacity={0.08} />
+                    <Area type="monotone" dataKey="expenses" name="Expenses" stroke={expenseStroke} strokeWidth={1.5} fill="none" strokeDasharray="4 4" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </GlassCard>
+
+              <GlassCard className="flex flex-col p-6" data-testid="expense-mix">
+                <SectionLabel>Where money goes</SectionLabel>
+                <p className="mt-1 text-xs text-helm-muted">Share of expenses by category.</p>
+                {expenseBreakdown.length > 0 ? (
+                  <ul className="mt-5 space-y-4">
+                    {expenseBreakdown.slice(0, 6).map((e, i) => (
+                      <li key={e.name} data-testid={`expense-mix-${e.name}`}>
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <span className="truncate text-helm-fg">{e.name}</span>
+                          <span className="shrink-0 font-mono text-xs text-helm-muted tabular-nums">{e.value}%</span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-helm-fg/10">
+                          <div className="h-full rounded-full" style={{ width: `${Math.max(e.value, 2)}%`, background: swatches[Math.min(i, swatches.length - 1)] }} />
+                        </div>
+                      </li>
+                    ))}
+                    {expenseBreakdown.length > 6 && (
+                      <li className="text-xs text-helm-muted">+{expenseBreakdown.length - 6} smaller categories</li>
+                    )}
+                  </ul>
+                ) : (
+                  <p className="flex flex-1 items-center justify-center py-10 text-center text-sm text-helm-muted">Log expenses to see where money goes.</p>
+                )}
+              </GlassCard>
+            </div>
+
+            {burnSeries.length > 0 && (
+              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <GlassCard className="p-6 lg:col-span-2">
+                  <SectionLabel>Monthly net burn</SectionLabel>
+                  <p className="mt-1 mb-5 text-xs text-helm-muted">Expenses minus revenue. Bars below zero are months you made money.</p>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={burnSeries} margin={{ left: -8, right: 8 }}>
+                      <CartesianGrid stroke={gridStroke} vertical={false} />
+                      <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} />
+                      <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={52} />
+                      <Tooltip content={<ChartTooltip symbol={sym} />} cursor={{ fill: cursorFill }} />
+                      <ReferenceLine y={0} stroke={axisStroke} strokeOpacity={0.4} />
+                      <Bar dataKey="burn" name="Net burn" radius={[3, 3, 3, 3]} maxBarSize={44}>
+                        {burnSeries.map((b) => (
+                          <Cell key={b.month} fill={Number(b.burn) > 0 ? GOLD : palette.statusPositive} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </GlassCard>
+                {data.modeling_allowed ? (
+                  <GlassCard className="flex flex-col p-6" data-testid="modeling-link-card">
+                    <SectionLabel>Runway scenarios</SectionLabel>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-helm-muted">
+                      Test hires, revenue growth and a funding round against these numbers, then save and compare scenarios.
+                    </p>
+                    <Link
+                      to="/app/modeling"
+                      className="mt-5 inline-flex items-center gap-1.5 self-start rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy hover:bg-helm-gold-hover"
+                    >
+                      Open Financial Modeling <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </GlassCard>
+                ) : (
+                  <GlassCard className="p-6">
+                    <SectionLabel>Runway scenarios</SectionLabel>
+                    <p className="mt-1 mb-4 text-xs text-helm-muted">Simple multiples of your current burn.</p>
+                    {scenarios.length === 0 && (
+                      <div className="py-6 text-center" data-testid="scenarios-empty">
+                        {data.runway_no_burn ? (
+                          <p className="text-sm text-helm-muted">Revenue covers expenses on average, so there is no runway to model.</p>
+                        ) : !data.cash_entered ? (
+                          <>
+                            <p className="text-sm text-helm-muted">Add cash in bank to model runway at current, trimmed and scaled burn.</p>
+                            {canWrite && (
+                              <button type="button" onClick={openSettings} className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">
+                                Add cash in bank <ArrowRight className="h-3 w-3" />
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <p className="text-sm text-helm-muted">Scenarios appear once expenses outpace revenue.</p>
+                        )}
+                      </div>
+                    )}
+                    <div className="space-y-4">
+                      {scenarios.map((s) => (
+                        <div key={s.name} data-testid={`scenario-${s.name}`}>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-sm text-helm-fg">{s.name}</span>
+                            <span className="font-mono text-sm text-helm-fg tabular-nums">{s.runway} mo</span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-helm-muted">{s.desc}</p>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-helm-fg/10">
+                            <div className="h-full rounded-full bg-helm-gold" style={{ width: `${Math.min((Number(s.runway) || 0) / 36 * 100, 100)}%` }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {scenarios.length > 0 && (
+                      <p className="mt-4 text-xs text-helm-muted">
+                        Detailed scenarios are in <Link to="/app/modeling" className="text-helm-gold hover:text-helm-gold-hover">Financial Modeling</Link> on Growth and Business.
+                      </p>
+                    )}
+                  </GlassCard>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* Ledger */}
+          <GlassCard className="mb-10 fade-up" data-testid="ledger">
+            <div className="flex flex-col gap-3 border-b border-helm-line px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <SectionLabel>Ledger</SectionLabel>
+                <p className="mt-0.5 text-xs text-helm-muted">
+                  {entries.length} entr{entries.length === 1 ? "y" : "ies"} · {revenueCount} revenue · {entries.length - revenueCount} expense{entries.length - revenueCount === 1 ? "" : "s"}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-md border border-helm-line p-0.5" role="tablist" aria-label="Filter ledger">
+                  {[["all", "All"], ["revenue", "Revenue"], ["expense", "Expenses"]].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={ledgerFilter === key}
+                      data-testid={`ledger-filter-${key}`}
+                      onClick={() => setLedgerFilter(key)}
+                      className={cn(
+                        "rounded px-2.5 py-1 text-xs transition-colors",
+                        ledgerFilter === key ? "bg-helm-fg/10 text-helm-fg" : "text-helm-muted hover:text-helm-fg",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {canWrite && (
                   <button
                     type="button"
                     data-testid="export-sheets-btn"
                     disabled={sheetsBusy || !data.has_data}
                     onClick={exportToSheets}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-muted font-medium text-sm px-3 py-2 transition-colors hover:bg-helm-fg/5 hover:text-helm-fg disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line px-2.5 py-1.5 text-xs text-helm-muted transition-colors hover:bg-helm-fg/5 hover:text-helm-fg disabled:opacity-60"
                   >
-                    <Sheet className="w-4 h-4" />
-                    {sheetsBusy ? "Creating Sheet…" : "Export Sheets"}
+                    <Sheet className="h-3.5 w-3.5" /> {sheetsBusy ? "Creating Sheet…" : "Export to Sheets"}
                   </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {!data.has_data ? (
-        <>
-        <EmptyState icon={Wallet} title="No financials logged yet"
-          body={
-            hasAccountingSync
-              ? `Connect and sync ${accountingLabel} under Integrations, or add a one-off entry for anything sync will not include.`
-              : "Log your revenue and expenses and Trenston computes MRR, ARR, runway, and burn automatically."
-          }
-          action={canWrite ? (
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button data-testid="empty-upload-bill-btn" onClick={() => fileInputRef.current?.click()} disabled={uploadBusy}
-                className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold font-medium text-sm px-4 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
-                <Upload className="w-4 h-4" /> {hasAccountingSync ? "Upload one-off bill" : "Upload a bill"}
-              </button>
-              <button data-testid="empty-add-entry-btn" onClick={() => { setForm(emptyForm(tz, revCategory)); setShowForm(true); }}
-                className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">
-                <Plus className="w-4 h-4" /> {hasAccountingSync ? "Add one-off entry" : "Log first entry"}
-              </button>
-              <button data-testid="empty-settings-btn" onClick={openSettings}
-                className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg font-medium text-sm px-4 py-2 hover:bg-helm-fg/5">
-                <PenLine className="w-4 h-4" /> Cash & currency
-              </button>
-            </div>
-          ) : <p className="text-sm text-helm-muted">Ask a workspace owner or finance teammate to add data.</p>}
-        />
-        {!hasAccountingSync && data.can_manage && (
-          <p className="-mt-6 mb-10 text-center text-xs text-helm-muted" data-testid="empty-connect-accounting">
-            <button type="button" onClick={() => navigate("/app/integrations")} className="inline-flex items-center gap-1 hover:text-helm-fg">
-              <Plug className="w-3 h-3" /> Or connect QuickBooks, Xero, or SAP Business One to sync automatically
-            </button>
-          </p>
-        )}
-        </>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-2">
-            {headline.map((h) => {
-              const missing = h.value === "Add data";
-              return (
-                <GlassCard key={h.label} className="p-4 fade-up" data-testid={`fin-${h.label}`}>
-                  <p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{h.label}</p>
-                  {missing && canWrite ? (
-                    <button
-                      type="button"
-                      onClick={h.fill}
-                      className="mt-2 inline-flex items-center gap-1 font-mono text-lg text-helm-gold hover:text-helm-gold-hover"
-                      data-testid={`fin-${h.label}-add`}
-                    >
-                      Add data <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  ) : (
-                    <p className={cn("font-mono mt-2", missing ? "text-lg text-helm-muted" : "text-2xl text-helm-fg")}>{h.value}</p>
-                  )}
-                </GlassCard>
-              );
-            })}
-          </div>
-          <p className="text-[11px] text-helm-muted mb-6" data-testid="fin-totals-basis">
-            Figures net of tax, in {(data.currency || workspaceCurrency).toUpperCase()}
-            {data.scheduled_count > 0 && (
-              <> · {data.scheduled_count} future-dated entr{data.scheduled_count === 1 ? "y" : "ies"} not counted until their month</>
-            )}
-          </p>
-
-          {runwayLow && (
-            <GlassCard className="p-4 mb-6 fade-up border-helm-status-warning/35" data-testid="runway-warning">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-start gap-2.5 min-w-0">
-                  <AlertTriangle className="w-4 h-4 text-helm-status-warning shrink-0 mt-0.5" />
-                  <p className="text-sm text-helm-fg">
-                    Runway is {runwayMonths} month{runwayMonths === 1 ? "" : "s"} at current net burn.
-                    <span className="text-helm-muted"> Worth a deliberate call on spend or revenue.</span>
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    data-testid="runway-ask-btn"
-                    onClick={() => navigate("/app/ask", {
-                      state: {
-                        prefill: `Our runway is ${runwayMonths} months at ${data.burn} net burn with ${data.cash} cash. What are the most realistic ways to extend it, based on our current expenses and revenue?`,
-                      },
-                    })}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-1.5 hover:bg-helm-fg/5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-helm-gold" /> Ask Trenston
-                  </button>
-                  <button
-                    type="button"
-                    data-testid="runway-decision-btn"
-                    onClick={() => navigate("/app/decisions", {
-                      state: {
-                        openAdd: true,
-                        prefill: {
-                          title: `Extend runway beyond ${runwayMonths} month${runwayMonths === 1 ? "" : "s"}`,
-                          description: `Runway is ${runwayMonths} month${runwayMonths === 1 ? "" : "s"} at ${data.burn} net burn with ${data.cash} cash in bank. Decide what to change on spend or revenue.`,
-                          category: "Finance",
-                        },
-                      },
-                    })}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-status-warning/35 bg-helm-status-warning/12 text-helm-fg text-sm px-3 py-1.5 hover:bg-helm-status-warning/20"
-                  >
-                    Log a decision <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            </GlassCard>
-          )}
-
-          {finActs.length > 0 && (
-            <GlassCard className="p-4 mb-6 fade-up" data-testid="financials-activity">
-              <div className="flex items-center gap-1.5 mb-3 text-helm-gold">
-                <History className="w-3.5 h-3.5" />
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em]">Recent activity</span>
-              </div>
-              <div className="space-y-2">
-                {finActs.map((a) => (
-                  <div key={a.activity_id} className="flex items-center gap-2 text-sm" data-testid={`fin-activity-${a.activity_id}`}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-helm-gold/60 shrink-0" />
-                    <span className="text-helm-fg flex-1 truncate">{a.summary}</span>
-                    <span className="text-xs text-helm-muted font-mono shrink-0 hidden sm:inline">{a.actor_name} · {a.ago}</span>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-            <GlassCard className="p-5 lg:col-span-2 fade-up">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <SectionLabel>Revenue vs Expenses</SectionLabel>
-                <div className="flex items-center gap-4 font-mono text-[11px] text-helm-muted" data-testid="revenue-expenses-legend">
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block h-0.5 w-4 rounded-full" style={{ background: GOLD }} />
-                    Revenue
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="inline-block w-4 border-t-2 border-dashed" style={{ borderColor: palette.slate }} />
-                    Expenses
-                  </span>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={data.revenue_series} margin={{ left: -8, right: 8, top: 8 }}>
-                  <defs><linearGradient id="rev" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={GOLD} stopOpacity={0.35} /><stop offset="100%" stopColor={GOLD} stopOpacity={0} /></linearGradient></defs>
-                  <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
-                  <Tooltip content={<ChartTooltip symbol={sym} />} />
-                  <Area type="monotone" dataKey="revenue" name="Revenue" stroke={GOLD} strokeWidth={2} fill="url(#rev)" />
-                  <Area type="monotone" dataKey="expenses" name="Expenses" stroke={palette.slate} strokeWidth={1.5} fill="none" strokeDasharray="4 4" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </GlassCard>
-
-            <GlassCard className="p-5 fade-up">
-              <div className="flex items-center justify-between mb-2">
-                <SectionLabel>Expense mix</SectionLabel>
-                {canWrite && <button data-testid="edit-settings-btn" onClick={openSettings} title="Edit cash & margin" aria-label="Edit cash & margin" className="text-helm-muted hover:text-helm-gold"><PenLine className="w-3.5 h-3.5" /></button>}
-              </div>
-              {expenseBreakdown.length > 0 ? (
-                <>
-                  <ResponsiveContainer width="100%" height={170}>
-                    <PieChart><Pie data={expenseBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={44} outerRadius={72} paddingAngle={2} stroke="none">{expenseBreakdown.map((e, i) => <Cell key={e.name} fill={PIE[i % PIE.length]} />)}</Pie><Tooltip content={<PercentTooltip />} /></PieChart>
-                  </ResponsiveContainer>
-                  <div className="space-y-1 mt-1">
-                    {expenseBreakdown.map((e, i) => (
-                      <div key={e.name} className="flex items-center gap-2 text-xs"><span className="w-2 h-2 rounded-sm" style={{ background: PIE[i % PIE.length] }} /><span className="text-helm-muted flex-1">{e.name}</span><span className="font-mono text-helm-fg">{e.value}%</span></div>
-                    ))}
-                  </div>
-                </>
-              ) : <p className="text-sm text-helm-muted py-8 text-center">Log expenses to see the breakdown.</p>}
-            </GlassCard>
-          </div>
-
-          {burnSeries.length > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-              <GlassCard className="p-5 lg:col-span-2 fade-up">
-                <SectionLabel className="mb-4">Monthly Net Burn</SectionLabel>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={burnSeries} margin={{ left: -8, right: 8 }}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="month" stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} />
-                    <YAxis stroke={palette.slate} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={48} />
-                    <Tooltip content={<ChartTooltip symbol={sym} />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                    <Bar dataKey="burn" name="Net burn" fill={GOLD} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </GlassCard>
-              {data.modeling_allowed ? (
-              <GlassCard className="p-5 fade-up flex flex-col" data-testid="modeling-link-card">
-                <SectionLabel className="mb-2">Runway scenarios</SectionLabel>
-                <p className="text-sm text-helm-muted leading-relaxed flex-1">
-                  Test hires, revenue growth and a funding round against these numbers, save scenarios and compare them.
-                </p>
-                <Link
-                  to="/app/modeling"
-                  className="mt-4 inline-flex items-center gap-1.5 self-start rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy hover:bg-helm-gold-hover"
-                >
-                  Open Financial Modeling <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </GlassCard>
-              ) : (
-              <GlassCard className="p-5 fade-up">
-                <SectionLabel className="mb-4">Runway Scenarios</SectionLabel>
-                {scenarios.length === 0 && (
-                  <div className="py-6 text-center" data-testid="scenarios-empty">
-                    {data.runway_no_burn ? (
-                      <p className="text-sm text-helm-muted">Revenue covers expenses on average, so there is no runway to model.</p>
-                    ) : !data.cash_entered ? (
-                      <>
-                        <p className="text-sm text-helm-muted">Add cash in bank to model runway at current, trimmed, and scaled burn.</p>
-                        {canWrite && (
-                          <button type="button" onClick={openSettings} className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">
-                            Add cash in bank <ArrowRight className="w-3 h-3" />
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-helm-muted">Scenarios appear once expenses outpace revenue.</p>
-                    )}
-                  </div>
                 )}
-                <div className="space-y-3">
-                  {scenarios.map((s) => (
-                    <div key={s.name} className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3" data-testid={`scenario-${s.name}`}>
-                      <div className="flex items-center justify-between"><span className="text-sm text-helm-fg">{s.name}</span><span className="font-mono text-helm-gold text-sm">{s.runway} months</span></div>
-                      <p className="text-xs text-helm-muted mt-1">{s.desc}</p>
-                      <Gauge
-                        orientation="linear"
-                        value={Math.min((Number(s.runway) || 0) / 36 * 100, 100)}
-                        totalNotches={36}
-                        spacing={0}
-                        notchCornerRadius={2}
-                        linearHeight={8}
-                        minWidth={80}
-                        activeFill={GOLD}
-                        inactiveFill={CREAM}
-                        inactiveFillOpacity={0.12}
-                        className="mt-2"
-                      />
-                    </div>
-                  ))}
-                </div>
-                {scenarios.length > 0 && (
-                  <p className="mt-3 text-xs text-helm-muted">
-                    Simple multiples of your current burn. Detailed scenarios are in <Link to="/app/modeling" className="text-helm-gold hover:text-helm-gold-hover">Financial Modeling</Link> on Growth and Business.
-                  </p>
-                )}
-              </GlassCard>
-              )}
+              </div>
             </div>
-          )}
-
-          <GlassCard className="p-5 fade-up">
-            <SectionLabel className="mb-4">Ledger · {entries.length} entr{entries.length === 1 ? "y" : "ies"}</SectionLabel>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-[10px] font-mono uppercase tracking-wider text-helm-muted border-b border-helm-line">
-                    <th className="py-2 pr-4 font-medium">Month</th><th className="py-2 pr-4 font-medium">Type</th>
-                    <th className="py-2 pr-4 font-medium">Name</th><th className="py-2 pr-4 font-medium">Category</th>
-                    <th className="py-2 pr-4 font-medium text-right">Amount</th>
-                    <th className="py-2 pr-4 font-medium">Source</th><th className="py-2"></th>
+                  <tr className="text-left font-mono text-[10px] uppercase tracking-wider text-helm-muted">
+                    <th className="py-3 pl-6 pr-4 font-medium">Month</th>
+                    <th className="py-3 pr-4 font-medium">Item</th>
+                    <th className="hidden py-3 pr-4 font-medium md:table-cell">Category</th>
+                    <th className="hidden py-3 pr-4 font-medium sm:table-cell">Source</th>
+                    <th className="py-3 pr-4 text-right font-medium">Amount</th>
+                    <th className="py-3 pr-6"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {entries.map((e) => (
-                    <tr key={e.id} className={cn("border-b border-helm-fg/[0.03]", e.scheduled && "opacity-75")} data-testid={`entry-${e.id}`} data-deeplink={e.id}>
-                      <td className="py-2.5 pr-4 font-mono text-helm-muted">
-                        {e.month}
-                        {(e.scheduled || false) && (
-                          <span className="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-helm-gold/80">Upcoming</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4"><span className={cn("text-[10px] font-mono uppercase tracking-wide rounded px-1.5 py-0.5", e.type === "revenue" ? "text-helm-fg bg-helm-status-positive/12" : "text-helm-status-negative bg-helm-status-negative/12")}>{e.type}</span></td>
-                      <td className="py-2.5 pr-4 text-helm-fg">
-                        {e.name || e.category}
-                        {e.recurring && e.type === "revenue" && (
-                          <span className="ml-1.5 text-[9px] text-helm-gold/70 font-mono">MRR</span>
-                        )}
-                        {e.recurring && e.type === "expense" && (
-                          <span className="ml-1.5 text-[9px] text-helm-gold/70 font-mono">
-                            {(e.recurrence || "monthly") === "annual" ? "Annual" : "Monthly"}
+                  {visibleEntries.map((e) => {
+                    const { display, showNetHint } = entryDisplayAmount(e);
+                    const isRevenue = e.type === "revenue";
+                    const cadence = e.recurring
+                      ? (isRevenue ? "Recurring" : ((e.recurrence || "monthly") === "annual" ? "Annual" : "Monthly"))
+                      : "One-off";
+                    return (
+                      <tr
+                        key={e.id}
+                        className={cn("border-t border-helm-line/70 transition-colors hover:bg-helm-fg/[0.02]", e.scheduled && "opacity-75")}
+                        data-testid={`entry-${e.id}`}
+                        data-deeplink={e.id}
+                      >
+                        <td className="whitespace-nowrap py-3.5 pl-6 pr-4 align-top font-mono text-xs text-helm-muted">
+                          {e.month}
+                          {e.scheduled && (
+                            <span className="mt-1 block font-mono text-[9px] uppercase tracking-wide text-helm-gold">Upcoming</span>
+                          )}
+                        </td>
+                        <td className="py-3.5 pr-4 align-top">
+                          <div className="flex items-start gap-2.5">
+                            <span
+                              className={cn("mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full", isRevenue ? "bg-helm-status-positive" : "bg-helm-muted")}
+                              aria-hidden
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate text-helm-fg">{e.name || e.category}</p>
+                              <p className="mt-0.5 text-xs text-helm-muted">
+                                {isRevenue ? "Revenue" : "Expense"} · {cadence}
+                                {isRevenue && e.recurring ? " · counts to MRR" : ""}
+                              </p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="hidden py-3.5 pr-4 align-top text-xs text-helm-muted md:table-cell">{e.category}</td>
+                        <td className="hidden py-3.5 pr-4 align-top sm:table-cell">
+                          {e.source === "ai_upload" && e.source_document_id ? (
+                            <button
+                              type="button"
+                              data-testid={`entry-doc-${e.id}`}
+                              onClick={() => openDocument(e.source_document_id)}
+                              className="inline-flex items-center gap-1 text-xs text-helm-gold transition-colors hover:text-helm-gold-hover"
+                              title="View original document"
+                            >
+                              <Sparkles className="h-3 w-3" /> AI upload
+                            </button>
+                          ) : e.source === "deal" && e.source_deal_id ? (
+                            <Link
+                              to={dealHref(e.source_deal_id)}
+                              data-testid={`entry-deal-${e.id}`}
+                              className="inline-flex items-center gap-1 text-xs text-helm-gold transition-colors hover:text-helm-gold-hover"
+                              title="Open the won deal behind this entry"
+                            >
+                              Deal <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          ) : e.source === "procurement" && e.source_procurement_request_id ? (
+                            <Link
+                              to={departmentItemHref("procurement", e.source_procurement_request_id)}
+                              data-testid={`entry-procurement-${e.id}`}
+                              className="inline-flex items-center gap-1 text-xs text-helm-gold transition-colors hover:text-helm-gold-hover"
+                              title="Open the procurement request behind this entry"
+                            >
+                              Procurement <ArrowRight className="h-3 w-3" />
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-helm-muted">{sourceLabel(e.source)}</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap py-3.5 pr-4 text-right align-top">
+                          <span className={cn("font-mono tabular-nums", isRevenue ? "text-helm-status-positive" : "text-helm-fg")}>
+                            {isRevenue ? "+" : "−"}{fmt(display, sym)}
                           </span>
-                        )}
+                          {showNetHint && <span className="block text-[10px] text-helm-muted">net of tax</span>}
+                        </td>
+                        <td className="py-3 pr-6 text-right align-top">
+                          {canWrite && <CirDeleteBtn onClick={() => del(e.id)} data-testid={`del-${e.id}`} title="Delete entry" />}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {visibleEntries.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-10 text-center text-sm text-helm-muted">
+                        No {ledgerFilter === "revenue" ? "revenue" : "expense"} entries yet.
                       </td>
-                      <td className="py-2.5 pr-4">
-                        <span className="text-[10px] font-mono uppercase tracking-wide rounded px-1.5 py-0.5 text-helm-muted bg-helm-fg/5 border border-helm-line">
-                          {e.category}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pr-4 text-right font-mono text-helm-fg">
-                        {(() => {
-                          const gross = Number(e.amount) || 0;
-                          const net = e.amount_net != null ? Number(e.amount_net) : null;
-                          const home = e.amount_home != null ? Number(e.amount_home) : null;
-                          const netHome = e.amount_net_home != null ? Number(e.amount_net_home) : null;
-                          let display = gross;
-                          if (netHome != null) {
-                            display = Math.abs(netHome);
-                          } else if (net != null && home != null && gross) {
-                            display = Math.abs(home) * (Math.abs(net) / Math.abs(gross));
-                          } else if (home != null) {
-                            display = Math.abs(home);
-                          } else if (net != null) {
-                            display = Math.abs(net);
-                          } else {
-                            display = Math.abs(gross);
-                          }
-                          const showNetHint = net != null && Math.abs(net) !== Math.abs(gross);
-                          return (
-                            <>
-                              {fmt(display, sym)}
-                              {showNetHint ? (
-                                <div className="text-[10px] text-helm-mute font-sans normal-case tracking-normal">net of tax</div>
-                              ) : null}
-                            </>
-                          );
-                        })()}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        {e.source === "ai_upload" && e.source_document_id ? (
-                          <button
-                            type="button"
-                            data-testid={`entry-doc-${e.id}`}
-                            onClick={() => openDocument(e.source_document_id)}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono text-helm-gold hover:text-helm-gold-hover transition-colors"
-                            title="View original document"
-                          >
-                            <Sparkles className="w-3 h-3" /> AI upload
-                          </button>
-                        ) : e.source === "deal" && e.source_deal_id ? (
-                          <Link
-                            to={dealHref(e.source_deal_id)}
-                            data-testid={`entry-deal-${e.id}`}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono text-helm-gold hover:text-helm-gold-hover transition-colors"
-                            title="Open the won deal behind this entry"
-                          >
-                            Deal <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        ) : e.source === "procurement" && e.source_procurement_request_id ? (
-                          <Link
-                            to={departmentItemHref("procurement", e.source_procurement_request_id)}
-                            data-testid={`entry-procurement-${e.id}`}
-                            className="inline-flex items-center gap-1 text-[10px] font-mono text-helm-gold hover:text-helm-gold-hover transition-colors"
-                            title="Open the procurement request behind this entry"
-                          >
-                            Procurement <ArrowRight className="w-3 h-3" />
-                          </Link>
-                        ) : (
-                          <span className="text-[10px] font-mono text-helm-muted">{e.source}</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 text-right">{canWrite && <CirDeleteBtn onClick={() => del(e.id)} data-testid={`del-${e.id}`} title="Delete entry" />}</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>
+            {filteredEntries.length > LEDGER_PAGE && (
+              <div className="border-t border-helm-line px-6 py-3">
+                <button
+                  type="button"
+                  data-testid="ledger-toggle-all"
+                  onClick={() => setLedgerExpanded((v) => !v)}
+                  className="text-xs text-helm-muted hover:text-helm-fg"
+                >
+                  {ledgerExpanded ? "Show fewer" : `Show all ${filteredEntries.length} entries`}
+                </button>
+              </div>
+            )}
           </GlassCard>
+
+          {finActs.length > 0 && (
+            <GlassCard className="mb-6 p-6 fade-up" data-testid="financials-activity">
+              <div className="mb-4 flex items-center gap-2">
+                <History className="h-4 w-4 text-helm-muted" />
+                <SectionLabel>Recent activity</SectionLabel>
+              </div>
+              <ul className="divide-y divide-helm-line/70">
+                {finActs.map((a) => (
+                  <li key={a.activity_id} className="flex items-center gap-3 py-2.5 text-sm" data-testid={`fin-activity-${a.activity_id}`}>
+                    <span className="flex-1 truncate text-helm-fg">{a.summary}</span>
+                    <span className="hidden shrink-0 text-xs text-helm-muted sm:inline">{a.actor_name} · {a.ago}</span>
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          )}
         </>
       )}
 
