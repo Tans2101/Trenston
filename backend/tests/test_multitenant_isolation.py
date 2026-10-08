@@ -148,9 +148,13 @@ def isolation_api():
         return _empty_cursor(matched)
 
     def chat_find(query, projection=None):
+        def ok(r, k, v):
+            if isinstance(v, dict) and "$ne" in v:
+                return r.get(k) != v["$ne"]
+            return r.get(k) == v
         matched = [
             dict(r) for r in chat_rows
-            if all(r.get(k) == v for k, v in (query or {}).items())
+            if all(ok(r, k, v) for k, v in (query or {}).items())
         ]
         return _empty_cursor(matched)
 

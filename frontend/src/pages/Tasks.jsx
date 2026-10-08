@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { GripVertical, Plus, X, Sparkles } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
@@ -28,6 +28,17 @@ export default function Tasks() {
   const [busy, setBusy] = useState(false);
   const [clearingDone, setClearingDone] = useState(false);
   const hasItems = Boolean(data?.items?.length);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Open the new-task form pre-filled from another screen (e.g. an Ask Trenston answer).
+  useEffect(() => {
+    const prefill = location.state?.prefillTask;
+    if (!prefill || !data?.can_create) return;
+    setForm({ ...emptyTask(), title: String(prefill.title || "").slice(0, 200) });
+    setShowForm(true);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+  }, [location.state, location.pathname, location.search, data, navigate]);
 
   // ?task=<id> deep link — scroll to and flash the card once the board renders.
   useEffect(() => {

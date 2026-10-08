@@ -140,6 +140,19 @@ class FakeCollection:
                 break
         return res
 
+    async def update_many(self, flt, update, upsert=False):
+        """Supports $set only, applied to every matching document."""
+        res = MagicMock()
+        res.matched_count = 0
+        res.modified_count = 0
+        for d in self.docs:
+            if match_filter(d, flt or {}):
+                for k, v in ((update or {}).get("$set") or {}).items():
+                    d[k] = v
+                res.matched_count += 1
+                res.modified_count += 1
+        return res
+
     async def insert_many(self, docs):
         self.docs.extend(dict(d) for d in docs)
 

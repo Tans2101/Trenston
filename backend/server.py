@@ -13941,7 +13941,10 @@ STATIC_ASK_TRENSTON_INSTRUCTIONS = (
     "When possibly_stale_count is greater than zero, say those open records may be "
     "outdated rather than treating every count as freshly updated. "
     "data_as_of is the latest underlying sync or department update, not the time of "
-    "this answer. Prefer it when describing how current the picture is."
+    "this answer. Prefer it when describing how current the picture is. "
+    "Format for a fast read: short paragraphs, and a simple bullet or numbered list only "
+    "when listing three or more items. Use **bold** sparingly for the key number or call. "
+    "No tables and no headings."
 )
 
 # Ask Trenston output ceiling — lower than stream_text's default (1600) to cap
@@ -13957,6 +13960,20 @@ ASK_ERROR_REPLY = "I hit an error reaching my reasoning engine. Please try again
 ASK_INTERRUPTED_NOTE = "\n\n_(Response interrupted. Please ask again.)_"
 ASK_HISTORY_TURNS = 10
 ASK_HISTORY_MAX_CHARS = 12_000
+# Messages hidden by "New chat" keep this flag; they stay stored (and in exports).
+ASK_ACTIVE_FILTER = {"archived": {"$ne": True}}
+
+
+def ask_basis_labels(*, financials: bool, sections: dict) -> list[str]:
+    """Plain labels for what an Ask answer could draw on, shown under the answer.
+
+    Only lists data the asker can actually see. Company profile, people,
+    risks and open decisions are always in the snapshot.
+    """
+    labels = ["Financials"] if financials else []
+    labels += [name for name, visible in sections.items() if visible]
+    labels += ["Decisions", "Risks", "People"]
+    return labels
 
 
 def build_ask_messages(history: list[dict], current: str) -> list[dict]:
@@ -13996,7 +14013,7 @@ def build_ask_messages(history: list[dict], current: str) -> list[dict]:
 async def _ask_history(workspace_id: str, user_id: str) -> list[dict]:
     """Last ASK_HISTORY_TURNS chat messages (oldest first), excluding error replies."""
     rows = await db.chat_messages.find(
-        {"workspace_id": workspace_id, "user_id": user_id, "is_error": {"$ne": True}},
+        {"workspace_id": workspace_id, "user_id": user_id, "is_error": {"$ne": True}, **ASK_ACTIVE_FILTER},
         {"_id": 0, "role": 1, "content": 1, "created_at": 1},
     ).sort("created_at", -1).limit(ASK_HISTORY_TURNS).to_list(ASK_HISTORY_TURNS)
     rows.reverse()
@@ -14007,10 +14024,21 @@ async def _ask_history(workspace_id: str, user_id: str) -> list[dict]:
 async def ask_history(principal=Depends(get_principal)):
     # Newest 200, returned oldest-first so the chat renders chronologically.
     msgs = await db.chat_messages.find(
-        {"workspace_id": principal["workspace_id"], "user_id": principal["user_id"]}, {"_id": 0},
+        {"workspace_id": principal["workspace_id"], "user_id": principal["user_id"], **ASK_ACTIVE_FILTER},
+        {"_id": 0},
     ).sort("created_at", -1).limit(200).to_list(200)
     msgs.reverse()
     return {"messages": msgs}
+
+
+@api_router.post("/ask/new")
+async def ask_new_chat(principal=Depends(get_principal)):
+    """Start a fresh Ask thread: hide the current one from the chat and its context."""
+    res = await db.chat_messages.update_many(
+        {"workspace_id": principal["workspace_id"], "user_id": principal["user_id"], **ASK_ACTIVE_FILTER},
+        {"$set": {"archived": True, "archived_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"ok": True, "archived": res.modified_count}
 
 
 @api_router.post("/ask")
@@ -14155,7 +14183,19 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
             "Engineering & Maintenance data is not shared with this user's role.",
         )
     freshness = await helm_freshness.resolve_workspace_data_as_of(db, c)
-    context["data_as_of"] = freshness.get("data_as_of")
+    basis = ask_basis_labels(
+        financials=has_fin_access,
+        sections={
+            "Pipeline": sales_visible,
+            "Onboarding": hr_visible,
+            "Production": production_visible,
+            "Procurement": procurement_visible,
+            "Legal": legal_visible,
+            "Maintenance": maintenance_visible,
+        },
+    )
+    data_as_of = freshness.get("data_as_of")
+    context["data_as_of"] = data_as_of
     context["data_freshness_sources"] = freshness.get("sources") or {}
     # Compact JSON (no indent) — same data, fewer tokens. Static instructions are
     # prompt-cached; only the company name + snapshot vary per call.
@@ -14205,10 +14245,17 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
                 "content": collected,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "day": tz_utils.workspace_today_iso(c),
+                "basis": basis,
+                "data_as_of": data_as_of,
                 **flags,
             })
 
-    return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "X-Accel-Buffering": "no",
+        "X-Ask-Basis": ",".join(basis),
+        "X-Ask-Data-As-Of": str(data_as_of or ""),
+    })
 
 
 api_router.add_api_route("/ai/ask-helm", ask_helm, methods=["POST"])
@@ -17295,6 +17342,8 @@ app.add_middleware(
     allow_origin_regex=_cors_regex,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Ask Trenston reads these off the streamed response for its "Based on" line.
+    expose_headers=["X-Ask-Basis", "X-Ask-Data-As-Of"],
 )
 
 if _serve_static:
