@@ -377,7 +377,7 @@ export default function AskHelm() {
   const showFollowUps = !empty && !streaming && !input && messages[lastIndex]?.role === "assistant" && !messages[lastIndex]?.isError;
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-8rem)] w-full max-w-3xl flex-col lg:h-[calc(100vh-6rem)]" data-testid="ask-trenston-layout">
+    <div className="mx-auto flex h-[calc(100dvh-7.5rem)] w-full max-w-4xl flex-col md:h-[calc(100dvh-8.5rem)]" data-testid="ask-trenston-layout">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-display text-3xl font-normal tracking-tight text-helm-fg md:text-4xl">Ask Trenston</h1>
@@ -396,7 +396,7 @@ export default function AskHelm() {
         )}
       </div>
 
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto pr-1" data-testid="ask-thread">
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="ask-thread">
         {empty && (
           <div className="pt-6">
             <TrenstonMark size={40} />
@@ -424,7 +424,7 @@ export default function AskHelm() {
           </div>
         )}
 
-        <div className="space-y-6 pb-4">
+        <div className="space-y-8 pb-6 pr-3">
           {messages.map((m, i) => {
             const key = dayKey(m.createdAt);
             const prevKey = i > 0 ? dayKey(messages[i - 1].createdAt) : null;
@@ -454,7 +454,7 @@ export default function AskHelm() {
             return (
               <Fragment key={i}>
                 {divider}
-                <div className="flex items-start gap-3" data-testid={m.isError ? "msg-error" : "msg-assistant"}>
+                <div className="group flex items-start gap-3" data-testid={m.isError ? "msg-error" : "msg-assistant"}>
                   <TrenstonMark size={24} className="mt-0.5 shrink-0" />
                   <div className="min-w-0 flex-1">
                     {pending ? (
@@ -490,7 +490,7 @@ export default function AskHelm() {
                           <AnswerBody text={m.content} />
                         </div>
                         {!isLive && (
-                          <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1">
+                          <div className={`mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 transition-opacity ${i === lastIndex ? "" : "opacity-0 focus-within:opacity-100 group-hover:opacity-100"}`}>
                             <ActionButton icon={Copy} label="Copy" onClick={() => copyAnswer(m.content)} testId="ask-copy-btn" />
                             <ActionButton icon={Scale} label="Log as decision" onClick={() => logDecision(i)} testId="ask-log-decision-btn" />
                             <ActionButton icon={ListTodo} label="Create task" onClick={() => createTask(i)} testId="ask-create-task-btn" />
