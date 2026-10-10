@@ -1,4 +1,5 @@
 {
+  "trailingSlash": false,
   "build": {
     "env": {
       "REACT_APP_HELM_ORIGIN": "https://www.trenston.com",
@@ -27,6 +28,78 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=3600, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/login",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/login/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/sign-up",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/sign-up/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/app",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/app/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/payment",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/payment/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
         }
       ]
     },
@@ -97,7 +170,23 @@
       "destination": "https://helm-company-cockpit.onrender.com/api/:path*"
     },
     {
-      "source": "/((?!api/|__clerk|robots\\.txt|sitemap\\.xml|llms\\.txt|security\\.txt|\\.well-known(?:/.*)?|google[0-9a-z]+\\.html|about(?:/.*)?|features(?:/.*)?|pricing(?:/.*)?|changelog(?:/.*)?|status(?:/.*)?|integrations(?:/.*)?|help(?:/.*)?|security(?:/.*)?|privacy(?:/.*)?|terms(?:/.*)?|refunds(?:/.*)?).*)",
+      "source": "/login/:path*",
+      "destination": "/login/index.html"
+    },
+    {
+      "source": "/sign-up/:path*",
+      "destination": "/sign-up/index.html"
+    },
+    {
+      "source": "/payment/:path*",
+      "destination": "/payment/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/app/index.html"
+    },
+    {
+      "source": "/((?!api/|__clerk|robots\\.txt|sitemap\\.xml|llms\\.txt|security\\.txt|\\.well-known(?:/.*)?|google[0-9a-z]+\\.html|about(?:/.*)?|features(?:/.*)?|pricing(?:/.*)?|changelog(?:/.*)?|status(?:/.*)?|integrations(?:/.*)?|help(?:/.*)?|security(?:/.*)?|privacy(?:/.*)?|terms(?:/.*)?|refunds(?:/.*)?|login(?:/.*)?|sign-up(?:/.*)?|app(?:/.*)?|payment(?:/.*)?).*)",
       "destination": "/index.html"
     }
   ]

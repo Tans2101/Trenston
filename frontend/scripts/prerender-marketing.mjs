@@ -80,6 +80,48 @@ function stripEmptyGoogleVerification(html) {
   );
 }
 
+/** Auth / app / payment shells must not look like the homepage to crawlers. */
+const NOINDEX_SHELLS = [
+  { path: "/login", title: "Sign in · Trenston" },
+  { path: "/sign-up", title: "Create account · Trenston" },
+  { path: "/app", title: "Briefing · Trenston" },
+  { path: "/payment", title: "Checkout · Trenston" },
+];
+
+function stripJsonLdScripts(html) {
+  return html.replace(/<script\s+type=["']application\/ld\+json["'][\s\S]*?<\/script>\s*/gi, "");
+}
+
+function applyNoindexShell(html, { path, title, origin }) {
+  const url = `${origin}${path}`;
+  let out = stripEmptyGoogleVerification(html);
+  out = stripJsonLdScripts(out);
+  out = upsertTitle(out, title);
+  out = upsertMeta(out, "name", "robots", "noindex, nofollow");
+  out = upsertMeta(out, "name", "description", `${title}. Private Trenston account surface — not for search indexing.`);
+  out = upsertLink(out, "canonical", url);
+  out = upsertMeta(out, "property", "og:url", url);
+  out = upsertMeta(out, "property", "og:title", title);
+  out = upsertMeta(out, "property", "og:description", "Private Trenston account surface.");
+  out = upsertMeta(out, "name", "twitter:title", title);
+  out = upsertMeta(out, "name", "twitter:description", "Private Trenston account surface.");
+  // Drop any homepage prerender body so these URLs are not soft-duplicate marketing pages.
+  if (/<div id="root">[\s\S]*?<\/div>/i.test(out)) {
+    out = out.replace(/<div id="root">[\s\S]*?<\/div>/i, '<div id="root"></div>');
+  }
+  return out;
+}
+
+function writeNoindexShells(shell, origin) {
+  for (const { path, title } of NOINDEX_SHELLS) {
+    const html = applyNoindexShell(shell, { path, title, origin });
+    const outFile = join(buildDir, path.replace(/^\//, ""), "index.html");
+    mkdirSync(dirname(outFile), { recursive: true });
+    writeFileSync(outFile, html, "utf8");
+    console.log(`prerender-marketing: wrote noindex shell ${outFile.slice(frontendRoot.length + 1)}`);
+  }
+}
+
 function webPageJsonLd({ path, page, origin }) {
   const url = path === "/" ? `${origin}/` : `${origin}${path}`;
   return {
@@ -357,6 +399,10 @@ function main() {
   const buildLlms = join(buildDir, "llms.txt");
   copyFileSync(publicLlms, buildLlms);
   console.log(`prerender-marketing: wrote ${buildLlms.slice(frontendRoot.length + 1)}`);
+
+  // Auth / app / payment: static noindex shells (not the homepage marketing HTML).
+  // Nested SPA routes rewrite to these files via vercel.json.
+  writeNoindexShells(shell, origin);
 
   const { publicPath: publicSitemap, buildPath: buildSitemap } = syncSitemapToBuild(buildDir);
   console.log(`prerender-marketing: wrote ${publicSitemap.slice(frontendRoot.length + 1)}`);

@@ -1,12 +1,13 @@
 User-agent: *
 Allow: /
 Allow: /llms.txt
+Disallow: /app
 Disallow: /app/
 Disallow: /login
 Disallow: /login/
 Disallow: /sign-up
 Disallow: /sign-up/
-Disallow: /payment/
 Disallow: /payment
+Disallow: /payment/
 
 Sitemap: https://www.trenston.com/sitemap.xml

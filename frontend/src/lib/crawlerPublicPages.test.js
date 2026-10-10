@@ -53,9 +53,34 @@ describe("public pages show real text without JavaScript", () => {
   test("robots disallows app and auth shells; allows marketing", () => {
     const robots = readFileSync(join(frontendRoot, "public/robots.txt"), "utf8");
     expect(robots).toContain("Allow: /");
+    expect(robots).toContain("Disallow: /app");
     expect(robots).toContain("Disallow: /app/");
     expect(robots).toContain("Disallow: /login");
     expect(robots).toContain("Disallow: /sign-up");
     expect(robots).toContain("Sitemap: https://www.trenston.com/sitemap.xml");
+  });
+
+  test("prerender writes noindex shells for login, sign-up, app, and payment", () => {
+    const src = readFileSync(join(frontendRoot, "scripts/prerender-marketing.mjs"), "utf8");
+    expect(src).toContain("writeNoindexShells");
+    expect(src).toContain('path: "/login"');
+    expect(src).toContain('path: "/sign-up"');
+    expect(src).toContain('path: "/app"');
+    expect(src).toContain('path: "/payment"');
+    expect(src).toContain('noindex, nofollow');
+  });
+
+  test("vercel sends X-Robots-Tag noindex for auth and app paths", () => {
+    const vercel = JSON.parse(readFileSync(join(frontendRoot, "vercel.json"), "utf8"));
+    expect(vercel.trailingSlash).toBe(false);
+    const sources = (vercel.headers || []).map((h) => h.source);
+    for (const path of ["/login", "/sign-up", "/app", "/app/(.*)", "/payment"]) {
+      expect(sources).toContain(path);
+    }
+    const appHeader = (vercel.headers || []).find((h) => h.source === "/app/(.*)");
+    expect(appHeader.headers.some((h) => h.key === "X-Robots-Tag" && h.value.includes("noindex"))).toBe(true);
+    const rewrites = (vercel.rewrites || []).map((r) => r.destination);
+    expect(rewrites).toContain("/app/index.html");
+    expect(rewrites).toContain("/login/index.html");
   });
 });
