@@ -100,7 +100,7 @@ def test_company_patch_saves_valid_timezone():
     fake_db = MagicMock()
     fake_db.workspaces.update_one = AsyncMock()
     principal = {"workspace_id": "ws1", "user_id": "u1", "pack": "owner", "role": "owner"}
-    with patch.object(server, "db", fake_db):
+    with patch.object(server, "db", fake_db), patch.object(server, "get_ws", AsyncMock(return_value={})):
         asyncio.run(server.update_company(server.CompanySetupInput(timezone="Asia/Singapore"), principal=principal))
     update = fake_db.workspaces.update_one.await_args.args[1]["$set"]
     assert update["timezone"] == "Asia/Singapore"

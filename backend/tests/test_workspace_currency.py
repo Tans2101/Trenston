@@ -65,7 +65,11 @@ def test_company_payload_legacy_workspace_is_usd():
 def test_company_patch_sets_currency():
     fake_db = MagicMock()
     fake_db.workspaces.update_one = AsyncMock()
-    with patch.object(server, "db", fake_db), patch.object(server, "invalidate_financials_cache") as inv:
+    with (
+        patch.object(server, "db", fake_db),
+        patch.object(server, "get_ws", AsyncMock(return_value={})),
+        patch.object(server, "invalidate_financials_cache") as inv,
+    ):
         asyncio.run(server.update_company(server.CompanySetupInput(currency="PHP"), principal=OWNER))
     sets = fake_db.workspaces.update_one.await_args.args[1]["$set"]
     assert sets["financial_settings.currency"] == "php"

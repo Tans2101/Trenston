@@ -63,6 +63,10 @@ def trial_reminder_due(ws: dict | None, *, now: datetime, trial_days: int) -> bo
 
 def inactivity_nudge_due(ws: dict | None, *, now: datetime) -> bool:
     ws = ws or {}
+    # Still browsing the pre-setup demo: any "what changed" bullets would be
+    # about made-up sample data, so there is nothing real to nudge about.
+    if ws.get("demo_mode"):
+        return False
     # Founders who finished CompanySetup but bounced at the template screen
     # still have onboarding_done=False — they are exactly who a win-back
     # nudge is for. Only skip when neither setup flag is set.

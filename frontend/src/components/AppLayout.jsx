@@ -18,6 +18,8 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import CompanySetup from "@/pages/CompanySetup";
+import SetupWelcome from "@/pages/SetupWelcome";
+import DemoBanner from "@/components/DemoBanner";
 import { helmPlanLabel, helmHasFullAccess, helmIsPaidPlan } from "@/lib/helmPlan";
 import { departmentIcon } from "@/lib/departmentIcons";
 import { cn } from "@/lib/utils";
@@ -31,6 +33,8 @@ import ActionSearchBar from "@/components/kokonutui/action-search-bar";
 import SmoothTab, { SmoothTabItem } from "@/components/kokonutui/smooth-tab";
 import TrenstonMark from "@/components/HelmMark";
 import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
+
+const SKIP_WELCOME_KEY = "trenston.setup.skipWelcome";
 
 const NAV = [
   { to: "/app/me", label: "My Day", icon: Sun, id: "myday", end: true },
@@ -800,7 +804,28 @@ export default function AppLayout() {
   const isPro = helmHasFullAccess(company?.plan, billingEnforced);
   const onBilling = location.pathname.startsWith("/app/billing");
   const canBilling = canManageBilling(user);
-  const needsCompanySetup = company?.role === "owner" && company?.company_setup_done === false;
+  // Browsing the pre-setup demo: setup is still pending, but the app is open.
+  const inDemo = company?.role === "owner" && company?.demo_mode === true;
+  const needsCompanySetup = company?.role === "owner" && company?.company_setup_done === false && !inDemo;
+  // New owners pick "demo or set up" first. Skipped once they have opened the
+  // demo before, or chosen to set up (kept for the tab so a refresh stays on the form).
+  const [skippedWorkspace, setSkippedWorkspace] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(SKIP_WELCOME_KEY) || "";
+    } catch {
+      return "";
+    }
+  });
+  const skipWelcome = Boolean(company?.workspace_id) && skippedWorkspace === company.workspace_id;
+  const chooseSetup = () => {
+    const wsId = company?.workspace_id || "";
+    try {
+      window.sessionStorage.setItem(SKIP_WELCOME_KEY, wsId);
+    } catch {
+      // Falls back to in-memory state for this page load.
+    }
+    setSkippedWorkspace(wsId);
+  };
   const planLabel = helmPlanLabel(company?.plan, isPro, billingEnforced);
   // Profile subtitles: role when plan would just repeat the top-bar "Active" pill.
   const profilePlanLabel =
@@ -840,11 +865,15 @@ export default function AppLayout() {
   }
 
   if (needsCompanySetup) {
+    if (!skipWelcome && !company?.demo_seen) {
+      return <SetupWelcome onSetup={chooseSetup} />;
+    }
     return <CompanySetup company={company} />;
   }
 
   return (
     <div className="app-shell min-h-screen">
+      {inDemo && <DemoBanner />}
       {pastDue && (
         <div className="lg:pl-[240px] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
           Payment past due: <button type="button" onClick={() => window.location.href = "/app/billing"} className="underline font-medium text-helm-status-warning">update billing</button> to keep Trenston access.

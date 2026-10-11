@@ -69,6 +69,11 @@ def test_inactivity_once_per_window():
     assert retention.inactivity_nudge_due(ws, now=NOW) is False
 
 
+def test_inactivity_skipped_while_browsing_pre_setup_demo():
+    # Sample-data bullets would be about a made-up company.
+    assert retention.inactivity_nudge_due(_ws(demo_mode=True), now=NOW) is False
+
+
 def test_inactivity_can_fire_again_after_return():
     last = NOW - timedelta(days=6)
     ws = _ws(

@@ -3568,6 +3568,10 @@ async def company(principal=Depends(get_principal)):
         "role": principal["role"], "workspace_id": c["workspace_id"],
         "onboarding_done": c.get("onboarding_done", True),
         "company_setup_done": c.get("company_setup_done", True),
+        # True while the owner is browsing the pre-setup demo company.
+        "demo_mode": bool(c.get("demo_mode")),
+        # Set once they have opened the demo, so the welcome choice is not shown twice.
+        "demo_seen": bool(c.get("demo_seen")),
         "template": c.get("template", "sample"),
         # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
         "has_team": decision_engine.workspace_has_team(c),
@@ -3655,7 +3659,11 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
             raise HTTPException(status_code=400, detail="Choose a supported currency")
         updates["financial_settings.currency"] = code
     if payload.company_setup_done:
-        updates["company_setup_done"] = True
+        # Settings pages send this flag on every PATCH; inside the pre-setup demo
+        # that must not count as finishing setup.
+        current_ws = await get_ws(principal["workspace_id"])
+        if not current_ws.get("demo_mode"):
+            updates["company_setup_done"] = True
     if not updates:
         raise HTTPException(status_code=400, detail="No changes provided")
     await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": updates})
@@ -3665,7 +3673,10 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
 
 
 class TemplateInput(BaseModel):
-    template: str  # sample | clean | clear-sample
+    # sample | demo | clean | clear-sample. "demo" is sample data shown *before*
+    # company setup: the workspace stays in setup (company_setup_done False)
+    # and leaving the demo drops back into setup with a clean slate.
+    template: str
     # Required when applying sample to an already-onboarded non-empty workspace —
     # sample apply deletes financial_entries and overwrites workspace seed fields.
     confirm_destructive: bool = False
@@ -3736,26 +3747,54 @@ async def _real_data_started_at(ws_id: str, current: dict) -> Optional[str]:
     return min(candidates) if candidates else None
 
 
+def _replaceable_entries_filter(ws_id: str) -> dict:
+    """Seed + manual ledger rows. Rows written by accounting/CRM syncs are never included."""
+    return {
+        "workspace_id": ws_id,
+        "$or": [
+            {"created_by": "seed"},
+            {"source": "manual"},
+            {"source": {"$exists": False}},
+        ],
+        "source": {"$not": re.compile(_SYNCED_ENTRY_SOURCE_RE, re.IGNORECASE)},
+        "qb_txn_id": {"$in": [None, ""]},
+    }
+
+
 async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
-    """Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept)."""
+    """Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept).
+
+    Leaving the pre-setup demo is different from removing sample data later: the
+    founder has not described their company yet, so the Northwind profile is
+    discarded and they go back to company setup instead of straight to the app.
+    """
     current = await get_ws(ws_id)
     if (current.get("template") or "") != "sample":
         raise HTTPException(status_code=400, detail="This workspace is not using sample data")
+    in_demo = bool(current.get("demo_mode"))
     fresh = build_workspace(
         ws_id, current["name"], principal["user_id"], empty=True,
         currency=(current.get("financial_settings") or {}).get("currency"),
     )
     update = {k: v for k, v in fresh.items() if k not in _PRESERVE_WS_FIELDS}
-    for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
-        if key in current:
-            update[key] = current[key]
-    update["onboarding_done"] = True
-    update["company_setup_done"] = True
+    if in_demo:
+        # Fresh workspace is already onboarding_done/company_setup_done False.
+        update["demo_mode"] = False
+    else:
+        for key in _CLEAR_SAMPLE_PRESERVE_PROFILE:
+            if key in current:
+                update[key] = current[key]
+        update["onboarding_done"] = True
+        update["company_setup_done"] = True
     update["template"] = "empty"
-    real_started_at = await _real_data_started_at(ws_id, current)
+    real_started_at = None if in_demo else await _real_data_started_at(ws_id, current)
     await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
-    # Only the Northwind seed rows — manual and synced entries are real data.
-    await db.financial_entries.delete_many({"workspace_id": ws_id, "created_by": "seed"})
+    if in_demo:
+        # Everything entered inside the demo is throwaway; synced ledgers stay.
+        await db.financial_entries.delete_many(_replaceable_entries_filter(ws_id))
+    else:
+        # Only the Northwind seed rows — manual and synced entries are real data.
+        await db.financial_entries.delete_many({"workspace_id": ws_id, "created_by": "seed"})
     # Drop demo-era activity so the Telemetry heatmap starts blank, but keep
     # everything logged once real data (own entry or integration) arrived.
     activity_filter: dict = {"workspace_id": ws_id}
@@ -3769,8 +3808,14 @@ async def _clear_sample_workspace(ws_id: str, principal: dict) -> None:
 @api_router.post("/workspace/apply-template")
 async def apply_template(payload: TemplateInput, principal=Depends(require("workspace:edit"))):
     ws_id = principal["workspace_id"]
-    if payload.template == "sample":
+    if payload.template in ("sample", "demo"):
+        is_demo = payload.template == "demo"
         current = await get_ws(ws_id)
+        if is_demo and current.get("company_setup_done", True):
+            raise HTTPException(
+                status_code=400,
+                detail="The demo is only available before company setup",
+            )
         if await db.financial_entries.find_one(_synced_entry_filter(ws_id), {"_id": 1}):
             raise HTTPException(
                 status_code=400,
@@ -3797,18 +3842,18 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
                     update[key] = current[key]
                 else:
                     update.pop(key, None)
+        update["demo_mode"] = is_demo
+        if is_demo:
+            # Browse the real app on sample data, but setup is still ahead:
+            # company_setup_done stays False and onboarding is skipped so the
+            # Briefing renders. demo_seen keeps the welcome screen from
+            # returning once they leave the demo.
+            update["company_setup_done"] = False
+            update["onboarding_done"] = True
+            update["demo_seen"] = True
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": update})
         # Replace only seed + manual rows; synced ledgers are never touched.
-        await db.financial_entries.delete_many({
-            "workspace_id": ws_id,
-            "$or": [
-                {"created_by": "seed"},
-                {"source": "manual"},
-                {"source": {"$exists": False}},
-            ],
-            "source": {"$not": re.compile(_SYNCED_ENTRY_SOURCE_RE, re.IGNORECASE)},
-            "qb_txn_id": {"$in": [None, ""]},
-        })
+        await db.financial_entries.delete_many(_replaceable_entries_filter(ws_id))
         await dept_migrate.migrate_workspace_sales_finance(db, ws_id)
         finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
         samples = sample_financial_entries(ws_id)
