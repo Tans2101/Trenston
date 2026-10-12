@@ -254,11 +254,11 @@ export default function Telemetry() {
               <span className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">{k.label}</span>
               <Delta value={k.delta} tone={k.tone} />
             </div>
-            <span className={cn("font-mono text-helm-fg", k.missing ? "text-xl text-helm-muted" : "text-3xl")}>{k.value}</span>
+            <span className={cn("block font-mono text-helm-fg", k.missing ? "text-xl text-helm-muted" : "text-3xl")}>{k.value}</span>
             {missingLink ? (
               <Link
                 to={missingLink.to}
-                className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover"
+                className="mt-3 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover"
                 data-testid={`kpi-${i}-add-data`}
               >
                 {missingLink.label} <ArrowRight className="w-3 h-3" />
