@@ -703,6 +703,16 @@ export const HOW_TO_USE_STEPS = [
  */
 export const HOW_TO_USE_FAQ = [
   {
+    q: "Can I use Trenston from Claude or another AI assistant?",
+    a:
+      "Yes, on Growth and Business. In Claude, add a custom connector with the URL https://trenston-mcp.onrender.com/mcp, sign in to Trenston, and approve read-only access. The assistant can then answer questions from your briefing, decisions, tasks, your assigned work and, if you have Financials access, your financial summary. It can never change anything in Trenston.",
+  },
+  {
+    q: "Is my data safe if I connect an AI assistant?",
+    a:
+      "The connection is read-only and sees exactly what you can see in Trenston, in one workspace. Disconnect it any time in Settings under API keys, and it stops working on the next request. When you ask the assistant a question, it receives the data it read for that answer, and that provider's terms apply.",
+  },
+  {
     q: "Is there a free plan?",
     a:
       "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Gmail & Calendar). Accounting integrations (QuickBooks, Xero, SAP Business One) start on Starter.",
@@ -757,4 +767,34 @@ export const HOW_TO_USE_MODULES = [
   { nav: "Departments", path: "/app/settings", tip: "Turn on Procurement, Production, Legal, HR, and more." },
   { nav: "Team & Access", path: "/app/members", tip: "Invite people and choose what each person can open." },
   { nav: "Integrations", path: "/app/integrations", tip: "Now under Settings → Integrations. Optional connections such as Google Calendar, QuickBooks, Xero, SAP Business One, or HubSpot." },
+  { nav: "API keys & AI assistants", path: "/app/settings#api-keys", tip: "Create read-only keys, and see or disconnect AI assistants such as Claude (Growth and Business)." },
 ];
+
+
+/** "Connect an AI assistant" section of the Help guide (public /help and in-app Help). */
+export const AI_CONNECT_HELP = {
+  intro:
+    "Let Claude, or another assistant that supports MCP, read your Trenston workspace and answer questions like \"What needs my decision today?\". Available on Growth and Business.",
+  readOnly: [
+    "It can read your briefing, decisions, tasks, your assigned work and, only if you have Financials access, a financial summary.",
+    "It can never create, edit, approve, or delete anything in Trenston.",
+    "It sees exactly what you can see, in one workspace, and nothing from Gmail.",
+  ],
+  claudeSteps: [
+    { title: "Open connectors in Claude", body: "In Claude, go to Customize, then Connectors, then Add custom connector." },
+    { title: "Add Trenston", body: "Name it Trenston, paste the URL below, click Add, then Connect.", code: "https://trenston-mcp.onrender.com/mcp" },
+    { title: "Approve in Trenston", body: "Sign in if asked. Check the workspace name and what it can read, then click Allow Claude." },
+    { title: "Ask a question", body: "In a chat, turn on Trenston from the + menu under Connectors, then ask something like \"What needs my decision today?\"" },
+  ],
+  keySteps: [
+    { title: "Create a key", body: "In Trenston, go to Settings, then API keys, and click Create key. Copy it right away: it is shown only once." },
+    { title: "Claude Code", body: "Run this in your terminal, with your key in place of trn_YOURKEY:", code: "claude mcp add --transport http trenston https://trenston-mcp.onrender.com/mcp --header \"Authorization: Bearer trn_YOURKEY\"" },
+    { title: "Your own scripts", body: "Send the key as a header to the read-only API. Endpoints: me, briefing, decisions, tasks, my-work, financials.", code: "curl -H \"Authorization: Bearer trn_YOURKEY\" https://www.trenston.com/api/v1/briefing" },
+  ],
+  safety: [
+    "Treat a key like a password. Never paste it into a chat, an email, or code you share.",
+    "If a key may have been seen, revoke it in Settings and create a new one.",
+    "See and disconnect connected assistants in Settings, under API keys.",
+    "Removing someone from the workspace ends all of their keys and connections.",
+  ],
+};

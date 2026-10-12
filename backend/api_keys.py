@@ -159,6 +159,7 @@ async def mint_oauth_access_token(
         "kind": KIND_OAUTH,
         "grant_id": grant_id,
         "expires_at": expires_at.isoformat(),
+        "expire_at": expires_at + timedelta(days=1),  # TTL cleanup of spent tokens
     })
     return raw, expires_at
 

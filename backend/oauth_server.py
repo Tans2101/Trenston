@@ -35,6 +35,11 @@ CODE_TTL = timedelta(minutes=10)
 MAX_REDIRECT_URIS = 5
 CLIENT_NAME_MAX = 80
 LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
+# A rotated-out refresh token presented again within this window is treated as a
+# harmless race (two refreshes at once), not theft: refused, but the grant survives.
+REFRESH_REUSE_GRACE = timedelta(seconds=60)
+# Redirects we can vouch for. Any other app is shown as unverified on the consent screen.
+VERIFIED_REDIRECTS = {"https://claude.ai/api/mcp/auth_callback": "Claude"}
 
 CLIENTS = "oauth_clients"
 CODES = "oauth_codes"
@@ -233,6 +238,7 @@ async def validate_authorize_request(db, params: dict, *, allowed_resources: lis
         "resource": resource,
         "redirect_host": urlsplit(redirect_uri).hostname or "",
         "loopback": _is_loopback(urlsplit(redirect_uri)),
+        "verified_as": VERIFIED_REDIRECTS.get(redirect_uri),
     }
 
 
@@ -249,6 +255,7 @@ async def create_code(db, req: dict, *, user_id: str, workspace_id: str, now: Op
         "user_id": user_id,
         "workspace_id": workspace_id,
         "expires_at": (now + CODE_TTL).isoformat(),
+        "expire_at": now + CODE_TTL + timedelta(days=1),  # TTL cleanup
         "used": False,
         "created_at": now.isoformat(),
     })
@@ -334,8 +341,10 @@ async def refresh_tokens(db, form: dict, *, now: Optional[datetime] = None) -> d
     if not grant:
         reused = await db[GRANTS].find_one({"previous_refresh_hash": h, "revoked_at": None}, {"_id": 0})
         if reused:
-            # A rotated-out refresh token came back: assume it leaked and end the grant.
-            await revoke_grant(db, grant_id=reused["id"], user_id=reused["user_id"], workspace_id=reused["workspace_id"], now=now)
+            rotated = _parse_ts(reused.get("rotated_at"))
+            if rotated is None or now - rotated > REFRESH_REUSE_GRACE:
+                # A rotated-out refresh token came back later: assume it leaked and end the grant.
+                await revoke_grant(db, grant_id=reused["id"], user_id=reused["user_id"], workspace_id=reused["workspace_id"], now=now)
         raise OAuthError("invalid_grant", "Refresh token is invalid.")
     if grant.get("revoked_at"):
         raise OAuthError("invalid_grant", "This connection was disconnected in Trenston.")
@@ -344,12 +353,19 @@ async def refresh_tokens(db, form: dict, *, now: Optional[datetime] = None) -> d
     exp = _parse_ts(grant.get("refresh_expires_at"))
     if exp is None or exp <= now:
         raise OAuthError("invalid_grant", "Refresh token has expired. Connect again.")
+    member = await db.memberships.find_one(
+        {"user_id": grant["user_id"], "workspace_id": grant["workspace_id"], "status": "active"}, {"_id": 0},
+    )
+    if not member:
+        await revoke_grant(db, grant_id=grant["id"], user_id=grant["user_id"], workspace_id=grant["workspace_id"], now=now)
+        raise OAuthError("invalid_grant", "This person is no longer a member of the workspace.")
     new_refresh = secrets.token_urlsafe(48)
     res = await db[GRANTS].update_one(
         {"id": grant["id"], "refresh_hash": h, "revoked_at": None},
         {"$set": {
             "refresh_hash": _hash(new_refresh),
             "previous_refresh_hash": h,
+            "rotated_at": now.isoformat(),
             "refresh_expires_at": (now + REFRESH_TOKEN_TTL).isoformat(),
             "last_used_at": now.isoformat(),
         }},

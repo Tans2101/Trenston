@@ -3555,6 +3555,9 @@ async def remove_member(membership_id: str, principal=Depends(require_pro_perm("
     if m.get("user_id") == principal["user_id"]:
         raise HTTPException(status_code=400, detail="You cannot remove yourself")
     await db.memberships.delete_one({"membership_id": membership_id, "workspace_id": principal["workspace_id"]})
+    if m.get("user_id"):
+        # Otherwise re-inviting the person later would bring their old keys back to life.
+        await _revoke_api_access(m["user_id"], principal["workspace_id"])
     await _release_seat_reservation(principal["workspace_id"])
     await unlink_person_membership(principal["workspace_id"], membership_id)
     # People list caches has_access from memberships — drop it so roster badges update.
@@ -4038,7 +4041,7 @@ async def briefing(principal=Depends(get_principal)):
 
     async def _load_acts():
         return await db.activities.find(
-            {"workspace_id": c["workspace_id"]}, {"_id": 0},
+            _activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
         ).sort("created_at", -1).to_list(5)
 
     async def _load_updates():
@@ -4309,6 +4312,19 @@ def _insights_stale(c: dict) -> bool:
     except ValueError:
         return True
     return datetime.now(timezone.utc) - taken >= timedelta(hours=INSIGHTS_STALE_HOURS)
+
+
+# Activity rows from the Financials module carry amounts in their summary
+# ("Logged revenue · Client A $300"), so they follow the same gate as the
+# Financials page itself.
+FINANCE_ACTIVITY_MODULES = ("financials",)
+
+
+def _activity_filter(workspace_id: str, *, financials_visible: bool) -> dict:
+    flt: dict = {"workspace_id": workspace_id}
+    if not financials_visible:
+        flt["module"] = {"$nin": list(FINANCE_ACTIVITY_MODULES)}
+    return flt
 
 
 def _briefing_activity_item(a: dict) -> dict:
@@ -4778,7 +4794,8 @@ async def list_activities(
 ):
     page_limit = clamp_limit(limit)
     ws = principal["workspace_id"]
-    filt = apply_before_filter({"workspace_id": ws}, "created_at", before, id_field="activity_id")
+    base = _activity_filter(ws, financials_visible=await can_access_financials(principal))
+    filt = apply_before_filter(base, "created_at", before, id_field="activity_id")
     acts = await db.activities.find(filt, {"_id": 0}).sort([("created_at", -1), ("activity_id", -1)]).limit(page_limit).to_list(page_limit)
     for a in acts:
         a["ago"] = _rel_time(a["created_at"])
@@ -4848,7 +4865,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
 
     async def _load_acts():
         return await db.activities.find(
-            {"workspace_id": c["workspace_id"]}, {"_id": 0},
+            _activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
         ).sort("created_at", -1).to_list(5)
 
     async def _load_ops():
@@ -16373,6 +16390,10 @@ _WORKSPACE_COLLECTIONS = (
     "document_usage_periods", "seat_usage",
 )
 
+# Credentials for the public API and AI-assistant connectors. Removed with the
+# workspace or the account, and deliberately left out of data exports.
+_WORKSPACE_CREDENTIAL_COLLECTIONS = ("api_keys", "oauth_codes", "oauth_grants")
+
 # Per-provider stamp: who connected the shared workspace OAuth grant.
 # Google is per-user (user_google_tokens) — not stamped on the workspace.
 _INTEGRATION_CONNECTED_BY = {
@@ -16683,6 +16704,8 @@ async def delete_account(user=Depends(get_user)):
     await db.updates.delete_many({"user_id": uid})
     await db.private_notes.delete_many({"user_id": uid})
     await db.user_google_tokens.delete_many({"user_id": uid})
+    for coll in _WORKSPACE_CREDENTIAL_COLLECTIONS:
+        await db[coll].delete_many({"user_id": uid})
     await db.product_events.delete_many({"user_id": uid})
     # Anonymize activity rows rather than deleting the company audit trail.
     await db.activities.update_many(
@@ -16757,6 +16780,9 @@ async def _delete_workspace_data(ws_id: str):
     if department_ids:
         await db.department_members.delete_many({"department_id": {"$in": department_ids}})
     for coll in _WORKSPACE_COLLECTIONS:
+        await db[coll].delete_many({"workspace_id": ws_id})
+    # API keys, OAuth tokens and connections: deleted, never exported.
+    for coll in _WORKSPACE_CREDENTIAL_COLLECTIONS:
         await db[coll].delete_many({"workspace_id": ws_id})
     await db.user_google_tokens.delete_many({"workspace_id": ws_id})
     await db.departments.delete_many({"workspace_id": ws_id})
@@ -17415,6 +17441,16 @@ async def get_api_principal(request: Request) -> dict:
     }
 
 
+async def _revoke_api_access(user_id: str, workspace_id: str) -> None:
+    """End every API key, OAuth token and assistant connection for one person in one workspace."""
+    await helm_api_keys.revoke_all_for_user(db, user_id=user_id, workspace_id=workspace_id)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.oauth_grants.update_many(
+        {"user_id": user_id, "workspace_id": workspace_id, "revoked_at": None},
+        {"$set": {"revoked_at": now_iso}},
+    )
+
+
 @api_router.get("/v1/me")
 async def api_v1_me(principal=Depends(get_api_principal)):
     ws = await get_ws(principal["workspace_id"])
@@ -17581,6 +17617,7 @@ async def oauth_authorize_info(request: Request, principal=Depends(get_principal
         "client_name": req["client"].get("client_name"),
         "redirect_host": req["redirect_host"],
         "loopback": req["loopback"],
+        "verified_as": req.get("verified_as"),
         "workspace": {"id": ws.get("workspace_id"), "name": ws.get("name")},
         "user": {"name": principal.get("name"), "email": principal.get("email")},
         "allowed": allowed,
@@ -17599,7 +17636,7 @@ async def oauth_authorize(payload: OAuthAuthorizeInput, principal=Depends(get_pr
         return _oauth_error_response(exc)
     if payload.decision == "deny":
         return {"redirect": helm_oauth.redirect_with_params(req["redirect_uri"], {
-            "error": "access_denied", "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN,
+            "error": "access_denied", "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN.rstrip("/"),
         })}
     ws = await get_ws(principal["workspace_id"])
     if not workspace_allows(ws, helm_plans.FEATURE_API_ACCESS):
@@ -17611,7 +17648,7 @@ async def oauth_authorize(payload: OAuthAuthorizeInput, principal=Depends(get_pr
         principal, "settings", "oauth.connect", f"Connected {req['client'].get('client_name') or 'an AI assistant'} (read-only)",
     )
     return {"redirect": helm_oauth.redirect_with_params(req["redirect_uri"], {
-        "code": code, "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN,
+        "code": code, "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN.rstrip("/"),
     })}
 
 
@@ -17798,6 +17835,9 @@ async def _ensure_indexes():
         (db.oauth_grants, [("previous_refresh_hash", 1)], {}),
         (db.oauth_grants, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
         (db.oauth_register_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
+        # Expired OAuth access tokens and codes clean themselves up (personal keys have no expire_at).
+        (db.api_keys, [("expire_at", 1)], {"expireAfterSeconds": 0}),
+        (db.oauth_codes, [("expire_at", 1)], {"expireAfterSeconds": 0}),
         (db.oauth_states, [("state_hash", 1)], {"unique": True}),
         (db.oauth_states, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.ask_helm_rate_events, [("workspace_id", 1)], {}),

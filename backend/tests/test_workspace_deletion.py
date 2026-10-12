@@ -35,7 +35,10 @@ class Collection:
 
 class FakeDB:
     def __init__(self):
-        self.collections = {name: Collection() for name in server._WORKSPACE_COLLECTIONS}
+        self.collections = {
+            name: Collection()
+            for name in (*server._WORKSPACE_COLLECTIONS, *server._WORKSPACE_CREDENTIAL_COLLECTIONS)
+        }
         self.documents = Collection([{"storage_key": "ws_1/invoice.pdf"}])
         self.report_documents = Collection()
         self.legal_matters = Collection([
@@ -68,7 +71,7 @@ def test_delete_workspace_purges_r2_and_workspace_collections():
         asyncio.run(server._delete_workspace_data("ws_1"))
 
     assert set(deleted) == {"ws_1/invoice.pdf", "ws_1/contract.pdf"}
-    for name in server._WORKSPACE_COLLECTIONS:
+    for name in (*server._WORKSPACE_COLLECTIONS, *server._WORKSPACE_CREDENTIAL_COLLECTIONS):
         fake_db[name].delete_many.assert_awaited_once_with({"workspace_id": "ws_1"})
     fake_db.department_members.delete_many.assert_awaited_once_with(
         {"department_id": {"$in": ["dept_1"]}},

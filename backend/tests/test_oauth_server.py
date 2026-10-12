@@ -57,6 +57,8 @@ def auth_params(client_id, redirect=CLAUDE_CB, **over):
 
 
 def full_flow(db, redirect=CLAUDE_CB):
+    if not db.memberships.docs:
+        db.memberships.docs.append({"user_id": "u1", "workspace_id": "ws1", "role": "owner", "status": "active"})
     client = run(oauth.register_client(db, {"client_name": "Claude", "redirect_uris": [CLAUDE_CB, "http://localhost/callback"]}))
     req = run(oauth.validate_authorize_request(db, auth_params(client["client_id"], redirect), allowed_resources=[RESOURCE]))
     code = run(oauth.create_code(db, req, user_id="u1", workspace_id="ws1"))
@@ -191,10 +193,15 @@ def test_refresh_rotates_and_reuse_kills_the_connection():
     new = run(oauth.refresh_tokens(db, {"refresh_token": tok["refresh_token"], "client_id": client["client_id"]}))
     assert new["refresh_token"] != tok["refresh_token"]
     assert run(api_keys.resolve(db, new["access_token"]))
-    # Replaying the rotated-out token is treated as theft: the whole grant ends.
+    # Replayed within the grace window (two refreshes racing): refused, connection kept.
     with pytest.raises(oauth.OAuthError) as e:
         run(oauth.refresh_tokens(db, {"refresh_token": tok["refresh_token"], "client_id": client["client_id"]}))
     assert e.value.error == "invalid_grant"
+    assert run(api_keys.resolve(db, new["access_token"]))
+    # Replayed later: treated as theft, the whole grant ends.
+    later = datetime.now(timezone.utc) + timedelta(minutes=5)
+    with pytest.raises(oauth.OAuthError):
+        run(oauth.refresh_tokens(db, {"refresh_token": tok["refresh_token"], "client_id": client["client_id"]}, now=later))
     assert run(api_keys.resolve(db, new["access_token"])) is None
     with pytest.raises(oauth.OAuthError):
         run(oauth.refresh_tokens(db, {"refresh_token": new["refresh_token"], "client_id": client["client_id"]}))

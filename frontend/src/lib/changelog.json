@@ -3,6 +3,11 @@
   "entries": [
     {
       "date": "2026-10-12",
+      "title": "Tighter privacy for financial activity and AI connections",
+      "description": "Activity entries from Financials, which can include amounts such as logged revenue, now only show in the Briefing and the activity feed for people with Financials access, matching the Financials page itself. Removing someone from a workspace now ends all of their API keys and AI assistant connections for good, so re-inviting them never brings old access back. Deleting a workspace or an account also deletes its API keys and connections. The consent screen for connecting an assistant marks Claude's own sign-in as verified and labels any other app as unverified. The Help page has a new step-by-step guide to connecting an AI assistant, and the Security page explains exactly what read-only access allows."
+    },
+    {
+      "date": "2026-10-12",
       "title": "API keys, and connecting Claude and other AI assistants",
       "description": "Growth and Business workspaces can now create personal API keys in Settings, under API keys. A key lets a script or an AI assistant read your briefing, decisions, tasks, your assigned work across departments, and, if you have Financials access, a financial summary. Keys are read-only: they cannot change anything. Each key sees exactly what its owner can see in Trenston, only in that workspace, so department and Financials access rules still apply. Keys are shown once, stored only as a one-way hash, limited to 60 requests a minute, and can be revoked at any time. Removing someone from the workspace stops their keys immediately. For AI assistants that support the Model Context Protocol, the Trenston MCP server exposes the same read-only data as tools. Missing figures come back marked as not entered, never as zero. You can also connect Claude without a key: add the Trenston connector in Claude, sign in to Trenston, and approve read-only access on the consent screen. Connected assistants appear in Settings under Connected apps, where you can disconnect them at any time."
     },

@@ -283,6 +283,9 @@ async def test_remove_member_unlinks_and_invalidates_people_cache():
     mock_db.memberships.find_one = AsyncMock(return_value=membership)
     mock_db.memberships.delete_one = AsyncMock()
     mock_db.workspaces.update_one = AsyncMock()
+    # Removing a member also revokes their API keys and assistant connections.
+    mock_db.__getitem__.return_value = MagicMock(update_many=AsyncMock())
+    mock_db.oauth_grants.update_many = AsyncMock()
 
     async def persist(_q, update):
         if "people" in (update.get("$set") or {}):

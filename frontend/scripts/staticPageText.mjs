@@ -121,6 +121,7 @@ function securitySections() {
   sections.push({ heading: "Your data, your exit", parts: pairs(evalConst(src, "DATA_EXIT"), "title", "body") });
   sections.push({ heading: "Staff access", parts: evalConst(src, "STAFF_ACCESS") });
   sections.push({ heading: "Controls", parts: pairs(evalConst(src, "CONTROLS"), "title", "body") });
+  sections.push({ heading: "API keys and AI assistants", parts: pairs(evalConst(src, "AI_ACCESS"), "title", "body") });
   sections.push({ heading: "Practices", parts: evalConst(src, "PRACTICES") });
   sections.push({ heading: "Common questions", parts: pairs(evalConst(src, "QUESTIONS"), "q", "a") });
   return sections.filter((s) => s.parts.length);

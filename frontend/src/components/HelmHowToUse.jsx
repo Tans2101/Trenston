@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronDown, BookOpen, ArrowRight } from "lucide-react";
+import { ChevronDown, BookOpen, ArrowRight, Bot, Check, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard, SectionLabel } from "@/components/kit";
 import {
@@ -10,6 +10,7 @@ import {
   HOW_TO_USE_STEPS,
   HOW_TO_USE_FAQ,
   HOW_TO_USE_MODULES,
+  AI_CONNECT_HELP,
 } from "@/lib/marketingCopy";
 
 /** In-app destinations for each walkthrough step (keyed by step title). */
@@ -43,6 +44,83 @@ function FaqItem({ item, open, onToggle }) {
         <p className="pb-4 text-sm text-helm-muted leading-relaxed pr-6">{item.a}</p>
       )}
     </div>
+  );
+}
+
+function StepList({ steps, testId }) {
+  return (
+    <ol className="space-y-3" data-testid={testId}>
+      {steps.map((step, index) => (
+        <li key={step.title} className="flex gap-3">
+          <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-helm-gold/40 font-mono text-[11px] text-helm-gold">
+            {index + 1}
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-helm-fg">{step.title}</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-helm-muted">{step.body}</p>
+            {step.code && (
+              <code className="mt-2 block break-all rounded-md border border-helm-line px-3 py-2 font-mono text-xs text-helm-fg">
+                {step.code}
+              </code>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function AiConnectSection({ linked }) {
+  return (
+    <section id="ai-assistants" className="scroll-mt-24" data-testid="help-ai-assistants">
+      <SectionLabel className="mb-2">Connect an AI assistant</SectionLabel>
+      <p className="mb-4 text-sm leading-relaxed text-helm-muted">{AI_CONNECT_HELP.intro}</p>
+      <GlassCard className="mb-4 p-5">
+        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-helm-fg">
+          <ShieldCheck className="h-4 w-4 text-helm-gold" aria-hidden /> What read-only means
+        </p>
+        <ul className="space-y-2">
+          {AI_CONNECT_HELP.readOnly.map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-relaxed text-helm-muted">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+      </GlassCard>
+      <div className="grid gap-4 md:grid-cols-2">
+        <GlassCard className="p-5">
+          <p className="mb-1 flex items-center gap-2 text-sm font-medium text-helm-fg">
+            <Bot className="h-4 w-4 text-helm-gold" aria-hidden /> In Claude (recommended)
+          </p>
+          <p className="mb-4 text-xs text-helm-muted">No key needed: you approve it once in Trenston.</p>
+          <StepList steps={AI_CONNECT_HELP.claudeSteps} testId="help-ai-claude-steps" />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <p className="mb-1 text-sm font-medium text-helm-fg">With an API key</p>
+          <p className="mb-4 text-xs text-helm-muted">For Claude Code and your own scripts.</p>
+          <StepList steps={AI_CONNECT_HELP.keySteps} testId="help-ai-key-steps" />
+        </GlassCard>
+      </div>
+      <GlassCard className="mt-4 p-5">
+        <p className="mb-3 text-sm font-medium text-helm-fg">Keep it safe</p>
+        <ul className="space-y-2">
+          {AI_CONNECT_HELP.safety.map((line) => (
+            <li key={line} className="flex gap-2 text-sm leading-relaxed text-helm-muted">
+              <Check className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-xs text-helm-muted">
+          {linked ? (
+            <Link to="/app/settings#api-keys" className="text-helm-gold hover:text-helm-gold-hover">Open API keys in Settings →</Link>
+          ) : (
+            <>In the app: Settings → API keys. <Link to="/security#ai-assistants" className="underline underline-offset-2 hover:text-helm-fg">How Trenston protects this →</Link></>
+          )}
+        </p>
+      </GlassCard>
+    </section>
   );
 }
 
@@ -146,6 +224,8 @@ export default function TrenstonHowToUse({ className, inApp }) {
           ))}
         </ol>
       </section>
+
+      <AiConnectSection linked={linked} />
 
       <section>
         <SectionLabel className="mb-4">Common questions</SectionLabel>

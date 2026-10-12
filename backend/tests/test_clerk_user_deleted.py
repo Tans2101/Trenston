@@ -268,6 +268,8 @@ async def test_delete_account_calls_clerk_when_clerk_id(monkeypatch):
     mock_db.product_events.delete_many = AsyncMock()
     mock_db.activities.update_many = AsyncMock()
     mock_db.users.delete_one = AsyncMock()
+    # API keys / OAuth connections are deleted through db[collection].
+    mock_db.__getitem__.return_value = MagicMock(delete_many=AsyncMock())
     clerk_delete = AsyncMock(return_value={"ok": True})
     with patch.object(server, "db", mock_db), \
          patch.object(clerk_auth, "delete_clerk_user", clerk_delete):

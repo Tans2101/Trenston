@@ -30,6 +30,14 @@ HANDLED_ELSEWHERE = {
     "email_suppressions",  # keyed by email address, not workspace
     "join_rate_events",    # rate limiter, keyed by user/ip
     "payment_transactions",  # present in tuple but written only by billing code
+    # API keys and AI-assistant connections: deleted via _WORKSPACE_CREDENTIAL_COLLECTIONS
+    # (workspace and account deletion) and deliberately never exported.
+    "api_keys",
+    "oauth_codes",
+    "oauth_grants",
+    "oauth_clients",           # OAuth client registrations (e.g. Claude), no tenant data
+    "api_rate_buckets",        # rate limiter, keyed by API key id
+    "oauth_register_buckets",  # rate limiter, keyed by ip
 }
 
 

@@ -59,7 +59,10 @@ export default function OAuthAuthorize() {
     }
   };
 
-  const name = info?.client_name || "This app";
+  // The name is chosen by the app when it registers, so only trust it when the
+  // redirect is one we recognize (for example Claude's own callback).
+  const verified = !!info?.verified_as;
+  const name = info?.verified_as || info?.client_name || "This app";
 
   return (
     <div className="mx-auto max-w-xl px-4 py-10" data-testid="oauth-authorize-page">
@@ -81,6 +84,28 @@ export default function OAuthAuthorize() {
             <h1 className="text-xl font-medium text-helm-fg" data-testid="oauth-title">
               {name} wants to read your Trenston workspace
             </h1>
+            {verified ? (
+              <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-helm-muted" data-testid="oauth-verified">
+                <Check className="h-3.5 w-3.5 text-helm-gold" aria-hidden />
+                Verified: sign-in returns to {info.redirect_host}
+              </p>
+            ) : (
+              <p className="mt-3 flex gap-2 rounded-md border border-helm-line p-3 text-sm text-helm-fg" data-testid="oauth-unverified">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
+                {info.loopback ? (
+                  <span>
+                    An app on your own computer (for example Claude Code) is asking. Trenston can&apos;t confirm which
+                    app it is. Only continue if you started this connection yourself just now.
+                  </span>
+                ) : (
+                  <span>
+                    Unverified app. Trenston can&apos;t confirm who made it, and the name above was chosen by the app.
+                    Only continue if you set this up yourself and recognize{" "}
+                    <span className="font-mono">{info.redirect_host}</span>.
+                  </span>
+                )}
+              </p>
+            )}
             <p className="mt-2 text-sm leading-relaxed text-helm-muted">
               Signed in as <span className="text-helm-fg">{info.user?.name || info.user?.email}</span>, connecting{" "}
               <span className="text-helm-fg">{info.workspace?.name}</span>. To connect a different company, switch
@@ -110,12 +135,6 @@ export default function OAuthAuthorize() {
             <p className="mt-4 text-sm text-helm-muted">
               After you approve, you&apos;ll go back to <span className="font-mono text-helm-fg">{info.redirect_host}</span>.
             </p>
-            {info.loopback && (
-              <p className="mt-3 flex gap-2 rounded-md border border-helm-line p-3 text-sm text-helm-fg" data-testid="oauth-loopback-warning">
-                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-helm-gold" aria-hidden />
-                This app runs on your own computer. Only approve if you started this connection yourself.
-              </p>
-            )}
 
             {!info.allowed && (
               <p className="mt-4 text-sm text-helm-fg" data-testid="oauth-plan-gate">

@@ -214,12 +214,46 @@ const PRACTICES = [
   "Google Calendar and Gmail are personal: each teammate connects their own Google account and only sees their meetings and threads. Shared company OAuth (QuickBooks, Xero, HubSpot, SAP) can be used only by the teammate who connected them, or by a workspace owner. Legacy unstamped company connections are limited to owners until someone reconnects.",
   "Google is not read-only. Connecting your Google account grants Calendar read and write, Gmail snippets plus drafts, Sheets export, and Drive files you pick in Trenston. It is not a full mailbox or Drive dump.",
   "Workspaces that connected Google under the original Calendar + Gmail read grant keep that narrower access until an owner reconnects and accepts the wider consent screen.",
-  "When you connect an AI assistant with an API key, Trenston sends that assistant the data your key can read, at your request. What the assistant does with it is governed by that assistant provider's terms.",
   "Payment card details are handled by Paddle, not stored on Trenston servers.",
   "Authentication is handled by Clerk using secure session controls.",
   "Sensitive credentials and provider token responses are excluded from application logs.",
   "Uploaded documents are sent to Anthropic (and, when enabled, Google Cloud Document AI) only when an AI extract feature needs to process them.",
   "GitHub is listed as coming soon in the product catalog. It is not a live data connection today.",
+];
+
+const AI_ACCESS = [
+  {
+    title: "Read-only by design",
+    body: "The public API has read endpoints only, and every tool in the Trenston MCP connector is marked read-only. There is no way to create, edit, approve, or delete anything in Trenston through an API key or a connected assistant.",
+  },
+  {
+    title: "It sees what you see, nothing more",
+    body: "Every request runs through the same permission checks as the app: one workspace only, your departments only, and financial figures only if you have Financials access. If your access changes, the API changes with it on the next request.",
+  },
+  {
+    title: "Sign in, or use a key",
+    body: "Assistants such as Claude connect by sending you to a Trenston consent screen (OAuth 2.1 with PKCE). Scripts and tools like Claude Code can use a personal API key instead. Both are available on the Growth and Business plans.",
+  },
+  {
+    title: "Short-lived tokens, hashed keys",
+    body: "Sign-in tokens last one hour and renew with a refresh token that changes on every use; a reused old refresh token ends the connection. API keys are shown once and stored only as a one-way hash, so Trenston cannot show them to anyone again.",
+  },
+  {
+    title: "You can switch it off instantly",
+    body: "Revoke a key or disconnect an assistant in Settings, under API keys, and it stops working on the next request. Removing someone from the workspace ends all of their keys and connections for good, and deleting a workspace or account deletes them.",
+  },
+  {
+    title: "A consent screen that tells the truth",
+    body: "Before anything connects, the consent screen shows which workspace, exactly what can be read, and where the sign-in returns. Only Claude's own address is shown as verified; any other app is labeled unverified, because an app chooses its own name.",
+  },
+  {
+    title: "Limits and separation",
+    body: "Each key is limited to 60 requests a minute. API keys and assistant tokens only work on the public read-only API, never on the signed-in app, and Gmail data is never included in what assistants receive.",
+  },
+  {
+    title: "What leaves Trenston",
+    body: "When you ask a connected assistant a question, it receives the data its tools read for you, and that provider's terms then apply. Text your team wrote, such as task titles, is passed as data, and the connector tells assistants never to treat it as instructions.",
+  },
 ];
 
 const QUESTIONS = [
@@ -238,6 +272,14 @@ const QUESTIONS = [
   {
     q: "Who can see uploaded bills and legal files?",
     a: "Authorized people in your workspace. Files sit in a private bucket and are served through short-lived signed links, not public URLs.",
+  },
+  {
+    q: "Can an AI assistant change anything in our workspace?",
+    a: "No. API keys and connected assistants are read-only. They can read your briefing, decisions, tasks, your assigned work and, with Financials access, a financial summary. They cannot create, edit, approve, or delete anything.",
+  },
+  {
+    q: "How do we cut off an assistant or a key?",
+    a: "In Settings, under API keys: revoke a key or disconnect an app, and it stops working on the next request. Removing a teammate from the workspace ends all of their keys and connections permanently.",
   },
   {
     q: "Is Trenston SOC 2 or ISO 27001 certified?",
@@ -262,6 +304,7 @@ export default function Security() {
     { id: "infrastructure", label: "Infrastructure" },
     { id: "encryption", label: "Encryption" },
     { id: "third-parties", label: "Third parties" },
+    { id: "ai-assistants", label: "API keys and AI assistants" },
     { id: "retention", label: "Retention and access" },
     { id: "your-data", label: "Your data, your exit" },
     { id: "questions", label: "Common questions" },
@@ -285,7 +328,7 @@ export default function Security() {
           ))}
         </ul>
         <p className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-mk-gray-dark">
-          <span>Last updated September 19, 2026</span>
+          <span>Last updated October 12, 2026</span>
           <MkLink to="/status" className="text-white">Status</MkLink>
           <MkLink to="/changelog" className="text-white">Changelog</MkLink>
           <MkLink to="/privacy" className="text-white">Privacy</MkLink>
@@ -376,6 +419,24 @@ export default function Security() {
                 </p>
                 <p className="leading-relaxed text-mk-gray">{item.why}</p>
               </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* API keys and AI assistants */}
+      <section id="ai-assistants" className="scroll-mt-16 bg-mk-black px-6 py-24 text-white md:py-28" data-testid="security-ai-access">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            dark
+            eyebrow="API keys and AI assistants"
+            title="Connect AI, without handing it the keys."
+            intro="You can let Claude or your own tools read your Trenston workspace. Here is exactly what that allows, and what it never will."
+            action={<MkLink to="/help#ai-assistants" className="text-white">How to connect</MkLink>}
+          />
+          <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+            {AI_ACCESS.map((item, i) => (
+              <RuledItem key={item.title} dark i={i % 4} index={i + 1} title={item.title} body={item.body} />
             ))}
           </div>
         </div>
