@@ -28,6 +28,7 @@ const SignUpPage = lazyWithReload(() => import("@/pages/SignUp"));
 const About = lazyWithReload(() => import("@/pages/About"));
 const Features = lazyWithReload(() => import("@/pages/Features"));
 const Pricing = lazyWithReload(() => import("@/pages/Pricing"));
+const Compare = lazyWithReload(() => import("@/pages/Compare"));
 const Changelog = lazyWithReload(() => import("@/pages/Changelog"));
 const StatusPage = lazyWithReload(() => import("@/pages/Status"));
 const PublicIntegrations = lazyWithReload(() => import("@/pages/PublicIntegrations"));
@@ -254,6 +255,7 @@ function AppRoutes() {
         <Route path="/about" element={<About />} />
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/compare" element={<Compare />} />
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/status" element={<StatusPage />} />
         <Route path="/integrations" element={<PublicIntegrations />} />

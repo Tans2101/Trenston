@@ -379,7 +379,7 @@ function main() {
         console.error(`prerender-marketing: could not inject body for ${path}`);
         process.exit(1);
       }
-      const richPaths = ["/", "/about", "/features", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
+      const richPaths = ["/", "/about", "/features", "/compare", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
       const minLen = ["/", "/about", "/features", "/integrations", "/changelog"].includes(path) ? 800 : 1500;
       if (richPaths.includes(path) && textLength(body) < minLen) {
         console.error(`prerender-marketing: ${path} prerendered text is suspiciously short (${textLength(body)} chars)`);

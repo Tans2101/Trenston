@@ -22,12 +22,13 @@ describe("seoPages", () => {
     expect(canonicalForPath("/app/financials")).toBe("https://www.trenston.com/");
   });
 
-  test("all twelve marketing routes are defined", () => {
+  test("all thirteen marketing routes are defined", () => {
     expect(Object.keys(SEO_PAGES).sort()).toEqual(
       [
         "/",
         "/about",
         "/changelog",
+        "/compare",
         "/features",
         "/help",
         "/integrations",

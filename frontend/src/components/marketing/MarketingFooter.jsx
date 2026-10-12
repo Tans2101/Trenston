@@ -16,6 +16,7 @@ const FOOTER_LINKS = {
     { to: "/features", label: "Features" },
     { to: "/integrations", label: "Integrations" },
     { to: "/pricing", label: "Pricing" },
+    { to: "/compare", label: "How we compare" },
     { to: "/changelog", label: "Changelog" },
     { to: "/status", label: "Status" },
   ],

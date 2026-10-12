@@ -1,0 +1,85 @@
+{
+  "asOf": "October 2026",
+  "categories": [
+    {
+      "id": "spreadsheets",
+      "title": "Spreadsheets and documents",
+      "goodFor": "Total flexibility, familiar to everyone, and free or close to it.",
+      "gap": "Numbers only stay current if someone updates them, and nothing tells you what changed or what needs a decision.",
+      "trenston": "Trenston reads from the tools you connect, shows a Briefing of what changed, and puts open decisions in a ranked queue."
+    },
+    {
+      "id": "dashboards",
+      "title": "Dashboards and reporting tools",
+      "goodFor": "Pulling data from many sources into clear charts.",
+      "gap": "They usually stop at showing what happened. Deciding what to do, and handing it to someone, tends to happen somewhere else.",
+      "trenston": "Trenston adds a Decision Center that ranks open calls with a recommendation and confidence score, and lets you delegate the follow-up to an owner."
+    },
+    {
+      "id": "suites",
+      "title": "Enterprise suites and ERP systems",
+      "goodFor": "Depth, process control and scale for large organizations.",
+      "gap": "They can take significant time and budget to set up, and are often built around dedicated administrators.",
+      "trenston": "Trenston is built for the founder or CEO. Start free, explore a built-in demo company before you set anything up, and connect your accounting system, including SAP Business One, instead of replacing it."
+    },
+    {
+      "id": "chat",
+      "title": "Chat and project tools",
+      "goodFor": "Team communication and tracking tasks.",
+      "gap": "Company-wide numbers and open decisions end up spread across threads and boards.",
+      "trenston": "Trenston keeps tasks, decisions, financial figures and department work in one workspace, and can post high-severity alerts to a Slack channel."
+    }
+  ],
+  "rows": [
+    {
+      "job": "Seeing the whole company",
+      "common": "Open several tools and piece it together.",
+      "trenston": "One workspace with a Briefing, financials, pipeline, tasks and department queues."
+    },
+    {
+      "job": "Knowing what needs a decision",
+      "common": "Work it out yourself from the numbers.",
+      "trenston": "The Decision Center ranks open decisions, drafts a recommendation with a confidence score, and waits for you to confirm."
+    },
+    {
+      "job": "Handing work off",
+      "common": "Message the person and hope it gets tracked.",
+      "trenston": "Assign it to an owner in Tasks or a department. Assignees get an email when work is delegated to them."
+    },
+    {
+      "job": "Missing data",
+      "common": "Empty cells can be mistaken for zeros.",
+      "trenston": "Shows \"Add data\" instead of a made-up zero."
+    },
+    {
+      "job": "Asking questions",
+      "common": "Build a formula, filter or report.",
+      "trenston": "Ask Trenston in plain English. It answers from the data in your workspace and is instructed to say when something has not been entered."
+    },
+    {
+      "job": "Team workflows",
+      "common": "A separate tool for each team.",
+      "trenston": "Sales, Production, Procurement, Maintenance, Legal, HR and Finance, linked together. For example, a procurement request can show that it is blocking a production order."
+    },
+    {
+      "job": "Who sees what",
+      "common": "Often set up by hand, file by file.",
+      "trenston": "Role-based access. People see their own departments, and financial data is limited to people granted Financials access."
+    }
+  ],
+  "notList": [
+    "Not accounting software. Trenston reads from QuickBooks, Xero or SAP Business One. It does not replace your books.",
+    "Not a full ERP. It tracks work across departments, but it does not run payroll, inventory valuation or manufacturing planning.",
+    "Not a full CRM. It can pull deals from HubSpot into Pipeline and Telemetry.",
+    "Not legal advice. The Legal department tracks matters and deadlines. It does not advise.",
+    "Not on autopilot. Suggestions are drafts, and nothing becomes a decision until you confirm it.",
+    "Early. Trenston is a young product, and we only list what is live today. The Integrations page spells out exactly what each connection does."
+  ],
+  "betterElsewhere": [
+    "You need payroll, tax filing or full double-entry accounting. Use dedicated accounting software, and connect it to Trenston.",
+    "You need heavy custom reporting for a data team. A dedicated analytics tool will go further.",
+    "You run a large organization with complex process control. An enterprise suite is built for that.",
+    "You want one flexible blank canvas. A spreadsheet is hard to beat."
+  ],
+  "disclaimer": "This page describes general types of tools, not any specific product. Individual products differ and change over time. Statements about Trenston reflect the product as of October 2026."
+}

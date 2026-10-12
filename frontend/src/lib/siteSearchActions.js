@@ -26,6 +26,13 @@ export const SITE_SEARCH_ACTIONS = [
     keywords: ["plans", "price", "cost", "starter", "growth", "business", "free", "billing"],
   },
   {
+    id: "compare",
+    label: "How we compare",
+    to: "/compare",
+    description: "Site",
+    keywords: ["compare", "comparison", "alternatives", "versus", "vs", "spreadsheets", "dashboards"],
+  },
+  {
     id: "help",
     label: "Help",
     to: "/help",

@@ -206,6 +206,24 @@ function featuresSections() {
   return sections;
 }
 
+function compareSections() {
+  const data = JSON.parse(readFileSync(join(__dirname, "../src/lib/compareContent.json"), "utf8"));
+  return [
+    {
+      heading: "Compared with the tools you use now",
+      parts: data.categories.map(
+        (c) => `${c.title}. Good at: ${c.goodFor} Where it can fall short: ${c.gap} What Trenston does: ${c.trenston}`,
+      ),
+    },
+    {
+      heading: "Job by job",
+      parts: data.rows.map((r) => `${r.job}. Common approach: ${r.common} With Trenston: ${r.trenston}`),
+    },
+    { heading: "What Trenston is not", parts: data.notList },
+    { heading: "When another tool is the better choice", parts: [...data.betterElsewhere, data.disclaimer] },
+  ];
+}
+
 function integrationsSections() {
   const intro = marketingExport("PUBLIC_INTEGRATIONS_INTRO") || "";
   const items = marketingExport("PUBLIC_INTEGRATIONS") || [];
@@ -278,6 +296,7 @@ const LEGAL = {
 const NAV = [
   ["/features", "Features"],
   ["/pricing", "Pricing"],
+  ["/compare", "How we compare"],
   ["/integrations", "Integrations"],
   ["/security", "Security"],
   ["/privacy", "Privacy"],
@@ -306,6 +325,9 @@ export function staticBodyFor(path, page) {
   } else if (path === "/features") {
     h1 = "Trenston Features";
     sections = featuresSections();
+  } else if (path === "/compare") {
+    h1 = "How Trenston is different";
+    sections = compareSections();
   } else if (path === "/integrations") {
     h1 = "Trenston Integrations";
     sections = integrationsSections();

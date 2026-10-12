@@ -12,6 +12,7 @@ describe("quick nav site search pages", () => {
       [
         "/about",
         "/changelog",
+        "/compare",
         "/features",
         "/help",
         "/pricing",
