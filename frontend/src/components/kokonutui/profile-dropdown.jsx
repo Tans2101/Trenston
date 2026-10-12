@@ -1,10 +1,11 @@
 /**
  * @author: @kokonutui / Trenston
- * @description: Profile Dropdown — sidebar identity menu (KokonutUI, restyled)
+ * @description: Profile Dropdown — account menu in the top bar (KokonutUI, restyled).
+ * Settings lives in the sidebar, so it is deliberately not repeated here.
  * @website: https://kokonutui.com
  */
 
-import { CreditCard, HelpCircle, LogOut, Plug, Settings, ChevronUp } from "lucide-react";
+import { CreditCard, HelpCircle, LogOut, Plug, ChevronDown } from "lucide-react";
 import * as React from "react";
 import {
   DropdownMenu,
@@ -22,9 +23,10 @@ export default function ProfileDropdown({
   showBilling = false,
   onBilling,
   onIntegrations,
-  onSettings,
   onHelp,
   onLogout,
+  // Avatar-only trigger for narrow screens.
+  compact = false,
   className,
   ...props
 }) {
@@ -36,7 +38,10 @@ export default function ProfileDropdown({
         <DropdownMenuTrigger asChild>
           <button
             type="button"
-            className="inline-flex max-w-full items-center gap-2.5 rounded-full px-3 py-2 text-left transition-colors hover:bg-helm-fg/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold/40"
+            className={cn(
+              "inline-flex max-w-full items-center rounded-full text-left transition-colors hover:bg-helm-fg/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-helm-gold/40",
+              compact ? "gap-1 p-1" : "gap-2.5 px-3 py-2",
+            )}
             aria-label="Account menu"
           >
             {picture ? (
@@ -50,21 +55,23 @@ export default function ProfileDropdown({
                 {initial}
               </div>
             )}
-            <div className="min-w-0">
-              <p className="text-xs text-helm-fg truncate">{name}</p>
-              {planLabel ? (
-                <p className="text-[10px] text-helm-muted truncate font-mono uppercase tracking-wide">
-                  {planLabel}
-                </p>
-              ) : null}
-            </div>
-            <ChevronUp className="w-3.5 h-3.5 text-helm-muted shrink-0" />
+            {!compact && (
+              <div className="min-w-0">
+                <p className="text-xs text-helm-fg truncate">{name}</p>
+                {planLabel ? (
+                  <p className="text-[10px] text-helm-muted truncate font-mono uppercase tracking-wide">
+                    {planLabel}
+                  </p>
+                ) : null}
+              </div>
+            )}
+            <ChevronDown className="w-3.5 h-3.5 text-helm-muted shrink-0" />
           </button>
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
           align="end"
-          side="top"
+          side="bottom"
           sideOffset={6}
           className="w-56 rounded-md border border-helm-line bg-helm-card p-1 shadow-xl text-helm-fg"
         >
@@ -85,14 +92,6 @@ export default function ProfileDropdown({
           >
             <Plug className="h-4 w-4 text-helm-muted" />
             Integrations
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            data-testid="settings-link"
-            className="cursor-pointer gap-2 rounded-sm px-2 py-2 text-sm text-helm-fg focus:bg-helm-fg/5 focus:text-helm-fg"
-            onSelect={() => onSettings?.()}
-          >
-            <Settings className="h-4 w-4 text-helm-muted" />
-            Settings
           </DropdownMenuItem>
           <DropdownMenuItem
             data-testid="sidebar-help-link"

@@ -373,7 +373,7 @@ function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
 }
 
 function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null, enableNavShortcuts = false }) {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { data: company } = useCompanyQuery();
@@ -399,7 +399,6 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
       observer?.disconnect();
     };
   }, []);
-  const isPro = helmHasFullAccess(company?.plan, billingEnforced);
   const isPaid = helmIsPaidPlan(company?.plan, billingEnforced, subscriptionStatus);
   const mainNav = useMemo(
     () => NAV.filter((item) => navItemVisible(item, user, { modelingAllowed })),
@@ -554,24 +553,18 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
           onNavigate={onNavigate}
         />
         <SidebarThemeControl />
-        <ProfileDropdown
-          name={user?.name || "You"}
-          picture={user?.picture}
-          planLabel={(() => {
-            const plan = helmPlanLabel(company?.plan, isPro, billingEnforced);
-            // Keep "Active" only on the top-bar pill; profile shows role instead.
-            if (plan === "Active") {
-              return (user?.role || user?.pack || "Member").replace(/_/g, " ");
-            }
-            return plan;
-          })()}
-          showBilling={canBilling}
-          onBilling={() => { navigate("/app/billing"); onNavigate?.(); }}
-          onIntegrations={() => { navigate("/app/integrations"); onNavigate?.(); }}
-          onSettings={() => { navigate("/app/settings"); onNavigate?.(); }}
-          onHelp={() => { navigate("/app/help"); onNavigate?.(); }}
-          onLogout={logout}
-        />
+        <NavLink
+          to="/app/settings"
+          onClick={onNavigate}
+          {...prefetchRouteHandlers("/app/settings")}
+          data-testid="settings-link"
+          className={({ isActive }) =>
+            cn("cir-rail__link cir-rail__link--solo group relative", isActive && "cir-rail__link--active")
+          }
+        >
+          <Settings className="cir-rail__icon w-[18px] h-[18px] shrink-0" />
+          <span className="cir-rail__label truncate flex-1 text-left">Settings</span>
+        </NavLink>
       </div>
     </div>
   );
@@ -860,6 +853,22 @@ export default function AppLayout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // One account menu (profile, billing, integrations, help, log out). It lives in the
+  // top bar; Settings is the sidebar link, so it is not repeated here.
+  const profileMenu = (compact) => (
+    <ProfileDropdown
+      compact={compact}
+      name={user?.name || "You"}
+      picture={user?.picture}
+      planLabel={profilePlanLabel}
+      showBilling={canBilling}
+      onBilling={() => navigate("/app/billing")}
+      onIntegrations={() => navigate("/app/integrations")}
+      onHelp={() => navigate("/app/help")}
+      onLogout={logout}
+    />
+  );
+
   if (companyLoading && !company) {
     return <LoadingScreen label="Loading Trenston" />;
   }
@@ -908,6 +917,7 @@ export default function AppLayout() {
           >
             <Search className="w-5 h-5" />
           </button>
+          {profileMenu(true)}
           <button data-testid="mobile-menu-btn" onClick={() => setMobileOpen(true)} className="text-helm-fg p-2">
             <Menu className="w-5 h-5" />
           </button>
@@ -969,17 +979,7 @@ export default function AppLayout() {
             >
               <Bell className="w-4 h-4" />
             </button>
-            <ProfileDropdown
-              name={user?.name || "You"}
-              picture={user?.picture}
-              planLabel={profilePlanLabel}
-              showBilling={canBilling}
-              onBilling={() => navigate("/app/billing")}
-              onIntegrations={() => navigate("/app/integrations")}
-              onSettings={() => navigate("/app/settings")}
-              onHelp={() => navigate("/app/help")}
-              onLogout={logout}
-            />
+            {profileMenu(false)}
           </div>
         </div>
         <div className="w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">

@@ -597,6 +597,14 @@ html[data-theme="dark"] #root {
   opacity: 0.45;
 }
 
+/* Links outside the SmoothTab track (e.g. Settings) have no sliding indicator,
+   so the active state draws the same wash and edge bar itself. */
+.app-shell .cir-rail__link--solo.cir-rail__link--active {
+  background: rgb(var(--helm-accent) / 0.07);
+  box-shadow: inset 2px 0 0 rgb(var(--helm-accent));
+  border-radius: 4px;
+}
+
 .app-shell .cir-rail__section {
   padding: 1rem 0.875rem 0.25rem;
   font-size: 10px;
