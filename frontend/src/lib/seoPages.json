@@ -3,13 +3,13 @@
   "ogImage": "https://www.trenston.com/og-share.png",
   "pages": {
     "/": {
-      "title": "Trenston — The Operating System for Founders & CEOs",
+      "title": "Trenston",
       "description": "Briefing, decisions, financials, and department lanes in one cockpit. Built for founders and CEOs running real operations — however lean the team.",
       "ogTitle": "Trenston — Run your business. Don't chase it.",
       "ogDescription": "Briefing, decisions, financials, and department lanes in one cockpit. Built for founders and CEOs running real operations — however lean the team."
     },
     "/about": {
-      "title": "About Trenston — The Operating System for Founders & CEOs",
+      "title": "About Trenston",
       "description": "Why Trenston exists: money, decisions, people, and department work in one cockpit for founders and CEOs running real operations.",
       "ogTitle": "About Trenston",
       "ogDescription": "Trenston pulls financials, decisions, and day-to-day work into one place so founders and CEOs see what needs them — not another dashboard to chase."

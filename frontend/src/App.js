@@ -98,7 +98,7 @@ function DocumentSeo() {
     const titles = {
       "/login": "Sign in · Trenston",
       "/sign-up": "Create account · Trenston",
-      "/app": "Briefing · Trenston",
+      "/app": "Trenston",
       "/app/ask": "Ask Trenston",
       "/app/financials": "Financials · Trenston",
       "/app/billing": "Billing · Trenston",
