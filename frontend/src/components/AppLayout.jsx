@@ -432,20 +432,6 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
     return () => window.removeEventListener("keydown", onKey);
   }, [enableNavShortcuts, mainNav, navigate]);
 
-  useEffect(() => {
-    const logo = company?.logo_url;
-    if (!logo) return undefined;
-    const existing = document.querySelector("link[rel='icon'][data-company-favicon='1']");
-    const link = existing || document.createElement("link");
-    link.setAttribute("rel", "icon");
-    link.setAttribute("data-company-favicon", "1");
-    link.setAttribute("href", logo);
-    if (!existing) document.head.appendChild(link);
-    return () => {
-      link.remove();
-    };
-  }, [company?.logo_url]);
-
   const brandMark = company?.logo_url ? (
     <img
       src={company.logo_url}
