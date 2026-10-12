@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1791795080.96216,
-    "seen": 1791795297.0871422,
-    "ast_hash": "5df397255967bd25687759c0e1f0dd2a",
+    "mtime": 1791798784.5753782,
+    "seen": 1791799185.9615204,
+    "ast_hash": "8689b9219cf59c1efb1083584711dd0c",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1230,9 +1230,9 @@
     "semantic_hash": "e7dceaecbcb933280c659b9410b75db1"
   },
   "frontend/src/App.js": {
-    "mtime": 1791792078.8101947,
-    "seen": 1791795297.0875463,
-    "ast_hash": "55e878d59dcad75d3c8c4ad2f3836137",
+    "mtime": 1791798960.3533797,
+    "seen": 1791799185.9617133,
+    "ast_hash": "0c4b1ae712b06d68c5fd88adcd4e2eb8",
     "semantic_hash": ""
   },
   "frontend/src/components/AiSummaryMeta.jsx": {
@@ -1368,15 +1368,15 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ProtectedRoute.jsx": {
-    "mtime": 1791471489.7228985,
-    "seen": 1791795297.0876095,
-    "ast_hash": "39165d272dc5f63cd8b9cb93a2e0785d",
+    "mtime": 1791798960.3541744,
+    "seen": 1791799185.9617682,
+    "ast_hash": "ccfd7a8f50d8ed3e6f6b2b689b163e45",
     "semantic_hash": ""
   },
   "frontend/src/components/ProtectedRouteClerk.jsx": {
-    "mtime": 1791471489.7228985,
-    "seen": 1791795297.0876117,
-    "ast_hash": "0741e8ca517d06e3956d8a46246fddb1",
+    "mtime": 1791798960.3550851,
+    "seen": 1791799185.961769,
+    "ast_hash": "f203eb0d081ee05d1bc093c4150679f2",
     "semantic_hash": ""
   },
   "frontend/src/components/ReportsDailyDigest.jsx": {
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791795715.0669737,
-    "seen": 1791795877.8619184,
-    "ast_hash": "a6cfe57c6b1229530ac01dac6f2b0c67",
+    "mtime": 1791799123.6952631,
+    "seen": 1791799185.9619386,
+    "ast_hash": "e3e6c5f62d1b4dbf6e1cd7b1f7ebb362",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2730,9 +2730,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Security.jsx": {
-    "mtime": 1791795715.0613809,
-    "seen": 1791795877.8620098,
-    "ast_hash": "f467cafc568c9f4a420378767aa28d9b",
+    "mtime": 1791799123.69598,
+    "seen": 1791799185.9620342,
+    "ast_hash": "40e3597a6390f6e86b5cada67b8b56b2",
     "semantic_hash": ""
   },
   "frontend/src/pages/SignUp.jsx": {
@@ -2796,9 +2796,9 @@
     "semantic_hash": "fe60da8c7b68eac43cd0f7e718f1d5a9"
   },
   "frontend/vercel.json": {
-    "mtime": 1791630887.3934226,
-    "seen": 1791795297.0882893,
-    "ast_hash": "0365b3c2f2c269d5d62e2042b9b4c2cc",
+    "mtime": 1791798960.356192,
+    "seen": 1791799185.9620497,
+    "ast_hash": "69b1b38df85e2da4e74d00714125a668",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791795761.2411177,
-    "seen": 1791795877.8623607,
+    "mtime": 1791799160.0313413,
+    "seen": 1791799185.9624887,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5796,9 +5796,9 @@
     "semantic_hash": ""
   },
   "backend/api_keys.py": {
-    "mtime": 1791795031.1930742,
-    "seen": 1791795297.0869749,
-    "ast_hash": "fa866447dbee931276b0bfc7e0608822",
+    "mtime": 1791798708.0642424,
+    "seen": 1791799185.96141,
+    "ast_hash": "a333411ed6addcb71849a446144f3742",
     "semantic_hash": ""
   },
   "backend/public_api.py": {
@@ -5880,9 +5880,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ApiKeysSettings.jsx": {
-    "mtime": 1791795694.9011137,
-    "seen": 1791795877.861718,
-    "ast_hash": "106421b441d9e3d0f919c1145e39a057",
+    "mtime": 1791798975.7887774,
+    "seen": 1791799185.9617176,
+    "ast_hash": "84cc04b8436c146e62d70274ac19f3f7",
     "semantic_hash": ""
   },
   "mcp-server/tests/test_server.py": {
@@ -5898,9 +5898,9 @@
     "semantic_hash": ""
   },
   "mcp-server/trenston_mcp/__main__.py": {
-    "mtime": 1791795556.6571054,
-    "seen": 1791795877.8620262,
-    "ast_hash": "16d2f6f3d8b6ea7788c21c0f01a12ee3",
+    "mtime": 1791798882.727325,
+    "seen": 1791799185.9620557,
+    "ast_hash": "5f195897ccd1cc72b405821e0631008b",
     "semantic_hash": ""
   },
   "mcp-server/trenston_mcp/server.py": {
@@ -5910,15 +5910,51 @@
     "semantic_hash": ""
   },
   "mcp-server/README.md": {
-    "mtime": 1791795639.1171105,
-    "seen": 1791795877.8623633,
-    "ast_hash": "db8f247430f04d562cafa57632611a81",
+    "mtime": 1791799123.6963654,
+    "seen": 1791799185.9624925,
+    "ast_hash": "4b4fecc9577a5f465cedc8e9e5b26347",
     "semantic_hash": ""
   },
   "mcp-server/requirements.txt": {
     "mtime": 1791795557.3571055,
     "seen": 1791795877.862364,
     "ast_hash": "e240cc77f41b9238fdf517c792422ade",
+    "semantic_hash": ""
+  },
+  "backend/oauth_server.py": {
+    "mtime": 1791798754.5913174,
+    "seen": 1791799185.9614725,
+    "ast_hash": "87447a54509b40fb8cae442e43b39cb7",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_oauth_server.py": {
+    "mtime": 1791798848.1183434,
+    "seen": 1791799185.9616306,
+    "ast_hash": "79a96ec359c2cd0e234673e3d5d13d9b",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/oauthReturn.js": {
+    "mtime": 1791798930.7153277,
+    "seen": 1791799185.961985,
+    "ast_hash": "11a00006f653247481ea10d220d91d96",
+    "semantic_hash": ""
+  },
+  "frontend/src/pages/OAuthAuthorize.jsx": {
+    "mtime": 1791798947.811329,
+    "seen": 1791799185.9620237,
+    "ast_hash": "a49646f27a7c2df718d79db180461056",
+    "semantic_hash": ""
+  },
+  "mcp-server/tests/test_http_gate.py": {
+    "mtime": 1791798911.4078288,
+    "seen": 1791799185.9620514,
+    "ast_hash": "838852aed4676c04cb5179cd608a7af6",
+    "semantic_hash": ""
+  },
+  "mcp-server/trenston_mcp/http_app.py": {
+    "mtime": 1791798873.7313244,
+    "seen": 1791799185.9620569,
+    "ast_hash": "ff6f4bb81756fbdd71791174f3cf4277",
     "semantic_hash": ""
   }
 }

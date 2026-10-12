@@ -79,8 +79,17 @@ def public_view(doc: dict) -> dict:
     }
 
 
+KIND_PERSONAL = "personal"
+KIND_OAUTH = "oauth"
+
+
 def _active_filter(user_id: str, workspace_id: str) -> dict:
-    return {"user_id": user_id, "workspace_id": workspace_id, "revoked_at": None}
+    """Active personal keys. OAuth access tokens live in the same collection
+    (so /api/v1 resolves both the same way) but are listed as connected apps."""
+    return {
+        "user_id": user_id, "workspace_id": workspace_id, "revoked_at": None,
+        "kind": {"$ne": KIND_OAUTH},
+    }
 
 
 async def list_keys(db, *, user_id: str, workspace_id: str) -> list[dict]:
@@ -116,9 +125,50 @@ async def create_key(
         "created_at": now.isoformat(),
         "last_used_at": None,
         "revoked_at": None,
+        "kind": KIND_PERSONAL,
     }
     await db[COLLECTION].insert_one(dict(doc))
     return raw, public_view(doc)
+
+
+async def mint_oauth_access_token(
+    db,
+    *,
+    user_id: str,
+    workspace_id: str,
+    grant_id: str,
+    client_name: str,
+    ttl: timedelta,
+    now: Optional[datetime] = None,
+) -> tuple[str, datetime]:
+    """Short-lived token issued to an OAuth client (e.g. Claude). Same shape as a
+    personal key so /api/v1 needs no second code path, plus an expiry and grant link."""
+    now = now or datetime.now(timezone.utc)
+    raw = generate_key()
+    expires_at = now + ttl
+    await db[COLLECTION].insert_one({
+        "id": f"tok_{uuid.uuid4().hex[:16]}",
+        "user_id": user_id,
+        "workspace_id": workspace_id,
+        "name": normalize_name(client_name),
+        "key_hash": hash_key(raw),
+        "hint": key_hint(raw),
+        "created_at": now.isoformat(),
+        "last_used_at": None,
+        "revoked_at": None,
+        "kind": KIND_OAUTH,
+        "grant_id": grant_id,
+        "expires_at": expires_at.isoformat(),
+    })
+    return raw, expires_at
+
+
+async def revoke_grant_tokens(db, grant_id: str, now: Optional[datetime] = None) -> None:
+    now = now or datetime.now(timezone.utc)
+    await db[COLLECTION].update_many(
+        {"grant_id": grant_id, "revoked_at": None},
+        {"$set": {"revoked_at": now.isoformat()}},
+    )
 
 
 async def revoke_key(
@@ -147,14 +197,19 @@ async def revoke_all_for_user(db, *, user_id: str, workspace_id: Optional[str] =
     )
 
 
-async def resolve(db, raw_key: str) -> Optional[dict]:
-    """Return the active key document for a raw key, or None."""
+async def resolve(db, raw_key: str, now: Optional[datetime] = None) -> Optional[dict]:
+    """Return the active (not revoked, not expired) key document for a raw key, or None."""
     if not looks_like_api_key(raw_key):
         return None
     doc = await db[COLLECTION].find_one(
         {"key_hash": hash_key(raw_key.strip()), "revoked_at": None}, {"_id": 0},
     )
-    return doc or None
+    if not doc:
+        return None
+    expires = _parse_ts(doc.get("expires_at"))
+    if expires is not None and expires <= (now or datetime.now(timezone.utc)):
+        return None
+    return doc
 
 
 def _parse_ts(value) -> Optional[datetime]:

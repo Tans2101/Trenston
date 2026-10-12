@@ -1,7 +1,7 @@
 """Run the Trenston MCP server.
 
     python -m trenston_mcp                 # stdio, key from TRENSTON_API_KEY
-    python -m trenston_mcp --http          # streamable HTTP on $PORT (default 8000), key per request
+    python -m trenston_mcp --http          # streamable HTTP on $PORT (default 8000), OAuth or key per request
 """
 from __future__ import annotations
 
@@ -10,13 +10,40 @@ import os
 
 from mcp.server.transport_security import TransportSecuritySettings
 
+from trenston_mcp.http_app import OAuthGate
 from trenston_mcp.server import build_server
 
+DEFAULT_PUBLIC_URL = "https://trenston-mcp.onrender.com/mcp"
+DEFAULT_ISSUER = "https://www.trenston.com"
 
-def _allowed_hosts(port: int) -> list[str]:
+
+def allowed_hosts(port: int) -> list[str]:
     raw = os.environ.get("MCP_ALLOWED_HOSTS", "")
     hosts = [h.strip() for h in raw.split(",") if h.strip()]
     return hosts or ["localhost", "127.0.0.1", f"localhost:{port}", f"127.0.0.1:{port}"]
+
+
+def build_http_app(*, port: int, checker=None):
+    """The hosted ASGI app: OAuth discovery + 401 gate in front of the MCP endpoint."""
+    server = build_server(http_mode=True)
+    mcp_app = server.streamable_http_app(
+        streamable_http_path="/mcp",
+        stateless_http=True,
+        json_response=True,
+        # Host header allow-list (DNS rebinding protection). Set MCP_ALLOWED_HOSTS to the
+        # public hostname in production, e.g. "trenston-mcp.onrender.com".
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=allowed_hosts(port),
+            allowed_origins=[],
+        ),
+    )
+    return OAuthGate(
+        mcp_app,
+        public_url=os.environ.get("MCP_PUBLIC_URL", DEFAULT_PUBLIC_URL),
+        issuer=os.environ.get("TRENSTON_ISSUER", DEFAULT_ISSUER),
+        checker=checker,
+    )
 
 
 def main() -> None:
@@ -30,22 +57,9 @@ def main() -> None:
         build_server(http_mode=False).run("stdio")
         return
 
-    server = build_server(http_mode=True)
-    server.run(
-        "streamable-http",
-        host=args.host,
-        port=args.port,
-        streamable_http_path="/mcp",
-        stateless_http=True,
-        json_response=True,
-        # Host header allow-list (DNS rebinding protection). Set MCP_ALLOWED_HOSTS to the
-        # public hostname in production, e.g. "mcp.trenston.com".
-        transport_security=TransportSecuritySettings(
-            enable_dns_rebinding_protection=True,
-            allowed_hosts=_allowed_hosts(args.port),
-            allowed_origins=[],
-        ),
-    )
+    import uvicorn
+
+    uvicorn.run(build_http_app(port=args.port), host=args.host, port=args.port, log_level="info")
 
 
 if __name__ == "__main__":

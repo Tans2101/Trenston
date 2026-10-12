@@ -66,6 +66,7 @@ import department_migrate as dept_migrate
 import work_items as helm_work_items
 import api_keys as helm_api_keys
 import public_api as helm_public_api
+import oauth_server as helm_oauth
 import data_freshness as helm_freshness
 import procurement_metrics as proc_metrics
 import production_daily_logs as prod_daily
@@ -17504,6 +17505,154 @@ async def api_keys_revoke(key_id: str, principal=Depends(get_principal)):
     return {"ok": True}
 
 
+# ------------------------- OAuth sign-in for AI-assistant connectors (MCP) -------------------------
+# Claude (and other MCP clients) discover this server through the MCP server's
+# protected-resource metadata, register themselves (DCR), send the person to the
+# consent page at /app/oauth/authorize, and exchange the code (PKCE S256) here.
+# Issued access tokens are read-only API tokens resolved by get_api_principal.
+
+MCP_RESOURCE_URLS = [
+    u.strip() for u in os.environ.get(
+        "MCP_RESOURCE_URLS", "https://trenston-mcp.onrender.com/mcp",
+    ).split(",") if u.strip()
+]
+OAUTH_REGISTER_HOURLY_LIMIT = int(os.environ.get("OAUTH_REGISTER_HOURLY_LIMIT", "30"))
+_OAUTH_NO_STORE = {"Cache-Control": "no-store", "Pragma": "no-cache"}
+
+
+def _oauth_error_response(exc: "helm_oauth.OAuthError") -> JSONResponse:
+    return JSONResponse(status_code=exc.status, content=exc.body(), headers=_OAUTH_NO_STORE)
+
+
+@api_router.get("/oauth/metadata")
+async def oauth_metadata():
+    """RFC 8414 metadata. Public URL: /.well-known/oauth-authorization-server (Vercel rewrite)."""
+    return helm_oauth.authorization_server_metadata(TRENSTON_CANONICAL_ORIGIN)
+
+
+@api_router.post("/oauth/register")
+async def oauth_register(request: Request):
+    allowed = await doc_rate_limit._acquire_window_bucket(
+        db.oauth_register_buckets,
+        base_key=f"oauth_register:{_client_ip(request)}",
+        limit=OAUTH_REGISTER_HOURLY_LIMIT,
+        window_seconds=3600,
+    )
+    if not allowed:
+        return JSONResponse(
+            status_code=429,
+            content={"error": "slow_down", "error_description": "Too many registrations. Try again later."},
+        )
+    try:
+        body = await request.json()
+    except Exception:
+        return _oauth_error_response(helm_oauth.OAuthError("invalid_client_metadata", "Body must be JSON."))
+    try:
+        client = await helm_oauth.register_client(db, body)
+    except helm_oauth.OAuthError as exc:
+        return _oauth_error_response(exc)
+    return JSONResponse(status_code=201, content=client, headers=_OAUTH_NO_STORE)
+
+
+class OAuthAuthorizeInput(BaseModel):
+    client_id: str = ""
+    redirect_uri: str = ""
+    response_type: str = ""
+    code_challenge: str = ""
+    code_challenge_method: str = ""
+    state: Optional[str] = None
+    scope: Optional[str] = None
+    resource: Optional[str] = None
+    decision: Literal["approve", "deny"] = "approve"
+
+
+@api_router.get("/oauth/authorize/info")
+async def oauth_authorize_info(request: Request, principal=Depends(get_principal)):
+    """What the consent page shows. Validates the request before anything is displayed."""
+    try:
+        req = await helm_oauth.validate_authorize_request(
+            db, dict(request.query_params), allowed_resources=MCP_RESOURCE_URLS,
+        )
+    except helm_oauth.OAuthError as exc:
+        return _oauth_error_response(exc)
+    ws = await get_ws(principal["workspace_id"])
+    allowed = workspace_allows(ws, helm_plans.FEATURE_API_ACCESS)
+    return {
+        "client_name": req["client"].get("client_name"),
+        "redirect_host": req["redirect_host"],
+        "loopback": req["loopback"],
+        "workspace": {"id": ws.get("workspace_id"), "name": ws.get("name")},
+        "user": {"name": principal.get("name"), "email": principal.get("email")},
+        "allowed": allowed,
+        "plan_message": None if allowed else API_PLAN_REQUIRED_MESSAGE,
+        "financials_access": await can_access_financials(principal),
+    }
+
+
+@api_router.post("/oauth/authorize")
+async def oauth_authorize(payload: OAuthAuthorizeInput, principal=Depends(get_principal)):
+    """Approve or deny. Returns the redirect URL; the browser follows it."""
+    params = payload.model_dump(exclude={"decision"})
+    try:
+        req = await helm_oauth.validate_authorize_request(db, params, allowed_resources=MCP_RESOURCE_URLS)
+    except helm_oauth.OAuthError as exc:
+        return _oauth_error_response(exc)
+    if payload.decision == "deny":
+        return {"redirect": helm_oauth.redirect_with_params(req["redirect_uri"], {
+            "error": "access_denied", "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN,
+        })}
+    ws = await get_ws(principal["workspace_id"])
+    if not workspace_allows(ws, helm_plans.FEATURE_API_ACCESS):
+        raise HTTPException(status_code=403, detail=_api_plan_denied_detail())
+    code = await helm_oauth.create_code(
+        db, req, user_id=principal["user_id"], workspace_id=principal["workspace_id"],
+    )
+    await log_activity(
+        principal, "settings", "oauth.connect", f"Connected {req['client'].get('client_name') or 'an AI assistant'} (read-only)",
+    )
+    return {"redirect": helm_oauth.redirect_with_params(req["redirect_uri"], {
+        "code": code, "state": req["state"], "iss": TRENSTON_CANONICAL_ORIGIN,
+    })}
+
+
+@api_router.post("/oauth/token")
+async def oauth_token(request: Request):
+    """RFC 6749 token endpoint (application/x-www-form-urlencoded)."""
+    try:
+        form = dict(await request.form())
+    except Exception:
+        return _oauth_error_response(helm_oauth.OAuthError("invalid_request", "Send the body as form data."))
+    grant_type = form.get("grant_type") or ""
+    try:
+        if grant_type == "authorization_code":
+            body = await helm_oauth.exchange_code(db, form)
+        elif grant_type == "refresh_token":
+            body = await helm_oauth.refresh_tokens(db, form)
+        else:
+            raise helm_oauth.OAuthError("unsupported_grant_type", "Use authorization_code or refresh_token.")
+    except helm_oauth.OAuthError as exc:
+        return _oauth_error_response(exc)
+    return JSONResponse(content=body, headers=_OAUTH_NO_STORE)
+
+
+@api_router.get("/oauth/grants")
+async def oauth_grants_list(principal=Depends(get_principal)):
+    return {"grants": await helm_oauth.list_grants(
+        db, user_id=principal["user_id"], workspace_id=principal["workspace_id"],
+    )}
+
+
+@api_router.delete("/oauth/grants/{grant_id}")
+async def oauth_grants_revoke(grant_id: str, principal=Depends(get_principal)):
+    ok = await helm_oauth.revoke_grant(
+        db, grant_id=grant_id, user_id=principal["user_id"], workspace_id=principal["workspace_id"],
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    await log_activity(principal, "settings", "oauth.disconnect", "Disconnected an AI assistant")
+    return {"ok": True}
+
+
 dept_ops_wiring.register(
     api_router,
     db=db,
@@ -17641,6 +17790,14 @@ async def _ensure_indexes():
         (db.api_keys, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
         (db.api_keys, [("id", 1)], {"unique": True}),
         (db.api_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
+        (db.api_keys, [("grant_id", 1)], {}),
+        (db.oauth_clients, [("client_id", 1)], {"unique": True}),
+        (db.oauth_codes, [("code_hash", 1)], {"unique": True}),
+        (db.oauth_grants, [("id", 1)], {"unique": True}),
+        (db.oauth_grants, [("refresh_hash", 1)], {}),
+        (db.oauth_grants, [("previous_refresh_hash", 1)], {}),
+        (db.oauth_grants, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
+        (db.oauth_register_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.oauth_states, [("state_hash", 1)], {"unique": True}),
         (db.oauth_states, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.ask_helm_rate_events, [("workspace_id", 1)], {}),

@@ -180,7 +180,7 @@ const CONTROLS = [
   {
     icon: KeyRound,
     title: "API keys are read-only",
-    body: "Personal API keys (Growth and Business) can only read, never change data. A key sees exactly what its owner can see in Trenston, only in that workspace. Keys are stored as one-way hashes, shown once, rate limited, and revocable at any time in Settings.",
+    body: "Personal API keys (Growth and Business) can only read, never change data. A key sees exactly what its owner can see in Trenston, only in that workspace. Keys are stored as one-way hashes, shown once, rate limited, and revocable at any time in Settings. Assistants connected by signing in (OAuth) get the same read-only access through short-lived tokens with rotating refresh tokens, and can be disconnected in Settings.",
   },
   {
     icon: UserRoundCheck,

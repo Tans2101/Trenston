@@ -29,6 +29,7 @@ const About = lazyWithReload(() => import("@/pages/About"));
 const Features = lazyWithReload(() => import("@/pages/Features"));
 const Pricing = lazyWithReload(() => import("@/pages/Pricing"));
 const Compare = lazyWithReload(() => import("@/pages/Compare"));
+const OAuthAuthorize = lazyWithReload(() => import("@/pages/OAuthAuthorize"));
 const Changelog = lazyWithReload(() => import("@/pages/Changelog"));
 const StatusPage = lazyWithReload(() => import("@/pages/Status"));
 const PublicIntegrations = lazyWithReload(() => import("@/pages/PublicIntegrations"));
@@ -238,6 +239,7 @@ function AppRoutes() {
           <Route path="billing" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Billing /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<LoadingScreen label="Loading" />}><AccountSettings /></Suspense>} />
           <Route path="help" element={<Suspense fallback={<LoadingScreen label="Loading" />}><AppHelp /></Suspense>} />
+          <Route path="oauth/authorize" element={<Suspense fallback={<LoadingScreen label="Loading" />}><OAuthAuthorize /></Suspense>} />
           <Route path="departments/production" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Production /></Suspense>} />
           <Route path="departments/procurement" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Procurement /></Suspense>} />
           <Route path="departments/legal" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Legal /></Suspense>} />

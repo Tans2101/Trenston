@@ -32,6 +32,8 @@ export default function ApiKeysSettings({ canBilling = false }) {
   const [revokingId, setRevokingId] = useState(null);
   const [newKey, setNewKey] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [grants, setGrants] = useState([]);
+  const [disconnectingId, setDisconnectingId] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -49,9 +51,38 @@ export default function ApiKeysSettings({ canBilling = false }) {
     }
   }, []);
 
+  const loadGrants = useCallback(async () => {
+    try {
+      const { data } = await api.get("/oauth/grants");
+      setGrants(data?.grants || []);
+    } catch {
+      setGrants([]);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadGrants();
+  }, [load, loadGrants]);
+
+  const disconnect = async (grant) => {
+    if (!(await confirmAction({
+      title: `Disconnect ${grant.client_name}?`,
+      description: "It loses access to this workspace right away. You can connect it again from the assistant.",
+      confirmLabel: "Disconnect",
+      destructive: true,
+    }))) return;
+    setDisconnectingId(grant.id);
+    try {
+      await api.delete(`/oauth/grants/${grant.id}`);
+      toast.success(`${grant.client_name} disconnected`);
+      await loadGrants();
+    } catch (e) {
+      toast.error(detailMessage(e, "Could not disconnect. Please try again."));
+    } finally {
+      setDisconnectingId(null);
+    }
+  };
 
   const create = async (event) => {
     event?.preventDefault();
@@ -133,6 +164,35 @@ export default function ApiKeysSettings({ canBilling = false }) {
         </div>
       ) : (
         <>
+          {grants.length > 0 && (
+            <div className="mb-5" data-testid="oauth-grants">
+              <p className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-helm-muted">Connected apps</p>
+              <ul className="divide-y divide-helm-line border-y border-helm-line">
+                {grants.map((g) => (
+                  <li key={g.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-helm-fg">{g.client_name}</p>
+                      <p className="mt-0.5 text-xs text-helm-muted">
+                        Read-only{" · "}
+                        {formatDate(g.created_at) ? `Connected ${formatDate(g.created_at)}` : "Connected recently"}
+                        {formatDate(g.last_used_at) ? ` · Last active ${formatDate(g.last_used_at)}` : ""}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => disconnect(g)}
+                      disabled={disconnectingId === g.id}
+                      className="self-start rounded-md border border-helm-line px-3 py-1.5 text-sm text-helm-fg hover:bg-helm-fg/5 disabled:opacity-60 sm:self-auto"
+                      data-testid={`oauth-grant-disconnect-${g.id}`}
+                    >
+                      {disconnectingId === g.id ? "Disconnecting…" : "Disconnect"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {newKey?.key && (
             <div className="mb-4 rounded-md border border-helm-gold/40 bg-helm-gold/10 p-4" data-testid="api-key-reveal">
               <p className="text-sm font-medium text-helm-fg">Copy your new key now. You won't see it again.</p>
@@ -235,7 +295,12 @@ export default function ApiKeysSettings({ canBilling = false }) {
                 <code className="font-mono text-xs text-helm-fg">financials</code>.
               </p>
               <p>
-                For AI assistants that support MCP, use the{" "}
+                In Claude, add a custom connector with the URL{" "}
+                <code className="break-all font-mono text-xs text-helm-fg">https://trenston-mcp.onrender.com/mcp</code>{" "}
+                and sign in. No key needed: it appears above under Connected apps.
+              </p>
+              <p>
+                For other AI assistants that support MCP, use the{" "}
                 <a href={MCP_DOCS_URL} target="_blank" rel="noreferrer" className="text-helm-gold hover:text-helm-gold-hover">
                   Trenston MCP server
                 </a>{" "}

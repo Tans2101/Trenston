@@ -79,12 +79,35 @@ so one person's request can never be answered with another person's key.
 - Environment: `MCP_ALLOWED_HOSTS` set to the service's public hostname
   (for example `trenston-mcp.onrender.com`, or `mcp.trenston.com` once DNS points there)
 
-## Sign-in note
+## Connect from Claude (OAuth sign-in)
 
-This first version authenticates with personal API keys. Some hosted assistant
-integrations expect an OAuth sign-in flow instead of a pasted key; that is not
-built yet. Check each assistant's current MCP documentation before promising
-support for a specific one.
+In Claude: **Customize → Connectors → Add custom connector**, URL
+`https://trenston-mcp.onrender.com/mcp`. Claude registers itself, sends you to
+Trenston's consent screen, and connects with read-only access. Disconnect any
+time in Trenston under **Settings → API keys → Connected apps**.
+
+How it works:
+
+- Requests to `/mcp` without a valid token get `401` with
+  `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"`.
+- That RFC 9728 document names `https://www.trenston.com` as the authorization
+  server, whose RFC 8414 metadata is at `/.well-known/oauth-authorization-server`.
+- Trenston supports Dynamic Client Registration, S256 PKCE, one-hour access
+  tokens, and rotating refresh tokens. Loopback redirects (Claude Code) match
+  on any port.
+- Presented tokens are checked against Trenston's `/api/v1/me` (cached for 60s).
+
+Personal API keys sent as a header still work, for clients that support headers.
+
+### Extra environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MCP_PUBLIC_URL` | `https://trenston-mcp.onrender.com/mcp` | Must equal the URL people paste into Claude |
+| `TRENSTON_ISSUER` | `https://www.trenston.com` | Authorization server named in the metadata |
+
+The backend accepts sign-ins for the resources in `MCP_RESOURCE_URLS`
+(default `https://trenston-mcp.onrender.com/mcp`).
 
 ## Tests
 

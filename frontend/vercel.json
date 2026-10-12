@@ -170,6 +170,10 @@
       "destination": "https://helm-company-cockpit.onrender.com/api/:path*"
     },
     {
+      "source": "/.well-known/oauth-authorization-server",
+      "destination": "https://helm-company-cockpit.onrender.com/api/oauth/metadata"
+    },
+    {
       "source": "/login/:path*",
       "destination": "/login/index.html"
     },
@@ -186,7 +190,7 @@
       "destination": "/app/index.html"
     },
     {
-      "source": "/((?!api/|__clerk|robots\\.txt|sitemap\\.xml|llms\\.txt|security\\.txt|\\.well-known(?:/.*)?|google[0-9a-z]+\\.html|about(?:/.*)?|features(?:/.*)?|pricing(?:/.*)?|changelog(?:/.*)?|status(?:/.*)?|integrations(?:/.*)?|help(?:/.*)?|security(?:/.*)?|privacy(?:/.*)?|terms(?:/.*)?|refunds(?:/.*)?|login(?:/.*)?|sign-up(?:/.*)?|app(?:/.*)?|payment(?:/.*)?).*)",
+      "source": "/((?!api/|__clerk|robots\\.txt|sitemap\\.xml|llms\\.txt|security\\.txt|\\.well-known(?:/.*)?|google[0-9a-z]+\\.html|about(?:/.*)?|features(?:/.*)?|pricing(?:/.*)?|compare(?:/.*)?|changelog(?:/.*)?|status(?:/.*)?|integrations(?:/.*)?|help(?:/.*)?|security(?:/.*)?|privacy(?:/.*)?|terms(?:/.*)?|refunds(?:/.*)?|login(?:/.*)?|sign-up(?:/.*)?|app(?:/.*)?|payment(?:/.*)?).*)",
       "destination": "/index.html"
     }
   ]

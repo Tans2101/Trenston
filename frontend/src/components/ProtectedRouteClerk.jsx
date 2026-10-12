@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { rememberOAuthReturn, takeOAuthReturn } from "@/lib/oauthReturn";
 import { useAuth as useClerkAuth, useSession, useClerk } from "@clerk/clerk-react";
 import { useAuth } from "@/context/AuthContext";
 import { AppLayout, WorkspaceGate } from "@/components/lazyAppShell";
@@ -21,6 +22,15 @@ export default function ProtectedRouteClerk() {
   const { signOut } = useClerk();
   const { clerkReady, clerkTimedOut } = useClerkReady();
   const [connectTimedOut, setConnectTimedOut] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Resume an AI-assistant connection that started before sign-in.
+  useEffect(() => {
+    if (!user) return;
+    const target = takeOAuthReturn();
+    if (target && target !== `${location.pathname}${location.search}`) navigate(target, { replace: true });
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clerkComplete = clerkSessionComplete({
     isSignedIn, userId, sessionId, session, sessionStatus,
@@ -93,5 +103,6 @@ export default function ProtectedRouteClerk() {
     return <LoadingScreen label="Connecting your account" />;
   }
 
+  rememberOAuthReturn(location);
   return <Navigate to="/login" replace />;
 }
