@@ -7,6 +7,7 @@ import { AskScreen, DecisionScreen, PackScreen } from "@/components/marketing/Pr
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import PlanCards from "@/components/marketing/PlanCards";
+import Testimonial from "@/components/marketing/Testimonial";
 import {
   CtaBand,
   DISPLAY,
@@ -36,6 +37,7 @@ import {
   HOW_IT_WORKS,
   PRODUCT_FACTS,
   TAGLINE,
+  TESTIMONIALS,
 } from "@/lib/marketingCopy";
 import { cn } from "@/lib/utils";
 
@@ -199,6 +201,11 @@ export default function Landing() {
             <MkLink to="/about" className="mt-8 text-mk-navy">Read our story</MkLink>
           </div>
         </Reveal>
+      </section>
+
+      {/* Customer voice */}
+      <section className="border-t border-mk-line bg-white px-6 py-20 md:py-24" aria-label="What customers say">
+        <Testimonial item={TESTIMONIALS[0]} />
       </section>
 
       {/* Pricing */}

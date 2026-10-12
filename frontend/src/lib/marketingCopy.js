@@ -798,3 +798,18 @@ export const AI_CONNECT_HELP = {
     "Removing someone from the workspace ends all of their keys and connections.",
   ],
 };
+
+
+/**
+ * Real customer quotes, used with each person's permission, worded exactly as
+ * they approved. Do not add, embellish, or paraphrase.
+ */
+export const TESTIMONIALS = [
+  {
+    id: "ely",
+    quote:
+      "I found Trenston to be a trustworthy and secure platform. It has a friendly UI/UX, fast processing, and AI grounding. My experience felt safe and reliable.",
+    name: "Ely",
+    role: "IT Head, Manufacturing company",
+  },
+];
