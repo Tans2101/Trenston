@@ -205,7 +205,10 @@ COOKIE_SAMESITE = os.environ.get("COOKIE_SAMESITE", "lax")
 OAUTH_STATE_SECRET = os.environ.get("OAUTH_STATE_SECRET", "")
 if not OAUTH_STATE_SECRET:
     OAUTH_STATE_SECRET = SESSION_SECRET
-APP_URL = (os.environ.get("APP_URL") or FRONTEND_URL or "").rstrip("/")
+# Strip must match FRONTEND_URL — a pasted APP_URL with leading whitespace
+# (tab/newline) becomes a relative Location and browsers land on FastAPI 404
+# {"detail":"Not Found"} after Google Allow (see docs in agent store).
+APP_URL = (os.environ.get("APP_URL") or FRONTEND_URL or "").strip().rstrip("/")
 if is_stale_deploy_url(APP_URL):
     APP_URL = TRENSTON_CANONICAL_ORIGIN
 # Display fallback — tier prices live in plans.PLANS; PRO_PRICE kept for legacy envs.
@@ -888,7 +891,7 @@ async def send_notification_email(
 
 
 def _app_base_url() -> str:
-    return (APP_URL or FRONTEND_URL or TRENSTON_CANONICAL_ORIGIN or "").rstrip("/")
+    return (APP_URL or FRONTEND_URL or TRENSTON_CANONICAL_ORIGIN or "").strip().rstrip("/")
 
 
 def _task_delegation_email_html(
@@ -14791,7 +14794,7 @@ def sanitize_oauth_token_payload(raw) -> dict:
 
 
 def _integrations_oauth_redirect() -> str:
-    frontend = (APP_URL or public_api_origin()).rstrip("/")
+    frontend = (APP_URL or public_api_origin()).strip().rstrip("/")
     return f"{frontend}/app/integrations"
 
 

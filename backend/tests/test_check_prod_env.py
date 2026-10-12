@@ -52,3 +52,13 @@ def test_build_passes_with_fernet_key(monkeypatch):
     assert check_prod_env.main() == 0
     assert "INTEGRATION_ENCRYPTION_KEY" in check_prod_env.ALWAYS_REQUIRED
     assert "INTEGRATION_ENCRYPTION_KEY" not in check_prod_env.RECOMMENDED
+
+
+def test_warns_on_app_url_leading_whitespace(monkeypatch, capsys):
+    _required_env(monkeypatch)
+    monkeypatch.setenv("INTEGRATION_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.setenv("APP_URL", "\t\nhttps://www.trenston.com")
+    assert check_prod_env.main() == 0
+    out = capsys.readouterr().out
+    assert "APP_URL has leading/trailing whitespace" in out
+    assert "Not Found" in out

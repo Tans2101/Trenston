@@ -68,6 +68,13 @@ def main() -> int:
         missing.extend(["CLERK_SECRET_KEY+CLERK_JWKS_URL or GOOGLE_CLIENT_ID+GOOGLE_CLIENT_SECRET"])
 
     weak = []
+    for url_key in ("APP_URL", "FRONTEND_URL"):
+        raw = os.environ.get(url_key, "")
+        if raw and raw != raw.strip():
+            weak.append(
+                f"{url_key} has leading/trailing whitespace — OAuth Location "
+                "headers become relative and browsers show FastAPI {\"detail\":\"Not Found\"}"
+            )
     if os.environ.get("SESSION_SECRET", "").strip() in ("", "change-me-in-production", "change-me-to-a-long-random-string"):
         weak.append("SESSION_SECRET looks like a placeholder")
     if os.environ.get("ALLOW_DEMO_LOGIN", "false").lower() in ("1", "true", "yes"):

@@ -28,6 +28,26 @@ def test_oauth_callback_uri_google_default_matches_live_route():
         assert server._oauth_callback_uri("google") == "https://www.trenston.com/api/oauth/google/callback"
 
 
+def test_integrations_oauth_redirect_strips_leading_whitespace():
+    """Pastelike APP_URL with tab/newline must not become a relative Location."""
+    with patch.object(server, "APP_URL", "\t\nhttps://www.trenston.com"):
+        assert server._integrations_oauth_redirect() == "https://www.trenston.com/app/integrations"
+
+
+def test_google_callback_location_is_absolute_when_app_url_has_whitespace():
+    """Regression: whitespace APP_URL → %09%0A Location → browser relative 404."""
+    with patch.object(server, "APP_URL", "\t\nhttps://www.trenston.com"):
+        client = TestClient(server.app)
+        r = client.get("/api/oauth/google/callback", follow_redirects=False)
+    assert r.status_code in (302, 307)
+    loc = r.headers.get("location", "")
+    assert loc.startswith("https://www.trenston.com/app/integrations")
+    assert not loc.lstrip().startswith(("\t", "\n", "\r"))
+    assert "%09" not in loc and "%0A" not in loc
+    assert "error=oauth" in loc
+    assert "provider=google" in loc
+
+
 def test_oauth_datetime_expired_accepts_naive_mongo_datetimes():
     naive = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(minutes=8)
     assert naive.tzinfo is None
