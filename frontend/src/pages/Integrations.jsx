@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { PageHeader, GlassCard, ErrorScreen, SkeletonCardList } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import BrandLogo, { hasBrandLogo } from "@/components/BrandLogo";
+import { confirmAction } from "@/components/ConfirmHost";
 
 /** Where to go right after a provider connects, so the win is visible. */
 const NEXT_STEP = {
@@ -97,7 +98,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, onConnect, onDisconnect, onSync, onNavigate, syncingProvider }) {
+function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, onConnect, onDisconnect, onSync, onNavigate, syncingProvider, disconnectingProvider }) {
   const status = it.status || (it.connected ? "connected" : "not_connected");
   const lastSynced = it.sync_action ? formatLastSynced(it.last_synced_at) : null;
   const isComingSoon = it.coming_soon || status === "coming_soon";
@@ -105,6 +106,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
   const isOAuth = it.kind === "oauth" && it.oauth;
   const isCredentials = it.kind === "credentials";
   const syncBusy = syncingProvider === it.provider;
+  const disconnectBusy = disconnectingProvider === it.provider;
   const isGoogle = it.provider === "google";
   // Google Workspace is per-user — any teammate can connect their own account.
   const canAct = isGoogle ? Boolean(canConnectGoogle ?? true) : canManage;
@@ -252,7 +254,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
         <button
           data-testid={`action-${it.id}`}
           onClick={handleConnect}
-          disabled={isComingSoon || isUnavailable || (!canAct && !it.connected)}
+          disabled={isComingSoon || isUnavailable || (!canAct && !it.connected) || disconnectBusy}
           className={cn(
             "mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-md text-sm py-2.5 transition-colors disabled:opacity-50",
             it.connected
@@ -263,7 +265,7 @@ function IntegrationCard({ it, canManage, canUseConnection, canConnectGoogle, on
           )}
         >
           {it.connected ? (
-            <><Unlink className="w-3.5 h-3.5" /> Disconnect</>
+            <><Unlink className="w-3.5 h-3.5" /> {disconnectBusy ? "Disconnecting…" : "Disconnect"}</>
           ) : isUnavailable ? (
             <><Link2 className="w-3.5 h-3.5" /> Connect unavailable</>
           ) : (
@@ -279,6 +281,7 @@ export default function Integrations() {
   const { data, loading, error, reload } = useFetch("/integrations");
   const [params, setParams] = useSearchParams();
   const [syncingProvider, setSyncingProvider] = useState(null);
+  const [disconnectingProvider, setDisconnectingProvider] = useState(null);
   const [slackUrl, setSlackUrl] = useState("");
   const [slackBusy, setSlackBusy] = useState(false);
   const [slackEditing, setSlackEditing] = useState(false);
@@ -433,12 +436,25 @@ export default function Integrations() {
 
   const oauthDisconnect = async (provider) => {
     if (!gate(provider)) return;
+    if (disconnectingProvider) return;
+    const name = (data?.integrations || []).find((x) => x.provider === provider)?.name || "this integration";
+    // One click used to cut the connection straight away; ask first, since
+    // reconnecting means going through the provider's sign-in again.
+    if (!(await confirmAction({
+      title: `Disconnect ${name}?`,
+      description: "Trenston stops syncing from it. Data already synced stays. You can reconnect any time.",
+      confirmLabel: "Disconnect",
+      destructive: true,
+    }))) return;
+    setDisconnectingProvider(provider);
     try {
       await api.post(`/integrations/${provider}/disconnect`);
       reload();
-      toast.success("Disconnected");
-    } catch {
-      toast.error("Could not disconnect");
+      toast.success(`${name} disconnected`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || `Could not disconnect ${name}. Please try again.`);
+    } finally {
+      setDisconnectingProvider(null);
     }
   };
 
@@ -705,6 +721,7 @@ export default function Integrations() {
             onSync={syncAccounting}
             onNavigate={(route) => navigate(route)}
             syncingProvider={syncingProvider}
+            disconnectingProvider={disconnectingProvider}
           />
         ))}
       </div>
@@ -729,6 +746,8 @@ export default function Integrations() {
                 onSync={syncAccounting}
                 onNavigate={(route) => navigate(route)}
                 syncingProvider={syncingProvider}
+                disconnectingProvider={disconnectingProvider}
+            disconnectingProvider={disconnectingProvider}
               />
             ))}
             <a

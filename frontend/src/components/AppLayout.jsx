@@ -820,11 +820,9 @@ export default function AppLayout() {
     setSkippedWorkspace(wsId);
   };
   const planLabel = helmPlanLabel(company?.plan, isPro, billingEnforced);
-  // Profile subtitles: role when plan would just repeat the top-bar "Active" pill.
-  const profilePlanLabel =
-    planLabel === "Active"
-      ? (user?.role || user?.pack || "Member").replace(/_/g, " ")
-      : planLabel;
+  // The plan already has its own pill next to the account menu, so the menu
+  // shows the person's role instead of repeating "Free" / "Active".
+  const profilePlanLabel = (user?.role || user?.pack || "Member").replace(/_/g, " ");
   const trialDaysLeft = (() => {
     if (!trialing) return null;
     const end = billing?.trial_ends_at || billing?.current_period_end;
@@ -966,14 +964,15 @@ export default function AppLayout() {
           <div className="flex items-center gap-2 shrink-0">
             <span
               data-testid="topbar-plan-badge"
-              className="hidden xl:inline-flex items-center rounded-full border border-helm-line px-3 py-1 text-xs text-helm-muted whitespace-nowrap"
+              className="hidden lg:inline-flex items-center rounded-full border border-helm-line px-3 py-1 text-xs text-helm-muted whitespace-nowrap"
             >
               {planBadge}
             </span>
             <button
               type="button"
               data-testid="topbar-notifications"
-              aria-label="Notifications"
+              aria-label="Your tasks"
+              title="Your tasks"
               onClick={() => navigate("/app/tasks")}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-helm-line text-helm-muted transition-colors hover:bg-helm-fg/[0.04] hover:text-helm-fg"
             >

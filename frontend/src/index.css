@@ -451,6 +451,18 @@ html[data-theme="light"] .app-shell .text-amber-600 {
   color: theme("colors.helm.status-warning") !important;
 }
 
+/* Status colors are tuned for light surfaces (e.g. #15803D is 3.7:1 on the dark
+   card). On dark, use lighter tones so "Enabled", "Clear", deltas etc. pass 4.5:1. */
+html[data-theme="dark"] .app-shell .text-helm-status-positive {
+  color: #4ade80;
+}
+html[data-theme="dark"] .app-shell .text-helm-status-negative {
+  color: #fb7185;
+}
+html[data-theme="dark"] .app-shell .text-helm-status-warning {
+  color: #fbbf24;
+}
+
 html[data-theme="light"] ::selection {
   background: rgb(var(--helm-accent) / 0.16);
   color: #111111;
@@ -1005,6 +1017,12 @@ html[data-theme="dark"] .cir-danger {
   box-shadow:
     0 0 0 1px color-mix(in srgb, #f4f4f4 8%, transparent),
     0 20px 25px -5px rgba(0, 0, 0, 0.45);
+}
+
+/* The light-red danger tone reads well as text on dark, but white on it is only
+   2.8:1. Keep the solid button on the deeper red so its label stays legible. */
+html[data-theme="dark"] .cir-danger__desactivate {
+  background-color: #dc2626;
 }
 
 /* cir-delete — circular black trash affordance for deletable rows/actions */

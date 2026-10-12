@@ -139,7 +139,7 @@ export default function Members() {
       reload();
       reloadAccess();
       toast.success("Access updated");
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(e?.response?.data?.detail || "Could not change access. Please try again."); }
   };
 
   const remove = async (m) => {
@@ -150,7 +150,7 @@ export default function Members() {
       reload();
       reloadAccess();
       toast.success("Member removed. They stay on People as roster-only until you remove them there.");
-    } catch (e) { toast.error(e?.response?.data?.detail || "Failed"); }
+    } catch (e) { toast.error(e?.response?.data?.detail || "Could not remove this member. Please try again."); }
   };
 
   const copyCode = () => {
