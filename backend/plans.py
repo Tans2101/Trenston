@@ -33,6 +33,8 @@ FEATURE_TEAM = "team"
 FEATURE_PRIORITY_SUPPORT = "priority_support"
 # Scenario modeling page (/app/modeling). Growth and Business only.
 FEATURE_FINANCIAL_MODELING = "financial_modeling"
+# Personal API keys for the read-only public API and MCP (Growth and above).
+FEATURE_API_ACCESS = "api_access"
 
 # Company-ledger / CRM / alerts providers gated by plan. Google is per-user on every plan
 # and is never listed here — see plan_allows_provider / connect endpoint.
@@ -76,6 +78,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
             FEATURE_FINANCIAL_MODELING: False,
+            FEATURE_API_ACCESS: False,
         },
         "includes": [
             "Up to 3 Trenston users",
@@ -106,6 +109,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
             FEATURE_FINANCIAL_MODELING: False,
+            FEATURE_API_ACCESS: False,
         },
         "includes": [
             "Up to 7 Trenston users",
@@ -136,6 +140,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
             FEATURE_FINANCIAL_MODELING: True,
+            FEATURE_API_ACCESS: True,
         },
         "includes": [
             "Up to 20 Trenston users",
@@ -168,6 +173,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: True,
             FEATURE_FINANCIAL_MODELING: True,
+            FEATURE_API_ACCESS: True,
         },
         "includes": [
             "Up to 35 Trenston users",

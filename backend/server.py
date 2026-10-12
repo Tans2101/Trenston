@@ -64,6 +64,8 @@ import department_access as dept_access
 import credential_crypto as cred_crypto
 import department_migrate as dept_migrate
 import work_items as helm_work_items
+import api_keys as helm_api_keys
+import public_api as helm_public_api
 import data_freshness as helm_freshness
 import procurement_metrics as proc_metrics
 import production_daily_logs as prod_daily
@@ -17346,6 +17348,162 @@ if not _serve_static:
         }
 
 
+# ------------------------- Public read-only API (v1) + API keys -------------------------
+# Personal API keys let outside tools (scripts, AI assistants via MCP) READ what the
+# key's owner can already see in the app. Keys carry no permissions of their own:
+# every request rebuilds the same principal the app uses, so pack rules, Financials
+# grants and department scoping all apply unchanged. v1 is GET-only by design.
+
+API_PLAN_REQUIRED_MESSAGE = "API access is available on the Growth and Business plans."
+
+
+def _api_plan_denied_detail() -> dict:
+    return {
+        "reason": "plan",
+        "message": API_PLAN_REQUIRED_MESSAGE,
+        "feature": helm_plans.FEATURE_API_ACCESS,
+    }
+
+
+def _api_auth_error(detail: str, status_code: int = 401) -> HTTPException:
+    headers = {"WWW-Authenticate": 'Bearer realm="trenston-api"'} if status_code == 401 else None
+    return HTTPException(status_code=status_code, detail=detail, headers=headers)
+
+
+async def get_api_principal(request: Request) -> dict:
+    """Resolve an API key to the same principal shape get_principal returns."""
+    raw = helm_api_keys.token_from_headers(request.headers)
+    if not helm_api_keys.looks_like_api_key(raw):
+        raise _api_auth_error("Missing or invalid API key. Send it as: Authorization: Bearer trn_...")
+    key = await helm_api_keys.resolve(db, raw)
+    if not key:
+        raise _api_auth_error("This API key is not valid or has been revoked.")
+    user = await db.users.find_one({"user_id": key["user_id"]}, {"_id": 0})
+    if not user or _user_is_deleted(user):
+        raise _api_auth_error("This API key's account no longer exists.")
+    membership = await db.memberships.find_one(
+        {"user_id": key["user_id"], "workspace_id": key["workspace_id"], "status": "active"},
+        {"_id": 0},
+    )
+    if not membership:
+        raise _api_auth_error("This API key's user is no longer a member of that workspace.")
+    ws = await get_ws(key["workspace_id"])
+    if not workspace_allows(ws, helm_plans.FEATURE_API_ACCESS):
+        raise HTTPException(status_code=403, detail=_api_plan_denied_detail())
+    allowed = await doc_rate_limit._acquire_window_bucket(
+        db.api_rate_buckets,
+        base_key=f"api:{key['id']}",
+        limit=helm_api_keys.RATE_LIMIT_REQUESTS,
+        window_seconds=helm_api_keys.RATE_LIMIT_WINDOW_SECONDS,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit reached ({helm_api_keys.RATE_LIMIT_REQUESTS} requests per minute). Try again shortly.",
+            headers={"Retry-After": str(helm_api_keys.RATE_LIMIT_WINDOW_SECONDS)},
+        )
+    try:
+        await helm_api_keys.touch(db, key)
+    except Exception:
+        logger.debug("api key last_used_at update skipped", exc_info=True)
+    return {
+        "user_id": user["user_id"], "email": user.get("email"), "name": user.get("name"),
+        "picture": user.get("picture"), "workspace_id": membership["workspace_id"],
+        "role": membership["role"], "pack": pack_of(membership),
+        "via_api_key": key["id"],
+    }
+
+
+@api_router.get("/v1/me")
+async def api_v1_me(principal=Depends(get_api_principal)):
+    ws = await get_ws(principal["workspace_id"])
+    return helm_public_api.me(
+        principal, ws, financials_access=await can_access_financials(principal),
+    )
+
+
+@api_router.get("/v1/briefing")
+async def api_v1_briefing(principal=Depends(get_api_principal)):
+    # briefing() checks Financials access itself before adding money metrics.
+    return helm_public_api.briefing(await briefing(principal))
+
+
+@api_router.get("/v1/decisions")
+async def api_v1_decisions(principal=Depends(get_api_principal)):
+    # decisions() drops financial signals for people without Financials access.
+    return helm_public_api.decisions(await decisions(principal))
+
+
+@api_router.get("/v1/tasks")
+async def api_v1_tasks(principal=Depends(get_api_principal)):
+    return helm_public_api.tasks(await tasks(principal))
+
+
+@api_router.get("/v1/my-work")
+async def api_v1_my_work(principal=Depends(get_api_principal)):
+    # my_work_items() scopes every department to the caller's memberships.
+    return helm_public_api.my_work(await my_work_items(principal))
+
+
+@api_router.get("/v1/financials")
+async def api_v1_financials(principal=Depends(get_api_principal)):
+    # Same gate as the Financials page (require_section financials/finance:write).
+    if not await can_access_financials(principal):
+        raise HTTPException(status_code=403, detail=FINANCIALS_ACCESS_DENIED_MESSAGE)
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+    )
+    fin = await compute_financials(principal["workspace_id"], department_ids=dept_ids)
+    return helm_public_api.financials(fin)
+
+
+class ApiKeyCreateInput(BaseModel):
+    name: Optional[str] = Field(default=None, max_length=helm_api_keys.NAME_MAX_LENGTH)
+
+
+@api_router.get("/api-keys")
+async def api_keys_list(principal=Depends(get_principal)):
+    ws = await get_ws(principal["workspace_id"])
+    return {
+        "keys": await helm_api_keys.list_keys(
+            db, user_id=principal["user_id"], workspace_id=principal["workspace_id"],
+        ),
+        "allowed": workspace_allows(ws, helm_plans.FEATURE_API_ACCESS),
+        "plan_message": None if workspace_allows(ws, helm_plans.FEATURE_API_ACCESS) else API_PLAN_REQUIRED_MESSAGE,
+        "max_keys": helm_api_keys.MAX_ACTIVE_KEYS_PER_USER,
+        "rate_limit_per_minute": helm_api_keys.RATE_LIMIT_REQUESTS,
+    }
+
+
+@api_router.post("/api-keys")
+async def api_keys_create(payload: ApiKeyCreateInput, principal=Depends(get_principal)):
+    ws = await get_ws(principal["workspace_id"])
+    if not workspace_allows(ws, helm_plans.FEATURE_API_ACCESS):
+        raise HTTPException(status_code=403, detail=_api_plan_denied_detail())
+    try:
+        raw, view = await helm_api_keys.create_key(
+            db, user_id=principal["user_id"], workspace_id=principal["workspace_id"], name=payload.name,
+        )
+    except helm_api_keys.ApiKeyLimitError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    await log_activity(
+        principal, "settings", "api_key.create", f"Created API key \"{view['name']}\"",
+    )
+    # The raw key is returned exactly once and is never stored.
+    return {**view, "key": raw}
+
+
+@api_router.delete("/api-keys/{key_id}")
+async def api_keys_revoke(key_id: str, principal=Depends(get_principal)):
+    ok = await helm_api_keys.revoke_key(
+        db, key_id=key_id, user_id=principal["user_id"], workspace_id=principal["workspace_id"],
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="API key not found")
+    await log_activity(principal, "settings", "api_key.revoke", "Revoked an API key")
+    return {"ok": True}
+
+
 dept_ops_wiring.register(
     api_router,
     db=db,
@@ -17479,6 +17637,10 @@ async def _ensure_indexes():
         (db.join_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS}),
         (db.join_rate_events, [("client_ip", 1)], {}),
         (db.join_rate_buckets, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS * 2}),
+        (db.api_keys, [("key_hash", 1)], {"unique": True}),
+        (db.api_keys, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
+        (db.api_keys, [("id", 1)], {"unique": True}),
+        (db.api_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.oauth_states, [("state_hash", 1)], {"unique": True}),
         (db.oauth_states, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.ask_helm_rate_events, [("workspace_id", 1)], {}),
