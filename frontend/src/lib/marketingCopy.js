@@ -310,6 +310,7 @@ export const PLANS = [
       "Everything in Starter",
       "Integrations: HubSpot, Slack",
       "Financial Modeling: runway scenarios with hires and funding",
+      "Read-only API and MCP connector for AI assistants",
       "Deeper reporting across a bigger team",
       "7-day free trial",
     ],

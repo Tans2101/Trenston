@@ -222,9 +222,9 @@
     "semantic_hash": "6dc0e6bbbdca48fac537e5ad87092730"
   },
   "backend/plans.py": {
-    "mtime": 1791795056.3007557,
-    "seen": 1791795297.0870519,
-    "ast_hash": "dea6d36543593f3c93687286fe6386e0",
+    "mtime": 1791795715.0609317,
+    "seen": 1791795877.861473,
+    "ast_hash": "a7810b2d126f6a0c9807eac5ad3e7a77",
     "semantic_hash": ""
   },
   "backend/procurement_metrics.py": {
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791794114.2471197,
-    "seen": 1791795297.088052,
-    "ast_hash": "5f7ab31fb187370401d2e0ab13307fbf",
+    "mtime": 1791795715.0669737,
+    "seen": 1791795877.8619184,
+    "ast_hash": "a6cfe57c6b1229530ac01dac6f2b0c67",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1790677988.7454488,
-    "seen": 1791795297.08813,
-    "ast_hash": "9f91dc4a8ecd8090263abb4fbefcc3dc",
+    "mtime": 1791795715.060426,
+    "seen": 1791795877.8619487,
+    "ast_hash": "58954e7cbbf574ff4ef1ea57d0635ba9",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -2538,9 +2538,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/AccountSettings.jsx": {
-    "mtime": 1791471489.7228985,
-    "seen": 1791795297.0881896,
-    "ast_hash": "2944a7500a35169b0f3df79e6e8a4847",
+    "mtime": 1791795697.4317324,
+    "seen": 1791795877.8619776,
+    "ast_hash": "dd7c13848bf0e089794282326421d3a9",
     "semantic_hash": ""
   },
   "frontend/src/pages/AppHelp.jsx": {
@@ -2730,9 +2730,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Security.jsx": {
-    "mtime": 1791012156.0666234,
-    "seen": 1791795297.0882585,
-    "ast_hash": "3cb165cef69a7a3ede5df1d00b45b749",
+    "mtime": 1791795715.0613809,
+    "seen": 1791795877.8620098,
+    "ast_hash": "f467cafc568c9f4a420378767aa28d9b",
     "semantic_hash": ""
   },
   "frontend/src/pages/SignUp.jsx": {
@@ -2760,10 +2760,10 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Terms.jsx": {
-    "mtime": 1790588485.7440827,
-    "seen": 1791795297.0882702,
-    "ast_hash": "69ebca99dba4ff970ea04f62ba7def3f",
-    "semantic_hash": "69ebca99dba4ff970ea04f62ba7def3f"
+    "mtime": 1791795725.583021,
+    "seen": 1791795877.8620148,
+    "ast_hash": "64cd6d06943d12efda77e6945ca36923",
+    "semantic_hash": ""
   },
   "frontend/src/pages/Unsubscribe.jsx": {
     "mtime": 1790675166.5133119,
@@ -5034,9 +5034,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1790515659.5388317,
-    "seen": 1791795297.0890903,
-    "ast_hash": "75a775117609a6c21b33c736f23502a9",
+    "mtime": 1791795628.65643,
+    "seen": 1791795877.8623455,
+    "ast_hash": "080e2955c351054968f44a538bd9cb2f",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-render.yml": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791794145.9930217,
-    "seen": 1791795297.089125,
+    "mtime": 1791795761.2411177,
+    "seen": 1791795877.8623607,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5877,6 +5877,48 @@
     "mtime": 1790515659.5381951,
     "seen": 1791795297.0890877,
     "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/ApiKeysSettings.jsx": {
+    "mtime": 1791795694.9011137,
+    "seen": 1791795877.861718,
+    "ast_hash": "106421b441d9e3d0f919c1145e39a057",
+    "semantic_hash": ""
+  },
+  "mcp-server/tests/test_server.py": {
+    "mtime": 1791795573.7651067,
+    "seen": 1791795877.8620236,
+    "ast_hash": "52004618ab9e1db2aa6ecb4849af1e5a",
+    "semantic_hash": ""
+  },
+  "mcp-server/trenston_mcp/__init__.py": {
+    "mtime": 1791795530.557104,
+    "seen": 1791795877.862025,
+    "ast_hash": "db5e6fdcc31364c4049bb014357f6c28",
+    "semantic_hash": ""
+  },
+  "mcp-server/trenston_mcp/__main__.py": {
+    "mtime": 1791795556.6571054,
+    "seen": 1791795877.8620262,
+    "ast_hash": "16d2f6f3d8b6ea7788c21c0f01a12ee3",
+    "semantic_hash": ""
+  },
+  "mcp-server/trenston_mcp/server.py": {
+    "mtime": 1791795551.2611053,
+    "seen": 1791795877.8620274,
+    "ast_hash": "a0e12fba14e9e728bca745e5dbd5bc46",
+    "semantic_hash": ""
+  },
+  "mcp-server/README.md": {
+    "mtime": 1791795639.1171105,
+    "seen": 1791795877.8623633,
+    "ast_hash": "db8f247430f04d562cafa57632611a81",
+    "semantic_hash": ""
+  },
+  "mcp-server/requirements.txt": {
+    "mtime": 1791795557.3571055,
+    "seen": 1791795877.862364,
+    "ast_hash": "e240cc77f41b9238fdf517c792422ade",
     "semantic_hash": ""
   }
 }

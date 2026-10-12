@@ -178,6 +178,11 @@ const CONTROLS = [
     body: "OAuth tokens for Google, QuickBooks, Xero, and HubSpot, plus SAP Business One credentials, are Fernet-encrypted before they are stored. Encryption keys come from protected environment configuration, never from the codebase.",
   },
   {
+    icon: KeyRound,
+    title: "API keys are read-only",
+    body: "Personal API keys (Growth and Business) can only read, never change data. A key sees exactly what its owner can see in Trenston, only in that workspace. Keys are stored as one-way hashes, shown once, rate limited, and revocable at any time in Settings.",
+  },
+  {
     icon: UserRoundCheck,
     title: "Access stays in its lane",
     body: "Each workspace is isolated. Role-based packs and department access limit people to the company data and actions they are authorized to use.",
@@ -209,6 +214,7 @@ const PRACTICES = [
   "Google Calendar and Gmail are personal: each teammate connects their own Google account and only sees their meetings and threads. Shared company OAuth (QuickBooks, Xero, HubSpot, SAP) can be used only by the teammate who connected them, or by a workspace owner. Legacy unstamped company connections are limited to owners until someone reconnects.",
   "Google is not read-only. Connecting your Google account grants Calendar read and write, Gmail snippets plus drafts, Sheets export, and Drive files you pick in Trenston. It is not a full mailbox or Drive dump.",
   "Workspaces that connected Google under the original Calendar + Gmail read grant keep that narrower access until an owner reconnects and accepts the wider consent screen.",
+  "When you connect an AI assistant with an API key, Trenston sends that assistant the data your key can read, at your request. What the assistant does with it is governed by that assistant provider's terms.",
   "Payment card details are handled by Paddle, not stored on Trenston servers.",
   "Authentication is handled by Clerk using secure session controls.",
   "Sensitive credentials and provider token responses are excluded from application logs.",

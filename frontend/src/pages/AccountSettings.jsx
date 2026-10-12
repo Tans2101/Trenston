@@ -11,6 +11,7 @@ import DangerConfirmCard from "@/components/DangerConfirmCard";
 import DepartmentsSettings from "@/components/DepartmentsSettings";
 import DocumentsLibrarySettings from "@/components/DocumentsLibrarySettings";
 import InviteCeoCard from "@/components/InviteCeoCard";
+import ApiKeysSettings from "@/components/ApiKeysSettings";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
 import { canManageBilling, hasPerm } from "@/lib/access";
@@ -619,6 +620,8 @@ export default function AccountSettings() {
           Manage integrations →
         </Link>
       </GlassCard>
+
+      <ApiKeysSettings canBilling={canBilling} />
 
       <GlassCard id="export-data" className="p-5 mb-4 fade-up scroll-mt-24">
         <div className="flex items-center gap-1.5 mb-2 text-helm-gold">

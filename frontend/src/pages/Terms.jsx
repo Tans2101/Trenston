@@ -13,7 +13,7 @@ export default function Terms() {
 
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-mk-navy mb-4">Legal</p>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-mk-black">Terms of Service</h1>
-        <p className="text-mk-gray text-sm mt-3">Last updated: September 24, 2026</p>
+        <p className="text-mk-gray text-sm mt-3">Last updated: October 12, 2026</p>
 
         <div className="mt-10 space-y-8 text-[15px] text-mk-black/80 leading-relaxed">
           <section>
@@ -86,6 +86,11 @@ export default function Terms() {
               Optional integrations (such as Google Workspace, QuickBooks, Xero, SAP Business One, HubSpot, or a Slack
               Incoming Webhook for alerts) only access or send data after you explicitly connect or configure them.
               Your use of those services remains subject to their own terms and privacy policies.
+            </p>
+            <p className="mt-3">
+              API keys are personal and read-only. Keep them secret and revoke any key you think has been exposed.
+              Anything you or a tool you choose does with data read through your key, including sending it to an
+              AI assistant, is your responsibility and subject to that tool&apos;s own terms.
             </p>
           </section>
 
