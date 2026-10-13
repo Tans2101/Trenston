@@ -31,6 +31,8 @@ import { prefetchRouteHandlers } from "@/lib/prefetchRoute";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import ActionSearchBar from "@/components/kokonutui/action-search-bar";
 import { useQuickAdd } from "@/components/QuickAdd";
+import { GuideProvider, OPEN_SEARCH_EVENT } from "@/components/guide/GuideProvider";
+import { PageHelpButton, PageHelpPanel, PageIntro } from "@/components/guide/PageGuide";
 import SmoothTab, { SmoothTabItem } from "@/components/kokonutui/smooth-tab";
 import TrenstonMark from "@/components/HelmMark";
 import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
@@ -836,6 +838,22 @@ export default function AppLayout() {
     : planLabel;
 
   const openSearch = () => setSearchOpen(true);
+  const mobileSearchRef = useRef(null);
+
+  // Tours and help can open the search bar, pre-filled (e.g. "task ").
+  useEffect(() => {
+    const onOpen = (e) => {
+      const text = e?.detail?.text || "";
+      if (window.matchMedia("(min-width: 1024px)").matches) {
+        desktopSearchRef.current?.openWith?.(text);
+      } else {
+        setSearchOpen(true);
+        window.setTimeout(() => mobileSearchRef.current?.openWith?.(text), 30);
+      }
+    };
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SEARCH_EVENT, onOpen);
+  }, []);
 
   // ⌘K: desktop focuses the top-bar pill; mobile opens the dialog.
   useEffect(() => {
@@ -880,7 +898,9 @@ export default function AppLayout() {
   }
 
   return (
+    <GuideProvider>
     <div className="app-shell min-h-screen">
+      <PageHelpPanel />
       {inDemo && <DemoBanner />}
       {pastDue && (
         <div className="lg:pl-[240px] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
@@ -907,6 +927,7 @@ export default function AppLayout() {
           <span className="text-helm-fg font-semibold text-sm">Trenston</span>
         </div>
         <div className="flex items-center gap-1">
+          <PageHelpButton mobile />
           <button
             type="button"
             data-testid="mobile-search-btn"
@@ -944,6 +965,7 @@ export default function AppLayout() {
         <QuickNavPalette
           open={searchOpen}
           onOpenChange={setSearchOpen}
+          searchRef={mobileSearchRef}
           variant="dialog"
           enableShortcut={false}
         />
@@ -969,6 +991,7 @@ export default function AppLayout() {
             >
               {planBadge}
             </span>
+            <PageHelpButton />
             <button
               type="button"
               data-testid="topbar-notifications"
@@ -983,6 +1006,7 @@ export default function AppLayout() {
           </div>
         </div>
         <div className="w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">
+          <PageIntro />
           {onBilling ? (
             <Outlet />
           ) : (
@@ -993,5 +1017,6 @@ export default function AppLayout() {
         </div>
       </main>
     </div>
+    </GuideProvider>
   );
 }

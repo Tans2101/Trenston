@@ -234,7 +234,7 @@ export default function Decisions() {
       </div>
 
       {decisions.length === 0 && suggestions.length === 0 ? (
-        <EmptyState title="No decisions yet" body="Log the calls that need to be made, or refresh suggestions so Trenston can draft from runway, deals, tasks, and blockers."
+        <EmptyState title="What do you need to decide?" body="For example: hire a second salesperson, raise prices 10%, or switch suppliers. Log it with what you are leaning towards and it stays on your Briefing until it is decided. Or refresh suggestions and Trenston drafts some from your runway, deals, tasks and blockers."
           action={canAct ? <button data-testid="empty-new-decision-btn" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Log first decision</button> : null} />
       ) : (
         <>

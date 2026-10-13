@@ -6,7 +6,7 @@ Covers:
 - GET /telemetry is derived from real data (kpis include Headcount + Open Tasks always; MRR/ARR/Runway/Net Burn only if financials exist).
 - GET /reports returns exactly 3 computed cards (Financial Snapshot, Team Pulse, Execution).
 - POST /reports/weekly-pack still Pro-gated (403 when free).
-- GET /onboarding/checklist returns 4 steps with done+route, and complete boolean.
+- GET /onboarding/checklist returns role-aware steps with done+route+tour, and complete boolean.
 - GET/POST /onboarding/integrations-prompt (owner-only) returns connected_count + dismissed.
 - GET /calendar returns a `live` boolean flag (false for a clean workspace w/o google_tokens).
 """
@@ -202,15 +202,14 @@ class TestReportsComputed:
 # ---------------- Onboarding checklist ----------------
 
 class TestOnboardingChecklist:
-    def test_checklist_returns_four_steps(self, owner):
+    def test_checklist_returns_owner_steps(self, owner):
         r = owner.get(f"{BASE_URL}/api/onboarding/checklist")
         assert r.status_code == 200
         j = r.json()
-        assert isinstance(j["steps"], list) and len(j["steps"]) == 4
         ids = [s["id"] for s in j["steps"]]
-        assert ids == ["financials", "people", "invite", "update"]
+        assert ids == ["tour", "financials", "decision", "quickadd", "people", "invite", "update"]
         for s in j["steps"]:
-            assert "label" in s and "route" in s and isinstance(s["done"], bool)
+            assert "label" in s and "route" in s and "tour" in s and isinstance(s["done"], bool)
         assert isinstance(j["complete"], bool)
         assert "dismissed" in j
         assert isinstance(j["dismissed"], bool)
@@ -223,7 +222,7 @@ class TestOnboardingChecklist:
         assert r.json()["dismissed"] is True
         after = owner.get(f"{BASE_URL}/api/onboarding/checklist").json()
         assert after["dismissed"] is True
-        assert isinstance(after["steps"], list) and len(after["steps"]) == 4
+        assert isinstance(after["steps"], list) and len(after["steps"]) == 7
 
     def test_owner_workspace_financials_and_people_done(self, owner):
         j = owner.get(f"{BASE_URL}/api/onboarding/checklist").json()

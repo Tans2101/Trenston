@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import Term from "@/components/guide/Term";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -916,7 +917,7 @@ export default function Financials() {
             <GlassCard className="grid grid-cols-1 divide-y divide-helm-line md:grid-cols-3 md:divide-x md:divide-y-0">
               <div className="p-6" data-testid="fin-Cash">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={KPI_LABEL}>Cash in bank</p>
+                  <p className={KPI_LABEL}><Term id="cash">Cash in bank</Term></p>
                   {canWrite && (
                     <button
                       type="button"
@@ -946,7 +947,7 @@ export default function Financials() {
 
               <div className="p-6" data-testid="fin-Runway">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={KPI_LABEL}>Runway</p>
+                  <p className={KPI_LABEL}><Term id="runway">Runway</Term></p>
                   {status && <StatusPill tone={status.tone}>{status.label}</StatusPill>}
                 </div>
                 {runwayMonths != null ? (
@@ -976,7 +977,7 @@ export default function Financials() {
 
               <div className="p-6" data-testid="fin-Net Burn">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={KPI_LABEL}>{netPositive ? "Net income" : "Net burn"}</p>
+                  <p className={KPI_LABEL}><Term id={netPositive ? "net_income" : "burn"}>{netPositive ? "Net income" : "Net burn"}</Term></p>
                   {latestLabel && <span className="font-mono text-[11px] text-helm-muted">{latestLabel}</span>}
                 </div>
                 {data.burn_known === false ? (
@@ -1004,7 +1005,7 @@ export default function Financials() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <GlassCard className="p-5" data-testid="fin-MRR">
                 <div className="flex items-center justify-between gap-2">
-                  <p className={KPI_LABEL}>MRR</p>
+                  <p className={KPI_LABEL}><Term id="mrr">MRR</Term></p>
                   {!mrrMissing && <Delta value={data.mrr_delta} />}
                 </div>
                 {mrrMissing ? (
@@ -1017,7 +1018,7 @@ export default function Financials() {
                 </p>
               </GlassCard>
               <GlassCard className="p-5" data-testid="fin-ARR">
-                <p className={KPI_LABEL}>ARR</p>
+                <p className={KPI_LABEL}><Term id="arr">ARR</Term></p>
                 {mrrMissing ? (
                   canWrite ? <AddDataButton onClick={openEntryForm} testId="fin-ARR-add" /> : <p className="mt-3 font-mono text-lg text-helm-muted">Not set</p>
                 ) : (
@@ -1026,7 +1027,7 @@ export default function Financials() {
                 <p className="mt-2 text-xs text-helm-muted">MRR × 12, annualised.</p>
               </GlassCard>
               <GlassCard className="p-5" data-testid="fin-Gross Margin">
-                <p className={KPI_LABEL}>Gross margin</p>
+                <p className={KPI_LABEL}><Term id="gross_margin">Gross margin</Term></p>
                 {gmMissing ? (
                   canWrite ? <AddDataButton onClick={openSettings} testId="fin-Gross Margin-add" /> : <p className="mt-3 font-mono text-lg text-helm-muted">Not set</p>
                 ) : (

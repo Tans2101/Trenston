@@ -103,6 +103,16 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
 
   useImperativeHandle(ref, () => ({
     close: () => setOpen(false),
+    openWith: (text = "") => {
+      setOpen(true);
+      setQuery(text);
+      requestAnimationFrame(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange?.(text.length, text.length);
+      });
+    },
     focus: () => {
       setOpen(true);
       requestAnimationFrame(() => inputRef.current?.focus());

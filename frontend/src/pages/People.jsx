@@ -164,7 +164,7 @@ export default function People() {
     return (
       <div>
         <PageHeader title="People" subtitle="Your team roster, linked with Team & Access for anyone who can log in." action={action} />
-        <EmptyState title="No people yet" body="Add your team here. Invites from Team & Access show up automatically."
+        <EmptyState title="No people yet" body="Add the people who work with you: name, role and department. This does not give them a login. Invite them under Team & Access when they should use Trenston, and they show up here automatically."
           action={canWrite ? <button data-testid="empty-add-person-btn" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Add first person</button> : null} />
         {showForm && <PersonForm {...{ form, setForm, submit, busy, editing, person: editingPerson, close: () => setShowForm(false), canInvite, packOptions }} />}
       </div>

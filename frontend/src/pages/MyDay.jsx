@@ -7,6 +7,7 @@ import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions, isOpenDecision } from "@/hooks/useDecisionActions";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { api } from "@/lib/api";
+import GetStarted from "@/components/guide/GetStarted";
 import { useAuth } from "@/context/AuthContext";
 import { todayISO } from "@/lib/dates";
 import { dayPartGreeting } from "@/lib/greeting";
@@ -253,6 +254,9 @@ export default function MyDay() {
         <h1 className="font-display text-3xl md:text-5xl font-normal tracking-tight text-helm-fg">{greeting}, {first}.</h1>
         <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">Your private notes, tasks, and optional team update. Start with what matters to you.</p>
       </div>
+
+      {/* Owners and execs get this list on the Briefing; everyone else starts here. */}
+      {user?.default_route && user.default_route !== "/app" ? <GetStarted /> : null}
 
       {softRefreshError ? (
         <div

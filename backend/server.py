@@ -2960,6 +2960,17 @@ async def google_callback(
         return RedirectResponse(fail)
 
 
+GUIDE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,39}$")
+MAX_GUIDES_SEEN = 80
+
+
+def _clean_guides_seen(raw) -> dict:
+    """Which in-app guides (page intros / tours) this person has already seen: {guide_id: iso time}."""
+    if not isinstance(raw, dict):
+        return {}
+    return {k: str(v) for k, v in raw.items() if isinstance(k, str) and GUIDE_ID_RE.match(k)}
+
+
 async def _user_session_payload(user: dict) -> dict:
     base = {
         "user_id": user["user_id"],
@@ -2968,6 +2979,7 @@ async def _user_session_payload(user: dict) -> dict:
         "picture": user.get("picture"),
         "appearance": _normalize_appearance(user.get("appearance")),
         "age_confirmed": bool(user.get("age_confirmed")),
+        "guides_seen": _clean_guides_seen(user.get("guides_seen")),
     }
     active = user.get("active_workspace_id")
     membership = None
@@ -5327,22 +5339,57 @@ async def delete_decision(decision_id: str, principal=Depends(require_section("d
 async def onboarding_checklist(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
     ws = c["workspace_id"]
-    dismissed = bool(c.get("setup_checklist_dismissed"))
-    has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
-    people_n = len(c["people"]["people"])
+    uid = principal["user_id"]
+    is_lead = principal.get("pack") in ("owner", "exec") or principal.get("role") == "owner"
+    # Dismissing is personal: hiding it for yourself must not hide it for a new teammate.
+    # The old workspace-wide flag still counts for the owner who set it.
+    dismissed = uid in (c.get("setup_checklist_dismissed_by") or []) or (
+        is_lead and bool(c.get("setup_checklist_dismissed"))
+    )
+    user_doc = await db.users.find_one({"user_id": uid}, {"_id": 0, "guides_seen": 1}) or {}
+    seen = _clean_guides_seen(user_doc.get("guides_seen"))
+    people_n = len(((c.get("people") or {}).get("people")) or [])
     members_n = await db.memberships.count_documents({"workspace_id": ws, "status": "active"})
     # "First" status update — any past update counts, so the step stays done
     # the next morning instead of flipping back to incomplete every day.
-    has_update = await db.updates.count_documents({"workspace_id": ws, "user_id": principal["user_id"]}) > 0
+    has_update = await db.updates.count_documents({"workspace_id": ws, "user_id": uid}) > 0
+    tasks = list(((c.get("tasks") or {}).get("items")) or [])
+    has_my_task = any(t.get("assignee_user_id") == uid for t in tasks)
     has_team = decision_engine.workspace_has_team(c)
-    steps = [
-        {"id": "financials", "label": "Add your financials", "done": has_fin, "route": "/app/financials"},
-    ]
-    if has_team:
-        # Solo founders (has_team=False) can never finish these — omit them.
-        steps.append({"id": "people", "label": "Add your team roster", "done": people_n > 0, "route": "/app/people"})
-        steps.append({"id": "invite", "label": "Invite a teammate", "done": members_n > 1, "route": "/app/members"})
-    steps.append({"id": "update", "label": "Post your first status update", "done": has_update, "route": "/app/me"})
+
+    def step(id_, label, done, route, tour, hint):
+        return {"id": id_, "label": label, "done": bool(done), "route": route, "tour": tour, "hint": hint}
+
+    if is_lead:
+        steps = [step("tour", "Take the 1-minute tour", "briefing" in seen, "/app", "briefing",
+                      "See what the Briefing shows you each morning.")]
+        if await can_access_financials(principal):
+            has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
+            steps.append(step("financials", "Add your cash and one month of numbers", has_fin, "/app/financials",
+                              "financials", "Runway and the money alerts start working from this."))
+        steps.append(step("decision", "Log one decision you're facing", bool(c.get("decisions")), "/app/decisions",
+                          "decisions", "Anything you need to decide, big or small."))
+        steps.append(step("quickadd", "Add a task from the search bar", has_my_task, "/app", "quickadd",
+                          "Press Ctrl+K and type: task call the bank friday"))
+        if has_team:
+            # Solo founders (has_team=False) can never finish these — omit them.
+            steps.append(step("people", "Add your team roster", people_n > 0, "/app/people", "people",
+                              "Names and roles, so work can be assigned."))
+            steps.append(step("invite", "Invite a teammate", members_n > 1, "/app/members", "members",
+                              "They get their own My Day with only their work."))
+        steps.append(step("update", "Post your first status update", has_update, "/app/me", "myday",
+                          "Two lines: what you did, what's next."))
+    else:
+        steps = [
+            step("tour", "Take the 1-minute tour of My Day", "myday" in seen, "/app/me", "myday",
+                 "Your work, your notes and your updates in one place."),
+            step("update", "Post your first status update", has_update, "/app/me", "myday",
+                 "Two lines: what you did, what's next."),
+            step("tasks", "Find your tasks", "tasks" in seen, "/app/tasks", "tasks",
+                 "See what's assigned to you and move it along."),
+            step("quickadd", "Add a task from the search bar", has_my_task, "/app/me", "quickadd",
+                 "Press Ctrl+K and type: task send the report friday"),
+        ]
     for step in steps:
         if step["done"]:
             await helm_analytics.log_event_once(
@@ -5357,11 +5404,11 @@ async def onboarding_checklist(principal=Depends(get_principal)):
 
 @api_router.post("/onboarding/checklist/dismiss")
 async def dismiss_onboarding_checklist(principal=Depends(get_principal)):
-    """Hide the Briefing 'Finish setting up' card for this workspace."""
+    """Hide the 'Get started' card for this person in this workspace."""
     ws_id = principal["workspace_id"]
     await db.workspaces.update_one(
         {"workspace_id": ws_id},
-        {"$set": {"setup_checklist_dismissed": True}},
+        {"$addToSet": {"setup_checklist_dismissed_by": principal["user_id"]}},
     )
     return {"ok": True, "dismissed": True}
 
@@ -16530,6 +16577,36 @@ APPEARANCE_VALUES = frozenset({"light", "dark", "system"})
 def _normalize_appearance(value) -> str:
     raw = str(value or "light").strip().lower()
     return raw if raw in APPEARANCE_VALUES else "light"
+
+
+class GuideSeenInput(BaseModel):
+    guide_id: Optional[str] = None
+    seen: bool = True
+    reset_all: bool = False
+
+
+@api_router.patch("/account/guides")
+async def update_guides_seen(body: GuideSeenInput, user=Depends(get_user)):
+    """Remember which page intros and tours this person has seen (across devices)."""
+    if body.reset_all:
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"guides_seen": {}}})
+        return {"guides_seen": {}}
+    gid = (body.guide_id or "").strip().lower()
+    if not GUIDE_ID_RE.match(gid):
+        raise HTTPException(status_code=400, detail="Unknown guide")
+    current = _clean_guides_seen(user.get("guides_seen"))
+    if body.seen:
+        if gid not in current and len(current) >= MAX_GUIDES_SEEN:
+            raise HTTPException(status_code=400, detail="Too many guides")
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": {f"guides_seen.{gid}": datetime.now(timezone.utc).isoformat()}},
+        )
+        current[gid] = "now"
+    else:
+        await db.users.update_one({"user_id": user["user_id"]}, {"$unset": {f"guides_seen.{gid}": ""}})
+        current.pop(gid, None)
+    return {"guides_seen": sorted(current)}
 
 
 @api_router.patch("/account/appearance")

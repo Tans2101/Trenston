@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, Send, UserCheck, Users, Check, Mail, Plug, X, Eraser } from "lucide-react";
+import { ArrowUpRight, Send, UserCheck, Users, Mail, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
+import GetStarted from "@/components/guide/GetStarted";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { hasPerm } from "@/lib/access";
@@ -35,7 +36,6 @@ export default function Briefing() {
   const canManageIntegrations = hasPerm(user, "integrations:manage");
   const { data, loading: briefingLoading, error: briefingError, reload: reloadBriefing, setData } = useFetch("/briefing");
   const { data: company, loading: companyLoading, error: companyError, reload: reloadCompany } = useCompanyQuery();
-  const { data: checklist, reload: reloadChecklist, setData: setChecklist } = useFetch("/onboarding/checklist");
   const {
     data: integPrompt,
     reload: reloadIntegPrompt,
@@ -43,7 +43,6 @@ export default function Briefing() {
   } = useFetch(canManageIntegrations ? "/onboarding/integrations-prompt" : null);
   const [genLoading, setGenLoading] = useState(false);
   const [delegateBusy, setDelegateBusy] = useState(null);
-  const [dismissBusy, setDismissBusy] = useState(false);
   const [integDismissBusy, setIntegDismissBusy] = useState(false);
   const [sampleBannerDismissed, setSampleBannerDismissed] = useState(false);
   const [clearSampleBusy, setClearSampleBusy] = useState(false);
@@ -169,21 +168,6 @@ export default function Briefing() {
     }
   };
 
-  const dismissChecklist = async () => {
-    if (dismissBusy) return;
-    setDismissBusy(true);
-    try {
-      await api.post("/onboarding/checklist/dismiss");
-      setChecklist((prev) => (prev ? { ...prev, dismissed: true } : prev));
-      toast.success("Setup checklist hidden");
-      reloadChecklist();
-    } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not hide checklist");
-    } finally {
-      setDismissBusy(false);
-    }
-  };
-
   const dismissIntegrationsPrompt = async () => {
     if (integDismissBusy) return;
     setIntegDismissBusy(true);
@@ -239,9 +223,6 @@ export default function Briefing() {
 
   const { greeting: timeGreet, briefingLabel } = dayPartGreeting();
   const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "there"}`;
-  const doneCount = checklist?.steps?.filter((s) => s.done).length ?? 0;
-  const stepCount = checklist?.steps?.length ?? 0;
-  const showChecklist = Boolean(checklist && Array.isArray(checklist.steps) && !checklist.complete && !checklist.dismissed);
   const showIntegrationsPrompt = Boolean(
     canManageIntegrations
     && integPrompt
@@ -396,62 +377,7 @@ export default function Briefing() {
         </section>
       )}
 
-      {showChecklist && (
-        <section className="mb-6 fade-up rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm" data-testid="onboarding-checklist">
-          <div className="flex items-center gap-3 mb-4">
-            <BriefLabel>Finish setting up</BriefLabel>
-            <span className="ml-auto text-xs text-helm-muted tabular-nums">{doneCount} of {stepCount} done</span>
-            <button
-              type="button"
-              data-testid="dismiss-setup-checklist"
-              onClick={dismissChecklist}
-              disabled={dismissBusy}
-              className="text-helm-muted hover:text-helm-fg transition-colors disabled:opacity-50 p-0.5"
-              aria-label="Hide setup checklist"
-              title="Hide"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="border-t border-helm-line">
-            {checklist.steps.map((s) => (
-              <button
-                key={s.id}
-                data-testid={`setup-${s.id}`}
-                onClick={() => navigate(s.route)}
-                className="flex w-full items-center gap-3 border-b border-helm-line py-2.5 text-left transition-colors hover:bg-helm-fg/[0.02]"
-              >
-                <span
-                  className={cn(
-                    "flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border",
-                    s.done ? "border-helm-fg/40 bg-helm-fg/10 text-helm-fg" : "border-helm-line",
-                  )}
-                  aria-hidden
-                >
-                  {s.done ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
-                </span>
-                <span className={cn("text-sm", s.done ? "text-helm-muted" : "text-helm-fg")}>
-                  {s.label}
-                </span>
-                {!s.done && <ArrowUpRight className="w-3.5 h-3.5 text-helm-muted ml-auto shrink-0" />}
-              </button>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-helm-muted">
-            Completes on its own when every step is done. Or{" "}
-            <button
-              type="button"
-              data-testid="dismiss-setup-checklist-text"
-              onClick={dismissChecklist}
-              disabled={dismissBusy}
-              className="underline underline-offset-2 hover:text-helm-fg transition-colors disabled:opacity-50"
-            >
-              hide this
-            </button>
-            {" "}anytime.
-          </p>
-        </section>
-      )}
+      <GetStarted />
 
       {data.reserve_prompt && (
         <div className="mb-6 flex flex-col gap-2 border-y border-helm-line py-3 sm:flex-row sm:items-center sm:justify-between" data-testid="reserve-prompt">
@@ -655,7 +581,7 @@ export default function Briefing() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <GlassCard className="p-5 fade-up">
+        <GlassCard className="p-5 fade-up" data-testid="briefing-what-changed">
           <BriefLabel className="mb-4">What changed</BriefLabel>
           <div className="space-y-4">
             {whatChanged.length === 0 && (
@@ -689,7 +615,7 @@ export default function Briefing() {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-5 fade-up">
+        <GlassCard className="p-5 fade-up" data-testid="briefing-what-to-decide">
           <div className="flex items-center justify-between mb-4">
             <BriefLabel>What to decide</BriefLabel>
             <span className="text-xs tabular-nums text-helm-muted">{whatToDecideTotal}</span>

@@ -51,6 +51,7 @@ def _checklist_db(*, updates_count=0):
     mock_db = MagicMock()
     mock_db.financial_entries.count_documents = AsyncMock(return_value=0)
     mock_db.memberships.count_documents = AsyncMock(return_value=1)
+    mock_db.users.find_one = AsyncMock(return_value={"guides_seen": {}})
     captured = {}
 
     async def updates_count_documents(flt, *a, **k):
@@ -64,6 +65,7 @@ def _checklist_db(*, updates_count=0):
 def _run_checklist(ws, mock_db):
     with patch.object(server, "get_ws", AsyncMock(return_value=ws)), \
          patch.object(server, "db", mock_db), \
+         patch.object(server, "can_access_financials", AsyncMock(return_value=True)), \
          patch.object(server.helm_analytics, "log_event_once", AsyncMock()):
         return asyncio.run(server.onboarding_checklist(PRINCIPAL))
 
@@ -85,15 +87,16 @@ def test_checklist_omits_team_steps_for_solo_founder():
     mock_db.financial_entries.count_documents = AsyncMock(return_value=3)
     out = _run_checklist(ws, mock_db)
     ids = [s["id"] for s in out["steps"]]
-    assert ids == ["financials", "update"]
-    assert out["complete"] is True
+    assert ids == ["tour", "financials", "decision", "quickadd", "update"]
+    by_id = {s["id"]: s["done"] for s in out["steps"]}
+    assert by_id["financials"] is True and by_id["update"] is True
 
 
 def test_checklist_keeps_team_steps_when_has_team():
     ws = {"workspace_id": "ws1", "people": {"people": []}, "has_team": True}
     mock_db, _ = _checklist_db()
     out = _run_checklist(ws, mock_db)
-    assert [s["id"] for s in out["steps"]] == ["financials", "people", "invite", "update"]
+    assert [s["id"] for s in out["steps"]] == ["tour", "financials", "decision", "quickadd", "people", "invite", "update"]
 
 
 # ---------------- Decision PATCH keeps confidence (item 4) ----------------

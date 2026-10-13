@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import Term from "@/components/guide/Term";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -28,6 +29,8 @@ const ASSISTANT_PROMPTS = [
   "Which decision should I make first?",
   "What's the single most important thing today?",
 ];
+
+const HERO_TERM = { mrr: "revenue", burn: "burn", runway: "runway", cash: "cash" };
 
 const METRIC_KEYS = [
   { id: "mrr", label: "Revenue", match: /mrr|revenue/i, href: "/app/financials#log-mrr" },
@@ -237,7 +240,7 @@ export default function BriefingCockpitHero({
                   m.missing && "rounded-lg border border-dashed border-helm-line p-3 -m-3",
                 )}
               >
-                <p className="text-sm font-medium text-helm-fg">{m.label}</p>
+                <p className="text-sm font-medium text-helm-fg"><Term id={HERO_TERM[m.id]}>{m.label}</Term></p>
                 {m.missing ? (
                   <>
                     <p className="mt-2 font-mono text-2xl md:text-3xl text-helm-muted/50 tabular-nums">

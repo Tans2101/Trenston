@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import Term from "@/components/guide/Term";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -389,12 +390,12 @@ export default function Pipeline() {
       </div>
 
       {deals.length === 0 ? (
-        <EmptyState icon={TrendingUp} title={mineOnly ? "No deals assigned to you" : "No deals yet"} body={mineOnly ? "Deals you own will show up here. Ask a Sales lead to assign one, or clear the filter." : "Add your first deal. As it moves through stages, the CEO sees it in the briefing."}
+        <EmptyState icon={TrendingUp} title={mineOnly ? "No deals assigned to you" : "No deals yet"} body={mineOnly ? "Deals you own will show up here. Ask a Sales lead to assign one, or clear the filter." : "Add your first deal, for example: Acme Corp, 5,000, proposal sent, next step a follow-up call on Thursday. Give every deal a next step and a date, and none of them go quiet by accident."}
           action={!mineOnly && canWrite ? <button data-testid="empty-add-deal-btn" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Add first deal</button> : null} />
       ) : (
         <>
           <div className="grid grid-cols-3 gap-4 mb-6">
-            <GlassCard className="p-5 fade-up"><p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">Open Pipeline</p><p className="font-mono text-2xl text-helm-fg mt-2" data-testid="metric-open">{money(m.open_value, sym)}</p></GlassCard>
+            <GlassCard className="p-5 fade-up"><p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted"><Term id="pipeline">Open Pipeline</Term></p><p className="font-mono text-2xl text-helm-fg mt-2" data-testid="metric-open">{money(m.open_value, sym)}</p></GlassCard>
             <GlassCard className="p-5 fade-up"><p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">Won</p><p className="font-mono text-2xl text-helm-status-positive mt-2">{money(m.won_value, sym)}</p></GlassCard>
             <GlassCard className="p-5 fade-up"><p className="text-[11px] font-mono uppercase tracking-[0.15em] text-helm-muted">Open Deals</p><p className="font-mono text-2xl text-helm-fg mt-2">{m.open_count}</p></GlassCard>
           </div>
