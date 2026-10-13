@@ -1559,3 +1559,77 @@ html[data-theme="light"] .app-shell a.bg-helm-gold * {
   font-weight: 600;
   letter-spacing: -0.025em;
 }
+
+/* ==========================================================================
+   Phones and tablets
+   ========================================================================== */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+* { -webkit-tap-highlight-color: transparent; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* iPhones zoom the whole page when you tap a text box under 16px. Never let that happen. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Fingers, not mouse pointers: small controls get a comfortable size. */
+@media (pointer: coarse) {
+  input[type="checkbox"], input[type="radio"] { width: 1.25rem; height: 1.25rem; }
+  select { min-height: 2.25rem; }
+  .mk-link { padding-block: 0.6rem; margin-block: -0.6rem; }
+  .mk-link::after { bottom: calc(0.6rem - 4px); }
+}
+
+/* Every pop-up form stays inside the screen and scrolls on its own, so the
+   Save button is always reachable on a phone. */
+.fixed.inset-0 > .relative:not(.pointer-events-none) {
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@media (max-width: 639px) {
+  .fixed.inset-0.items-end > .relative {
+    max-height: 92dvh;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+  /* Centred dialogs become full-width on small screens. */
+  .fixed.inset-0.items-center.p-4 > .relative { max-width: 100%; }
+}
+
+/* App on phones: room for the bottom bar and the iPhone home indicator. */
+@media (max-width: 1023px) {
+  .app-shell main { padding-bottom: calc(5rem + env(safe-area-inset-bottom)); }
+}
+.mobile-tabbar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Small text buttons and icons get an invisible, finger-sized hit area on
+   touch screens (the look does not change). */
+@media (pointer: coarse) {
+  .app-shell :is(button, a):is(.text-xs, .text-\[10px\], .text-\[11px\]):not(.absolute):not(.fixed):not(.sticky),
+  :is([data-testid^="term-"], [data-testid="dismiss-setup-checklist"], [data-testid="tour-close"], [data-testid="page-help-close"]) {
+    position: relative;
+  }
+  .app-shell :is(button, a):is(.text-xs, .text-\[10px\], .text-\[11px\]):not(.absolute):not(.fixed):not(.sticky)::after,
+  :is([data-testid^="term-"], [data-testid="dismiss-setup-checklist"], [data-testid="tour-close"], [data-testid="page-help-close"])::after {
+    content: "";
+    position: absolute;
+    inset: -10px -6px;
+  }
+}
+
+/* While a pop-up form is open, the phone tab bar steps aside. */
+.app-shell:has(main .fixed.inset-0) .mobile-tabbar { display: none; }
+
+/* Pop-up backdrops dim the page (the light-theme canvas rule above would
+   otherwise paint them solid). */
+html[data-theme="light"] .app-shell .fixed.inset-0 > .absolute.inset-0[class*="bg-helm-ink/"],
+html[data-theme="light"] .app-shell .fixed.inset-0 > .absolute.inset-0[class*="bg-black/"] {
+  background-color: rgba(10, 10, 10, 0.45) !important;
+}

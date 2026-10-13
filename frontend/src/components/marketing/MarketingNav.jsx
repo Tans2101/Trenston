@@ -83,7 +83,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
             </button>
             <button
               type="button"
-              className="p-1 text-mk-black lg:hidden"
+              className="-mr-2 inline-flex h-11 w-11 items-center justify-center text-mk-black lg:hidden"
               aria-label={open ? "Close menu" : "Open menu"}
               aria-expanded={open}
               onClick={() => setOpen((o) => !o)}

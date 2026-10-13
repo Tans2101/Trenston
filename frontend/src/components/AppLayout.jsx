@@ -68,6 +68,66 @@ function navItemVisible(item, user, { modelingAllowed = false } = {}) {
   return true;
 }
 
+/** Phone-only bar along the bottom: the four places people go most, plus More. */
+const TABBAR_ORDER = {
+  lead: ["briefing", "myday", "tasks", "decisions"],
+  member: ["myday", "tasks", "decisions", "calendar"],
+};
+
+function MobileTabBar({ onMore, moreOpen }) {
+  const { user } = useAuth();
+  const lead = user?.default_route === "/app" || user?.role === "owner";
+  const order = lead ? TABBAR_ORDER.lead : TABBAR_ORDER.member;
+  const items = order
+    .map((id) => NAV.find((n) => n.id === id))
+    .filter((n) => n && navItemVisible(n, user))
+    .slice(0, 4);
+  const tab = "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 py-2 text-[11px] font-medium transition-colors";
+  return (
+    <nav
+      className="mobile-tabbar lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-helm-line bg-helm-bg/95 backdrop-blur-md"
+      aria-label="Main"
+      data-testid="mobile-tabbar"
+    >
+      <div className="flex h-16 items-stretch px-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.id}
+              to={item.to}
+              end={item.end}
+              data-testid={`tabbar-${item.id}`}
+              className={({ isActive }) => cn(tab, isActive ? "text-helm-fg" : "text-helm-muted")}
+            >
+              {({ isActive }) => (
+                <>
+                  <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", isActive && "bg-helm-gold/12")}>
+                    <Icon className="h-5 w-5" strokeWidth={isActive ? 2.25 : 1.75} />
+                  </span>
+                  <span className="max-w-full truncate">{item.label}</span>
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+        <button
+          type="button"
+          onClick={onMore}
+          data-testid="mobile-menu-btn"
+          aria-expanded={moreOpen}
+          className={cn(tab, moreOpen ? "text-helm-fg" : "text-helm-muted")}
+        >
+          <span className="flex h-7 w-12 items-center justify-center rounded-full">
+            <Menu className="h-5 w-5" />
+          </span>
+          <span>More</span>
+        </button>
+      </div>
+    </nav>
+  );
+}
+
 function departmentNavVisible(dept) {
   if (!dept?.visible_in_nav) return false;
   // Financials is gated via the main NAV entry + SectionGate; hide the dept duplicate.
@@ -917,7 +977,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Mobile top bar */}
-      <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line">
+      <div className="lg:hidden sticky top-0 z-50 flex items-center justify-between pl-4 pr-2 h-14 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line box-content" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="flex items-center gap-2">
           {company?.logo_url ? (
             <img src={company.logo_url} alt="" width={28} height={28} className="rounded-md object-cover" />
@@ -932,15 +992,12 @@ export default function AppLayout() {
             type="button"
             data-testid="mobile-search-btn"
             onClick={openSearch}
-            className="text-helm-fg p-2"
+            className="inline-flex h-10 w-10 items-center justify-center text-helm-fg"
             aria-label="Search"
           >
             <Search className="w-5 h-5" />
           </button>
           {profileMenu(true)}
-          <button data-testid="mobile-menu-btn" onClick={() => setMobileOpen(true)} className="text-helm-fg p-2">
-            <Menu className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -959,6 +1016,8 @@ export default function AppLayout() {
           </div>
         </div>
       )}
+
+      <MobileTabBar onMore={() => setMobileOpen(true)} moreOpen={mobileOpen} />
 
       {/* Mobile search dialog */}
       <div className="lg:hidden">

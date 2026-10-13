@@ -20,7 +20,7 @@ export function PageIntro() {
 
   return (
     <div
-      className="mb-6 flex flex-col gap-3 rounded-xl border border-helm-gold/30 bg-helm-gold/[0.07] p-4 sm:flex-row sm:items-center"
+      className="mb-5 flex flex-col gap-2.5 rounded-xl border border-helm-gold/30 bg-helm-gold/[0.07] p-3.5 sm:mb-6 sm:gap-3 sm:p-4 sm:flex-row sm:items-center"
       data-testid="page-intro"
       role="note"
     >
@@ -73,7 +73,7 @@ export function PageHelpButton({ mobile = false }) {
       onClick={() => setHelpOpen(true)}
       className={cn(
         mobile
-          ? "p-2 text-helm-fg"
+          ? "inline-flex h-10 w-10 items-center justify-center text-helm-fg"
           : "inline-flex h-9 w-9 items-center justify-center rounded-full border border-helm-line text-helm-muted transition-colors hover:bg-helm-fg/[0.04] hover:text-helm-fg",
       )}
     >

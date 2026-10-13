@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791862946.6564226,
-    "seen": 1791863055.764999,
-    "ast_hash": "3db9553dd8ca7ee281ff38236072476c",
+    "mtime": 1791864560.4582536,
+    "seen": 1791864830.2940054,
+    "ast_hash": "d3c3efcfaa453408325b7b7916772337",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1362,9 +1362,9 @@
     "semantic_hash": "f530e73d1b019c9bd75c16c19d83673f"
   },
   "frontend/src/components/MaintenanceOpsPanels.jsx": {
-    "mtime": 1790598985.9702249,
-    "seen": 1791795297.087608,
-    "ast_hash": "14b2f6d1326899c4c0c30cbf98a2f4fe",
+    "mtime": 1791864525.9099631,
+    "seen": 1791864830.2940383,
+    "ast_hash": "ee3c2aa52fd592eef77ebe57008002f3",
     "semantic_hash": ""
   },
   "frontend/src/components/ProtectedRoute.jsx": {
@@ -1890,9 +1890,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingFooter.jsx": {
-    "mtime": 1791792078.8112967,
-    "seen": 1791795297.0878391,
-    "ast_hash": "59fe693966c409dfd56a0005cce0e7b9",
+    "mtime": 1791864525.9104075,
+    "seen": 1791864830.2941296,
+    "ast_hash": "c4a481451f8aab099f4c06be9400e7c4",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingLogo.jsx": {
@@ -1902,9 +1902,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingNav.jsx": {
-    "mtime": 1791862812.7721562,
-    "seen": 1791863055.7651305,
-    "ast_hash": "830dc6e93e954eebf1cc5892748f095d",
+    "mtime": 1791864525.9107165,
+    "seen": 1791864830.294131,
+    "ast_hash": "2441a65f6397943e7deabe71793d6b1e",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/ProductScreens.jsx": {
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791863848.177146,
-    "seen": 1791863890.5214171,
-    "ast_hash": "94d2d0e8d15e60ef72c9b5bf80f64c8c",
+    "mtime": 1791864779.196493,
+    "seen": 1791864830.2941954,
+    "ast_hash": "11bcdeba42ea729bffb50fd9dddaccfb",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2610,9 +2610,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/HR.jsx": {
-    "mtime": 1791471489.7268984,
-    "seen": 1791795297.088219,
-    "ast_hash": "26a6cf286138f8390336c894e1d68d94",
+    "mtime": 1791864525.9093761,
+    "seen": 1791864830.29427,
+    "ast_hash": "753d913252048f259fcf618594eb1087",
     "semantic_hash": ""
   },
   "frontend/src/pages/Help.jsx": {
@@ -5130,14 +5130,14 @@
     "semantic_hash": ""
   },
   "frontend/public/index.html": {
-    "mtime": 1791863220.4398792,
-    "seen": 1791863569.7755644,
-    "ast_hash": "572676a9652276fb2e592576f9224904",
+    "mtime": 1791864534.8798025,
+    "seen": 1791864830.2946365,
+    "ast_hash": "a6db6bb189fec00e8db6a23752d53e88",
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791863876.1302423,
-    "seen": 1791863890.5219886,
+    "mtime": 1791864810.2144434,
+    "seen": 1791864830.2946377,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -6090,9 +6090,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/guide/PageGuide.jsx": {
-    "mtime": 1791862355.475825,
-    "seen": 1791862552.3333209,
-    "ast_hash": "bd00928a997e1b2153ef1a2edccced01",
+    "mtime": 1791864560.4588122,
+    "seen": 1791864830.2941134,
+    "ast_hash": "a9a9ac46f74eea399da433b68e4c2412",
     "semantic_hash": ""
   },
   "frontend/src/components/guide/Term.jsx": {

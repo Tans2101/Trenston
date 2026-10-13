@@ -560,7 +560,7 @@ export default function HR() {
         </div>
       )}
 
-      <div className="flex items-center gap-1 mb-5 border-b border-helm-line" data-testid="hr-tabs">
+      <div className="flex items-center gap-1 mb-5 border-b border-helm-line overflow-x-auto no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0" data-testid="hr-tabs">
         {tabs.map((t) => (
           <button
             key={t.id}
@@ -568,7 +568,7 @@ export default function HR() {
             data-testid={`hr-tab-${t.id}`}
             onClick={() => setTab(t.id)}
             className={cn(
-              "px-3 py-2 text-sm border-b-2 -mb-px transition-colors",
+              "shrink-0 whitespace-nowrap px-3 py-2.5 text-sm border-b-2 -mb-px transition-colors",
               tab === t.id
                 ? "border-helm-gold text-helm-fg"
                 : "border-transparent text-helm-muted hover:text-helm-fg",

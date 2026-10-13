@@ -35,7 +35,7 @@ const FOOTER_LINKS = {
   ],
 };
 
-const linkClass = "text-sm text-mk-gray-dark transition-colors hover:text-white hover:underline underline-offset-4";
+const linkClass = "inline-block py-1 text-sm text-mk-gray-dark transition-colors hover:text-white hover:underline underline-offset-4 sm:py-0";
 
 function FooterLink({ item }) {
   if (item.href) {
@@ -78,7 +78,7 @@ export default function MarketingFooter() {
           {Object.entries(FOOTER_LINKS).map(([group, links]) => (
             <nav key={group} aria-label={`${group} links`}>
               <p className="text-sm font-semibold text-white">{group}</p>
-              <ul className="mt-5 flex flex-col gap-3">
+              <ul className="mt-5 flex flex-col gap-1.5 sm:gap-3">
                 {links.map((item) => (
                   <li key={item.label}>
                     <FooterLink item={item} />

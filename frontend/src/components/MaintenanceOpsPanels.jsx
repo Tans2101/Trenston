@@ -408,14 +408,14 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
         </div>
       )}
 
-      <div className="flex items-center gap-1 border-b border-helm-line" data-testid="maintenance-ops-tabs">
+      <div className="flex items-center gap-1 border-b border-helm-line overflow-x-auto no-scrollbar" data-testid="maintenance-ops-tabs">
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             className={cn(
-              "px-3 py-2 text-sm border-b-2 -mb-px",
+              "shrink-0 whitespace-nowrap px-3 py-2.5 text-sm border-b-2 -mb-px",
               tab === t.id ? "border-helm-gold text-helm-fg" : "border-transparent text-helm-muted",
             )}
           >
