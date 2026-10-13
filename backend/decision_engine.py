@@ -1379,8 +1379,8 @@ def compute_impact_score(signal: dict) -> float:
     return round(score, 4)
 
 
-def rank_and_cap_signals(signals: list, *, cap: int = SIGNAL_CAP) -> list:
-    """Sort by severity, then impact (desc); truncate and log when over cap."""
+def rank_and_cap_signals(signals: list, *, cap: Optional[int] = SIGNAL_CAP) -> list:
+    """Sort by severity, then impact (desc); truncate and log when over cap (None = keep all)."""
     severity_rank = {"high": 0, "medium": 1, "low": 2}
     ranked = list(signals or [])
     for s in ranked:
@@ -1393,7 +1393,7 @@ def rank_and_cap_signals(signals: list, *, cap: int = SIGNAL_CAP) -> list:
             str(s.get("related_id") or ""),
         )
     )
-    if len(ranked) <= cap:
+    if cap is None or len(ranked) <= cap:
         return ranked
     kept = ranked[:cap]
     cut = ranked[cap:]
@@ -1419,8 +1419,12 @@ def collect_signals(
     department_items: list | None = None,
     now: Optional[datetime] = None,
     sales_targets: list | None = None,
+    cap: Optional[int] = SIGNAL_CAP,
 ) -> list:
-    """Run all detectors and return a flat list of signals."""
+    """Run all detectors and return a flat list of signals.
+
+    ``cap=None`` keeps every signal (the automations engine needs the full list;
+    the Decisions feed keeps the default cap so one refresh stays bounded)."""
     signals = []
     runway = detect_runway_risk(fin)
     if runway:
@@ -1443,4 +1447,4 @@ def collect_signals(
     signals.extend(collect_department_signals(department_items, now=now))
     # Cap volume so one regenerate can't spawn dozens of LLM calls.
     # Severity first; within a tier, impact — not alphabetical type names.
-    return rank_and_cap_signals(signals, cap=SIGNAL_CAP)
+    return rank_and_cap_signals(signals, cap=cap)

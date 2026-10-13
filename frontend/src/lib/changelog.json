@@ -2,6 +2,11 @@
   "intro": "What actually shipped, not a roadmap. One summary per day in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
     {
+      "date": "2026-10-13",
+      "title": "Automations and anomaly alerts, and faster sign-in",
+      "description": "A new Automations page lets the workspace owner set rules once: when a work order is overdue, a supplier delay blocks production, a legal deadline is near, a deal stalls, or cash runway gets short, Trenston creates a task for the right person or shows an alert. Ready-made rules get you started in one click. Each thing fires once, and a rule can create at most 10 tasks per run, so turning one on never floods the board. Trenston also checks the finance ledger once a day for entries that look duplicated, one-off expenses far above the usual, and revenue that drops or stops, and shows each finding with a plain explanation. None of this uses AI, so it costs nothing to run. Signing in is also faster: sessions are verified without a round trip to the sign-in provider, the sign-in screen starts instantly on repeat visits, and the error screen now offers Try again instead of forcing a sign-out. Assistant connections like Claude now last 30 days before they ask you to sign in again."
+    },
+    {
       "date": "2026-10-12",
       "title": "Tighter privacy for financial activity and AI connections",
       "description": "Activity entries from Financials, which can include amounts such as logged revenue, now only show in the Briefing and the activity feed for people with Financials access, matching the Financials page itself. Removing someone from a workspace now ends all of their API keys and AI assistant connections for good, so re-inviting them never brings old access back. Deleting a workspace or an account also deletes its API keys and connections. The consent screen for connecting an assistant marks Claude's own sign-in as verified and labels any other app as unverified. The Help page has a new step-by-step guide to connecting an AI assistant, and the Security page explains exactly what read-only access allows."

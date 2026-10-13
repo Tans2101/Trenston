@@ -11,6 +11,7 @@ const prefetchers = {
   "/app/financials": () => import("@/pages/Financials"),
   "/app/modeling": () => import("@/pages/FinancialModeling"),
   "/app/tasks": () => import("@/pages/Tasks"),
+  "/app/automations": () => import("@/pages/Automations"),
   "/app/reports": () => import("@/pages/Reports"),
   "/app/calendar": () => import("@/pages/CalendarPage"),
   "/app/people": () => import("@/pages/People"),

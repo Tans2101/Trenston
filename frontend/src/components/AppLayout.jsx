@@ -7,7 +7,7 @@ import {
   Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search, Bell,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
-  Info, LayoutGrid, Receipt, LineChart as LineChartIcon,
+  Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -44,6 +44,7 @@ const NAV = [
   { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials" },
   { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials" },
   { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks" },
+  { to: "/app/automations", label: "Automations", icon: Zap, id: "automations", ownerOnly: true },
   { to: "/app/reports", label: "Reports", icon: FileText, id: "reports" },
   { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar" },
   { to: "/app/people", label: "People", icon: Contact, id: "people" },
@@ -52,6 +53,8 @@ const NAV = [
 ];
 
 function navItemVisible(item, user, { modelingAllowed = false } = {}) {
+  // Rules create tasks and read finance signals, so only the workspace owner sees Automations.
+  if (item.ownerOnly && user?.role !== "owner" && user?.pack !== "owner") return false;
   // Pack-only perms (e.g. members:invite) — unchanged shallow check.
   if (item.perm && !(user?.perms || []).includes(item.perm)) return false;
   // Grant-aware sections (e.g. telemetry, financials) — includes pack holders via /auth/me.

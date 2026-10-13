@@ -43,6 +43,7 @@ import google_document_ai as gcp_docai
 import integrations_catalog as integ_catalog
 import clerk_auth
 import decision_engine
+import automations as helm_automations
 import modeling
 import money_fmt
 from money_fmt import fmt_money, normalize_currency, currency_symbol, CURRENCY_SYMBOLS, entered_cash_amount
@@ -16386,6 +16387,7 @@ _WORKSPACE_COLLECTIONS = (
     "maintenance_schedules", "maintenance_spares", "maintenance_costs", "maintenance_contracts",
     "sales_order_book", "sales_targets",
     "document_usage_periods", "seat_usage",
+    "automation_rules", "automation_events", "anomaly_alerts",
 )
 
 # Credentials for the public API and AI-assistant connectors. Removed with the
@@ -17695,6 +17697,299 @@ dept_ops_wiring.register(
     invalidate_workspace_list_cache=invalidate_workspace_list_cache,
     invalidate_departments_cache=invalidate_departments_cache,
 )
+# ------------------------- Automations (rules + anomaly alerts) -------------------------
+# Plain code on the company's own data: no AI calls, no per-run cost.
+AUTOMATION_SWEEP_SECONDS = 900
+AUTOMATION_SCANS_PER_TICK = 25
+AUTOMATION_RUN_NOW_COOLDOWN_SECONDS = 20
+_automation_last_run_now: dict[str, float] = {}
+
+
+async def automation_owner(principal=Depends(get_principal)):
+    """Rules create tasks and read finance signals, so only the workspace owner manages them."""
+    if principal.get("role") != "owner" and principal.get("pack") != "owner":
+        raise HTTPException(status_code=403, detail="Only the workspace owner can manage automations")
+    return principal
+
+
+async def _active_member_ids(workspace_id: str) -> dict[str, dict]:
+    mems = await db.memberships.find(
+        {"workspace_id": workspace_id, "status": "active"}, {"_id": 0, "user_id": 1, "email": 1, "role": 1},
+    ).to_list(200)
+    mems = [m for m in mems if m.get("user_id")]
+    users = await _users_by_ids([m["user_id"] for m in mems], {"_id": 0, "user_id": 1, "name": 1})
+    return {
+        m["user_id"]: {
+            "user_id": m["user_id"],
+            "name": (users.get(m["user_id"]) or {}).get("name") or m.get("email") or "Teammate",
+            "email": m.get("email"),
+            "role": m.get("role"),
+        }
+        for m in mems
+    }
+
+
+async def _automation_inputs(workspace_id: str, *, need_signals: bool):
+    c = await get_ws(workspace_id)
+    fin = await compute_financials(workspace_id, return_entries=True)
+    entries = fin.pop("entries", None) or []
+    signals: list = []
+    if need_signals:
+        currency = fin.get("currency") or "usd"
+        deals = await db.deals.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(500)
+        signals = decision_engine.collect_signals(
+            fin=fin,
+            expense_by_month=decision_engine.expense_totals_by_month_category(entries),
+            deals=deals,
+            tasks=list((c.get("tasks") or {}).get("items") or []),
+            updates=await _recent_updates(workspace_id, days=7, ws=c),
+            currency=currency,
+            department_items=await _department_signal_inputs(workspace_id),
+            now=tz_utils.workspace_now(c),
+            sales_targets=await _signal_sales_targets(workspace_id, c),
+            cap=None,
+        )
+    return c, fin, entries, signals
+
+
+async def run_workspace_automations(workspace_id: str, *, anomalies: bool = True) -> dict:
+    """Evaluate one workspace's enabled rules and (optionally) scan for anomalies."""
+    rules = await db.automation_rules.find(
+        {"workspace_id": workspace_id, "enabled": True}, {"_id": 0},
+    ).to_list(helm_automations.MAX_RULES)
+    if not rules and not anomalies:
+        return {"rules": 0, "fired": 0, "tasks": 0, "errors": 0, "anomalies": {"new": 0, "resolved": 0}}
+    c, fin, entries, signals = await _automation_inputs(workspace_id, need_signals=bool(rules))
+    now = datetime.now(timezone.utc)
+    today = tz_utils.workspace_today(c)
+    members = await _active_member_ids(workspace_id)
+    owner_ids = [uid for uid, m in members.items() if m.get("role") == "owner"]
+
+    async def resolve_assignee(rule: dict):
+        for uid in (rule["action"].get("assignee_user_id"), rule.get("created_by"), *owner_ids):
+            if uid and uid in members:
+                return members[uid]
+        return None
+
+    async def push_task(rule: dict, task: dict, assignee: dict):
+        await db.workspaces.update_one({"workspace_id": workspace_id}, {"$push": {"tasks.items": task}})
+        invalidate_workspace_list_cache(workspace_id, "tasks", "me_work", "calendar", "reports")
+        creator = members.get(rule.get("created_by") or "") or {}
+        await notify_task_delegated(
+            assignee_user_id=assignee["user_id"],
+            previous_assignee_user_id=None,
+            task=task,
+            principal={
+                "user_id": rule.get("created_by") or "",
+                "name": f"Automation: {rule.get('name') or 'rule'}",
+                "email": creator.get("email") or "",
+                "workspace_id": workspace_id,
+            },
+            workspace_name=c.get("name") or "your company",
+        )
+
+    result = await helm_automations.run_rules(
+        db, workspace_id, rules=rules, signals=signals, fin=fin, today=today, now=now,
+        resolve_assignee=resolve_assignee, push_task=push_task,
+    )
+    result["anomalies"] = {"new": 0, "resolved": 0}
+    if anomalies:
+        current_month = fin.get("current_month") or today.strftime("%Y-%m")
+        found = helm_automations.detect_anomalies(entries, fin, current_month)
+        result["anomalies"] = await helm_automations.store_anomalies(db, workspace_id, found, now)
+        await db.workspaces.update_one(
+            {"workspace_id": workspace_id},
+            {"$set": {"automation_anomaly_scan_on": now.strftime("%Y-%m-%d")}},
+        )
+    return result
+
+
+async def _automations_tick() -> None:
+    rule_workspaces = set(await db.automation_rules.distinct("workspace_id", {"enabled": True}))
+    today_key = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    workspaces = await db.workspaces.find(
+        {}, {"_id": 0, "workspace_id": 1, "automation_anomaly_scan_on": 1},
+    ).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
+    scans = 0
+    for ws in workspaces:
+        wid = (ws.get("workspace_id") or "").strip()
+        if not wid:
+            continue
+        want_rules = wid in rule_workspaces
+        want_scan = ws.get("automation_anomaly_scan_on") != today_key and scans < AUTOMATION_SCANS_PER_TICK
+        if not want_rules and not want_scan:
+            continue
+        if want_scan:
+            scans += 1
+        try:
+            await run_workspace_automations(wid, anomalies=want_scan)
+        except Exception:
+            logger.exception("automations run failed for workspace %s", wid)
+
+
+async def _automations_loop() -> None:
+    await asyncio.sleep(60)  # let startup settle before the first sweep
+    while True:
+        try:
+            await _automations_tick()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("automations sweep failed")
+        await asyncio.sleep(AUTOMATION_SWEEP_SECONDS)
+
+
+class AutomationRuleInput(BaseModel):
+    name: str = ""
+    enabled: bool = True
+    trigger: dict = {}
+    action: dict = {}
+
+
+class AutomationRulePatch(BaseModel):
+    name: Optional[str] = None
+    enabled: Optional[bool] = None
+    trigger: Optional[dict] = None
+    action: Optional[dict] = None
+
+
+def _automation_catalog(include_financial: bool) -> dict:
+    signals = [
+        {"type": k, "label": v["label"], "financial": v["financial"]}
+        for k, v in helm_automations.SIGNAL_TRIGGERS.items()
+        if include_financial or not v["financial"]
+    ]
+    metrics = [
+        {"metric": k, "label": v["label"], "unit": v["unit"], "min": v["min"], "max": v["max"]}
+        for k, v in helm_automations.METRIC_TRIGGERS.items()
+        if include_financial or not v["financial"]
+    ]
+    return {"signals": signals, "metrics": metrics}
+
+
+@api_router.get("/automations")
+async def list_automations(principal=Depends(automation_owner)):
+    ws_id = principal["workspace_id"]
+    finance_ok = await can_access_financials(principal)
+    rules = await db.automation_rules.find({"workspace_id": ws_id}, {"_id": 0}).sort("created_at", 1).to_list(100)
+    events = await db.automation_events.find(
+        {"workspace_id": ws_id}, {"_id": 0, "expire_at": 0},
+    ).sort("created_at", -1).limit(40).to_list(40)
+    alerts = []
+    if finance_ok:
+        alerts = await db.anomaly_alerts.find(
+            {"workspace_id": ws_id, "status": "open"}, {"_id": 0},
+        ).sort("created_at", -1).limit(30).to_list(30)
+    members = await _active_member_ids(ws_id)
+    templates = [
+        t for t in helm_automations.starter_templates()
+        if finance_ok or not helm_automations.trigger_is_financial(t["trigger"])
+    ]
+    return {
+        "rules": rules,
+        "events": events,
+        "alerts": alerts,
+        "templates": templates,
+        "catalog": _automation_catalog(finance_ok),
+        "members": [{"user_id": m["user_id"], "name": m["name"]} for m in members.values()],
+        "max_rules": helm_automations.MAX_RULES,
+        "can_see_finance": finance_ok,
+    }
+
+
+async def _validated_rule(principal: dict, body: dict) -> dict:
+    members = await _active_member_ids(principal["workspace_id"])
+    try:
+        rule = helm_automations.normalize_rule(body, set(members))
+    except helm_automations.RuleError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    if helm_automations.trigger_is_financial(rule["trigger"]):
+        if not await can_access_financials(principal):
+            raise HTTPException(status_code=403, detail="You need access to Financials to build rules on money figures")
+        assignee = rule["action"].get("assignee_user_id")
+        if rule["action"]["type"] == "create_task" and assignee and assignee != principal["user_id"]:
+            # A task title can carry the figures (runway, cash), so they stay with the owner.
+            raise HTTPException(
+                status_code=422,
+                detail="Rules on money figures can only assign tasks to you, so the numbers stay with people who can see Financials",
+            )
+    return rule
+
+
+@api_router.post("/automations")
+async def create_automation(payload: AutomationRuleInput, principal=Depends(automation_owner)):
+    ws_id = principal["workspace_id"]
+    if await db.automation_rules.count_documents({"workspace_id": ws_id}) >= helm_automations.MAX_RULES:
+        raise HTTPException(status_code=400, detail=f"You can have up to {helm_automations.MAX_RULES} rules")
+    rule = await _validated_rule(principal, payload.model_dump())
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": f"rule_{uuid.uuid4().hex[:12]}",
+        "workspace_id": ws_id,
+        **rule,
+        "created_by": principal["user_id"],
+        "created_at": now,
+        "updated_at": now,
+        "last_fired_at": None,
+        "fire_count": 0,
+    }
+    await db.automation_rules.insert_one(dict(doc))
+    return {"ok": True, "rule": doc}
+
+
+@api_router.patch("/automations/{rule_id}")
+async def update_automation(rule_id: str, payload: AutomationRulePatch, principal=Depends(automation_owner)):
+    ws_id = principal["workspace_id"]
+    existing = await db.automation_rules.find_one({"id": rule_id, "workspace_id": ws_id}, {"_id": 0})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Rule not found")
+    fields = payload.model_dump(exclude_unset=True)
+    merged = {k: existing.get(k) for k in ("name", "enabled", "trigger", "action")}
+    merged.update({k: v for k, v in fields.items() if v is not None})
+    rule = await _validated_rule(principal, merged)
+    rule["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.automation_rules.update_one({"id": rule_id, "workspace_id": ws_id}, {"$set": rule})
+    return {"ok": True, "rule": {**existing, **rule}}
+
+
+@api_router.delete("/automations/{rule_id}")
+async def delete_automation(rule_id: str, principal=Depends(automation_owner)):
+    ws_id = principal["workspace_id"]
+    res = await db.automation_rules.delete_one({"id": rule_id, "workspace_id": ws_id})
+    if not getattr(res, "deleted_count", 1):
+        raise HTTPException(status_code=404, detail="Rule not found")
+    await db.automation_events.delete_many({"workspace_id": ws_id, "rule_id": rule_id})
+    return {"ok": True}
+
+
+@api_router.post("/automations/run")
+async def run_automations_now(principal=Depends(automation_owner)):
+    ws_id = principal["workspace_id"]
+    now = time.monotonic()
+    last = _automation_last_run_now.get(ws_id, 0.0)
+    if now - last < AUTOMATION_RUN_NOW_COOLDOWN_SECONDS:
+        raise HTTPException(status_code=429, detail="Checks just ran. Give it a few seconds.")
+    _automation_last_run_now[ws_id] = now
+    return {"ok": True, **await run_workspace_automations(ws_id, anomalies=await can_access_financials(principal))}
+
+
+@api_router.post("/automations/alerts/{alert_id}/dismiss")
+async def dismiss_anomaly_alert(alert_id: str, principal=Depends(automation_owner)):
+    if not await can_access_financials(principal):
+        raise HTTPException(status_code=403, detail="You need access to Financials to manage these alerts")
+    res = await db.anomaly_alerts.update_one(
+        {"id": alert_id, "workspace_id": principal["workspace_id"], "status": "open"},
+        {"$set": {
+            "status": "dismissed",
+            "dismissed_at": datetime.now(timezone.utc).isoformat(),
+            "dismissed_by": principal["user_id"],
+        }},
+    )
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"ok": True}
+
+
 app.include_router(api_router)
 
 
@@ -17811,6 +18106,12 @@ async def _ensure_indexes():
         (db.document_rate_events, [("workspace_id", 1), ("action", 1)], {}),
         # Window-keyed acquire counters — expire so stale windows cannot lock a workspace out.
         (db.document_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
+        (db.automation_rules, [("workspace_id", 1), ("id", 1)], {"unique": True}),
+        (db.automation_events, [("workspace_id", 1), ("rule_id", 1), ("dedupe_key", 1)], {"unique": True}),
+        (db.automation_events, [("expire_at", 1)], {"expireAfterSeconds": 0}),
+        (db.automation_events, [("workspace_id", 1), ("created_at", -1)], {}),
+        (db.anomaly_alerts, [("workspace_id", 1), ("key", 1)], {"unique": True}),
+        (db.anomaly_alerts, [("workspace_id", 1), ("status", 1), ("created_at", -1)], {}),
         (db.insights_rate_events, [("created_at", 1)], {"expireAfterSeconds": 86400}),
         (db.insights_rate_events, [("workspace_id", 1)], {}),
         (db.insights_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
@@ -18016,6 +18317,7 @@ async def startup():
     if clerk_auth.clerk_configured():
         asyncio.create_task(clerk_auth.prefetch_jwks())
         asyncio.create_task(_keep_clerk_probes_warm())
+    asyncio.create_task(_automations_loop())
 
 
 async def _keep_clerk_probes_warm() -> None:
