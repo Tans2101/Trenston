@@ -45,6 +45,7 @@ import clerk_auth
 import decision_engine
 import automations as helm_automations
 import company_map as helm_company_map
+import record_search as helm_record_search
 import modeling
 import money_fmt
 from money_fmt import fmt_money, normalize_currency, currency_symbol, CURRENCY_SYMBOLS, entered_cash_amount
@@ -18100,6 +18101,42 @@ async def dismiss_anomaly_alert(alert_id: str, principal=Depends(automation_owne
     if not getattr(res, "matched_count", 1):
         raise HTTPException(status_code=404, detail="Alert not found")
     return {"ok": True}
+
+
+@api_router.get("/search")
+async def search_workspace(q: str = Query("", max_length=200), principal=Depends(get_principal)):
+    """Ctrl+K: find tasks, decisions, deals and people by name. Plain matching, no AI.
+    Each group applies the same visibility rules as its own page."""
+    query = helm_record_search.clean_query(q)
+    if len(query) < 2:
+        return {"query": query, "groups": []}
+    ws_id = principal["workspace_id"]
+    c = await get_ws(ws_id)
+    tasks_items = list((c.get("tasks") or {}).get("items") or [])
+    decisions_items = list(c.get("decisions") or [])
+    if not await can_access_financials(principal):
+        decisions_items = [d for d in decisions_items if not decision_engine.is_financial_signal(d)]
+
+    deals: list = []
+    try:
+        dept_ids = await dept_access.accessible_department_ids(db, principal, dept_catalog.TYPE_SALES)
+        base = dept_access.apply_department_filter({"workspace_id": ws_id}, dept_ids)
+        rx = {"$regex": re.escape(query.split()[0]), "$options": "i"}
+        deals = await db.deals.find(
+            {**base, "$or": [{"name": rx}, {"company": rx}, {"owner_name": rx}]}, {"_id": 0},
+        ).limit(100).to_list(100)
+    except Exception:
+        deals = []
+
+    mems = await db.memberships.find({"workspace_id": ws_id}, {"_id": 0}).to_list(100)
+    users_by_id = await _users_by_ids([m.get("user_id") for m in mems], {"_id": 0, "user_id": 1, "name": 1})
+    people = [
+        {**m, "name": (users_by_id.get(m.get("user_id")) or {}).get("name")}
+        for m in mems if m.get("status") != "removed"
+    ]
+    return helm_record_search.search_records(
+        query, tasks=tasks_items, decisions=decisions_items, deals=deals, members=people,
+    )
 
 
 app.include_router(api_router)

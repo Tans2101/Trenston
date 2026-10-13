@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1791863282.340437,
-    "seen": 1791863569.7746348,
-    "ast_hash": "fa5b06b998189bda765ca306af75f188",
+    "mtime": 1791866052.6669064,
+    "seen": 1791866441.6243072,
+    "ast_hash": "cd575ec1fd92f155faf8f9889c65a533",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791864560.4582536,
-    "seen": 1791864830.2940054,
-    "ast_hash": "d3c3efcfaa453408325b7b7916772337",
+    "mtime": 1791866205.7391458,
+    "seen": 1791866441.6245222,
+    "ast_hash": "c0aab922db8877142604d7091f73578f",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1830,9 +1830,9 @@
     "semantic_hash": "528384ed6e43ab1c7b743535cb563630"
   },
   "frontend/src/components/kokonutui/action-search-bar.jsx": {
-    "mtime": 1791862024.875865,
-    "seen": 1791862552.3333254,
-    "ast_hash": "c37d5e2f7b82a579e7a3b18ca329aab8",
+    "mtime": 1791866092.446249,
+    "seen": 1791866441.6246326,
+    "ast_hash": "e70d3acf03fe71b48877de948abf2ed8",
     "semantic_hash": ""
   },
   "frontend/src/components/kokonutui/ai-text-loading.jsx": {
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791864779.196493,
-    "seen": 1791864830.2941954,
-    "ast_hash": "11bcdeba42ea729bffb50fd9dddaccfb",
+    "mtime": 1791866385.013898,
+    "seen": 1791866441.6247256,
+    "ast_hash": "4fbca9d70301ea9bc730d44dbc117320",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791865120.614462,
-    "seen": 1791865143.303876,
+    "mtime": 1791866418.2814713,
+    "seen": 1791866441.6252832,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -6030,15 +6030,15 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/commandBar.js": {
-    "mtime": 1791861157.1783473,
-    "seen": 1791861542.6159658,
-    "ast_hash": "4f813d3927df5ba387037508b0ebbaba",
+    "mtime": 1791866141.7998168,
+    "seen": 1791866441.624734,
+    "ast_hash": "7e9f10c05dc5b26cc47eb1d331c6cb4c",
     "semantic_hash": ""
   },
   "frontend/src/lib/commandBar.test.js": {
-    "mtime": 1791861157.1812756,
-    "seen": 1791861542.615967,
-    "ast_hash": "dd18955066d3ef7fac0e5c3e015080d0",
+    "mtime": 1791866169.5398042,
+    "seen": 1791866441.6247346,
+    "ast_hash": "432fdb43fd12fc175b8ad21085a4c20b",
     "semantic_hash": ""
   },
   "frontend/src/lib/companyMapLayout.js": {
@@ -6141,6 +6141,36 @@
     "mtime": 1791863197.0981812,
     "seen": 1791863569.775562,
     "ast_hash": "f5a5be389cbcc4016df3a105fb4fb120",
+    "semantic_hash": ""
+  },
+  "backend/record_search.py": {
+    "mtime": 1791866038.9294488,
+    "seen": 1791866441.6242783,
+    "ast_hash": "c462588f2072f9fc7e91db503b797e7c",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_record_search.py": {
+    "mtime": 1791866052.6726959,
+    "seen": 1791866441.6244543,
+    "ast_hash": "9927b5500f8d210c8048979fb68c1832",
+    "semantic_hash": ""
+  },
+  "frontend/src/hooks/useRecordSearch.js": {
+    "mtime": 1791866103.0688043,
+    "seen": 1791866441.6247106,
+    "ast_hash": "44c0d471a7b5a632143083ccd374677e",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/searchRank.js": {
+    "mtime": 1791866345.661846,
+    "seen": 1791866441.6247816,
+    "ast_hash": "2f8f933e8692d3f1f695530014e82716",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/searchRank.test.js": {
+    "mtime": 1791866345.661846,
+    "seen": 1791866441.6247826,
+    "ast_hash": "860cb242a3f9e15625b02a3ff974c4fa",
     "semantic_hash": ""
   }
 }

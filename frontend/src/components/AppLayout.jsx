@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
@@ -30,6 +30,7 @@ import { canManageBilling } from "@/lib/access";
 import { prefetchRouteHandlers } from "@/lib/prefetchRoute";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import ActionSearchBar from "@/components/kokonutui/action-search-bar";
+import useRecordSearch from "@/hooks/useRecordSearch";
 import { useQuickAdd } from "@/components/QuickAdd";
 import { GuideProvider, OPEN_SEARCH_EVENT } from "@/components/guide/GuideProvider";
 import { PageHelpButton, PageHelpPanel, PageIntro } from "@/components/guide/PageGuide";
@@ -805,12 +806,29 @@ function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, en
     me: user?.user_id,
     onDone: () => (searchRef || innerRef).current?.close?.(),
   });
+  const [typed, setTyped] = useState("");
+  const records = useRecordSearch(typed, { enabled: open && !quickAdd.panel });
+  const askAction = useMemo(() => actions.find((a) => a.id === "ask"), [actions]);
+  // Nothing matched: offer to put the words to Trenston instead of a dead end.
+  const fallbackFor = useMemo(() => (askAction ? (q) => (q.length >= 3 ? {
+    id: "ask-fallback",
+    label: `Ask Trenston: \u201c${q.length > 60 ? `${q.slice(0, 57)}…` : q}\u201d`,
+    description: "Ask",
+    to: askAction.to,
+    state: { prefill: q },
+    icon: askAction.icon,
+  } : null) : undefined), [askAction]);
+  const setQuickQuery = quickAdd.onQueryChange;
+  const onQueryChange = useCallback((q) => { setTyped(q); setQuickQuery(q); }, [setQuickQuery]);
 
   return (
     <ActionSearchBar
       ref={searchRef || innerRef}
       placeholder={variant === "inline" ? "Search, or type task / decision / note…" : "Go to, or type task / decision / note…"}
-      onQueryChange={quickAdd.onQueryChange}
+      onQueryChange={onQueryChange}
+      extraActions={records.items}
+      searching={records.searching}
+      fallbackFor={fallbackFor}
       commandPanel={quickAdd.panel}
       onCommandEnter={quickAdd.onEnter}
       variant={variant}
@@ -832,7 +850,7 @@ function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, en
           window.location.assign(action.to);
           return;
         }
-        navigate(action.to);
+        navigate(action.to, action.state ? { state: action.state } : undefined);
         // Re-trigger hash scroll when already on settings with a new hash.
         if (action.to.includes("#")) {
           const hash = action.to.split("#")[1];

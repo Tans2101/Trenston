@@ -144,7 +144,7 @@ describe("tasks", () => {
     const r = p("task tomorrow");
     expect(r.ready).toBe(false);
     expect(r.issues[0]).toMatch(/what the task is/);
-    expect(p("task").ready).toBe(false);
+    expect(p("task ").ready).toBe(false);
   });
 
   it("builds the request for the existing endpoint", () => {
@@ -174,13 +174,14 @@ describe("decisions and notes", () => {
     expect(r.title).toBe("call Ann friday !high #x");
     expect(r.due).toBe("");
     expect(requestFor(r)).toMatchObject({ path: "/notes", body: { text: "call Ann friday !high #x" } });
-    expect(p("note").ready).toBe(false);
+    expect(p("note ").ready).toBe(false);
   });
 });
 
 describe("helpers", () => {
   it("prettyDate", () => {
-    expect(prettyDate("2026-10-23")).toBe("Fri 23 Oct");
+    expect(prettyDate("2026-10-23", now)).toBe("Fri 23 Oct");
+    expect(prettyDate("2027-10-05", now)).toBe("Tue 5 Oct 2027"); // next year is spelled out
     expect(prettyDate("")).toBe("");
   });
 
@@ -188,5 +189,74 @@ describe("helpers", () => {
     expect(matchMember(["ann"], members, "u_me").status).toBe("one");
     expect(matchMember(["bob"], members, "u_me").status).toBe("many");
     expect(matchMember(["nobody"], members, "u_me").status).toBe("none");
+  });
+});
+
+describe("things people actually type", () => {
+  it("a bare keyword is a search for that page, not a command", () => {
+    expect(p("task")).toBeNull();
+    expect(p("decision")).toBeNull();
+    expect(p("note")).toBeNull();
+    expect(p("todo")).toBeNull();
+    expect(p("task ").kind).toBe("task");
+    expect(p("note:").kind).toBe("note");
+  });
+
+  it("does not turn a quantity after 'may' into a date", () => {
+    const r = p("task pay may 5 invoices");
+    expect(r.due).toBe("");
+    expect(r.title).toBe("Pay may 5 invoices");
+    expect(p("task pay by may 5").due).toBe("2027-05-05");
+    expect(p("task review 5 may").due).toBe("");
+    expect(p("task review on 5 may").due).toBe("2027-05-05");
+    expect(p("task review June 5").due).toBe("2027-06-05");
+  });
+
+  it("reads the day of the month on its own", () => {
+    expect(p("task review report on the 5th").due).toBe("2026-11-05");
+    expect(p("task pay rent on 1st").due).toBe("2026-11-01");
+    expect(p("task pay on the 15th").due).toBe("2026-10-15");
+    expect(p("task pay on the 13th").due).toBe("2026-10-13");
+    expect(p("task pay on the 31st").due).toBe("2026-10-31");
+    expect(p("task review report on the 5th").title).toBe("Review report");
+  });
+
+  it("reads numeric dates, day first", () => {
+    expect(p("task buy 2 laptops by 20/10").due).toBe("2026-10-20");
+    expect(p("task call by 25/12/2026").due).toBe("2026-12-25");
+    expect(p("task call by 10/25").due).toBe("2026-10-25"); // 25 cannot be a month
+    expect(p("task call by 30/02").issues[0]).toMatch(/isn't a real date/);
+    // A fraction is not a date.
+    const frac = p("task buy 3/4 inch pipe");
+    expect(frac.due).toBe("");
+    expect(frac.title).toBe("Buy 3/4 inch pipe");
+  });
+
+  it("reads next month, next quarter and in N months", () => {
+    expect(p("task call vendor next month").due).toBe("2026-11-01");
+    expect(p("task call vendor next quarter").due).toBe("2027-01-01");
+    expect(p("task call vendor in 2 months").due).toBe("2026-12-13");
+    expect(p("task call vendor in 4 months").due).toBe("2027-02-13");
+    expect(p("task call vendor next month").title).toBe("Call vendor");
+  });
+
+  it("reads a short weekday as the last word", () => {
+    expect(p("task send deck mon").due).toBe("2026-10-19");
+    expect(p("task send deck mon").title).toBe("Send deck");
+    expect(p("task sat down with the team").due).toBe("");
+    expect(p("task mon").due).toBe(""); // on its own it is a title, not a date
+  });
+
+  it("treats 'urgent:' as high priority", () => {
+    const r = p("task urgent: fix payroll");
+    expect(r.priority).toBe("High");
+    expect(r.title).toBe("Fix payroll");
+  });
+
+  it("keeps the whole sentence for 'decide on ...'", () => {
+    expect(p("decide on the hire").title).toBe("Decide on the hire");
+    expect(p("decide whether to hire by friday").title).toBe("Decide whether to hire");
+    expect(p("decision hire a developer").title).toBe("Hire a developer");
+    expect(p("decide")).toBeNull();
   });
 });

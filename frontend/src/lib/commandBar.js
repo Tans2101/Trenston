@@ -24,7 +24,9 @@ const MONTH_SHORT = {
 
 const COMMANDS = [
   { kind: "task", re: /^(?:add\s+(?:a\s+)?task|new\s+task|task|to-?do|todo|remind\s+me\s+to|reminder)\b[:\s]*/i },
-  { kind: "decision", re: /^(?:new\s+decision|decision|decide(?:\s+on|\s+whether|\s+if)?)\b[:\s]*/i },
+  { kind: "decision", re: /^(?:new\s+decision|decision)\b[:\s]*/i },
+  // "decide on pricing" reads as the decision itself, so the whole sentence is kept as the title.
+  { kind: "decision", keep: true, re: /^decide\b[:\s]*/i },
   { kind: "note", re: /^(?:add\s+(?:a\s+)?note|new\s+note|note|jot)\b[:\s]*/i },
 ];
 
@@ -48,14 +50,15 @@ function addDays(date, n) {
   return dateFrom(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + n);
 }
 
-/** Human date for the preview, e.g. "Fri 23 Oct". */
-export function prettyDate(iso) {
+/** Human date for the preview, e.g. "Fri 23 Oct". The year is added when it is not this year, so a date that rolled into next year is visible. */
+export function prettyDate(iso, now = new Date()) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || "")) return "";
   const [y, m, d] = iso.split("-").map(Number);
   const dt = dateFrom(y, m - 1, d);
   const wd = WEEKDAYS[dt.getUTCDay()].slice(0, 3);
   const mon = MONTHS[m - 1].slice(0, 3);
-  return `${wd[0].toUpperCase()}${wd.slice(1)} ${d} ${mon[0].toUpperCase()}${mon.slice(1)}`;
+  const year = y === now.getFullYear() ? "" : ` ${y}`;
+  return `${wd[0].toUpperCase()}${wd.slice(1)} ${d} ${mon[0].toUpperCase()}${mon.slice(1)}${year}`;
 }
 
 function nextWeekday(today, wd, { allowToday = false } = {}) {
@@ -83,6 +86,36 @@ function monthDay(today, month, day) {
 }
 
 const LEAD = "(?:(?:by|on|due|before|until|for)\\s+)?";
+const LEAD_REQUIRED = "(?:by|on|due|before|until|for)\\s+";
+const hasLead = (m) => /^\s*(?:by|on|due|before|until|for)\s/i.test(m[0]);
+/** "may" is also a verb ("may 5 invoices"), so on its own it is not a month. Skipped matches return undefined. */
+const bareMay = (m, word) => /^may$/i.test(word) && !hasLead(m);
+
+/** Day and month typed as numbers. Day first (12/10 is 12 October) unless the first number can only be a month. */
+function numericDate(today, a, b, yearText) {
+  let d = a;
+  let mo = b;
+  if (a <= 12 && b > 12) { mo = a; d = b; }
+  if (mo < 1 || mo > 12 || d < 1) return null;
+  if (yearText) {
+    const y = yearText.length === 2 ? 2000 + Number(yearText) : Number(yearText);
+    return d <= daysInMonth(y, mo - 1) ? dateFrom(y, mo - 1, d) : null;
+  }
+  return monthDay(today, mo - 1, d);
+}
+
+/** The next time this day-of-month comes round (this month if it has not passed). */
+function nextDayOfMonth(today, day) {
+  if (day < 1 || day > 31) return null;
+  for (let add = 0; add < 3; add += 1) {
+    const y = today.getUTCFullYear() + Math.floor((today.getUTCMonth() + add) / 12);
+    const mo = (today.getUTCMonth() + add) % 12;
+    if (day > daysInMonth(y, mo)) continue;
+    const cand = dateFrom(y, mo, day);
+    if (cand >= today) return cand;
+  }
+  return null;
+}
 const wdAlt = WEEKDAYS.join("|");
 const wdShortAlt = Object.keys(WEEKDAY_SHORT).sort((a, b) => b.length - a.length).join("|");
 const monAlt = MONTHS.join("|");
@@ -96,9 +129,27 @@ function datePatterns() {
       return mo >= 0 && mo < 12 && d >= 1 && d <= daysInMonth(y, mo) ? dateFrom(y, mo, d) : null;
     }],
     [new RegExp(`\\b${LEAD}(?:the\\s+)?(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(${monAlt}|${monShortAlt})\\b\\.?(?!\\s*\\d)`, "i"),
-      (m, today) => monthDay(today, monthIndex(m[2]), +m[1])],
+      (m, today) => (bareMay(m, m[2]) ? undefined : monthDay(today, monthIndex(m[2]), +m[1]))],
     [new RegExp(`\\b${LEAD}(${monAlt}|${monShortAlt})\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?!\\s*[:\\d])`, "i"),
-      (m, today) => monthDay(today, monthIndex(m[1]), +m[2])],
+      (m, today) => (bareMay(m, m[1]) ? undefined : monthDay(today, monthIndex(m[1]), +m[2]))],
+    // "on the 5th", "by 1st": the next time that day of the month comes round.
+    [new RegExp(`\\b(?:${LEAD_REQUIRED}(?:the\\s+)?|the\\s+)(\\d{1,2})(?:st|nd|rd|th)\\b`, "i"),
+      (m, today) => nextDayOfMonth(today, +m[1])],
+    // 12/10 or 12/10/2026, day first. Without a lead-in word a year is needed, so fractions like 3/4 stay put.
+    [new RegExp(`\\b${LEAD_REQUIRED}(\\d{1,2})/(\\d{1,2})(?:/(\\d{4}|\\d{2}))?\\b`, "i"),
+      (m, today) => numericDate(today, +m[1], +m[2], m[3])],
+    [new RegExp(`\\b(\\d{1,2})[/.](\\d{1,2})[/.](\\d{4})\\b`, "i"),
+      (m, today) => numericDate(today, +m[1], +m[2], m[3])],
+    [new RegExp(`\\b${LEAD}next\\s+month\\b`, "i"),
+      (m, today) => dateFrom(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)],
+    [new RegExp(`\\b${LEAD}next\\s+quarter\\b`, "i"),
+      (m, today) => dateFrom(today.getUTCFullYear(), (Math.floor(today.getUTCMonth() / 3) + 1) * 3, 1)],
+    [new RegExp(`\\b${LEAD}in\\s+(\\d{1,2})\\s+months?\\b`, "i"), (m, today) => {
+      const total = today.getUTCMonth() + +m[1];
+      const y = today.getUTCFullYear() + Math.floor(total / 12);
+      const mo = total % 12;
+      return dateFrom(y, mo, Math.min(today.getUTCDate(), daysInMonth(y, mo)));
+    }],
     [new RegExp(`\\b${LEAD}in\\s+(\\d{1,3})\\s+(day|days|week|weeks)\\b`, "i"), (m, today) => {
       const n = +m[1];
       return addDays(today, /^week/i.test(m[2]) ? n * 7 : n);
@@ -123,6 +174,9 @@ function datePatterns() {
       (m, today) => nextWeekday(today, weekdayIndex(m[1]))],
     // Short weekday names are common words ("sat", "mon"), so they need a lead-in.
     [new RegExp(`\\b(?:by|on|due|before|until)\\s+(${wdShortAlt})\\b`, "i"),
+      (m, today) => nextWeekday(today, weekdayIndex(m[1]))],
+    // A short weekday as the very last word ("send the deck mon"). Sat and sun are left out: too often a name or a verb.
+    [/(?<=\S\s+)\b(mon|tue|tues|wed|thu|thur|thurs|fri)\b\.?(?=\s*[.!]?\s*$)/i,
       (m, today) => nextWeekday(today, weekdayIndex(m[1]))],
     [new RegExp(`\\b${LEAD}day\\s+after\\s+tomorrow\\b`, "i"), (m, today) => addDays(today, 2)],
     [new RegExp(`\\b${LEAD}tomorrow\\b`, "i"), (m, today) => addDays(today, 1)],
@@ -154,6 +208,7 @@ function findDates(text, today) {
       const end = start + m[0].length;
       if (found.some((f) => start < f.end && end > f.start)) continue;
       const date = resolve(m, today);
+      if (date === undefined) continue;
       found.push({ start, end, date, text: m[0] });
     }
   }
@@ -178,7 +233,7 @@ function priorityFrom(text) {
     [/\blow[\s-]priority\b/i, "Low"],
     // Bare "urgent" / "asap" only count at the very start or end, not inside a title.
     [/\s(?:urgent|asap)\s*[.!]*$/i, "High"],
-    [/^(?:urgent|asap)\s+/i, "High"],
+    [/^(?:urgent|asap)(?:\s*[:,-]\s*|\s+)/i, "High"],
   ];
   for (const [re, level] of rules) {
     const m = re.exec(text);
@@ -282,7 +337,11 @@ export function parseCommand(input, opts = {}) {
   const raw = String(input || "").replace(/^\s+/, "");
   const command = COMMANDS.find((c) => c.re.test(raw));
   if (!command) return null;
-  const rest = raw.replace(command.re, "");
+  const stripped = raw.replace(command.re, "");
+  // A bare "task", "decision" or "note" is someone looking for that page, not starting an entry.
+  // It becomes a command once there is a space or colon after it.
+  if (!stripped.trim() && !/[\s:]$/.test(raw)) return null;
+  const rest = command.keep ? raw : stripped;
   const now = opts.now || new Date();
   const today = dateFrom(now.getFullYear(), now.getMonth(), now.getDate());
   const members = opts.members || [];

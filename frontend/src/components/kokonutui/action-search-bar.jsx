@@ -10,9 +10,9 @@
 
 import { ArrowUpRight, Search } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
-import useDebounce from "@/hooks/use-debounce";
+import { rankActions } from "@/lib/searchRank";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_QUICK_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
@@ -29,6 +29,10 @@ const DEFAULT_QUICK_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
  * @param {(query: string) => void} [onQueryChange] every keystroke, so the parent can parse quick-add commands
  * @param {React.ReactNode} [commandPanel] when set, shown instead of the results and Enter runs onCommandEnter
  * @param {() => void} [onCommandEnter]
+ * @param {{ id: string, label: string, description?: string, detail?: string, to?: string }[]} [extraActions]
+ *   already-ranked results from outside (the user's own records), shown after the page matches
+ * @param {boolean} [searching] true while extraActions are still loading
+ * @param {(query: string) => object|null} [fallbackFor] one last result when nothing matched
  */
 const ActionSearchBar = forwardRef(function ActionSearchBar(
   {
@@ -44,6 +48,9 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
     onQueryChange,
     commandPanel = null,
     onCommandEnter,
+    extraActions = [],
+    searching = false,
+    fallbackFor,
   },
   ref,
 ) {
@@ -63,25 +70,26 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
   const rootRef = useRef(null);
-  const debouncedQuery = useDebounce(query, 150);
+  const listId = useId();
+  const optionId = (i) => `${listId}-opt-${i}`;
   const isInline = variant === "inline";
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || "");
 
+  // Page matches react to every keystroke (they are local and cheap), so Enter
+  // right after typing always acts on what is on screen.
+  const trimmed = query.trim();
   const filtered = useMemo(() => {
-    if (!debouncedQuery.trim()) return isInline ? [] : actions;
-    const q = debouncedQuery.toLowerCase().trim();
-    return actions.filter((a) => {
-      const haystack = [
-        a.label,
-        a.description,
-        ...(Array.isArray(a.keywords) ? a.keywords : []),
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(q);
-    });
-  }, [actions, debouncedQuery, isInline]);
+    if (!trimmed) return isInline ? [] : actions;
+    const pages = rankActions(actions, trimmed);
+    const seen = new Set(pages.map((a) => a.id));
+    const records = (extraActions || []).filter((a) => !seen.has(a.id));
+    const all = [...pages, ...records];
+    if (all.length === 0 && !searching && fallbackFor) {
+      const fb = fallbackFor(trimmed);
+      if (fb) return [fb];
+    }
+    return all;
+  }, [actions, trimmed, isInline, extraActions, searching, fallbackFor]);
 
   const emptyQuick = useMemo(() => {
     if (quickActions?.length) return quickActions;
@@ -94,8 +102,8 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
     return actions.filter((a) => a.description === "Department");
   }, [actions, departmentActions]);
 
-  const showBrowse = isInline && isOpen && !debouncedQuery.trim();
-  const showResults = !isInline || Boolean(debouncedQuery.trim());
+  const showBrowse = isInline && isOpen && !trimmed;
+  const showResults = !isInline || Boolean(trimmed);
 
   useEffect(() => {
     onQueryChange?.(query);
@@ -148,7 +156,13 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [debouncedQuery]);
+  }, [trimmed]);
+
+  // Keep the highlighted result on screen when arrowing through a long list.
+  useEffect(() => {
+    if (!isOpen || !showResults) return;
+    document.getElementById(`${listId}-opt-${activeIndex}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [activeIndex, isOpen, showResults, listId]);
 
   // Click-outside for inline panel (backdrop also closes).
   useEffect(() => {
@@ -175,6 +189,8 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
   );
 
   const onKeyDown = (e) => {
+    // Japanese/Chinese/Korean input uses Enter and arrows to pick characters.
+    if (e.nativeEvent?.isComposing || e.keyCode === 229) return;
     if (e.key === "Escape") {
       e.preventDefault();
       setOpen(false);
@@ -202,15 +218,18 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
   };
 
   const resultsList = (
-    <ul role="listbox" className={cn("overflow-y-auto py-1", isInline ? "max-h-80" : "max-h-72")}>
+    <ul id={listId} role="listbox" className={cn("overflow-y-auto py-1", isInline ? "max-h-80" : "max-h-72")}>
       {filtered.length === 0 ? (
-        <li className="px-3 py-6 text-center text-sm text-helm-muted">No matches</li>
+        <li className="px-3 py-6 text-center text-sm text-helm-muted">
+          {searching ? "Searching…" : "No matches"}
+        </li>
       ) : (
         filtered.map((action, i) => (
-          <li key={action.id} role="option" aria-selected={i === activeIndex}>
+          <li key={action.id} id={optionId(i)} role="option" aria-selected={i === activeIndex}>
             <button
               type="button"
-              id={`action-${action.id}`}
+              tabIndex={-1}
+              data-action-id={action.id}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors",
                 i === activeIndex
@@ -223,7 +242,12 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
               <span className={cn("shrink-0", i === activeIndex ? "text-helm-gold" : "text-helm-muted")}>
                 {action.icon}
               </span>
-              <span className="truncate flex-1">{action.label}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{action.label}</span>
+                {action.detail ? (
+                  <span className="block truncate text-xs text-helm-muted">{action.detail}</span>
+                ) : null}
+              </span>
               {action.description ? (
                 <span className="text-[10px] font-mono uppercase tracking-wider text-helm-muted shrink-0">
                   {action.description}
@@ -233,8 +257,18 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
           </li>
         ))
       )}
+      {searching && filtered.length > 0 ? (
+        <li className="px-3 py-2 text-xs text-helm-muted" aria-live="polite">Searching your records…</li>
+      ) : null}
     </ul>
   );
+
+  const comboProps = {
+    role: "combobox",
+    "aria-controls": listId,
+    "aria-autocomplete": "list",
+    "aria-activedescendant": showResults && !commandPanel && filtered.length ? optionId(activeIndex) : undefined,
+  };
 
   const browsePanel = (
     <div className="p-3 space-y-4 max-h-[min(70vh,28rem)] overflow-y-auto" data-testid="action-search-browse">
@@ -308,9 +342,8 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
             data-testid="action-search-input"
             className="h-9 flex-1 border-0 rounded-none bg-transparent px-0 text-sm text-helm-fg placeholder:text-helm-muted focus-visible:ring-0 shadow-none"
             autoComplete="off"
-            role="combobox"
             aria-expanded={isOpen}
-            aria-autocomplete="list"
+            {...comboProps}
           />
           <kbd className="hidden sm:inline font-mono text-[10px] text-helm-muted border border-helm-line rounded-full px-1.5 py-0.5 shrink-0">
             {isMac ? "⌘K" : "Ctrl+K"}
@@ -387,9 +420,8 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
                 data-testid="action-search-input"
                 className="h-11 border-0 rounded-none bg-transparent pl-10 pr-16 text-sm text-helm-fg placeholder:text-helm-muted focus-visible:ring-0 shadow-none"
                 autoComplete="off"
-                role="combobox"
                 aria-expanded
-                aria-autocomplete="list"
+                {...comboProps}
               />
               <kbd className="absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[10px] text-helm-muted border border-helm-line rounded px-1.5 py-0.5">
                 esc
