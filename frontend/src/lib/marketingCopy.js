@@ -854,6 +854,6 @@ export const TESTIMONIALS = [
     company: "slidepractice.com",
     companyUrl: "https://slidepractice.com/",
     linkedinUrl: "https://www.linkedin.com/in/vivaansinghcto/",
-    logo: "/slidepractice-mark.png",
+    logo: "/slidepractice-logo.png",
   },
 ];

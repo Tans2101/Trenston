@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1791905914.4939427,
-    "seen": 1791906063.906819,
-    "ast_hash": "2138d5350e21c40957cea58d32eee1ce",
+    "mtime": 1791906209.753453,
+    "seen": 1791906275.098112,
+    "ast_hash": "4e4679ef2ac35ef8c0b6d03fe80fb896",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791906038.5993562,
-    "seen": 1791906063.9073613,
+    "mtime": 1791906257.4193692,
+    "seen": 1791906275.099044,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -6174,15 +6174,15 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/TestimonialCard.jsx": {
-    "mtime": 1791905998.8969796,
-    "seen": 1791906063.9066844,
-    "ast_hash": "afa8fc863b3e7610a785d004e03d25fe",
+    "mtime": 1791906211.8953881,
+    "seen": 1791906275.0978675,
+    "ast_hash": "be4d51ce0b50d43709984d6fffdc8b17",
     "semantic_hash": ""
   },
-  "frontend/public/slidepractice-mark.png": {
-    "mtime": 1791905934.8873498,
-    "seen": 1791906063.9074275,
-    "ast_hash": "d5e3c95b203d3c87e0f61138a8347e72",
+  "frontend/public/slidepractice-logo.png": {
+    "mtime": 1791906209.7193663,
+    "seen": 1791906275.0991287,
+    "ast_hash": "2fbced42ac80d069045d481c5edba670",
     "semantic_hash": ""
   }
 }

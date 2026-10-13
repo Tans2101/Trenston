@@ -26,18 +26,22 @@ export default function TestimonialCard({ item }) {
               <span className="text-mk-gray-dark">{item.role}</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
-              {item.logo && (
-                <img src={item.logo} alt="" width="32" height="32" className="h-8 w-auto" loading="lazy" />
-              )}
-              {item.companyUrl && (
+              {item.logo && item.companyUrl ? (
                 <a
                   href={item.companyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold underline-offset-4 hover:underline"
+                  aria-label={`${item.company} (opens in a new tab)`}
+                  className="inline-flex items-center rounded-xl bg-white px-4 py-2.5"
                 >
-                  {item.company}
+                  <img src={item.logo} alt="Slide Practice" width="209" height="32" className="h-8 w-auto" loading="lazy" />
                 </a>
+              ) : (
+                item.companyUrl && (
+                  <a href={item.companyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">
+                    {item.company}
+                  </a>
+                )
               )}
               {item.linkedinUrl && (
                 <a
