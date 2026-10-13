@@ -32,9 +32,9 @@ export default function TestimonialCard({ item }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${item.company} (opens in a new tab)`}
-                  className="inline-flex items-center rounded-xl bg-white px-4 py-2.5"
+                  className="inline-flex items-center"
                 >
-                  <img src={item.logo} alt="Slide Practice" width="209" height="32" className="h-8 w-auto" loading="lazy" />
+                  <img src={item.logo} alt="Slide Practice" width="200" height="30" className="h-[30px] w-auto" loading="lazy" />
                 </a>
               ) : (
                 item.companyUrl && (
