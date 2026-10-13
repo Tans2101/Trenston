@@ -8,6 +8,7 @@ import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import PlanCards from "@/components/marketing/PlanCards";
 import Testimonial from "@/components/marketing/Testimonial";
+import TestimonialCard from "@/components/marketing/TestimonialCard";
 import {
   CtaBand,
   DISPLAY,
@@ -211,7 +212,8 @@ export default function Landing() {
 
       {/* Customer voice */}
       <section className="border-t border-mk-line bg-white px-6 py-20 md:py-24" aria-label="What customers say">
-        <Testimonial item={TESTIMONIALS[0]} />
+        <TestimonialCard item={TESTIMONIALS.find((t) => t.id === "vivaan")} />
+        <Testimonial item={TESTIMONIALS[0]} className="mt-16" />
       </section>
 
       {/* Pricing */}

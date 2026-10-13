@@ -843,4 +843,17 @@ export const TESTIMONIALS = [
     name: "Ely",
     role: "IT Head, Manufacturing company",
   },
+  {
+    id: "vivaan",
+    // Trimmed with Tansher's OK: the integrations clause and one generic line
+    // were cut ("…" marks the cut). Ask Vivaan to confirm before changing more.
+    quote:
+      "Before Trenston, my company ran on a patchwork of disconnected tools. \u2026 Its company dashboard gave me a clear view of the business, and the impact on my workflow was immediate. I recommend it to any founder still running on a patchwork of disconnected tools.",
+    name: "Vivaan Singh",
+    role: "Co-Founder & CTO",
+    company: "slidepractice.com",
+    companyUrl: "https://slidepractice.com/",
+    linkedinUrl: "https://www.linkedin.com/in/vivaansinghcto/",
+    logo: "/slidepractice-mark.png",
+  },
 ];

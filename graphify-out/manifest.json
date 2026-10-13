@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791867027.2820315,
-    "seen": 1791867143.5289526,
-    "ast_hash": "089622e6795b195dc7d99ed1715bbcdf",
+    "mtime": 1791867443.639115,
+    "seen": 1791906063.906551,
+    "ast_hash": "34c6ce7dde8e8dbdfc27d7cde4947a82",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1791865090.1145172,
-    "seen": 1791865143.3034215,
-    "ast_hash": "b59aabb7e0dd06cc2b3cd36ee1132d63",
+    "mtime": 1791905914.4939427,
+    "seen": 1791906063.906819,
+    "ast_hash": "2138d5350e21c40957cea58d32eee1ce",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -2628,9 +2628,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1791863282.3299563,
-    "seen": 1791863569.7751632,
-    "ast_hash": "b209fa3003fdf05d63db8b05afbaf00c",
+    "mtime": 1791905914.5253427,
+    "seen": 1791906063.9068773,
+    "ast_hash": "cc9bfd35db91b725c2d6db4281d781b2",
     "semantic_hash": ""
   },
   "frontend/src/pages/Legal.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791867122.6764402,
-    "seen": 1791867143.52969,
+    "mtime": 1791906038.5993562,
+    "seen": 1791906063.9073613,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -6171,6 +6171,18 @@
     "mtime": 1791866345.661846,
     "seen": 1791866441.6247826,
     "ast_hash": "860cb242a3f9e15625b02a3ff974c4fa",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/marketing/TestimonialCard.jsx": {
+    "mtime": 1791905998.8969796,
+    "seen": 1791906063.9066844,
+    "ast_hash": "afa8fc863b3e7610a785d004e03d25fe",
+    "semantic_hash": ""
+  },
+  "frontend/public/slidepractice-mark.png": {
+    "mtime": 1791905934.8873498,
+    "seen": 1791906063.9074275,
+    "ast_hash": "d5e3c95b203d3c87e0f61138a8347e72",
     "semantic_hash": ""
   }
 }
