@@ -29,7 +29,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { TAGLINE, TESTIMONIALS } from "@/lib/marketingCopy";
-import Testimonial from "@/components/marketing/Testimonial";
+import TestimonialCard from "@/components/marketing/TestimonialCard";
 
 /**
  * Monochrome monogram tiles, not real vendor logos — trademarked marks
@@ -359,7 +359,7 @@ export default function Security() {
 
       {/* Customer voice */}
       <section className="bg-white px-6 pb-24 md:pb-28" aria-label="What customers say">
-        <Testimonial item={TESTIMONIALS[0]} />
+        <div className="mx-auto max-w-xl"><TestimonialCard item={TESTIMONIALS.find((t) => t.id === "ely")} /></div>
       </section>
 
       {/* Infrastructure */}

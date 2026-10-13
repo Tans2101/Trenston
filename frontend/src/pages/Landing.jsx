@@ -7,7 +7,6 @@ import { AskScreen, DecisionScreen, PackScreen } from "@/components/marketing/Pr
 import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
 import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
 import PlanCards from "@/components/marketing/PlanCards";
-import Testimonial from "@/components/marketing/Testimonial";
 import TestimonialCard from "@/components/marketing/TestimonialCard";
 import {
   CtaBand,
@@ -212,8 +211,10 @@ export default function Landing() {
 
       {/* Customer voice */}
       <section className="border-t border-mk-line bg-white px-6 py-20 md:py-24" aria-label="What customers say">
-        <TestimonialCard item={TESTIMONIALS.find((t) => t.id === "vivaan")} />
-        <Testimonial item={TESTIMONIALS[0]} className="mt-16" />
+        <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
+          <TestimonialCard item={TESTIMONIALS.find((t) => t.id === "vivaan")} />
+          <TestimonialCard item={TESTIMONIALS.find((t) => t.id === "ely")} />
+        </div>
       </section>
 
       {/* Pricing */}

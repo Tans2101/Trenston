@@ -2628,9 +2628,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1791905914.5253427,
-    "seen": 1791906063.9068773,
-    "ast_hash": "cc9bfd35db91b725c2d6db4281d781b2",
+    "mtime": 1791906589.287831,
+    "seen": 1791906662.4511049,
+    "ast_hash": "2e8107d44452bb905a5b6c9c9a6c266b",
     "semantic_hash": ""
   },
   "frontend/src/pages/Legal.jsx": {
@@ -2730,9 +2730,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Security.jsx": {
-    "mtime": 1791863282.3317919,
-    "seen": 1791863569.775178,
-    "ast_hash": "8554e014fa49f523d5be133ac50a3727",
+    "mtime": 1791906589.2888045,
+    "seen": 1791906662.4511485,
+    "ast_hash": "fd1e973c346fe665c6e030127abb9b74",
     "semantic_hash": ""
   },
   "frontend/src/pages/SignUp.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791906368.9873757,
-    "seen": 1791906388.7879386,
+    "mtime": 1791906636.8433917,
+    "seen": 1791906662.4522066,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5975,12 +5975,6 @@
     "ast_hash": "f2c7fc8d0f243756bc641097d867549b",
     "semantic_hash": ""
   },
-  "frontend/src/components/marketing/Testimonial.jsx": {
-    "mtime": 1791800389.7659328,
-    "seen": 1791860708.5286345,
-    "ast_hash": "702a5642533b1517280adf0da7d6a174",
-    "semantic_hash": ""
-  },
   "frontend/src/lib/automationsCopy.js": {
     "mtime": 1791860415.9420366,
     "seen": 1791860708.5287254,
@@ -6174,9 +6168,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/TestimonialCard.jsx": {
-    "mtime": 1791906327.40187,
-    "seen": 1791906388.7871487,
-    "ast_hash": "420c00887dc26e4e92d917b025794e7e",
+    "mtime": 1791906589.2596333,
+    "seen": 1791906662.4506521,
+    "ast_hash": "0d45a36f1fc0bb102cd4e88b4021c30c",
     "semantic_hash": ""
   },
   "frontend/public/slidepractice-logo.png": {

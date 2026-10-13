@@ -1,32 +1,33 @@
 import { Reveal } from "@/components/marketing/mk";
+import { cn } from "@/lib/utils";
 
 /**
- * Large quote card for a named customer: dark card, big quote mark, name | role,
- * company logo + site, LinkedIn. No profile photo by design.
+ * Compact quote card: dark card, name | role, optional company logo + site and
+ * LinkedIn. No profile photo by design. Used for every testimonial so they match.
  */
-export default function TestimonialCard({ item }) {
+export default function TestimonialCard({ item, className }) {
   if (!item) return null;
   return (
-    <Reveal className="mx-auto max-w-5xl">
+    <Reveal className={cn("h-full", className)}>
       <figure
         data-testid="testimonial-card"
-        className="flex flex-col gap-6 rounded-[28px] bg-mk-black px-7 py-10 text-white md:flex-row md:gap-10 md:px-14 md:py-14"
+        className="flex h-full flex-col rounded-3xl bg-mk-black p-7 text-white md:p-8"
       >
-        <span aria-hidden className="select-none -mb-6 h-12 text-[96px] font-semibold leading-[0.7] md:mb-0 md:h-auto text-white/90 md:text-[140px]">
+        <span aria-hidden className="select-none text-5xl font-semibold leading-none text-white/80">
           &ldquo;
         </span>
-        <div className="min-w-0 flex-1">
-          <blockquote className="text-xl font-medium leading-snug tracking-[-0.015em] md:text-[1.75rem]">
-            {item.quote}
-          </blockquote>
-          <figcaption className="mt-8 flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base">
-              <span className="font-semibold">{item.name}</span>
-              <span aria-hidden className="h-5 w-px bg-white/40" />
-              <span className="text-mk-gray-dark">{item.role}</span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
-              {item.logo && item.companyUrl ? (
+        <blockquote className="mt-2 flex-1 text-base font-medium leading-relaxed tracking-[-0.005em] md:text-[1.05rem]">
+          {item.quote}
+        </blockquote>
+        <figcaption className="mt-6 flex flex-col gap-3 border-t border-white/15 pt-5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="font-semibold">{item.name}</span>
+            <span aria-hidden className="h-4 w-px bg-white/40" />
+            <span className="text-mk-gray-dark">{item.role}</span>
+          </div>
+          {(item.logo || item.linkedinUrl) && (
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              {item.logo && item.companyUrl && (
                 <a
                   href={item.companyUrl}
                   target="_blank"
@@ -34,14 +35,8 @@ export default function TestimonialCard({ item }) {
                   aria-label={`${item.company} (opens in a new tab)`}
                   className="inline-flex items-center"
                 >
-                  <img src={item.logo} alt="Slide Practice" width="200" height="30" className="h-[30px] w-auto" loading="lazy" />
+                  <img src={item.logo} alt="Slide Practice" width="140" height="21" className="h-[21px] w-auto" loading="lazy" />
                 </a>
-              ) : (
-                item.companyUrl && (
-                  <a href={item.companyUrl} target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline">
-                    {item.company}
-                  </a>
-                )
               )}
               {item.linkedinUrl && (
                 <a
@@ -55,8 +50,8 @@ export default function TestimonialCard({ item }) {
                 </a>
               )}
             </div>
-          </figcaption>
-        </div>
+          )}
+        </figcaption>
       </figure>
     </Reveal>
   );
