@@ -1656,3 +1656,20 @@ html[data-theme="dark"] .plan-badge[data-plan="starter"]  { background: rgba(96,
 html[data-theme="dark"] .plan-badge[data-plan="growth"]   { background: rgba(52,199,110,.16); border-color: rgba(52,199,110,.45); color: #7be0a3; }
 html[data-theme="dark"] .plan-badge[data-plan="business"],
 html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245,196,60,.16); border-color: rgba(245,196,60,.45); color: #f3d273; }
+
+/* Collapsible desktop sidebar: full width, or a slim icon rail. */
+.app-shell { --sidebar-w: 240px; }
+.app-shell[data-sidebar="collapsed"] { --sidebar-w: 76px; }
+@media (min-width: 1024px) {
+  .app-shell .app-rail { transition: width .22s cubic-bezier(.22, 1, .36, 1); }
+  .app-shell .app-main { transition: padding-left .22s cubic-bezier(.22, 1, .36, 1); }
+}
+.app-shell[data-sidebar="collapsed"] .app-rail .rail-expanded-only,
+.app-shell[data-sidebar="collapsed"] .app-rail .cir-rail__label,
+.app-shell[data-sidebar="collapsed"] .app-rail .cir-rail__shortcut { display: none !important; }
+.app-shell[data-sidebar="collapsed"] .app-rail .cir-rail { padding: 0.5rem 0.25rem; }
+.app-shell[data-sidebar="collapsed"] .app-rail [data-testid="sidebar-brand"] { justify-content: center; padding-left: 0; padding-right: 0; }
+.app-shell[data-sidebar="collapsed"] .app-rail .cir-rail__link { justify-content: center; padding-left: 0; padding-right: 0; gap: 0; }
+.app-shell[data-sidebar="collapsed"] .app-rail .cir-rail__section {
+  height: 1px; padding: 0; margin: 0.625rem 0.75rem; overflow: hidden; font-size: 0; background: var(--cir-edge);
+}

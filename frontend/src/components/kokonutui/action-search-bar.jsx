@@ -355,7 +355,7 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
             <>
               {/* Dim page content only — sidebar + this top bar stay clear */}
               <motion.div
-                className="fixed inset-0 top-14 left-0 lg:left-[220px] z-30 bg-helm-ink/35"
+                className="fixed inset-0 top-14 left-0 lg:left-[var(--sidebar-w)] z-30 bg-helm-ink/35"
                 initial={reduceMotion ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}

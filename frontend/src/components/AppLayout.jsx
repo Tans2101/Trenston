@@ -7,7 +7,7 @@ import {
   Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search, Bell,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
-  Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap, Network,
+  PanelLeft, Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap, Network,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -517,12 +517,14 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
     <div className="cir-rail" data-testid="app-sidebar-rail">
       <div className="flex items-center gap-3 px-3 pt-2 pb-3" data-testid="sidebar-brand">
         {brandMark}
-        <span className="text-[1.125rem] font-semibold tracking-[-0.02em]" style={{ color: "var(--cir-ink)" }}>
+        <span className="rail-expanded-only text-[1.125rem] font-semibold tracking-[-0.02em]" style={{ color: "var(--cir-ink)" }}>
           Trenston
         </span>
       </div>
 
-      <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
+      <div className="rail-expanded-only">
+        <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
+      </div>
 
       <nav ref={navRef} className="flex-1 overflow-y-auto py-2" aria-label="App">
         <SmoothTab
@@ -542,6 +544,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
                   onClick={onNavigate}
                   {...prefetchRouteHandlers(item.to)}
                   data-testid={`sidebar-nav-${item.id}`}
+                  title={item.label}
                   className={navBtn}
                 >
                   {({ isActive }) => (
@@ -564,7 +567,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
             );
           })}
           {deptNav.length > 0 ? (
-            <p className="cir-rail__section">Departments</p>
+            <p className="cir-rail__section" title="Departments">Departments</p>
           ) : null}
           {deptNav.map((dept) => {
             const Icon = departmentIcon(dept.icon);
@@ -576,6 +579,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
                   onClick={onNavigate}
                   {...prefetchRouteHandlers(to)}
                   data-testid={`sidebar-dept-${dept.type}`}
+                  title={dept.name}
                   className={navBtn}
                 >
                   {() => (
@@ -600,18 +604,23 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
       </nav>
 
       <div className="px-1 pb-2 space-y-2">
-        <SidebarPromoCard
-          billingEnforced={billingEnforced}
-          isPaid={isPaid}
-          canBilling={canBilling}
-          onNavigate={onNavigate}
-        />
-        <SidebarThemeControl />
+        <div className="rail-expanded-only">
+          <SidebarPromoCard
+            billingEnforced={billingEnforced}
+            isPaid={isPaid}
+            canBilling={canBilling}
+            onNavigate={onNavigate}
+          />
+        </div>
+        <div className="rail-expanded-only">
+          <SidebarThemeControl />
+        </div>
         <NavLink
           to="/app/settings"
           onClick={onNavigate}
           {...prefetchRouteHandlers("/app/settings")}
           data-testid="settings-link"
+          title="Settings"
           className={({ isActive }) =>
             cn("cir-rail__link cir-rail__link--solo group relative", isActive && "cir-rail__link--active")
           }
@@ -915,6 +924,28 @@ export default function AppLayout() {
     ? `${planLabel} trial, ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
     : planLabel;
 
+  // Desktop sidebar: full width or a slim icon rail, remembered on this device.
+  const [railCollapsed, setRailCollapsed] = useState(() => {
+    try { return window.localStorage.getItem("trenston.sidebar.collapsed") === "1"; } catch { return false; }
+  });
+  const toggleRail = useCallback(() => {
+    setRailCollapsed((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem("trenston.sidebar.collapsed", next ? "1" : "0"); } catch { /* storage blocked */ }
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(document.activeElement)) return;
+      e.preventDefault();
+      toggleRail();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [toggleRail]);
+
   const openSearch = () => setSearchOpen(true);
   const mobileSearchRef = useRef(null);
 
@@ -977,16 +1008,16 @@ export default function AppLayout() {
 
   return (
     <GuideProvider>
-    <div className="app-shell min-h-screen">
+    <div className="app-shell min-h-screen" data-sidebar={railCollapsed ? "collapsed" : "open"}>
       <PageHelpPanel />
       {inDemo && <DemoBanner />}
       {pastDue && (
-        <div className="lg:pl-[240px] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
+        <div className="lg:pl-[var(--sidebar-w)] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
           Payment past due: <button type="button" onClick={() => window.location.href = "/app/billing"} className="underline font-medium text-helm-status-warning">update billing</button> to keep Trenston access.
         </div>
       )}
       {/* Desktop nav rail — cir-tabs pill shell */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col z-40">
+      <aside className="app-rail hidden lg:flex fixed inset-y-0 left-0 w-[var(--sidebar-w)] flex-col z-40">
         <SidebarContent
           billingEnforced={billingEnforced}
           subscriptionStatus={billing?.subscription_status}
@@ -1048,12 +1079,23 @@ export default function AppLayout() {
         />
       </div>
 
-      <main className="lg:pl-[240px] relative z-10">
+      <main className="app-main lg:pl-[var(--sidebar-w)] relative z-10">
         {/* Desktop persistent top bar */}
         <div
           className="hidden lg:flex sticky top-0 z-40 h-14 items-center gap-3 px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"
           data-testid="desktop-top-bar"
         >
+          <button
+            type="button"
+            onClick={toggleRail}
+            data-testid="sidebar-toggle"
+            aria-label={railCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-pressed={railCollapsed}
+            title={`${railCollapsed ? "Expand" : "Collapse"} sidebar ([)`}
+            className="topbar-btn shrink-0"
+          >
+            <PanelLeft className="w-[18px] h-[18px]" />
+          </button>
           <div className="flex-1 min-w-0">
             <QuickNavPalette
               variant="inline"
