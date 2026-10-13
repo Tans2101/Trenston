@@ -79,7 +79,7 @@ function TrenstonToaster() {
           background: light ? "#FFFFFF" : palette.inkCard,
           border: `1px solid ${light ? "#E3E3E0" : "#262626"}`,
           color: light ? "#0A0A0A" : palette.cream,
-          borderRadius: "6px",
+          borderRadius: "10px",
         },
         classNames: {
           toast: "group",

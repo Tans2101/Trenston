@@ -19,7 +19,7 @@ export const clerkAppearance = {
     colorNeutral: "#555555",
     colorShimmer: "#ffffff",
     // Modest shell radius only — never 9999px (that circled the whole card).
-    borderRadius: "0.25rem",
+    borderRadius: "0.625rem",
     fontFamily: "inherit",
   },
   elements: {

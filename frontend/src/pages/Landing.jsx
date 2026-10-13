@@ -74,12 +74,12 @@ export default function Landing() {
 
   return (
     <MkPage authed={authed} onEnter={enter} active={location.hash === "#pricing" ? "/#pricing" : "/"}>
-      {/* Hero — flat black, typography-led, real product screenshot */}
-      <section ref={heroRef} className="bg-mk-black text-white">
+      {/* Hero — white, typography-led, real product screenshot */}
+      <section ref={heroRef} className="bg-white text-mk-black">
         <div className="mx-auto grid max-w-7xl items-center gap-14 px-6 pb-20 pt-32 md:pt-40 lg:min-h-[88vh] lg:grid-cols-[1.05fr_1fr] lg:pb-24">
           <div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-              <Eyebrow dark>{CATEGORY}</Eyebrow>
+              <Eyebrow>{CATEGORY}</Eyebrow>
             </motion.div>
             <SplitHeadline
               lines={[`${line1}.`, line2]}
@@ -89,7 +89,7 @@ export default function Landing() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease, delay: 0.35 }}
-              className="mt-8 max-w-xl text-lg leading-relaxed text-mk-gray-dark md:text-xl"
+              className="mt-8 max-w-xl text-lg leading-relaxed text-mk-gray md:text-xl"
             >
               {HERO_OUTCOME}
             </motion.p>
@@ -99,16 +99,16 @@ export default function Landing() {
               transition={{ duration: 0.7, ease, delay: 0.45 }}
               className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4"
             >
-              <MkButton variant="light" onClick={enter} data-testid="hero-cta-btn">
+              <MkButton variant="dark" onClick={enter} data-testid="hero-cta-btn">
                 {authed ? "Open your cockpit" : "Start free"}
               </MkButton>
-              <MkLink href="#how" className="text-base text-white">See how it works</MkLink>
+              <MkLink href="#how" className="text-base text-mk-black">See how it works</MkLink>
             </motion.div>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.6 }}
-              className="mt-12 max-w-md text-sm leading-relaxed text-mk-gray-dark"
+              className="mt-12 max-w-md text-sm leading-relaxed text-mk-gray"
             >
               {AUDIENCE}
             </motion.p>
@@ -129,13 +129,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* At a glance — large left-aligned statements, no boxes */}
-      <section className="border-b border-mk-line bg-white px-6 py-20">
+      {/* At a glance — black band under the white hero; large left-aligned statements */}
+      <section className="bg-mk-black px-6 py-20 text-white">
         <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {PRODUCT_FACTS.map((s, i) => (
             <Reveal key={s.l} i={i}>
-              <p className={cn("text-4xl text-mk-black", DISPLAY)}>{s.v}</p>
-              <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-mk-gray">{s.l}</p>
+              <p className={cn("text-4xl text-white", DISPLAY)}>{s.v}</p>
+              <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-mk-gray-dark">{s.l}</p>
             </Reveal>
           ))}
         </div>

@@ -1230,9 +1230,9 @@
     "semantic_hash": "e7dceaecbcb933280c659b9410b75db1"
   },
   "frontend/src/App.js": {
-    "mtime": 1791861405.5198374,
-    "seen": 1791861542.6157575,
-    "ast_hash": "46249ebcfa59ae4510e1ec0c52209131",
+    "mtime": 1791862860.645756,
+    "seen": 1791863055.7649934,
+    "ast_hash": "5f4b4d13b873e144086105dccfb06fc1",
     "semantic_hash": ""
   },
   "frontend/src/components/AiSummaryMeta.jsx": {
@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791862276.3546472,
-    "seen": 1791862552.3332083,
-    "ast_hash": "5a6605722cf0a4689a20619fcce7e622",
+    "mtime": 1791862946.6564226,
+    "seen": 1791863055.764999,
+    "ast_hash": "3db9553dd8ca7ee281ff38236072476c",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1302,9 +1302,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/CookieNotice.jsx": {
-    "mtime": 1791471489.7228985,
-    "seen": 1791795297.087582,
-    "ast_hash": "c537aabafbb4c6c63a83277e3809e584",
+    "mtime": 1791862860.6460092,
+    "seen": 1791863055.7650106,
+    "ast_hash": "9bd0b736260dac2e6136fabc8caa77c6",
     "semantic_hash": ""
   },
   "frontend/src/components/DangerConfirmCard.jsx": {
@@ -1896,16 +1896,16 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingLogo.jsx": {
-    "mtime": 1790588003.498135,
-    "seen": 1791795297.087841,
-    "ast_hash": "5f2c3af866b87a4547ed8b03674b80d5",
-    "semantic_hash": "5f2c3af866b87a4547ed8b03674b80d5"
+    "mtime": 1791862812.771596,
+    "seen": 1791863055.7651293,
+    "ast_hash": "c9bd0011f76d21359f9d31c9fed47d33",
+    "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingNav.jsx": {
-    "mtime": 1790588211.1923523,
-    "seen": 1791795297.0878427,
-    "ast_hash": "35b84c1ce553c54cf12b4b23adc96dda",
-    "semantic_hash": "35b84c1ce553c54cf12b4b23adc96dda"
+    "mtime": 1791862812.7721562,
+    "seen": 1791863055.7651305,
+    "ast_hash": "830dc6e93e954eebf1cc5892748f095d",
+    "semantic_hash": ""
   },
   "frontend/src/components/marketing/ProductScreens.jsx": {
     "mtime": 1790589123.8868937,
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791862392.5608075,
-    "seen": 1791862552.333416,
-    "ast_hash": "663b52e779c4ef9b480d2c5950c92632",
+    "mtime": 1791863006.4934862,
+    "seen": 1791863055.7652082,
+    "ast_hash": "3d423b01e201dc4e3c314b6b4ddecf3a",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2340,9 +2340,9 @@
     "semantic_hash": "15882fc5ebebbb473c5cb42748d4c9c9"
   },
   "frontend/src/lib/clerkTheme.js": {
-    "mtime": 1791471489.7228985,
-    "seen": 1791795297.0880656,
-    "ast_hash": "5469c17844e12dc08b70c3be350777b9",
+    "mtime": 1791862860.6453474,
+    "seen": 1791863055.7652137,
+    "ast_hash": "715cdb833e82422ba1d1ffe0ad22ff40",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkToken.js": {
@@ -2628,9 +2628,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1791800389.7871702,
-    "seen": 1791860708.5288603,
-    "ast_hash": "a677e3aeb5a2051c0d11d2655ad81f31",
+    "mtime": 1791862820.6186538,
+    "seen": 1791863055.7652965,
+    "ast_hash": "d6849169c92f3ec4602e9043f279eb5f",
     "semantic_hash": ""
   },
   "frontend/src/pages/Legal.jsx": {
@@ -2748,9 +2748,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Tasks.jsx": {
-    "mtime": 1791862103.241628,
-    "seen": 1791862552.333523,
-    "ast_hash": "07ccb549e5f7ca544558f4db6331e43a",
+    "mtime": 1791862946.6568298,
+    "seen": 1791863055.765317,
+    "ast_hash": "e7a429f15ed7cc4b59123db080d4a5ce",
     "semantic_hash": ""
   },
   "frontend/src/pages/Telemetry.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791862531.3181624,
-    "seen": 1791862552.3339472,
+    "mtime": 1791863035.9421926,
+    "seen": 1791863055.765751,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },

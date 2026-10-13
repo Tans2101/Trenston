@@ -15,10 +15,10 @@ export default function MarketingLogo({
   dark = false,
   variant = "icon",
 }) {
-  const box = size === "sm" ? "w-7 h-7" : "w-9 h-9";
-  const name = size === "sm" ? "text-sm" : "text-base";
+  const box = size === "sm" ? "w-7 h-7" : size === "lg" ? "w-9 h-9" : "w-9 h-9";
+  const name = size === "sm" ? "text-sm" : size === "lg" ? "text-[1.375rem] tracking-[-0.02em]" : "text-base";
   const iconPx = size === "sm" ? 28 : 36;
-  const wordmarkH = size === "sm" ? 18 : 22;
+  const wordmarkH = size === "sm" ? 18 : size === "lg" ? 24 : 22;
   const markSrc = dark ? trenstonMarkNavy : trenstonMark;
   const wordmarkSrc = dark ? trenstonWordmarkCream : trenstonWordmarkNavy;
 
@@ -84,7 +84,7 @@ export default function MarketingLogo({
   return (
     <Link
       to="/"
-      className={`inline-flex items-center gap-2.5 group transition-opacity hover:opacity-90 ${className}`}
+      className={`inline-flex items-center ${size === "lg" ? "gap-3" : "gap-2.5"} group transition-opacity hover:opacity-90 ${className}`}
       data-testid="helm-logo-home"
     >
       {body}

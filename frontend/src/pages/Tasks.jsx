@@ -49,7 +49,7 @@ export default function Tasks() {
   if (loading) {
     return (
       <div>
-        <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your tasks are marked in gold." />
+        <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your own tasks have a line down the left edge." />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <SkeletonCardList count={3} />
           <SkeletonCardList count={2} />
@@ -257,7 +257,7 @@ export default function Tasks() {
 
   return (
     <div>
-      <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your tasks are marked in gold." action={action} />
+      <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your own tasks have a line down the left edge." action={action} />
       {data.items.length === 0 ? (
         <EmptyState title="Nothing on the board yet" body="Write each task as an action with an owner and a date, for example: Send Acme the quote, Ann, Friday. Faster: press Ctrl+K on any page and type task send Acme the quote friday."
           action={canCreate ? <button data-testid="empty-new-task-btn" onClick={() => { setForm(emptyTask()); setShowForm(true); }} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> New task</button> : null} />

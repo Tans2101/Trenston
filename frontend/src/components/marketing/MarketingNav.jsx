@@ -4,7 +4,6 @@ import { motion, useScroll, useSpring } from "motion/react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
 import { cn } from "@/lib/utils";
-import { PUBLIC_CONTACT_MAILTO } from "@/lib/marketingCopy";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -45,8 +44,8 @@ export default function MarketingNav({ authed, onEnter, active }) {
       )}
     >
       <div className="mx-auto max-w-7xl px-6">
-        <div className="flex h-16 items-center justify-between gap-6">
-          <MarketingLogo size="sm" />
+        <div className="flex h-[4.5rem] items-center justify-between gap-6">
+          <MarketingLogo size="lg" />
 
           <nav className="hidden items-center gap-8 lg:flex" aria-label="Main">
             {NAV_LINKS.map((l) => {
@@ -68,15 +67,8 @@ export default function MarketingNav({ authed, onEnter, active }) {
           </nav>
 
           <div className="flex items-center gap-5">
-            <a
-              href={PUBLIC_CONTACT_MAILTO}
-              data-testid="nav-contact-link"
-              className="hidden text-sm text-mk-gray transition-colors hover:text-mk-black sm:inline"
-            >
-              Contact
-            </a>
             {!authed && (
-              <Link to="/login" className="hidden text-sm text-mk-gray transition-colors hover:text-mk-black sm:inline">
+              <Link to="/login" className="hidden text-[0.9375rem] text-mk-gray transition-colors hover:text-mk-black sm:inline">
                 Sign in
               </Link>
             )}
@@ -84,7 +76,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
               data-testid="nav-signin-btn"
               type="button"
               onClick={onEnter}
-              className="mk-btn mk-btn-dark mk-btn-sm hidden sm:inline-flex"
+              className="mk-btn mk-btn-dark hidden sm:inline-flex"
             >
               <span>{authed ? "Open cockpit" : "Get started"}</span>
               <ArrowRight className="mk-arrow h-3.5 w-3.5" aria-hidden />
@@ -120,9 +112,6 @@ export default function MarketingNav({ authed, onEnter, active }) {
             </Link>
           ))}
           <div className="mt-5 flex flex-col gap-3">
-            <a href={PUBLIC_CONTACT_MAILTO} onClick={() => setOpen(false)} className="text-sm text-mk-gray">
-              Contact
-            </a>
             {!authed && (
               <Link to="/login" onClick={() => setOpen(false)} className="text-sm text-mk-gray">
                 Sign in

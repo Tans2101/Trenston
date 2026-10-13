@@ -443,20 +443,20 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
     <img
       src={company.logo_url}
       alt=""
-      width={28}
-      height={28}
+      width={32}
+      height={32}
       className="rounded-md shrink-0 object-cover"
       data-testid="sidebar-company-logo"
     />
   ) : (
-    <TrenstonMark size={28} className="rounded-md" />
+    <TrenstonMark size={32} className="rounded-md" />
   );
 
   return (
     <div className="cir-rail" data-testid="app-sidebar-rail">
-      <div className="flex items-center gap-2.5 px-3 pt-2 pb-2" data-testid="sidebar-brand">
+      <div className="flex items-center gap-3 px-3 pt-2 pb-3" data-testid="sidebar-brand">
         {brandMark}
-        <span className="text-sm font-semibold tracking-tight" style={{ color: "var(--cir-ink)" }}>
+        <span className="text-[1.125rem] font-semibold tracking-[-0.02em]" style={{ color: "var(--cir-ink)" }}>
           Trenston
         </span>
       </div>
