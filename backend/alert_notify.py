@@ -46,7 +46,7 @@ def build_alert_email_html(workspace_name: str, alerts: list, app_url: str) -> s
         for a in alerts
     )
     link = (app_url or "").rstrip("/") + "/app/decisions"
-    return f"""<!DOCTYPE html><html><body style="margin:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;">
+    return f"""<!DOCTYPE html><html><body style="margin:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:32px 16px;"><tr><td align="center">
 <table width="560" cellpadding="0" cellspacing="0" style="background:#141417;border:1px solid rgba(255,255,255,0.08);border-radius:12px;">
 <tr><td style="padding:28px 32px;">

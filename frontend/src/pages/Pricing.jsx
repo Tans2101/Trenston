@@ -8,6 +8,7 @@ import {
   MkPage,
   PageHero,
   Reveal,
+  Mark,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { CATEGORY, PLANS, PRICING_FAQ, TAGLINE } from "@/lib/marketingCopy";
@@ -34,7 +35,7 @@ export default function Pricing() {
     <MkPage authed={authed} onEnter={enter} active="/pricing">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["Pricing that", "scales with you."]}
+        lines={["Pricing that", <><Mark dark>scales</Mark> with you.</>]}
         sub="Start free. Paid plans include a 7-day free trial. Cancel anytime. Plans scale with Trenston users (your team's product logins, separate from total company headcount) and how much AI document processing and Ask Trenston usage you need each month."
         toc={[
           { id: "plans", label: "Plans" },

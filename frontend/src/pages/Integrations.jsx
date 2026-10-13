@@ -578,7 +578,7 @@ export default function Integrations() {
           <div className="flex items-start justify-between gap-3">
             <details className="text-xs text-helm-muted">
               <summary className="cursor-pointer select-none">Technical details</summary>
-              <p className="mt-2 font-mono break-all">
+              <p data-mono className="mt-2 font-mono break-all">
                 provider={oauthError.provider || "unknown"} · error={oauthError.error || "unknown"}
                 {oauthError.reason ? ` · reason=${oauthError.reason}` : ""}
               </p>
@@ -636,7 +636,7 @@ export default function Integrations() {
               <>
                 <p className="text-xs text-helm-muted mt-3">
                   Webhook{" "}
-                  <span className="font-mono text-helm-fg break-all" data-testid="slack-webhook-masked">
+                  <span data-mono className="font-mono text-helm-fg break-all" data-testid="slack-webhook-masked">
                     {data.slack_webhook_masked}
                   </span>
                 </p>

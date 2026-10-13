@@ -15,11 +15,14 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       fontFamily: {
-        sans: ['DM Sans', 'sans-serif'],
-        mono: ['DM Mono', 'monospace'],
-        // Corporate: one sans family everywhere (was Hedvig Letters Sans).
-        display: ['DM Sans', 'system-ui', 'sans-serif'],
-        'serif-display': ['DM Sans', 'system-ui', 'sans-serif'],
+        // One typeface everywhere: Inter (variable, with its Display optical size).
+        // "mono" is used for figures and small labels, so it maps to Inter too;
+        // real code uses `font-code` (JetBrains Mono).
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        mono: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        code: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        display: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        'serif-display': ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       colors: {
         /* Marketing site only (public pages): black / navy / white editorial

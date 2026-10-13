@@ -23,6 +23,7 @@ import {
   Reveal,
   RuledItem,
   SectionHeader,
+  Mark,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
@@ -85,7 +86,7 @@ export default function About() {
 
   return (
     <MkPage authed={authed} onEnter={enter} active="/about">
-      <PageHero eyebrow="About us" lines={["About", "Trenston."]} sub={MISSION} toc={TOC} />
+      <PageHero eyebrow="About us" lines={["About", <><Mark dark>Trenston</Mark>.</>]} sub={MISSION} toc={TOC} />
 
       {/* What it is + key facts */}
       <section id="what" className="scroll-mt-16 bg-white px-6 py-24 md:py-28" data-testid="about-facts">

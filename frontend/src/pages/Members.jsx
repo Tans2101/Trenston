@@ -348,7 +348,7 @@ export default function Members() {
               <Link2 className="w-4 h-4 text-helm-gold shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-helm-muted">Open invite code. Share to let anyone join as a Member</p>
-                <p className="font-mono text-lg text-helm-fg tracking-[0.3em] mt-0.5" data-testid="join-code-value">{codeData.join_code}</p>
+                <p data-mono className="font-mono text-lg text-helm-fg tracking-[0.3em] mt-0.5" data-testid="join-code-value">{codeData.join_code}</p>
               </div>
               <button data-testid="copy-join-code" onClick={copyCode} className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5"><Copy className="w-3.5 h-3.5" /> Copy</button>
             </GlassCard>

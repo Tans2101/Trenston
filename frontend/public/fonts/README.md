@@ -1,7 +1,5 @@
-DM Sans, DM Mono, and Hedvig Letters Sans font files in this directory are
-self-hosted under the SIL Open Font License (OFL). Do not load these from a CDN.
-
-These fonts are licensed under the SIL Open Font License, Version 1.1.
-See https://scripts.sil.org/OFL
-
-Self-hosting avoids third-party requests to Google on every page load.
+Inter (variable, with the optical-size axis so large headings use the Display
+cut) and JetBrains Mono (for code only) are self-hosted here under the SIL Open
+Font License 1.1 (see LICENSE-inter.txt and LICENSE-jetbrains-mono.txt).
+Do not load fonts from a CDN: self-hosting avoids third-party requests to
+Google on every page load.

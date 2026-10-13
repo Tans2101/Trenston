@@ -24,6 +24,7 @@ import {
   Reveal,
   RuledItem,
   SectionHeader,
+  Mark,
 } from "@/components/marketing/mk";
 import { cn } from "@/lib/utils";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
@@ -315,7 +316,7 @@ export default function Security() {
     <MkPage authed={authed} onEnter={enter} active="/security">
       <PageHero
         eyebrow="Security at Trenston"
-        lines={["Your company runs on trust.", "Trenston is built to protect it."]}
+        lines={["Your company runs on trust.", <>Trenston is built to <Mark dark>protect</Mark> it.</>]}
         sub="Cash, decisions, documents, and connected systems are the operating picture of a company. Trenston is designed so that picture stays inside the workspace that owns it, from sign-in through deletion."
         toc={toc}
         size="md"

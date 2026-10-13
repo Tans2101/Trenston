@@ -15,8 +15,13 @@ import { cn } from "@/lib/utils";
 
 export const ease = [0.16, 1, 0.3, 1];
 
-/** Display type: medium weight, tight but not crushed. */
-export const DISPLAY = "font-medium tracking-[-0.03em]";
+/** Display type: Inter Display, semibold, tight but not crushed. */
+export const DISPLAY = "font-semibold tracking-[-0.032em]";
+
+/** A headline word with a hand-drawn marker stroke behind it. */
+export function Mark({ children, dark = false }) {
+  return <span className={cn("mk-mark", dark && "mk-mark-dark")}>{children}</span>;
+}
 
 export const fadeUp = {
   hidden: { opacity: 0, y: 20 },

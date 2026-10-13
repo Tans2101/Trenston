@@ -23,6 +23,7 @@ import {
   SplitHeadline,
   VisualPanel,
   ease,
+  Mark,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
@@ -71,6 +72,11 @@ export default function Landing() {
   }, [location.hash, location.pathname]);
 
   const [line1, line2] = TAGLINE.split(". ");
+  // "Run your business." with "business" highlighted.
+  const markLastWord = (text) => {
+    const m = /^(.*\s)(\S+?)([.!?]?)$/.exec(text);
+    return m ? <>{m[1]}<Mark>{m[2]}</Mark>{m[3]}</> : text;
+  };
 
   return (
     <MkPage authed={authed} onEnter={enter} active={location.hash === "#pricing" ? "/#pricing" : "/"}>
@@ -82,7 +88,7 @@ export default function Landing() {
               <Eyebrow>{CATEGORY}</Eyebrow>
             </motion.div>
             <SplitHeadline
-              lines={[`${line1}.`, line2]}
+              lines={[markLastWord(`${line1}.`), line2]}
               className={cn("mt-6 text-[3.1rem] leading-[1] sm:text-7xl lg:text-[4.4rem] xl:text-[5.25rem]", DISPLAY)}
             />
             <motion.p

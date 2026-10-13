@@ -137,7 +137,9 @@
     body {
         @apply bg-background text-foreground;
         margin: 0;
-        font-family: 'DM Sans', sans-serif;
+        font-family: var(--font-sans);
+        font-optical-sizing: auto;
+        text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         background-color: var(--helm-bg);
@@ -145,12 +147,17 @@
         background-attachment: fixed;
         color: var(--helm-fg);
     }
-    h1, h2 {
-        font-family: 'Hedvig Letters Sans', 'DM Sans', system-ui, sans-serif;
-        font-weight: 400;
+    :root {
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --font-code: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    h1, h2, h3 {
+        font-family: var(--font-sans);
+        font-weight: 600;
+        letter-spacing: -0.022em;
     }
     button, input, textarea, select, table, .font-sans {
-        font-family: 'DM Sans', sans-serif;
+        font-family: var(--font-sans);
     }
     ::selection {
         background: color-mix(in srgb, var(--helm-gold) 32%, transparent);
@@ -158,12 +165,24 @@
     }
 }
 
-.font-mono { font-family: 'DM Mono', monospace; }
+/* One typeface everywhere. "font-mono" is used across the product for figures
+   and small labels: it now means Inter with even-width (tabular) numbers, so
+   columns of money line up. Only real code keeps a monospace face. */
+.font-mono {
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+}
+code, code.font-mono, kbd, kbd.font-mono, pre, pre.font-mono, samp, [data-mono] {
+    font-family: var(--font-code);
+    font-variant-numeric: normal;
+}
 
-/* Page headers / display — Hedvig Letters Sans (self-hosted). Never buttons, tables, or form fields */
+/* Page headers / display: Inter's Display cut (optical size) at heading weight. */
 .font-display,
 .font-serif-display {
-    font-family: 'Hedvig Letters Sans', 'DM Sans', system-ui, sans-serif;
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    letter-spacing: -0.025em;
 }
 
 /* Clerk SignIn/SignUp — light cream auth (do not force ink/cream; that left black voids). */
@@ -1108,7 +1127,7 @@ html[data-theme="dark"] .cir-delete:hover:not(:disabled) {
   --mk-navy-2: #153b7a;
   --mk-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
-.mk { font-feature-settings: "ss01", "cv11"; }
+.mk { font-optical-sizing: auto; }
 
 /* Buttons: base fill, a second colour sweeps in from the left on hover. */
 .mk-btn {
@@ -1424,7 +1443,7 @@ html[data-theme="dark"] .bg-helm-gold .text-helm-navy {
 
 
 /* ==========================================================================
-   App typography follows the marketing site: one sans family (DM Sans),
+   App typography follows the marketing site: one sans family (Inter),
    medium-weight display headings with tight tracking, and small uppercase
    labels set like the site's eyebrows instead of monospace. Real code
    (<code>, <pre>, <kbd>) and anything marked data-mono keep the mono face.
@@ -1432,23 +1451,25 @@ html[data-theme="dark"] .bg-helm-gold .text-helm-navy {
 .app-shell h1,
 .app-shell .font-display,
 .app-shell .font-serif-display {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 .app-shell h2 {
-  font-family: 'DM Sans', system-ui, sans-serif;
-  font-weight: 500;
+  font-family: var(--font-sans);
+  font-weight: 600;
   letter-spacing: -0.015em;
 }
 .app-shell .font-mono:not(code):not(kbd):not(pre):not([data-mono]) {
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
 }
 .app-shell .font-mono.uppercase:not(code):not(kbd):not(pre):not([data-mono]) {
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
 }
+/* Money and counts across the app: even-width digits so they line up. */
+.app-shell { font-variant-numeric: tabular-nums; }
 .app-shell .font-mono:not(.uppercase):not(code):not(kbd):not(pre):not([data-mono]) {
   letter-spacing: -0.01em;
 }
@@ -1470,4 +1491,45 @@ html[data-theme="light"] .app-shell a.bg-helm-gold:hover {
 html[data-theme="light"] .app-shell button.bg-helm-gold *,
 html[data-theme="light"] .app-shell a.bg-helm-gold * {
   color: inherit;
+}
+
+/* ==========================================================================
+   Highlighted headline word: navy word with a hand-drawn yellow marker
+   stroke behind it that draws in from the left. Dark variant for black bands.
+   ========================================================================== */
+.mk-mark {
+  position: relative;
+  z-index: 0;
+  color: var(--mk-navy);
+  white-space: nowrap;
+}
+.mk-mark::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: -0.06em;
+  right: -0.08em;
+  bottom: 0.04em;
+  height: 0.42em;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 30' preserveAspectRatio='none'%3E%3Cpath d='M4 17C38 10 92 7 150 8s104 2 144 6c3 1 4 5 1 7-46 4-98 6-150 6S47 26 8 26c-5 0-7-7-4-9z' fill='%23F2C94C'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  opacity: 0.85;
+  transform: rotate(-1deg);
+  clip-path: inset(0 0 0 0);
+  animation: mk-mark-draw 0.9s var(--mk-ease) 0.55s both;
+}
+/* On black: white word, the yellow stroke sits lower and thinner, like an underline. */
+.mk-mark-dark { color: #fff; }
+.mk-mark-dark::after { opacity: 1; height: 0.2em; bottom: -0.04em; }
+@keyframes mk-mark-draw {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk-mark::after { animation: none; }
+}
+
+/* Big figures (KPIs, totals) read like the headlines: semibold and tight. */
+.font-mono:is(.text-xl, .text-2xl, .text-3xl, .text-4xl, .text-5xl):not(code):not(kbd):not(pre):not([data-mono]) {
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }

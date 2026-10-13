@@ -449,7 +449,6 @@ export default function MyDay() {
                   key={n.note_id}
                   data-testid={`sticky-note-${n.note_id}`}
                   className={cn("relative rounded-sm border p-4 min-h-[120px] rotate-[-0.6deg] hover:rotate-0 transition-transform", NOTE_STYLES[n.color] || NOTE_STYLES.gold)}
-                  style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
                 >
                   <p className="text-sm leading-relaxed pr-6 whitespace-pre-wrap">{n.text}</p>
                   <div className="absolute top-2 right-2 flex gap-1">

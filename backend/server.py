@@ -792,7 +792,7 @@ def _invite_email_html(inviter_name: str, workspace_name: str, role: str, app_ur
     role = html.escape(role)
     app_url = html.escape(app_url, quote=True)
     return f"""\
-<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:'Helvetica Neue',Arial,sans-serif;">
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
@@ -917,7 +917,7 @@ def _task_delegation_email_html(
         if note else ""
     )
     return f"""\
-<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:'Helvetica Neue',Arial,sans-serif;">
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
@@ -17075,7 +17075,7 @@ def _weekly_digest_email_html(*, workspace_name: str, app_url: str, unsubscribe_
 </td></tr>"""
     )
     return f"""\
-<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:'Helvetica Neue',Arial,sans-serif;">
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
 <tr><td align="center">
 <table width="480" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">

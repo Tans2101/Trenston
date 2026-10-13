@@ -182,7 +182,7 @@ def _email_shell(
     if unsubscribe_url:
         footer = ec.marketing_footer_html(unsubscribe_url=unsubscribe_url)
     return f"""\
-<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:'Helvetica Neue',Arial,sans-serif;">
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
 <tr><td align="center">
 <table width="520" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">

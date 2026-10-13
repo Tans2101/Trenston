@@ -198,7 +198,7 @@ export default function ApiKeysSettings({ canBilling = false }) {
               <p className="text-sm font-medium text-helm-fg">Copy your new key now. You won't see it again.</p>
               <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <code
-                  className="min-w-0 flex-1 break-all rounded border border-helm-line bg-helm-bg px-3 py-2 font-mono text-xs text-helm-fg"
+                  data-mono className="min-w-0 flex-1 break-all rounded border border-helm-line bg-helm-bg px-3 py-2 font-mono text-xs text-helm-fg"
                   data-testid="api-key-value"
                 >
                   {newKey.key}

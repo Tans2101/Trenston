@@ -14,6 +14,7 @@ import {
   Reveal,
   SectionHeader,
   ease,
+  Mark,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { CATEGORY, FEATURE_CATEGORIES, FEATURE_MODULES, PLANS, PRO_FEATURES, TAGLINE } from "@/lib/marketingCopy";
@@ -104,7 +105,7 @@ export default function Features() {
     <MkPage authed={authed} onEnter={enter} active="/features">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["Everything", "in the cockpit."]}
+        lines={["Everything", <>in the <Mark dark>cockpit</Mark>.</>]}
         sub="Briefing, decisions, departments, and the rest of the cockpit, each designed to answer a specific leadership question: what changed, what to decide, what to delegate, and whether it landed."
         aside={<BriefingTicker />}
       >

@@ -8,6 +8,7 @@ import {
   PageHero,
   Reveal,
   SectionHeader,
+  Mark,
 } from "@/components/marketing/mk";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import {
@@ -48,7 +49,7 @@ export default function PublicIntegrations() {
     <MkPage authed={authed} onEnter={enter} active="/integrations">
       <PageHero
         eyebrow="Integrations"
-        lines={["Connected", "where it counts."]}
+        lines={["Connected", <>where it <Mark dark>counts</Mark>.</>]}
         sub={PUBLIC_INTEGRATIONS_INTRO}
         toc={[
           { id: "available", label: "Available today" },
