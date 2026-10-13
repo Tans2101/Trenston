@@ -86,10 +86,14 @@ export async function resolveClerkToken(
     try {
       const skipCache = i > 0;
       const opts = skipCache ? { skipCache: true } : undefined;
-      const fromSession = session
-        ? await withTimeout(session.getToken(opts), tokenTimeoutMs, "session-token-timeout")
-        : null;
-      const fromAuth = await withTimeout(getToken(opts), tokenTimeoutMs, "auth-token-timeout");
+      // Ask both in parallel (they return the same JWT); the old sequential
+      // awaits could burn 2× the timeout on every attempt.
+      const [fromSession, fromAuth] = await Promise.all([
+        session
+          ? withTimeout(session.getToken(opts), tokenTimeoutMs, "session-token-timeout").catch(() => null)
+          : Promise.resolve(null),
+        withTimeout(getToken(opts), tokenTimeoutMs, "auth-token-timeout").catch(() => null),
+      ]);
       const token = fromSession || fromAuth;
       if (token && token.split(".").length === 3) {
         cachedToken = token;

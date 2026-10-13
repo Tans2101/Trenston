@@ -14,13 +14,16 @@ async function exchangeClerkSession(token) {
     const { data } = await api.post(
       "/auth/clerk/exchange",
       {},
-      { headers: { Authorization: `Bearer ${token}` } },
+      // Shorter than the default 20s: a stuck request is retried quickly instead
+      // of leaving the user staring at "Connecting your account".
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 },
     );
     return data;
   } catch (exchangeErr) {
     if (exchangeErr?.response?.status === 404) {
       const { data } = await api.get("/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000,
       });
       return data;
     }
@@ -114,7 +117,7 @@ export default function ClerkHelmBridge() {
             continue;
           }
           if (attempt < 5 && (status >= 500 || !status)) {
-            await sleep(1000);
+            await sleep(500);
             continue;
           }
           if (cancelled || runId !== syncRunId.current) return;

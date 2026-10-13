@@ -749,13 +749,17 @@ async def prefetch_jwks() -> bool:
         return False
 
 
-async def _fetch_jwks_async() -> dict[str, Any]:
-    """JWKS from public Clerk URL using async httpx (Render-safe)."""
+async def _fetch_jwks_async(force: bool = False) -> dict[str, Any]:
+    """JWKS from public Clerk URL using async httpx (Render-safe).
+
+    `force` skips the TTL cache (used once when a token's kid is not cached,
+    e.g. right after Clerk rotates signing keys).
+    """
     import time
 
     global _jwks_async_cache, _jwks_async_cache_at
     now = time.time()
-    if _jwks_async_cache and now - _jwks_async_cache_at < _JWKS_TTL_SECONDS:
+    if not force and _jwks_async_cache and now - _jwks_async_cache_at < _JWKS_TTL_SECONDS:
         return _jwks_async_cache
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(CLERK_JWKS_URL)
@@ -809,16 +813,21 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
 
     from jwt.algorithms import RSAAlgorithm
 
-    jwks = await _fetch_jwks_async()
     header = jwt.get_unverified_header(token)
     kid = header.get("kid")
-    signing_key = None
-    for key_data in jwks.get("keys", []):
-        if key_data.get("kid") == kid:
-            signing_key = RSAAlgorithm.from_jwk(json.dumps(key_data))
-            break
+
+    def _find_key(jwks: dict[str, Any]):
+        for key_data in jwks.get("keys", []):
+            if key_data.get("kid") == kid:
+                return RSAAlgorithm.from_jwk(json.dumps(key_data))
+        return None
+
+    signing_key = _find_key(await _fetch_jwks_async())
     if signing_key is None:
-        raise jwt.InvalidTokenError("JWKS kid not found")
+        # Unknown kid: keys may have just rotated. Refresh once, then give up.
+        signing_key = _find_key(await _fetch_jwks_async(force=True))
+    if signing_key is None:
+        raise JwksKeyMissing("JWKS kid not found")
 
     issuer = clerk_jwt_issuer()
     audiences = clerk_jwt_audiences()
@@ -826,6 +835,8 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
     decode_kwargs: dict[str, Any] = {
         "algorithms": ["RS256"],
         "issuer": issuer,
+        # Small clock-skew allowance for exp/nbf/iat between Clerk and Render.
+        "leeway": 10,
     }
     # Only pass audience= when the token has an aud claim — PyJWT raises
     # MissingRequiredClaimError if we require audience on Clerk session tokens
@@ -843,16 +854,20 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
     return payload
 
 
+class JwksKeyMissing(Exception):
+    """Token's signing key is not in the (refreshed) JWKS — ask Clerk directly."""
+
+
 async def decode_clerk_jwt(token: str) -> dict[str, Any]:
-    """Verify Clerk session JWT — BAPI session check first (Render-safe), JWKS fallback."""
-    try:
-        return await _verify_clerk_session_via_bapi(token)
-    except ValueError:
-        raise
-    except httpx.HTTPError as exc:
-        logger.warning("clerk bapi session verify network error: %s", exc)
-    except Exception as exc:
-        logger.warning("clerk bapi session verify failed: %s (%s)", type(exc).__name__, exc)
+    """Verify a Clerk session JWT.
+
+    Fast path: check the signature locally against the cached JWKS (no network,
+    a few ms). Clerk session tokens live ~60s, so a revoked session stops working
+    within a minute, which is Clerk's own documented trade-off for networkless
+    verification. A definite failure (bad signature, wrong issuer, expired) is
+    final. Only when the keys can't be used (key not found, JWKS unreachable) do
+    we fall back to asking the Clerk Backend API about the session.
+    """
     try:
         return await _verify_clerk_jwt_jwks(token)
     except jwt.ExpiredSignatureError:
@@ -863,7 +878,16 @@ async def decode_clerk_jwt(token: str) -> dict[str, Any]:
             "Invalid Clerk session token. Sign out, hard-refresh, and sign in again"
         ) from exc
     except Exception as exc:
-        logger.warning("clerk jwks verify failed: %s (%s)", type(exc).__name__, exc)
+        logger.warning(
+            "clerk local jwt verify unavailable (%s: %s); asking Clerk API",
+            type(exc).__name__, exc,
+        )
+    try:
+        return await _verify_clerk_session_via_bapi(token)
+    except ValueError:
+        raise
+    except Exception as exc:
+        logger.warning("clerk bapi session verify failed: %s (%s)", type(exc).__name__, exc)
         raise ValueError(
             "Could not verify Clerk session. Check CLERK_SECRET_KEY on Render matches clerk.trenston.com"
         ) from exc

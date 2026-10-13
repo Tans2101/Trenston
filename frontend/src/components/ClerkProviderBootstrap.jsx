@@ -29,6 +29,40 @@ function clerkProxyUrl() {
   return `${window.location.origin.replace(/\/$/, "")}/__clerk`;
 }
 
+/**
+ * Last good /auth/config, kept in localStorage so a returning visitor's sign-in
+ * starts instantly instead of waiting on an API round trip first. It is public
+ * config only (publishable key, URLs, password policy) and is always
+ * re-validated in the background; a changed key just remounts Clerk.
+ */
+const CONFIG_CACHE_KEY = "trenston.authcfg.v1";
+const CONFIG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function readCachedState() {
+  try {
+    const raw = window.localStorage.getItem(CONFIG_CACHE_KEY);
+    if (!raw) return null;
+    const { at, state } = JSON.parse(raw);
+    if (!state || typeof at !== "number" || Date.now() - at > CONFIG_CACHE_MAX_AGE_MS) return null;
+    if (!state.clerkEnabled || !state.publishableKey) return null;
+    return { ...state, ready: true, configError: null };
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedState(state) {
+  try {
+    if (!state.clerkEnabled || !state.publishableKey) {
+      window.localStorage.removeItem(CONFIG_CACHE_KEY);
+      return;
+    }
+    window.localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify({ at: Date.now(), state }));
+  } catch {
+    /* private mode / blocked storage: just no speed-up */
+  }
+}
+
 const ClerkModeContext = createContext({
   ready: false,
   configLoading: true,
@@ -69,7 +103,7 @@ function ConfigErrorScreen({ message }) {
  * Clerk redirect URLs use clerk_post_auth_url (apexcoach.tech) when multi-domain.
  */
 export default function ClerkProviderBootstrap({ children }) {
-  const [state, setState] = useState({
+  const [state, setState] = useState(() => readCachedState() || {
     ready: false,
     clerkEnabled: false,
     publishableKey: null,
@@ -163,7 +197,7 @@ export default function ClerkProviderBootstrap({ children }) {
           return;
         }
 
-        setState({
+        const next = {
           ready: true,
           clerkEnabled: clerkOn && Boolean(key),
           publishableKey: key || null,
@@ -176,9 +210,15 @@ export default function ClerkProviderBootstrap({ children }) {
           passwordMinLength,
           passwordRequired,
           captchaEnabled,
-        });
+        };
+        writeCachedState(next);
+        // Keep the same object when nothing changed so a cache-started page
+        // doesn't re-render (or remount Clerk) after the background check.
+        setState((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
       } catch {
         if (cancelled) return;
+        // Background check failed but we already started from a good cached config.
+        if (readCachedState()) return;
         if (fallback) {
           setState({
             ready: true,

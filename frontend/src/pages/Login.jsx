@@ -68,17 +68,26 @@ function LoginClerk() {
         {sessionError && (
           <div className="mt-6 max-w-md space-y-4">
             <p className="text-sm text-helm-status-negative">{sessionError}</p>
-            <button
-              type="button"
-              className="text-sm text-mk-navy font-semibold hover:underline"
-              onClick={async () => {
-                clearSessionError();
-                await signOut();
-                window.location.href = "/login";
-              }}
-            >
-              Sign out and try again
-            </button>
+            <div className="flex flex-col items-center gap-3">
+              <button
+                type="button"
+                className="text-sm text-mk-navy font-semibold hover:underline"
+                onClick={() => window.location.reload()}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                className="text-xs text-mk-gray hover:underline"
+                onClick={async () => {
+                  clearSessionError();
+                  await signOut();
+                  window.location.href = "/login";
+                }}
+              >
+                Sign out instead
+              </button>
+            </div>
           </div>
         )}
       </div>

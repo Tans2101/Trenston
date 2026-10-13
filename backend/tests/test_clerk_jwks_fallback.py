@@ -161,45 +161,96 @@ async def test_jwks_fallback_rejects_bad_azp():
             await clerk_auth._verify_clerk_jwt_jwks(token)
 
 
-@pytest.mark.asyncio
-async def test_decode_clerk_jwt_primary_bapi_still_preferred():
-    """BAPI path is unchanged — JWKS is only the fallback."""
-    with patch.object(
-        clerk_auth,
-        "_verify_clerk_session_via_bapi",
-        AsyncMock(return_value={"sub": "user_from_bapi", "sid": "sess"}),
-    ), patch.object(
-        clerk_auth, "_verify_clerk_jwt_jwks", AsyncMock(side_effect=AssertionError("jwks should not run")),
-    ):
-        payload = await clerk_auth.decode_clerk_jwt("dummy.jwt.token")
-    assert payload["sub"] == "user_from_bapi"
-
-
-@pytest.mark.asyncio
-async def test_decode_clerk_jwt_falls_back_to_jwks_on_network_error():
-    private_pem, public_jwk = _rsa_pair()
+def _signed_token(private_pem, **overrides):
     now = int(time.time())
-    token = jwt.encode(
-        {
-            "sub": "user_fallback",
-            "sid": "sess_fb",
-            "iss": "https://clerk.trenston.com",
-            "azp": "https://www.trenston.com",
-            "iat": now,
-            "exp": now + 600,
-        },
-        private_pem,
-        algorithm="RS256",
-        headers={"kid": "test_kid"},
-    )
-    import httpx
+    claims = {
+        "sub": "user_local",
+        "sid": "sess_local",
+        "iss": "https://clerk.trenston.com",
+        "azp": "https://www.trenston.com",
+        "iat": now,
+        "exp": now + 600,
+    }
+    claims.update(overrides)
+    return jwt.encode(claims, private_pem, algorithm="RS256", headers={"kid": "test_kid"})
 
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_verifies_locally_without_calling_clerk():
+    """Fast path: a valid token is checked against cached JWKS, no Clerk API call."""
+    private_pem, public_jwk = _rsa_pair()
+    token = _signed_token(private_pem)
     with patch.object(
         clerk_auth,
         "_verify_clerk_session_via_bapi",
-        AsyncMock(side_effect=httpx.ConnectError("down")),
+        AsyncMock(side_effect=AssertionError("bapi should not run")),
     ), patch.object(
         clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": [public_jwk]}),
     ):
         payload = await clerk_auth.decode_clerk_jwt(token)
-    assert payload["sub"] == "user_fallback"
+    assert payload["sub"] == "user_local"
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_bad_signature_is_final_no_bapi_fallback():
+    private_pem, _ = _rsa_pair()
+    _, other_jwk = _rsa_pair()  # different key under the same kid
+    token = _signed_token(private_pem)
+    with patch.object(
+        clerk_auth,
+        "_verify_clerk_session_via_bapi",
+        AsyncMock(side_effect=AssertionError("bapi must not rescue a forged token")),
+    ), patch.object(
+        clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": [other_jwk]}),
+    ):
+        with pytest.raises(ValueError, match="Invalid Clerk session token"):
+            await clerk_auth.decode_clerk_jwt(token)
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_expired_is_final():
+    private_pem, public_jwk = _rsa_pair()
+    now = int(time.time())
+    token = _signed_token(private_pem, iat=now - 900, exp=now - 600)
+    with patch.object(
+        clerk_auth,
+        "_verify_clerk_session_via_bapi",
+        AsyncMock(side_effect=AssertionError("bapi should not run")),
+    ), patch.object(
+        clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": [public_jwk]}),
+    ):
+        with pytest.raises(ValueError, match="expired"):
+            await clerk_auth.decode_clerk_jwt(token)
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_refreshes_jwks_once_when_kid_unknown():
+    private_pem, public_jwk = _rsa_pair()
+    token = _signed_token(private_pem)
+    calls = []
+
+    async def fake_fetch(force=False):
+        calls.append(force)
+        return {"keys": [public_jwk]} if force else {"keys": []}
+
+    with patch.object(clerk_auth, "_fetch_jwks_async", fake_fetch):
+        payload = await clerk_auth.decode_clerk_jwt(token)
+    assert payload["sub"] == "user_local"
+    assert calls == [False, True]
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_falls_back_to_bapi_when_jwks_unusable():
+    private_pem, _ = _rsa_pair()
+    token = _signed_token(private_pem)
+    import httpx
+
+    with patch.object(
+        clerk_auth, "_fetch_jwks_async", AsyncMock(side_effect=httpx.ConnectError("down")),
+    ), patch.object(
+        clerk_auth,
+        "_verify_clerk_session_via_bapi",
+        AsyncMock(return_value={"sub": "user_from_bapi", "sid": "sess"}),
+    ):
+        payload = await clerk_auth.decode_clerk_jwt(token)
+    assert payload["sub"] == "user_from_bapi"

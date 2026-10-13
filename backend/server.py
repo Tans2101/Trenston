@@ -3049,11 +3049,9 @@ async def clerk_exchange(request: Request, response: Response):
                 "is a different mode. Use matching sk_live_/pk_live_ keys from the same Clerk instance on Render"
             ),
         )
-    if not await clerk_auth.clerk_jwks_ok():
-        raise HTTPException(
-            status_code=503,
-            detail="Clerk signing keys unavailable. Check CLERK_SECRET_KEY on Render matches clerk.trenston.com",
-        )
+    # No JWKS reachability probe here: it was an extra outbound call to Clerk on
+    # the sign-in hot path. Token verification below uses the warm JWKS cache and
+    # reports a clear error itself if the keys really are unusable.
     token = _bearer_token(request)
     if not token:
         raise HTTPException(status_code=401, detail="Missing Clerk session token")
@@ -18017,6 +18015,26 @@ async def startup():
     asyncio.create_task(clerk_auth.sync_clerk_instance())
     if clerk_auth.clerk_configured():
         asyncio.create_task(clerk_auth.prefetch_jwks())
+        asyncio.create_task(_keep_clerk_probes_warm())
+
+
+async def _keep_clerk_probes_warm() -> None:
+    """Keep /auth/config (the first request every sign-in waits on) answering from cache.
+
+    Its Clerk health probes are cached for 120s; whoever hit it after a quiet
+    spell used to pay for 4 outbound Clerk calls (up to 10s each). Refresh them
+    in the background every 90s, and keep the JWKS warm so local token
+    verification never has to fetch keys during a sign-in.
+    """
+    while True:
+        try:
+            await auth_config()
+            await clerk_auth.prefetch_jwks()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("clerk probe warm-up failed", exc_info=True)
+        await asyncio.sleep(90)
 
 
 async def _run_sales_finance_migration() -> None:

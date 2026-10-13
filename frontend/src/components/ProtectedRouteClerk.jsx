@@ -49,7 +49,7 @@ export default function ProtectedRouteClerk() {
       setConnectTimedOut(false);
       return undefined;
     }
-    const t = setTimeout(() => setConnectTimedOut(true), 25000);
+    const t = setTimeout(() => setConnectTimedOut(true), 15000);
     return () => clearTimeout(t);
   }, [user, clerkComplete, sessionError]);
 
@@ -85,9 +85,17 @@ export default function ProtectedRouteClerk() {
         <div className="min-h-screen flex flex-col items-center justify-center bg-helm-ink p-8 text-center">
           <p className="text-lg text-helm-fg mb-2">Could not connect your account</p>
           <p className="text-sm text-helm-status-negative max-w-md mb-6">{message}</p>
+          {/* Reload keeps the Clerk session and re-runs the connection; signing out is the last resort. */}
           <button
             type="button"
             className="rounded-lg bg-helm-gold text-helm-navy px-4 py-2 text-sm font-medium"
+            onClick={() => window.location.reload()}
+          >
+            Try again
+          </button>
+          <button
+            type="button"
+            className="mt-4 text-sm text-helm-muted hover:text-helm-fg underline"
             onClick={async () => {
               clearSessionError();
               setConnectTimedOut(false);
@@ -95,7 +103,7 @@ export default function ProtectedRouteClerk() {
               window.location.href = "/login";
             }}
           >
-            Sign out and try again
+            Sign out instead
           </button>
         </div>
       );
