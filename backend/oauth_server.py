@@ -8,7 +8,7 @@ connector client requires:
   https://www.trenston.com/.well-known/oauth-authorization-server)
 - RFC 7591 Dynamic Client Registration (public clients, no secret)
 - Authorization code grant with mandatory S256 PKCE
-- Short-lived access tokens with rotating refresh tokens (reuse revokes the grant)
+- 30-day access tokens with rotating refresh tokens (reuse revokes the grant)
 - Redirect URIs: exact match, except loopback (localhost / 127.0.0.1) where the
   port is ignored, per RFC 8252, for native clients such as Claude Code
 
@@ -29,7 +29,10 @@ import api_keys
 
 SCOPE = "trenston.read"
 SUPPORTED_SCOPES = (SCOPE, "offline_access")
-ACCESS_TOKEN_TTL = timedelta(hours=1)
+# 30 days: assistants that mishandle refresh (or refresh in parallel from several
+# devices) used to drop the connection every hour. Still read-only, hashed, rate
+# limited, and revoked instantly by Disconnect or by leaving the workspace.
+ACCESS_TOKEN_TTL = timedelta(days=30)
 REFRESH_TOKEN_TTL = timedelta(days=90)
 CODE_TTL = timedelta(minutes=10)
 MAX_REDIRECT_URIS = 5

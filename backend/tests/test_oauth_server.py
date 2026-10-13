@@ -131,7 +131,7 @@ def test_code_exchange_issues_tokens_that_resolve_as_read_only_api_tokens():
     db = make_db()
     client, code = full_flow(db)
     tok = run(oauth.exchange_code(db, {"code": code, "client_id": client["client_id"], "redirect_uri": CLAUDE_CB, "code_verifier": VERIFIER}))
-    assert tok["token_type"] == "Bearer" and 0 < tok["expires_in"] <= 3600
+    assert tok["token_type"] == "Bearer" and 0 < tok["expires_in"] <= 30 * 24 * 3600
     assert tok["refresh_token"] and tok["access_token"].startswith("trn_")
     doc = run(api_keys.resolve(db, tok["access_token"]))
     assert doc["user_id"] == "u1" and doc["workspace_id"] == "ws1" and doc["kind"] == "oauth"
@@ -218,7 +218,9 @@ def test_refresh_wrong_client_rejected():
 def test_access_tokens_expire():
     db = make_db()
     _, tok = _tokens(db)
-    later = datetime.now(timezone.utc) + timedelta(hours=2)
+    soon = datetime.now(timezone.utc) + timedelta(days=29)
+    assert run(api_keys.resolve(db, tok["access_token"], now=soon)) is not None
+    later = datetime.now(timezone.utc) + timedelta(days=31)
     assert run(api_keys.resolve(db, tok["access_token"], now=later)) is None
 
 
