@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791866205.7391458,
-    "seen": 1791866441.6245222,
-    "ast_hash": "c0aab922db8877142604d7091f73578f",
+    "mtime": 1791866872.356424,
+    "seen": 1791866949.8522744,
+    "ast_hash": "4dfe07022996e9ed6e1edeaae3cadff5",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791866418.2814713,
-    "seen": 1791866441.6252832,
+    "mtime": 1791866933.8884292,
+    "seen": 1791866949.8530748,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -6090,9 +6090,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/guide/PageGuide.jsx": {
-    "mtime": 1791864560.4588122,
-    "seen": 1791864830.2941134,
-    "ast_hash": "a9a9ac46f74eea399da433b68e4c2412",
+    "mtime": 1791866872.3575075,
+    "seen": 1791866949.852397,
+    "ast_hash": "0bfae2ab63c9b6b9544e8acc9cb6c917",
     "semantic_hash": ""
   },
   "frontend/src/components/guide/Term.jsx": {

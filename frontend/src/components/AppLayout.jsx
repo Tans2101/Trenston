@@ -1064,7 +1064,8 @@ export default function AppLayout() {
           <div className="flex items-center gap-2 shrink-0">
             <span
               data-testid="topbar-plan-badge"
-              className="hidden lg:inline-flex items-center rounded-full border border-helm-line px-3 py-1 text-xs text-helm-muted whitespace-nowrap"
+              data-plan={trialing ? "trial" : (company?.plan || "free")}
+              className="plan-badge hidden lg:inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap"
             >
               {planBadge}
             </span>
@@ -1075,9 +1076,9 @@ export default function AppLayout() {
               aria-label="Your tasks"
               title="Your tasks"
               onClick={() => navigate("/app/tasks")}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-helm-line text-helm-muted transition-colors hover:bg-helm-fg/[0.04] hover:text-helm-fg"
+              className="topbar-btn"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-[18px] h-[18px]" />
             </button>
             {profileMenu(false)}
           </div>

@@ -74,10 +74,10 @@ export function PageHelpButton({ mobile = false }) {
       className={cn(
         mobile
           ? "inline-flex h-10 w-10 items-center justify-center text-helm-fg"
-          : "inline-flex h-9 w-9 items-center justify-center rounded-full border border-helm-line text-helm-muted transition-colors hover:bg-helm-fg/[0.04] hover:text-helm-fg",
+          : "topbar-btn",
       )}
     >
-      <CircleHelp className={mobile ? "h-5 w-5" : "h-4 w-4"} />
+      <CircleHelp className={mobile ? "h-5 w-5" : "h-[18px] w-[18px]"} />
     </button>
   );
 }

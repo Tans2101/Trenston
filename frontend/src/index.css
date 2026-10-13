@@ -1633,3 +1633,26 @@ html[data-theme="light"] .app-shell .fixed.inset-0 > .absolute.inset-0[class*="b
 html[data-theme="light"] .app-shell .fixed.inset-0 > .absolute.inset-0[class*="bg-black/"] {
   background-color: rgba(10, 10, 10, 0.45) !important;
 }
+
+/* Top bar: icon buttons read as buttons (filled, bordered, lift on hover) and the plan badge is coloured by plan. */
+.topbar-btn {
+  display: inline-flex; height: 2.5rem; width: 2.5rem; align-items: center; justify-content: center;
+  border-radius: 9999px; border: 1px solid var(--helm-line);
+  background: color-mix(in srgb, var(--helm-fg) 7%, transparent);
+  color: var(--helm-fg);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--helm-fg) 6%, transparent);
+  transition: background-color .15s, border-color .15s, transform .15s;
+}
+.topbar-btn:hover { background: color-mix(in srgb, var(--helm-fg) 14%, transparent); border-color: color-mix(in srgb, var(--helm-fg) 35%, transparent); }
+.topbar-btn:active { transform: scale(.94); }
+.topbar-btn:focus-visible { outline: 2px solid rgb(var(--helm-accent)); outline-offset: 2px; }
+
+.plan-badge { background: color-mix(in srgb, var(--helm-fg) 6%, transparent); border-color: var(--helm-line); color: var(--helm-muted); }
+html[data-theme="light"] .plan-badge[data-plan="starter"] { background: #e8f0fb; border-color: #b9cdee; color: #1d4a8f; }
+html[data-theme="light"] .plan-badge[data-plan="growth"]  { background: #e6f6ec; border-color: #9fd6b3; color: #146c3a; }
+html[data-theme="light"] .plan-badge[data-plan="business"],
+html[data-theme="light"] .plan-badge[data-plan="trial"]   { background: #fdf3d6; border-color: #ecd184; color: #7a5a00; }
+html[data-theme="dark"] .plan-badge[data-plan="starter"]  { background: rgba(96,150,230,.16); border-color: rgba(96,150,230,.45); color: #a9c8f5; }
+html[data-theme="dark"] .plan-badge[data-plan="growth"]   { background: rgba(52,199,110,.16); border-color: rgba(52,199,110,.45); color: #7be0a3; }
+html[data-theme="dark"] .plan-badge[data-plan="business"],
+html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245,196,60,.16); border-color: rgba(245,196,60,.45); color: #f3d273; }
