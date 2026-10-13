@@ -44,6 +44,7 @@ import integrations_catalog as integ_catalog
 import clerk_auth
 import decision_engine
 import automations as helm_automations
+import company_map as helm_company_map
 import modeling
 import money_fmt
 from money_fmt import fmt_money, normalize_currency, currency_symbol, CURRENCY_SYMBOLS, entered_cash_amount
@@ -17867,6 +17868,36 @@ def _automation_catalog(include_financial: bool) -> dict:
     return {"signals": signals, "metrics": metrics}
 
 
+async def _automation_rule_limit(workspace_id: str) -> int:
+    if not BILLING_ENFORCED:
+        return helm_automations.MAX_RULES
+    ws = await get_ws(workspace_id)
+    limit = helm_plans.automation_rules_limit(workspace_plan_id(ws))
+    return min(limit, helm_automations.MAX_RULES) if limit else helm_automations.MAX_RULES
+
+
+@api_router.get("/company-map")
+async def company_map(principal=Depends(automation_owner)):
+    """The living company map. Owner-only, like Automations, because it joins money,
+    people and open problems in one picture."""
+    ws_id = principal["workspace_id"]
+    finance_ok = await can_access_financials(principal)
+    c, fin, entries, signals = await _automation_inputs(ws_id, need_signals=True)
+    deals = await db.deals.find({"workspace_id": ws_id}, {"_id": 0}).to_list(500)
+    members = list((await _active_member_ids(ws_id)).values())
+    return helm_company_map.build_company_map(
+        fin=fin if finance_ok else {},
+        entries=entries if finance_ok else [],
+        signals=signals,
+        deals=deals,
+        tasks=list((c.get("tasks") or {}).get("items") or []),
+        decisions=list(c.get("decisions") or []),
+        members=members,
+        today=tz_utils.workspace_today(c),
+        can_see_finance=finance_ok,
+    )
+
+
 @api_router.get("/automations")
 async def list_automations(principal=Depends(automation_owner)):
     ws_id = principal["workspace_id"]
@@ -17892,7 +17923,7 @@ async def list_automations(principal=Depends(automation_owner)):
         "templates": templates,
         "catalog": _automation_catalog(finance_ok),
         "members": [{"user_id": m["user_id"], "name": m["name"]} for m in members.values()],
-        "max_rules": helm_automations.MAX_RULES,
+        "max_rules": await _automation_rule_limit(ws_id),
         "can_see_finance": finance_ok,
     }
 
@@ -17919,8 +17950,12 @@ async def _validated_rule(principal: dict, body: dict) -> dict:
 @api_router.post("/automations")
 async def create_automation(payload: AutomationRuleInput, principal=Depends(automation_owner)):
     ws_id = principal["workspace_id"]
-    if await db.automation_rules.count_documents({"workspace_id": ws_id}) >= helm_automations.MAX_RULES:
-        raise HTTPException(status_code=400, detail=f"You can have up to {helm_automations.MAX_RULES} rules")
+    limit = await _automation_rule_limit(ws_id)
+    if await db.automation_rules.count_documents({"workspace_id": ws_id}) >= limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Your plan includes up to {limit} automation rule{'s' if limit != 1 else ''}. Delete one or upgrade to add more.",
+        )
     rule = await _validated_rule(principal, payload.model_dump())
     now = datetime.now(timezone.utc).isoformat()
     doc = {

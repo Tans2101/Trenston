@@ -424,7 +424,26 @@ def test_rule_count_is_capped(owner_client):
     client, db = owner_client
     for i in range(au.MAX_RULES):
         db.automation_rules.docs.append({"id": f"r{i}", "workspace_id": "ws1"})
-    assert client.post("/api/automations", json=body()).status_code == 400
+    assert client.post("/api/automations", json=body()).status_code == 403
+
+
+@pytest.mark.parametrize("plan,limit", [("free", 2), ("starter", 5), ("growth", 15), ("business", 25)])
+def test_rule_count_follows_the_plan(owner_client, plan, limit):
+    client, db = owner_client
+    db.workspaces.docs.append({"workspace_id": "ws1", "plan": plan})
+    with patch.object(server, "BILLING_ENFORCED", True):
+        assert client.get("/api/automations").json()["max_rules"] == limit
+        for i in range(limit):
+            db.automation_rules.docs.append({"id": f"r{i}", "workspace_id": "ws1"})
+        over = client.post("/api/automations", json=body())
+    assert over.status_code == 403 and f"up to {limit}" in over.json()["detail"]
+    assert "upgrade" in over.json()["detail"].lower()
+
+
+def test_plan_limits_only_grow():
+    from plans import automation_rules_limit as lim
+    vals = [lim(p) for p in ("free", "starter", "growth", "business")]
+    assert vals == sorted(vals) and vals[0] >= 1 and vals[-1] <= au.MAX_RULES
 
 
 def test_other_workspaces_rules_are_invisible_and_untouchable(owner_client):

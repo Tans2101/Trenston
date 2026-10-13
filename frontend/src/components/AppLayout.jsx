@@ -7,7 +7,7 @@ import {
   Menu, X, UsersRound, ChevronDown, Check, Plus, Sun, Moon, Monitor, Wallet, Search, Bell,
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
-  Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap,
+  Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap, Network,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -30,6 +30,7 @@ import { canManageBilling } from "@/lib/access";
 import { prefetchRouteHandlers } from "@/lib/prefetchRoute";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import ActionSearchBar from "@/components/kokonutui/action-search-bar";
+import { useQuickAdd } from "@/components/QuickAdd";
 import SmoothTab, { SmoothTabItem } from "@/components/kokonutui/smooth-tab";
 import TrenstonMark from "@/components/HelmMark";
 import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
@@ -39,6 +40,7 @@ const SKIP_WELCOME_KEY = "trenston.setup.skipWelcome";
 const NAV = [
   { to: "/app/me", label: "My Day", icon: Sun, id: "myday", end: true },
   { to: "/app", label: "Briefing", icon: LayoutDashboard, id: "briefing", end: true },
+  { to: "/app/map", label: "Company map", icon: Network, id: "map", ownerOnly: true },
   { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions" },
   { to: "/app/telemetry", label: "Telemetry", icon: Activity, id: "telemetry", section: "telemetry" },
   { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials" },
@@ -735,10 +737,20 @@ function useQuickNavActions() {
 function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, enableShortcut = true }) {
   const navigate = useNavigate();
   const { actions, quickActions, departmentActions } = useQuickNavActions();
+  const { user } = useAuth();
+  const innerRef = useRef(null);
+  const quickAdd = useQuickAdd({
+    me: user?.user_id,
+    onDone: () => (searchRef || innerRef).current?.close?.(),
+  });
 
   return (
     <ActionSearchBar
-      ref={searchRef}
+      ref={searchRef || innerRef}
+      placeholder={variant === "inline" ? "Search, or type task / decision / note…" : "Go to, or type task / decision / note…"}
+      onQueryChange={quickAdd.onQueryChange}
+      commandPanel={quickAdd.panel}
+      onCommandEnter={quickAdd.onEnter}
       variant={variant}
       open={open}
       onOpenChange={onOpenChange}

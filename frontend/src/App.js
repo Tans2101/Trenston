@@ -62,6 +62,7 @@ const Production = lazyWithReload(() => import("@/pages/Production"));
 const Procurement = lazyWithReload(() => import("@/pages/Procurement"));
 const Legal = lazyWithReload(() => import("@/pages/Legal"));
 const Automations = lazyWithReload(() => import("@/pages/Automations"));
+const CompanyMap = lazyWithReload(() => import("@/pages/CompanyMap"));
 const Maintenance = lazyWithReload(() => import("@/pages/Maintenance"));
 const HR = lazyWithReload(() => import("@/pages/HR"));
 
@@ -231,6 +232,7 @@ function AppRoutes() {
           <Route path="financials" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><Financials /></SectionGate></Suspense>} />
           <Route path="modeling" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><FinancialModeling /></SectionGate></Suspense>} />
           <Route path="tasks" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Tasks /></Suspense>} />
+          <Route path="map" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CompanyMap /></Suspense>} />
           <Route path="automations" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Automations /></Suspense>} />
           <Route path="reports" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Reports /></Suspense>} />
           <Route path="calendar" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CalendarPage /></Suspense>} />

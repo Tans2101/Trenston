@@ -244,6 +244,11 @@ export default function Automations() {
             <Plus className="w-4 h-4" /> Build your own
           </button>
         </div>
+        {atLimit && (
+          <p className="text-xs text-helm-muted mb-3" data-testid="automations-limit-note">
+            Your plan includes up to {data?.max_rules} rules. Delete one, or upgrade under Billing, to add more.
+          </p>
+        )}
         {rules.length === 0 ? (
           <GlassCard className="p-5 text-sm text-helm-muted">
             No rules yet. Add one of the starter rules below, or build your own.

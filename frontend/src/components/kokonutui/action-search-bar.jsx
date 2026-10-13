@@ -26,6 +26,9 @@ const DEFAULT_QUICK_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
  * @param {{ id: string }[]} [quickActions] curated empty-state chips
  * @param {{ id: string }[]} [departmentActions] empty-state department cards
  * @param {boolean} [enableShortcut] dialog ⌘K (default true); AppLayout disables when owning the shortcut
+ * @param {(query: string) => void} [onQueryChange] every keystroke, so the parent can parse quick-add commands
+ * @param {React.ReactNode} [commandPanel] when set, shown instead of the results and Enter runs onCommandEnter
+ * @param {() => void} [onCommandEnter]
  */
 const ActionSearchBar = forwardRef(function ActionSearchBar(
   {
@@ -37,6 +40,10 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
     quickActions,
     departmentActions,
     enableShortcut = true,
+    placeholder,
+    onQueryChange,
+    commandPanel = null,
+    onCommandEnter,
   },
   ref,
 ) {
@@ -90,7 +97,12 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
   const showBrowse = isInline && isOpen && !debouncedQuery.trim();
   const showResults = !isInline || Boolean(debouncedQuery.trim());
 
+  useEffect(() => {
+    onQueryChange?.(query);
+  }, [query, onQueryChange]);
+
   useImperativeHandle(ref, () => ({
+    close: () => setOpen(false),
     focus: () => {
       setOpen(true);
       requestAnimationFrame(() => inputRef.current?.focus());
@@ -157,6 +169,13 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
       e.preventDefault();
       setOpen(false);
       inputRef.current?.blur();
+      return;
+    }
+    if (commandPanel) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        onCommandEnter?.();
+      }
       return;
     }
     if (!showResults || !filtered.length) return;
@@ -275,7 +294,7 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setOpen(true)}
             onKeyDown={onKeyDown}
-            placeholder="Search Trenston…"
+            placeholder={placeholder || "Search Trenston…"}
             data-testid="action-search-input"
             className="h-9 flex-1 border-0 rounded-none bg-transparent px-0 text-sm text-helm-fg placeholder:text-helm-muted focus-visible:ring-0 shadow-none"
             autoComplete="off"
@@ -312,10 +331,10 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
                 transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
                 data-testid="action-search-panel"
               >
-                {showBrowse ? browsePanel : resultsList}
+                {commandPanel || (showBrowse ? browsePanel : resultsList)}
                 <div className="border-t border-helm-line px-3 py-2 flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-helm-muted">
-                  <span>{showBrowse ? "Browse" : "Navigate"}</span>
-                  <span>esc</span>
+                  <span>{commandPanel ? "Quick add" : showBrowse ? "Browse" : "Navigate"}</span>
+                  <span>{commandPanel ? "enter to save · esc" : "esc"}</span>
                 </div>
               </motion.div>
             </>
@@ -354,7 +373,7 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="Go to…"
+                placeholder={placeholder || "Go to…"}
                 data-testid="action-search-input"
                 className="h-11 border-0 rounded-none bg-transparent pl-10 pr-16 text-sm text-helm-fg placeholder:text-helm-muted focus-visible:ring-0 shadow-none"
                 autoComplete="off"
@@ -366,7 +385,7 @@ const ActionSearchBar = forwardRef(function ActionSearchBar(
                 esc
               </kbd>
             </div>
-            {resultsList}
+            {commandPanel || resultsList}
             <div className="border-t border-helm-line px-3 py-2 flex items-center justify-between text-[10px] font-mono uppercase tracking-wider text-helm-muted">
               <span>Navigate</span>
               <span>⌘K</span>

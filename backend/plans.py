@@ -66,6 +66,7 @@ PLANS: dict[str, dict[str, Any]] = {
         "ai_extracts_mo": 0,
         "ai_extracts_lifetime": 5,
         "ask_helm_mo": 10,
+        "automation_rules": 2,
         "trial_days": 0,
         "paddle_price_env": None,
         "integration_providers": [],
@@ -84,6 +85,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Up to 3 Trenston users",
             "5 AI document extracts to try it, then upgrade",
             "Ask Trenston (10 messages/month)",
+            "Automations (2 rules)",
             "AI briefing",
             "Dashboard & decisions",
             "Google integration (Gmail & Calendar)",
@@ -97,6 +99,7 @@ PLANS: dict[str, dict[str, Any]] = {
         "seats": 7,
         "ai_extracts_mo": 65,
         "ask_helm_mo": 100,
+        "automation_rules": 5,
         "trial_days": TRIAL_DAYS,
         "paddle_price_env": "PADDLE_PRICE_ID_STARTER",
         "integration_providers": list(STARTER_INTEGRATION_PROVIDERS),
@@ -115,6 +118,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Up to 7 Trenston users",
             "AI document extracts (65/month)",
             "Ask Trenston (100 messages/month)",
+            "Automations (5 rules)",
             "Integrations: Google, QuickBooks, Xero, SAP Business One",
             "CEO Pack (shareable leadership summary)",
             "7-day free trial",
@@ -128,6 +132,7 @@ PLANS: dict[str, dict[str, Any]] = {
         "seats": 20,
         "ai_extracts_mo": 150,
         "ask_helm_mo": 200,
+        "automation_rules": 15,
         "trial_days": TRIAL_DAYS,
         "paddle_price_env": "PADDLE_PRICE_ID_GROWTH",
         "integration_providers": list(GROWTH_INTEGRATION_PROVIDERS),
@@ -146,6 +151,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Up to 20 Trenston users",
             "AI document extracts (150/month)",
             "Ask Trenston (200 messages/month)",
+            "Automations (15 rules)",
             "Everything in Starter",
             "Integrations: HubSpot, Slack",
             "Financial Modeling: runway scenarios with hires and funding",
@@ -162,6 +168,7 @@ PLANS: dict[str, dict[str, Any]] = {
         "seats": 35,
         "ai_extracts_mo": 500,
         "ask_helm_mo": 500,
+        "automation_rules": 25,
         "trial_days": TRIAL_DAYS,
         "paddle_price_env": "PADDLE_PRICE_ID_BUSINESS",
         "integration_providers": list(GROWTH_INTEGRATION_PROVIDERS),
@@ -180,6 +187,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Up to 35 Trenston users",
             "AI document extracts (500/month)",
             "Ask Trenston (500 messages/month)",
+            "Automations (25 rules)",
             "Everything in Growth",
             "Priority support",
             "7-day free trial",
@@ -284,6 +292,11 @@ def ask_helm_monthly_limit(plan: str | None) -> int:
     return int(plan_def(plan).get("ask_helm_mo") or 0)
 
 
+def automation_rules_limit(plan: str | None) -> int:
+    """How many Automations rules a workspace on this plan can keep."""
+    return int(plan_def(plan).get("automation_rules") or 0)
+
+
 def paddle_price_id_for(plan: str | None) -> str:
     """Resolve Paddle price id from PADDLE_PRICE_ID_{STARTER,GROWTH,BUSINESS}."""
     pid = normalize_plan(plan)
@@ -321,6 +334,7 @@ def public_plan_list() -> list[dict[str, Any]]:
             "ai_extracts_mo": p["ai_extracts_mo"],
             "ai_extracts_lifetime": int(p.get("ai_extracts_lifetime") or 0),
             "ask_helm_mo": int(p.get("ask_helm_mo") or 0),
+            "automation_rules": int(p.get("automation_rules") or 0),
             "trial_days": p["trial_days"],
             "includes": list(p["includes"]),
             "features": dict(p["features"]),
