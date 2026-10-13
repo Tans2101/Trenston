@@ -1494,38 +1494,64 @@ html[data-theme="light"] .app-shell a.bg-helm-gold * {
 }
 
 /* ==========================================================================
-   Highlighted headline word: navy word with a hand-drawn yellow marker
-   stroke behind it that draws in from the left. Dark variant for black bands.
+   Highlighted headline word: the word sits on a slightly tilted navy tag,
+   with a yellow frame tilted the other way behind it.
+   It pops in once after the headline rises. On black bands the tag is
+   yellow with black type.
    ========================================================================== */
 .mk-mark {
   position: relative;
   z-index: 0;
-  color: var(--mk-navy);
+  display: inline-block;
+  padding: 0 0.16em;
+  margin: 0 0.02em;
+  color: #fff;
   white-space: nowrap;
+  animation: mk-mark-ink 0.5s var(--mk-ease) 0.7s both;
 }
 .mk-mark::after {
   content: "";
   position: absolute;
   z-index: -1;
-  left: -0.06em;
-  right: -0.08em;
-  bottom: 0.04em;
-  height: 0.42em;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 30' preserveAspectRatio='none'%3E%3Cpath d='M4 17C38 10 92 7 150 8s104 2 144 6c3 1 4 5 1 7-46 4-98 6-150 6S47 26 8 26c-5 0-7-7-4-9z' fill='%23F2C94C'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
-  opacity: 0.85;
-  transform: rotate(-1deg);
-  clip-path: inset(0 0 0 0);
-  animation: mk-mark-draw 0.9s var(--mk-ease) 0.55s both;
+  inset: 0.13em 0 0.09em;
+  background: var(--mk-navy);
+  border-radius: 0.12em;
+  transform: rotate(-1.6deg);
+  animation: mk-mark-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s both;
 }
-/* On black: white word, the yellow stroke sits lower and thinner, like an underline. */
-.mk-mark-dark { color: #fff; }
-.mk-mark-dark::after { opacity: 1; height: 0.2em; bottom: -0.04em; }
-@keyframes mk-mark-draw {
-  from { clip-path: inset(0 100% 0 0); }
-  to { clip-path: inset(0 0 0 0); }
+/* A yellow outline tilted the other way sits behind the tag, so it reads as
+   two layers: a label pinned on top of a frame. */
+.mk-mark::before {
+  content: "";
+  position: absolute;
+  z-index: -2;
+  inset: 0.13em -0.02em 0.09em;
+  border: 0.045em solid #F2C94C;
+  border-radius: 0.12em;
+  transform: rotate(1.4deg);
+  animation: mk-mark-frame 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+}
+.mk-mark-dark { color: #0A0A0A; animation-name: mk-mark-ink-dark; }
+.mk-mark-dark::after { background: #F2C94C; }
+.mk-mark-dark::before { border-color: #fff; }
+@keyframes mk-mark-pop {
+  from { opacity: 0; transform: rotate(3deg) scale(0.86); }
+  to { opacity: 1; transform: rotate(-1.6deg) scale(1); }
+}
+@keyframes mk-mark-frame {
+  from { opacity: 0; transform: rotate(-3deg) scale(0.9); }
+  to { opacity: 1; transform: rotate(1.4deg) scale(1); }
+}
+@keyframes mk-mark-ink {
+  from { color: var(--mk-black); }
+  to { color: #fff; }
+}
+@keyframes mk-mark-ink-dark {
+  from { color: #fff; }
+  to { color: #0A0A0A; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mk-mark::after { animation: none; }
+  .mk-mark, .mk-mark::after, .mk-mark::before { animation: none; }
 }
 
 /* Big figures (KPIs, totals) read like the headlines: semibold and tight. */
