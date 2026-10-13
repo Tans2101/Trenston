@@ -18986,7 +18986,7 @@
       "file_type": "code",
       "norm_label": "paidplanrenewaldisclosure()",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L350"
+      "source_location": "L353"
     },
     {
       "id": "frontend_src_pages_about_about",
@@ -72858,7 +72858,7 @@
       "file_type": "code",
       "norm_label": "departments_section",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L400"
+      "source_location": "L403"
     },
     {
       "id": "frontend_src_lib_marketingcopy_feature_categories",
@@ -72902,7 +72902,7 @@
       "file_type": "code",
       "norm_label": "how_it_works",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L386"
+      "source_location": "L389"
     },
     {
       "id": "frontend_src_lib_marketingcopy_plans",
@@ -72913,7 +72913,7 @@
       "file_type": "code",
       "norm_label": "plans",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L263"
+      "source_location": "L266"
     },
     {
       "id": "frontend_src_lib_marketingcopy_pro_features",
@@ -72924,7 +72924,7 @@
       "file_type": "code",
       "norm_label": "pro_features",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L361"
+      "source_location": "L364"
     },
     {
       "id": "frontend_src_lib_marketingcopy_product_facts",
@@ -72935,7 +72935,7 @@
       "file_type": "code",
       "norm_label": "product_facts",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L364"
+      "source_location": "L367"
     },
     {
       "id": "frontend_src_lib_marketingcopy_public_integrations_attribution",
@@ -72990,7 +72990,7 @@
       "file_type": "code",
       "norm_label": "testimonials",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L811"
+      "source_location": "L838"
     },
     {
       "id": "frontend_src_pages_compare",
@@ -115425,7 +115425,7 @@
       "file_type": "code",
       "norm_label": "ai_connect_help",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L779"
+      "source_location": "L806"
     },
     {
       "id": "frontend_src_lib_marketingcopy_audience",
@@ -115469,7 +115469,7 @@
       "file_type": "code",
       "norm_label": "feature_highlights",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L392"
+      "source_location": "L395"
     },
     {
       "id": "frontend_src_lib_marketingcopy_feature_modules",
@@ -115480,7 +115480,7 @@
       "file_type": "code",
       "norm_label": "feature_modules",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L444"
+      "source_location": "L447"
     },
     {
       "id": "frontend_src_lib_marketingcopy_founded_date",
@@ -115557,7 +115557,7 @@
       "file_type": "code",
       "norm_label": "helm_features",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L362"
+      "source_location": "L365"
     },
     {
       "id": "frontend_src_lib_marketingcopy_helm_price",
@@ -115568,7 +115568,7 @@
       "file_type": "code",
       "norm_label": "helm_price",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L343"
+      "source_location": "L346"
     },
     {
       "id": "frontend_src_lib_marketingcopy_hero_sub",
@@ -115590,7 +115590,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_audiences",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L579"
+      "source_location": "L606"
     },
     {
       "id": "frontend_src_lib_marketingcopy_how_to_use_concepts",
@@ -115601,7 +115601,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_concepts",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L592"
+      "source_location": "L619"
     },
     {
       "id": "frontend_src_lib_marketingcopy_how_to_use_faq",
@@ -115612,7 +115612,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_faq",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L708"
+      "source_location": "L735"
     },
     {
       "id": "frontend_src_lib_marketingcopy_how_to_use_intro",
@@ -115623,7 +115623,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_intro",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L572"
+      "source_location": "L599"
     },
     {
       "id": "frontend_src_lib_marketingcopy_how_to_use_modules",
@@ -115634,7 +115634,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_modules",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L762"
+      "source_location": "L789"
     },
     {
       "id": "frontend_src_lib_marketingcopy_how_to_use_steps",
@@ -115645,7 +115645,7 @@
       "file_type": "code",
       "norm_label": "how_to_use_steps",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L665"
+      "source_location": "L692"
     },
     {
       "id": "frontend_src_lib_marketingcopy_integrations_public_blurb",
@@ -115700,7 +115700,7 @@
       "file_type": "code",
       "norm_label": "pro_price",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L342"
+      "source_location": "L345"
     },
     {
       "id": "frontend_src_lib_marketingcopy_problems",
@@ -115711,7 +115711,7 @@
       "file_type": "code",
       "norm_label": "problems",
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L371"
+      "source_location": "L374"
     },
     {
       "id": "frontend_src_lib_marketingcopy_public_contact_email",
@@ -342037,7 +342037,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L263",
+      "source_location": "L266",
       "weight": 1.0
     },
     {
@@ -342092,7 +342092,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L342",
+      "source_location": "L345",
       "weight": 1.0
     },
     {
@@ -342103,7 +342103,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L343",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -342114,7 +342114,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L350",
+      "source_location": "L353",
       "weight": 1.0
     },
     {
@@ -342136,7 +342136,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L361",
+      "source_location": "L364",
       "weight": 1.0
     },
     {
@@ -342147,7 +342147,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L362",
+      "source_location": "L365",
       "weight": 1.0
     },
     {
@@ -342158,7 +342158,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L364",
+      "source_location": "L367",
       "weight": 1.0
     },
     {
@@ -342169,7 +342169,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L371",
+      "source_location": "L374",
       "weight": 1.0
     },
     {
@@ -342180,7 +342180,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L386",
+      "source_location": "L389",
       "weight": 1.0
     },
     {
@@ -342202,7 +342202,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L392",
+      "source_location": "L395",
       "weight": 1.0
     },
     {
@@ -342224,7 +342224,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L400",
+      "source_location": "L403",
       "weight": 1.0
     },
     {
@@ -342246,7 +342246,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L444",
+      "source_location": "L447",
       "weight": 1.0
     },
     {
@@ -342279,29 +342279,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L572",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_lib_marketingcopy",
-      "target": "frontend_src_lib_marketingcopy_how_to_use_audiences",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L579",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_lib_marketingcopy",
-      "target": "frontend_src_lib_marketingcopy_how_to_use_concepts",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L592",
+      "source_location": "L599",
       "weight": 1.0
     },
     {
@@ -342317,13 +342295,35 @@
     },
     {
       "source": "frontend_src_lib_marketingcopy",
+      "target": "frontend_src_lib_marketingcopy_how_to_use_audiences",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/lib/marketingCopy.js",
+      "source_location": "L606",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_lib_marketingcopy",
+      "target": "frontend_src_lib_marketingcopy_how_to_use_concepts",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/lib/marketingCopy.js",
+      "source_location": "L619",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_lib_marketingcopy",
       "target": "frontend_src_lib_marketingcopy_how_to_use_steps",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L665",
+      "source_location": "L692",
       "weight": 1.0
     },
     {
@@ -342339,17 +342339,6 @@
     },
     {
       "source": "frontend_src_lib_marketingcopy",
-      "target": "frontend_src_lib_marketingcopy_how_to_use_faq",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L708",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_lib_marketingcopy",
       "target": "frontend_src_lib_marketingcopy_ceo_day",
       "relation": "contains",
       "_origin": "ast",
@@ -342361,24 +342350,24 @@
     },
     {
       "source": "frontend_src_lib_marketingcopy",
+      "target": "frontend_src_lib_marketingcopy_how_to_use_faq",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/lib/marketingCopy.js",
+      "source_location": "L735",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_lib_marketingcopy",
       "target": "frontend_src_lib_marketingcopy_how_to_use_modules",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L762",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_lib_marketingcopy",
-      "target": "frontend_src_lib_marketingcopy_ai_connect_help",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L779",
+      "source_location": "L789",
       "weight": 1.0
     },
     {
@@ -342405,13 +342394,24 @@
     },
     {
       "source": "frontend_src_lib_marketingcopy",
+      "target": "frontend_src_lib_marketingcopy_ai_connect_help",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "frontend/src/lib/marketingCopy.js",
+      "source_location": "L806",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_lib_marketingcopy",
       "target": "frontend_src_lib_marketingcopy_testimonials",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/lib/marketingCopy.js",
-      "source_location": "L811",
+      "source_location": "L838",
       "weight": 1.0
     },
     {
@@ -375102,5 +375102,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a30b1fb770e36853c7ec9f3a685a513ae29c3549"
+  "built_at_commit": "294f7d2d854c2afbc65d4086919ed8b62994292e"
 }

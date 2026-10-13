@@ -221,6 +221,8 @@ export const FEATURE_CATEGORIES = [
       "CEO Pack",
       "Daily morning briefing",
       "Gmail thread surfacing + AI draft replies",
+      "Quick add (Ctrl+K)",
+      "Company map",
     ],
   },
   {
@@ -247,13 +249,14 @@ export const FEATURE_CATEGORIES = [
       "Equipment reliability alerts",
       "Maintenance operations",
       "Cross-department blocking",
+      "Automations",
     ],
   },
   {
     id: "people",
     label: "People & operations",
     intro: "Team access, department lanes, and integrations. Everyone contributes, you stay in control.",
-    modules: ["Integrations", "Team & Access"],
+    modules: ["Integrations", "Team & Access", "Learn as you go"],
   },
 ];
 
@@ -552,6 +555,30 @@ export const FEATURE_MODULES = [
     ceoValue: "See why production is stuck, in one place.",
     body: "A blocked work order shows the part still in transit or the machine still in repair, and that item jumps to the top of its queue automatically.",
     example: "WO-441 blocked on a bearing order and a mill repair. Both sit at the top of Procurement and Maintenance.",
+  },
+  {
+    title: "Quick add (Ctrl+K)",
+    ceoValue: "Capture a task, decision or note in seconds, from any page.",
+    body: "Press Ctrl+K (Cmd+K on Mac), type task, decision or note followed by what you mean, and Trenston shows exactly what it understood, including the date, person and priority. It saves only when you press Enter, and asks which person you mean if a name matches two. No AI, so it costs nothing.",
+    example: "\"task call the supplier friday for Ann\" becomes a task for Ann, due Friday, ready to save.",
+  },
+  {
+    title: "Company map",
+    ceoValue: "See the whole company on one page, built from records you already have.",
+    body: "Cash and runway sit in the middle, where money comes from on the left, where it goes on the right, what you have promised underneath, and your team on top. Anything going wrong shows in red with a plain next step. It shows only what your records say and asks for missing facts instead of guessing. Owner only.",
+    example: "A late supplier shows red on the map, with the production order it is holding up and what to do next.",
+  },
+  {
+    title: "Automations",
+    ceoValue: "Set a rule once and stop chasing the same things by hand.",
+    body: "When a work order is overdue, a supplier delay blocks production, a legal deadline is near, a deal stalls or cash runway gets short, Trenston creates a task for the right person or shows an alert. Ready-made rules start in one click, each thing fires once, and a rule creates at most 10 tasks per run. Plans include 2 to 25 rules. No AI.",
+    example: "A deal sits quiet for two weeks and its owner gets a follow-up task, once.",
+  },
+  {
+    title: "Learn as you go",
+    ceoValue: "New teammates learn Trenston inside Trenston.",
+    body: "Each main page opens with a short welcome card and a Show me around tour that points at the real buttons. A ? button on every page explains it in plain words, the Get started list has a Show me button on each step, and terms like runway, burn and MRR have a small (i) that explains them.",
+    example: "A new teammate opens Tasks, taps Show me around, and is shown how to add their first task in four steps.",
   },
   {
     title: "Integrations",

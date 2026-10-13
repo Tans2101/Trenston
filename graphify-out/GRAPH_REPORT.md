@@ -1,7 +1,7 @@
 # Graph Report - Trenston  (2026-10-13)
 
 ## Corpus Check
-- 957 files · ~644,048 words
+- 957 files · ~644,440 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 21 file(s) not represented in the graph (top: (none) 5, .css 4, .woff2 4)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a30b1fb7`
+- Built from commit: `294f7d2d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -2572,11 +2572,11 @@ Nodes (4): CirNoteCard(), toastCirNote(), toastGmailDraftNote(), frontend_src_li
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `fetch()` connect `fetch` to `Codemode (Experimental)`, `turnstile-spin/SKILL.md`, `trenston_mcp/server.py`, `Gotchas and Troubleshooting`, `Cloudflare R2 SQL`, `R2 SQL Patterns`, `Network Access`, `Workers VPC Connectivity`, `Smart Placement Configuration`, `Smart Placement Gotchas`, `Smart Placement API`, `Cloudflare Snippets Skill Reference`, `Configuration`, `Durable Objects`, `GraphQL Analytics API Configuration`, `Artifacts Configuration`, `Common Errors`, `Browse the Web (Experimental)`, `Cloudflare Artifacts`, `Cloudflare Workers Smart Placement`, `Web Platform APIs`, `REST API Operations`, `R2 SQL Gotchas`?**
-  _High betweenness centrality (0.302) - this node is a cross-community bridge._
 - **Why does `Bot Management Configuration` connect `Bot Management Configuration` to `JavaScript Detections Setup`?**
   _High betweenness centrality (0.301) - this node is a cross-community bridge._
 - **Why does `Verified Bot Categories` connect `Bot Management Configuration` to `Landing.jsx`?**
+  _High betweenness centrality (0.300) - this node is a cross-community bridge._
+- **Why does `Security()` connect `Landing.jsx` to `cn`, `Bot Management Configuration`?**
   _High betweenness centrality (0.300) - this node is a cross-community bridge._
 - **What connects `cloudflare`, `cloudflare-docs`, `cloudflare-bindings` to the rest of the system?**
   _2502 weakly-connected nodes found - possible documentation gaps or missing edges._
