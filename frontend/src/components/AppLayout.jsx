@@ -526,7 +526,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
         <WorkspaceSwitcher onNavigate={onNavigate} billingEnforced={billingEnforced} />
       </div>
 
-      <nav ref={navRef} className="flex-1 overflow-y-auto py-2" aria-label="App">
+      <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden py-2" aria-label="App">
         <SmoothTab
           orientation="vertical"
           variant="pill"
