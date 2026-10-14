@@ -114,10 +114,10 @@
     "semantic_hash": "78993e2c2d283877217b66899d736180"
   },
   "backend/email_compliance.py": {
-    "mtime": 1790515659.5391483,
-    "seen": 1791795297.0870016,
-    "ast_hash": "ccce736fb3071c9f6c8d93cbb909423f",
-    "semantic_hash": "ccce736fb3071c9f6c8d93cbb909423f"
+    "mtime": 1791941776.5054226,
+    "seen": 1791941882.060495,
+    "ast_hash": "ec54af0e031092e4620deea3bb5861ef",
+    "semantic_hash": ""
   },
   "backend/finance_csv.py": {
     "mtime": 1790598953.739071,
@@ -174,9 +174,9 @@
     "semantic_hash": "46d09ab2a6e146ec02153e20e5839a42"
   },
   "backend/integrations_catalog.py": {
-    "mtime": 1790675166.5079696,
-    "seen": 1791795297.0870266,
-    "ast_hash": "d4e616b53079767f6c51eef57f75c72a",
+    "mtime": 1791941776.5058236,
+    "seen": 1791941882.06051,
+    "ast_hash": "5fa1d0dc3ea6e900f0e9f9dd56bdcf84",
     "semantic_hash": ""
   },
   "backend/llm.py": {
@@ -198,9 +198,9 @@
     "semantic_hash": "dee9323e809600b60f74c6f2eac2818d"
   },
   "backend/ops_briefing.py": {
-    "mtime": 1791863282.339506,
-    "seen": 1791863569.774587,
-    "ast_hash": "2279a409aa1f53fde1fb2ae6a322e3ac",
+    "mtime": 1791941776.506625,
+    "seen": 1791941882.0605202,
+    "ast_hash": "d9114e3f82d9e2c3ea6e66b81a931e7e",
     "semantic_hash": ""
   },
   "backend/paddle_ips.py": {
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1791866052.6669064,
-    "seen": 1791866441.6243072,
-    "ast_hash": "cd575ec1fd92f155faf8f9889c65a533",
+    "mtime": 1791941776.515638,
+    "seen": 1791941882.0605752,
+    "ast_hash": "13ec71e3e0ff9f5013deadd36fdcd581",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -924,9 +924,9 @@
     "semantic_hash": "e6285bceb2ea4f650790c261ff4d8098"
   },
   "backend/tests/test_proactive_cron.py": {
-    "mtime": 1790677137.60418,
-    "seen": 1791795297.0873828,
-    "ast_hash": "34bf7f48c13b29346a2a95dda62b18d9",
+    "mtime": 1791941776.5172405,
+    "seen": 1791941882.060806,
+    "ast_hash": "c680eb1d7d9667299cab69d5e405575f",
     "semantic_hash": ""
   },
   "backend/tests/test_procurement_expense_financials.py": {
@@ -2316,9 +2316,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791866385.013898,
-    "seen": 1791866441.6247256,
-    "ast_hash": "4fbca9d70301ea9bc730d44dbc117320",
+    "mtime": 1791941776.5193024,
+    "seen": 1791941882.061197,
+    "ast_hash": "b30b921ab2b43909ff8eb5a86bd264c2",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2436,9 +2436,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1791906209.753453,
-    "seen": 1791906275.098112,
-    "ast_hash": "4e4679ef2ac35ef8c0b6d03fe80fb896",
+    "mtime": 1791941781.4775748,
+    "seen": 1791941882.0612388,
+    "ast_hash": "95944e046abf900f14eac0ef9daf00b2",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -2598,9 +2598,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Features.jsx": {
-    "mtime": 1791863282.330845,
-    "seen": 1791863569.7751575,
-    "ast_hash": "6d45fd0e2df47a92f7b3bd994cca5ebc",
+    "mtime": 1791941776.5190127,
+    "seen": 1791941882.0612879,
+    "ast_hash": "5c927c1705eda63206195800b8f3bd94",
     "semantic_hash": ""
   },
   "frontend/src/pages/Financials.jsx": {
@@ -5052,9 +5052,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1790599845.735246,
-    "seen": 1791795297.0890968,
-    "ast_hash": "821f609b37ba928a9cfffa42b6237a92",
+    "mtime": 1791941776.5050912,
+    "seen": 1791941882.061716,
+    "ast_hash": "052184736754d69597e14744416a7d35",
     "semantic_hash": ""
   },
   "backend/requirements-prod.txt": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791906636.8433917,
-    "seen": 1791906662.4522066,
+    "mtime": 1791941847.63804,
+    "seen": 1791941882.061733,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5154,9 +5154,9 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1790768004.3529823,
-    "seen": 1791795297.0891316,
-    "ast_hash": "08a4f2c996c2a7a0170744dee61ab528",
+    "mtime": 1791941776.517612,
+    "seen": 1791941882.061738,
+    "ast_hash": "93547e5248b0e0cb3ffbd82a1a5e53b6",
     "semantic_hash": ""
   },
   "favicon-and-profile/trenston-medallion-cream-1024.png": {
@@ -6114,9 +6114,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/pageGuides.js": {
-    "mtime": 1791861912.3792412,
-    "seen": 1791862552.3334668,
-    "ast_hash": "33123c4043a26fe81b5fc608e88e94e5",
+    "mtime": 1791941776.518745,
+    "seen": 1791941882.0612528,
+    "ast_hash": "96c09d62dc44c7f2492639130be2a8cc",
     "semantic_hash": ""
   },
   "frontend/src/lib/pageGuides.test.js": {

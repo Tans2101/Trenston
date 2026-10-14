@@ -47,7 +47,7 @@ function BriefingTicker() {
     <div className="border border-white/20 bg-mk-ink p-6">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-mk-gray-dark">
-          From a morning Briefing
+          From the Briefing
         </p>
         <span className="font-mono text-[11px] text-mk-gray-dark">
           {String(idx + 1).padStart(2, "0")} / {String(HERO_LINES.length).padStart(2, "0")}

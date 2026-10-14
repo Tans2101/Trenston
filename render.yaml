@@ -206,7 +206,7 @@ services:
       - key: WEEKLY_DIGEST_CRON_URL
         value: https://www.trenston.com/api/internal/run-weekly-digest
 
-  # Daily morning ops briefing email (Sales / Procurement / Production / Maintenance).
+  # Daily ops briefing email (Sales / Procurement / Production / Maintenance).
   # Separate from weekly pack PDF and from noon insights alerts.
   # Fixed 03:00 UTC (~08:30 IST) — no per-workspace timezone field yet.
   - type: cron

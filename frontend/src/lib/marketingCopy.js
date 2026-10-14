@@ -19,7 +19,7 @@ export const WHAT_TRENSTON_IS =
 /** @deprecated use WHAT_TRENSTON_IS */
 export const WHAT_HELM_IS = WHAT_TRENSTON_IS;
 export const ABOUT_PROBLEM =
-  "Founders and CEOs running a company of this size often spend their mornings opening a dozen tools and asking people for status updates just to know what is happening. Trenston exists to close that gap.";
+  "Founders and CEOs running a company of this size often spend their days opening a dozen tools and asking people for status updates just to know what is happening. Trenston exists to close that gap.";
 export const FOUNDER_NOTE =
   "I built Trenston because as a founder, I grew tired of fighting the daily chaos of fragmented spreadsheets and single-feature apps. We needed a single source of truth, so we created a unified CEO and Founder Operating System that consolidates your business into one cohesive dashboard. Our mission is to eliminate operational noise and give you the absolute clarity needed to start scaling and growing your vision.";
 
@@ -29,12 +29,12 @@ export const HERO_SUB =
   "One clear view of money, people, work, and decisions, so you can make the call and get back to running the business.";
 
 export const MISSION =
-  "Trenston exists so a founder can open one place and see what the business is actually saying today: money, pipeline, people, and the work in motion, without reconstructing that picture from inboxes, spreadsheets, and status chases every morning.";
+  "Trenston exists so a founder can open one place and see what the business is actually saying today: money, pipeline, people, and the work in motion, without reconstructing that picture from inboxes, spreadsheets, and status chases.";
 
 export const VISION =
-  "The near direction is to deepen that same cockpit across every lane operators already run in Trenston (Briefing, Decisions, Financials, Production, Procurement, Legal, HR, Maintenance, Sales) so the morning open is the company, not another reconstruction project.";
+  "The near direction is to deepen that same cockpit across every lane operators already run in Trenston (Briefing, Decisions, Financials, Production, Procurement, Legal, HR, Maintenance, Sales) so opening Trenston shows the company, not another reconstruction project.";
 export const ABOUT_DIFFERENTIATOR =
-  "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the morning picture is company-wide, not one lane at a time.";
+  "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the picture is company-wide, not one lane at a time.";
 
 export const ABOUT_STORY =
   "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is an operating system for founders and CEOs: Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales, all synthesized into what needs the owner's attention.";
@@ -219,7 +219,7 @@ export const FEATURE_CATEGORIES = [
       "Decision Center",
       "Ask Trenston",
       "CEO Pack",
-      "Daily morning briefing",
+      "Daily briefing email",
       "Gmail thread surfacing + AI draft replies",
       "Quick add (Ctrl+K)",
       "Company map",
@@ -503,10 +503,10 @@ export const FEATURE_MODULES = [
     example: "Financial snapshot, team updates, and open decisions, formatted to forward, not rebuilt in slides.",
   },
   {
-    title: "Daily morning briefing",
-    ceoValue: "The company picture in your inbox before the first meeting.",
+    title: "Daily briefing email",
+    ceoValue: "The company picture in your inbox, without opening the app.",
     body: "One email per day to the founder or CEO covering Sales, Procurement, Production, and Maintenance, separate from the weekly CEO Pack PDF. Metrics with no data yet say so plainly; nothing is invented.",
-    example: "Tuesday 7am: order book vs monthly target, late purchase orders, yesterday’s output shortfall, and two spares below threshold, without opening the app first.",
+    example: "Order book vs monthly target, late purchase orders, yesterday’s output shortfall, and two spares below threshold, without opening the app first.",
   },
   {
     title: "Gmail thread surfacing + AI draft replies",

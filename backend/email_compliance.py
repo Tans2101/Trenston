@@ -4,7 +4,7 @@ Classification of every Trenston Resend template (audit):
 
   Commercial (must include physical address + working unsubscribe):
     - weekly digest / weekly pack PDF  (_weekly_digest_email_html)
-    - daily morning ops briefing       (_daily_briefing_email_html)
+    - daily ops briefing       (_daily_briefing_email_html)
     - trial-ending retention reminder   (retention.trial_email_html)
     - inactivity catch-up nudge         (retention.inactivity_email_html)
 

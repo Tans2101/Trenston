@@ -17,9 +17,9 @@ export const GUIDES = [
     id: "briefing",
     path: /^\/app\/?$/,
     name: "Briefing",
-    purpose: "Your morning page: what changed, what needs a decision, and how the money looks, on one screen.",
+    purpose: "Your company at a glance: what changed, what needs a decision, and how the money looks, on one screen.",
     tips: [
-      "Read it top to bottom once a day. It takes about two minutes.",
+      "Read it top to bottom whenever you open Trenston. It takes about two minutes.",
       "Anything that says \"Add data\" isn't known yet. Trenston never fills in a made-up number.",
       "Click any line under What changed to jump straight to it.",
     ],
@@ -62,7 +62,7 @@ export const GUIDES = [
     name: "My Day",
     purpose: "Only your work: what's waiting on you, your tasks, your private notes and your daily update.",
     tips: [
-      "Start here each morning, then work down the list.",
+      "Start here, then work down the list.",
       "Post a two-line update at the end of the day so nobody needs to ask how it's going.",
       "Notes here are private. Only you can see them.",
     ],

@@ -1,7 +1,7 @@
-# Graph Report - Trenston  (2026-10-13)
+# Graph Report - Trenston  (2026-10-14)
 
 ## Corpus Check
-- 962 files · ~648,656 words
+- 962 files · ~648,644 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 21 file(s) not represented in the graph (top: (none) 5, .css 4, .woff2 4)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ea5b8caa`
+- Built from commit: `59c69ee4`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1578,7 +1578,7 @@ Nodes (12): AI Code Execution, Billing by Plan, Custom Metadata Routing, Edge Fu
 
 ### Community 252 - "ops_briefing.py"
 Cohesion: 0.23
-Nodes (11): daily_briefing_email_html(), _fmt_days(), _money(), ops_briefing_metric_cards(), Any, Shared ops briefing assembly for /briefing cards and the daily morning email.…, Map assemble_ops_briefing_data → Briefing page metric cards., Plain scannable HTML morning briefing. Reuses weekly digest CAN-SPAM footer. (+3 more)
+Nodes (11): daily_briefing_email_html(), _fmt_days(), _money(), ops_briefing_metric_cards(), Any, Shared ops briefing assembly for /briefing cards and the daily briefing email.…, Map assemble_ops_briefing_data → Briefing page metric cards., Plain scannable HTML daily briefing. Reuses weekly digest CAN-SPAM footer. (+3 more)
 
 ### Community 253 - "finance_csv.py"
 Cohesion: 0.20

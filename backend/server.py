@@ -4009,7 +4009,7 @@ def _fmt_days_metric(value: Optional[float]) -> str:
 
 
 async def assemble_ops_briefing_data(workspace_id: str) -> dict:
-    """Shared ops snapshot for Briefing UI and the daily morning email cron."""
+    """Shared ops snapshot for Briefing UI and the daily briefing email cron."""
     import ops_briefing as ob
     return await ob.assemble_ops_briefing_data(db, workspace_id)
 
@@ -5363,7 +5363,7 @@ async def onboarding_checklist(principal=Depends(get_principal)):
 
     if is_lead:
         steps = [step("tour", "Take the 1-minute tour", "briefing" in seen, "/app", "briefing",
-                      "See what the Briefing shows you each morning.")]
+                      "See what the Briefing shows you.")]
         if await can_access_financials(principal):
             has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
             steps.append(step("financials", "Add your cash and one month of numbers", has_fin, "/app/financials",
@@ -17205,7 +17205,7 @@ def _daily_briefing_email_html(*, workspace_name: str, data: dict, app_url: str,
 
 
 async def run_daily_briefing_cron() -> dict:
-    """Cron: email a morning ops snapshot to CEO/owner recipients.
+    """Cron: email a daily ops snapshot to CEO/owner recipients.
 
     Separate from weekly pack digest and from daily insights alerts. Debounces
     with daily_briefing_emailed_date (UTC ISO date) so a re-run the same day
@@ -17256,7 +17256,7 @@ async def run_daily_briefing_cron() -> dict:
                 one_click = ec.api_unsubscribe_url(api_base, addr, secret=SESSION_SECRET)
                 email_result = await send_resend_email(
                     to=[addr],
-                    subject=f"Trenston morning briefing: {ws_name}",
+                    subject=f"Trenston daily briefing: {ws_name}",
                     html=_daily_briefing_email_html(
                         workspace_name=ws_name,
                         data=data,
@@ -17332,7 +17332,7 @@ async def internal_run_weekly_digest(request: Request):
 
 @api_router.post("/internal/run-daily-briefing")
 async def internal_run_daily_briefing(request: Request):
-    """Daily Render cron: morning ops briefing email to CEO/owner. Shared-secret header required.
+    """Daily Render cron: daily ops briefing email to CEO/owner. Shared-secret header required.
 
     Separate from weekly pack digest. Fixed UTC morning hour (v1 — no per-workspace timezone).
     """

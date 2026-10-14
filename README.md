@@ -1,6 +1,6 @@
 # Trenston — The Operating System for Founders & CEOs
 
-Trenston is a multi-tenant executive cockpit: morning briefing, decisions, financials, pipeline, team pulse, and Ask Trenston AI.
+Trenston is a multi-tenant executive cockpit: briefing, decisions, financials, pipeline, team pulse, and Ask Trenston AI.
 
 ## Ownership model (production)
 

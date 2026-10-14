@@ -363,7 +363,7 @@ def test_run_daily_briefing_emails_and_debounces():
     assert stats["errors"] == 0
     assert len(sent) == 1
     assert sent[0]["to"] == ["ceo@send.test"]
-    assert "morning briefing" in sent[0]["subject"].lower()
+    assert "daily briefing" in sent[0]["subject"].lower()
     assert "Unsubscribe" in sent[0]["html"]
     assert "BGC, Taguig, Philippines" in sent[0]["html"]
     assert "Target vs actual" in sent[0]["html"]

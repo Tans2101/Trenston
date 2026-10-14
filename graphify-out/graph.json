@@ -84936,12 +84936,12 @@
     },
     {
       "id": "backend_server_rationale_17335",
-      "label": "Daily Render cron: morning ops briefing email to CEO/owner. Shared-secret\u2026",
+      "label": "Daily Render cron: daily ops briefing email to CEO/owner. Shared-secret header\u2026",
       "_origin": "ast",
       "community": 230,
       "community_name": "Request",
       "file_type": "rationale",
-      "norm_label": "daily render cron: morning ops briefing email to ceo/owner. shared-secret...",
+      "norm_label": "daily render cron: daily ops briefing email to ceo/owner. shared-secret header...",
       "source_file": "backend/server.py",
       "source_location": "L17335"
     },
@@ -88404,12 +88404,12 @@
     },
     {
       "id": "backend_ops_briefing_rationale_1",
-      "label": "Shared ops briefing assembly for /briefing cards and the daily morning email.\u2026",
+      "label": "Shared ops briefing assembly for /briefing cards and the daily briefing email.\u2026",
       "_origin": "ast",
       "community": 252,
       "community_name": "ops_briefing.py",
       "file_type": "rationale",
-      "norm_label": "shared ops briefing assembly for /briefing cards and the daily morning email....",
+      "norm_label": "shared ops briefing assembly for /briefing cards and the daily briefing email....",
       "source_file": "backend/ops_briefing.py",
       "source_location": "L1"
     },
@@ -88426,12 +88426,12 @@
     },
     {
       "id": "backend_ops_briefing_rationale_551",
-      "label": "Plain scannable HTML morning briefing. Reuses weekly digest CAN-SPAM footer.",
+      "label": "Plain scannable HTML daily briefing. Reuses weekly digest CAN-SPAM footer.",
       "_origin": "ast",
       "community": 252,
       "community_name": "ops_briefing.py",
       "file_type": "rationale",
-      "norm_label": "plain scannable html morning briefing. reuses weekly digest can-spam footer.",
+      "norm_label": "plain scannable html daily briefing. reuses weekly digest can-spam footer.",
       "source_file": "backend/ops_briefing.py",
       "source_location": "L551"
     },
@@ -119593,12 +119593,12 @@
     },
     {
       "id": "backend_server_rationale_17208",
-      "label": "Cron: email a morning ops snapshot to CEO/owner recipients. Separate from\u2026",
+      "label": "Cron: email a daily ops snapshot to CEO/owner recipients. Separate from weekly\u2026",
       "_origin": "ast",
       "community": 8,
       "community_name": "_complete_oauth_callback",
       "file_type": "rationale",
-      "norm_label": "cron: email a morning ops snapshot to ceo/owner recipients. separate from...",
+      "norm_label": "cron: email a daily ops snapshot to ceo/owner recipients. separate from weekly...",
       "source_file": "backend/server.py",
       "source_location": "L17208"
     },
@@ -119637,12 +119637,12 @@
     },
     {
       "id": "backend_server_rationale_4012",
-      "label": "Shared ops snapshot for Briefing UI and the daily morning email cron.",
+      "label": "Shared ops snapshot for Briefing UI and the daily briefing email cron.",
       "_origin": "ast",
       "community": 8,
       "community_name": "_complete_oauth_callback",
       "file_type": "rationale",
-      "norm_label": "shared ops snapshot for briefing ui and the daily morning email cron.",
+      "norm_label": "shared ops snapshot for briefing ui and the daily briefing email cron.",
       "source_file": "backend/server.py",
       "source_location": "L4012"
     },
@@ -376644,5 +376644,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ea5b8caa0ea0ee193adde11ad221bc439797ce84"
+  "built_at_commit": "59c69ee424f017a296f77c5662ab20e7ee5582a6"
 }

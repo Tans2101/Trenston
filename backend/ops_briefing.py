@@ -1,4 +1,4 @@
-"""Shared ops briefing assembly for /briefing cards and the daily morning email.
+"""Shared ops briefing assembly for /briefing cards and the daily briefing email.
 
 Single source of truth for Sales / Procurement / Production / Maintenance
 rollups — both the Briefing page and run_daily_briefing_cron call
@@ -548,7 +548,7 @@ def daily_briefing_email_html(
     app_url: str,
     unsubscribe_url: str = "",
 ) -> str:
-    """Plain scannable HTML morning briefing. Reuses weekly digest CAN-SPAM footer."""
+    """Plain scannable HTML daily briefing. Reuses weekly digest CAN-SPAM footer."""
     import email_compliance as ec
 
     name = html.escape(workspace_name or "your company")
@@ -723,7 +723,7 @@ def daily_briefing_email_html(
 <table width="520" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
 <tr><td style="padding:32px 36px 8px 36px;">
 <p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;">Daily briefing</p>
-<h1 style="color:#ffffff;font-size:22px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">Morning snapshot for<br><span style="color:#c9a962;">{name}</span></h1>
+<h1 style="color:#ffffff;font-size:22px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">Daily snapshot for<br><span style="color:#c9a962;">{name}</span></h1>
 <p style="color:#a1a1aa;font-size:14px;line-height:1.6;margin:14px 0 0 0;">Operational numbers for {html.escape(month)}. Metrics with no data yet are labeled explicitly, never left blank or invented.</p>
 </td></tr>
 {body_sections}
