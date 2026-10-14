@@ -1688,3 +1688,16 @@ html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245
   [data-testid="new-note-btn"]::after,
   [data-testid="page-intro-off"]::after { content: ""; position: absolute; inset: -14px -10px; }
 }
+
+/* Keyboard focus: every control shows a clear ring when reached with Tab.
+   :where() keeps specificity at zero so any component can still style its own. */
+:where(a, button, select, summary, [role="button"], [role="tab"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--helm-fg);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+:where(input, textarea, select):focus-visible {
+  outline: 2px solid var(--helm-fg);
+  outline-offset: 1px;
+}
+.app-rail :where(a, button):focus-visible { outline-offset: -2px; }
