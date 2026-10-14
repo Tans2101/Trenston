@@ -1,7 +1,7 @@
 # Graph Report - Trenston  (2026-10-14)
 
 ## Corpus Check
-- 962 files · ~648,644 words
+- 962 files · ~648,811 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 21 file(s) not represented in the graph (top: (none) 5, .css 4, .woff2 4)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59c69ee4`
+- Built from commit: `5704f4d2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

@@ -80,11 +80,14 @@ export async function getCachedClerkToken(getToken, session, { tokenTimeoutMs = 
 export async function resolveClerkToken(
   getToken,
   session,
-  { attempts = 8, delayMs = 250, tokenTimeoutMs = 2000 } = {},
+  { attempts = 4, delayMs = 300, tokenTimeoutMs = 8000 } = {},
 ) {
   for (let i = 0; i < attempts; i += 1) {
     try {
-      const skipCache = i > 0;
+      // Never abandon the first request early: giving up after 2s and forcing a
+      // fresh network fetch each time kept restarting slow Clerk round-trips
+      // (typical from far-away regions) so sign-in never finished.
+      const skipCache = i > 1;
       const opts = skipCache ? { skipCache: true } : undefined;
       // Ask both in parallel (they return the same JWT); the old sequential
       // awaits could burn 2× the timeout on every attempt.

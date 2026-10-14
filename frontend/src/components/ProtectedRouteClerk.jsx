@@ -22,6 +22,7 @@ export default function ProtectedRouteClerk() {
   const { signOut } = useClerk();
   const { clerkReady, clerkTimedOut } = useClerkReady();
   const [connectTimedOut, setConnectTimedOut] = useState(false);
+  const [connectSlow, setConnectSlow] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,10 +48,14 @@ export default function ProtectedRouteClerk() {
   useEffect(() => {
     if (user || !clerkComplete || sessionError) {
       setConnectTimedOut(false);
+      setConnectSlow(false);
       return undefined;
     }
-    const t = setTimeout(() => setConnectTimedOut(true), 15000);
-    return () => clearTimeout(t);
+    // Longer than the bridge's own retries, so we only show an error when it is
+    // genuinely stuck, not while a slow connection is still finishing.
+    const t = setTimeout(() => setConnectTimedOut(true), 45000);
+    const slow = setTimeout(() => setConnectSlow(true), 8000);
+    return () => { clearTimeout(t); clearTimeout(slow); };
   }, [user, clerkComplete, sessionError]);
 
   if (clerkTimedOut) {
@@ -108,7 +113,7 @@ export default function ProtectedRouteClerk() {
         </div>
       );
     }
-    return <LoadingScreen label="Connecting your account" />;
+    return <LoadingScreen label={connectSlow ? "Still connecting, this is taking a little longer than usual" : "Connecting your account"} />;
   }
 
   rememberOAuthReturn(location);

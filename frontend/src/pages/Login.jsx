@@ -44,6 +44,12 @@ function LoginClerk() {
 
   const clerkComplete = clerkSessionComplete({ isSignedIn, userId, sessionId, session, sessionStatus });
 
+  // Wake the API (and its database connection) while the person types their
+  // password, so the first sign-in request is not the one that pays for it.
+  useEffect(() => {
+    fetch("/api/health", { cache: "no-store" }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });
   }, [user, loading, navigate]);

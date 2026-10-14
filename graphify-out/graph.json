@@ -185527,7 +185527,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ClerkHelmBridge.jsx",
-      "source_location": "L80",
+      "source_location": "L81",
       "weight": 1.0
     },
     {
@@ -185539,7 +185539,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ClerkHelmBridge.jsx",
-      "source_location": "L82",
+      "source_location": "L84",
       "weight": 1.0
     },
     {
@@ -185551,7 +185551,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ClerkHelmBridge.jsx",
-      "source_location": "L85",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -186931,7 +186931,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ProtectedRouteClerk.jsx",
-      "source_location": "L114",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -186967,7 +186967,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ProtectedRouteClerk.jsx",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -186979,7 +186979,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/ProtectedRouteClerk.jsx",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -189763,7 +189763,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/lib/clerkToken.js",
-      "source_location": "L100",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -189775,7 +189775,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/lib/clerkToken.js",
-      "source_location": "L106",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -189787,7 +189787,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/lib/clerkToken.js",
-      "source_location": "L93",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -376644,5 +376644,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "59c69ee424f017a296f77c5662ab20e7ee5582a6"
+  "built_at_commit": "5704f4d2b46e89d80a55739eba0f08009096c016"
 }

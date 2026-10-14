@@ -16,14 +16,14 @@ async function exchangeClerkSession(token) {
       {},
       // Shorter than the default 20s: a stuck request is retried quickly instead
       // of leaving the user staring at "Connecting your account".
-      { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 },
+      { headers: { Authorization: `Bearer ${token}` }, timeout: 25000 },
     );
     return data;
   } catch (exchangeErr) {
     if (exchangeErr?.response?.status === 404) {
       const { data } = await api.get("/auth/me", {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
+        timeout: 25000,
       });
       return data;
     }
@@ -75,14 +75,18 @@ export default function ClerkHelmBridge() {
 
     (async () => {
       clearSessionError();
+      const t0 = Date.now();
       for (let attempt = 0; attempt < 40 && !cancelled; attempt += 1) {
         try {
           const token = await resolveClerkToken(getToken, session);
+          const tTok = Date.now() - t0;
           if (!token) {
             await sleep(500);
             continue;
           }
           const data = await exchangeClerkSession(token);
+          // Timing breadcrumb so a slow sign-in can be diagnosed from the browser console.
+          console.info(`[trenston-auth] token ${tTok}ms, exchange ${Date.now() - t0 - tTok}ms, attempt ${attempt + 1}`);
           if (cancelled || runId !== syncRunId.current) return;
           setUser(data);
           clearSessionError();
@@ -116,7 +120,7 @@ export default function ClerkHelmBridge() {
             await sleep(1500);
             continue;
           }
-          if (attempt < 5 && (status >= 500 || !status)) {
+          if (attempt < 8 && (status >= 500 || !status)) {
             await sleep(500);
             continue;
           }

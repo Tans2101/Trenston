@@ -1284,9 +1284,9 @@
     "semantic_hash": "3702f2c92aacd46c675eecea1b98b5b0"
   },
   "frontend/src/components/ClerkHelmBridge.jsx": {
-    "mtime": 1791859114.1099594,
-    "seen": 1791860708.5285294,
-    "ast_hash": "20070f6daf98d69fc7b3c82eeb9fb975",
+    "mtime": 1791943353.591663,
+    "seen": 1791943416.7910082,
+    "ast_hash": "1f734ca7342075b777a760cc89b50ba5",
     "semantic_hash": ""
   },
   "frontend/src/components/ClerkLoadError.jsx": {
@@ -1374,9 +1374,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ProtectedRouteClerk.jsx": {
-    "mtime": 1791859131.3099604,
-    "seen": 1791860708.5285475,
-    "ast_hash": "8fa932062ea55efa8e901f4fe4aa5c4d",
+    "mtime": 1791943353.5919359,
+    "seen": 1791943416.7910278,
+    "ast_hash": "7b1482a66804139395783e58f80cb27e",
     "semantic_hash": ""
   },
   "frontend/src/components/ReportsDailyDigest.jsx": {
@@ -2346,9 +2346,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkToken.js": {
-    "mtime": 1791859111.3019593,
-    "seen": 1791860708.5287392,
-    "ast_hash": "d10bb4b102d0039782baed6b348fe25b",
+    "mtime": 1791943353.5913079,
+    "seen": 1791943416.7912114,
+    "ast_hash": "f92b58a445a2affb69d869f874a82ced",
     "semantic_hash": ""
   },
   "frontend/src/lib/companySetupCopy.js": {
@@ -2640,9 +2640,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Login.jsx": {
-    "mtime": 1791859134.4459605,
-    "seen": 1791860708.528862,
-    "ast_hash": "05c63a306c116c6af3f09c86ff0b3a24",
+    "mtime": 1791943356.8396509,
+    "seen": 1791943416.7912958,
+    "ast_hash": "d871b7a6a42be2f3fef973726ddec1a5",
     "semantic_hash": ""
   },
   "frontend/src/pages/Maintenance.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791941847.63804,
-    "seen": 1791941882.061733,
+    "mtime": 1791943391.7982602,
+    "seen": 1791943416.7917295,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
