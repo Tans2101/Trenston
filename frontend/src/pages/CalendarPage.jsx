@@ -160,6 +160,10 @@ function parseEventStart(ev) {
     const local = parseLocalDate(ev.date);
     if (local) return local;
   }
+  // Trenston-made events keep the wall-clock time you typed (date + "11:00");
+  // their start_at is that same wall time labelled UTC, so reading it as an
+  // instant shifts it by the viewer's UTC offset (11:00 became 7 PM in Manila).
+  if (ev.source === "helm" && ev.date && ev.time) return new Date(`${ev.date}T${ev.time}:00`);
   if (ev.start_at) return new Date(ev.start_at);
   if (ev.date && ev.time) return new Date(`${ev.date}T${ev.time}:00`);
   if (ev.date) return new Date(`${ev.date}T00:00:00`);

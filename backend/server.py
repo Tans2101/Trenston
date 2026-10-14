@@ -9732,6 +9732,31 @@ def _build_helm_event(
     }
 
 
+def _helm_event_instants(ev: dict, workspace: Optional[dict]) -> tuple[str, str]:
+    """Real UTC start/end for a Trenston event.
+
+    Events store their wall-clock time ("11:00") on `date`; start_at/end_at hold that
+    wall time labelled as UTC. Anything that needs the true instant (Google Calendar)
+    must read the wall time in the workspace timezone instead.
+    """
+    start_at, end_at = ev.get("start_at"), ev.get("end_at")
+    t = (ev.get("time") or "").strip()
+    d = (ev.get("date") or "").strip()
+    if ev.get("all_day") or not t or not d:
+        return start_at, end_at
+    try:
+        hh, _, mm = t.partition(":")
+        y, mo, da = (int(x) for x in d[:10].split("-"))
+        local = datetime(y, mo, da, int(hh), int(mm or 0), tzinfo=tz_utils.workspace_tz(workspace))
+        dur = max(int(ev.get("duration") or 30), 15)
+        return (
+            local.astimezone(timezone.utc).isoformat(),
+            (local + timedelta(minutes=dur)).astimezone(timezone.utc).isoformat(),
+        )
+    except (ValueError, TypeError):
+        return start_at, end_at
+
+
 async def _maybe_push_google_event(
     workspace: dict,
     ev: dict,
@@ -9749,9 +9774,10 @@ async def _maybe_push_google_event(
         ev["google_push_error"] = "reconnect"
         return ev
     try:
+        g_start, g_end = _helm_event_instants(ev, workspace)
         gid, refreshed = await gcal.create_calendar_event(
             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-            title=ev["title"], start_iso=ev["start_at"], end_iso=ev["end_at"],
+            title=ev["title"], start_iso=g_start, end_iso=g_end,
             all_day=bool(ev.get("all_day")), date=ev.get("date"),
             timezone_name=tz_utils.workspace_tz_name(workspace),
         )
@@ -9839,9 +9865,10 @@ async def edit_calendar_event(
                 tokens = await _user_google_tokens(c["workspace_id"], principal["user_id"])
                 if tokens and gcal.has_scope(tokens, "calendar.events"):
                     try:
+                        g_start, g_end = _helm_event_instants(found, c)
                         refreshed = await gcal.patch_calendar_event(
                             tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, gid,
-                            title=found["title"], start_iso=found["start_at"], end_iso=found["end_at"],
+                            title=found["title"], start_iso=g_start, end_iso=g_end,
                             all_day=bool(found.get("all_day")), date=found.get("date"),
                             timezone_name=tz_utils.workspace_tz_name(c),
                         )
