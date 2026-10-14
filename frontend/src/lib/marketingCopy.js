@@ -371,6 +371,13 @@ export const PRODUCT_FACTS = [
   { v: "Honest numbers", l: "missing cash shows as Add data, never a fake $0" },
 ];
 
+/** What happens after "Start free". Mirrors the pricing FAQ answer on onboarding. */
+export const GET_STARTED_STEPS = [
+  "Create a free workspace",
+  "Connect Google or accounting, or type in your numbers",
+  "Read your first Briefing",
+];
+
 export const PROBLEMS = [
   {
     title: "The answer is scattered",

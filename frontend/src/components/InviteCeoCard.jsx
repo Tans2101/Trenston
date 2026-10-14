@@ -86,6 +86,7 @@ export default function InviteCeoCard() {
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           data-testid="referral-link-input"
+          aria-label="Your invite link"
           readOnly
           value={linkValue}
           className="flex-1 rounded-md border border-helm-line bg-helm-card px-3 py-2.5 text-sm text-helm-fg font-mono truncate"

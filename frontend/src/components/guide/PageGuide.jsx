@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { CircleHelp, Compass, Keyboard, LifeBuoy, RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import { guideForPath } from "@/lib/pageGuides";
 import { TIPS_OFF, useGuides } from "@/components/guide/GuideProvider";
 
@@ -55,7 +56,7 @@ export function PageIntro() {
         )}
         <button
           type="button"
-          onClick={() => { markSeen(INTRO_DONE); markSeen(guide.id); }}
+          onClick={() => { track("intro_dismissed", { guide: guide.id }); markSeen(INTRO_DONE); markSeen(guide.id); }}
           data-testid="page-intro-dismiss"
           className="rounded-md border border-helm-line px-3.5 py-2 text-sm text-helm-fg hover:bg-helm-fg/[0.04]"
         >

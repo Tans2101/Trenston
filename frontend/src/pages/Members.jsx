@@ -330,7 +330,7 @@ export default function Members() {
                     onKeyDown={(e) => e.key === "Enter" && invite()} placeholder="teammate@company.com"
                     className="flex-1 bg-transparent text-helm-fg text-sm placeholder:text-helm-muted focus:outline-none py-2.5" />
                 </div>
-                <select data-testid="invite-pack-select" value={pack} onChange={(e) => setPack(e.target.value)}
+                <select aria-label="Access pack for the invitee" data-testid="invite-pack-select" value={pack} onChange={(e) => setPack(e.target.value)}
                   className="rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2.5 focus:outline-none focus:border-helm-gold/40">
                   {packOptions.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                 </select>
@@ -386,6 +386,7 @@ export default function Members() {
                       <div className="flex items-center gap-1 flex-wrap">
                         <select value={targetIsOwner ? "owner" : (m.pack || m.role)} onChange={(e) => changePack(m, e.target.value)}
                           data-testid={`pack-select-${m.email}`}
+                          aria-label={`Access pack for ${m.email}`}
                           className="text-[11px] text-helm-fg bg-helm-card border border-helm-line rounded px-2 py-1 focus:outline-none focus:border-helm-gold/40">
                           {targetIsOwner && <option value="owner" disabled>Owner</option>}
                           {ASSIGNABLE_PACKS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}

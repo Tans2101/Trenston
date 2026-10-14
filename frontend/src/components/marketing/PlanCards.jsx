@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { Check } from "lucide-react";
 import { PLANS, paidPlanRenewalDisclosure } from "@/lib/marketingCopy";
 import { MkButton, Reveal } from "@/components/marketing/mk";
@@ -54,7 +55,7 @@ export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-
               <div className="mt-8">
                 <MkButton
                   variant={hi ? "light" : "outline-dark"}
-                  onClick={onEnter}
+                  onClick={(e) => { track("plan_select", { plan: plan.id }); onEnter?.(e); }}
                   className="w-full"
                   data-testid={`${ctaTestIdPrefix}-${plan.id}`}
                 >

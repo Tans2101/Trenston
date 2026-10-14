@@ -48,7 +48,7 @@ export default function CookieNotice() {
         <div className="pointer-events-auto mx-auto max-w-3xl flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-xl border border-helm-line bg-helm-card px-4 py-3.5 shadow-2xl">
           <p className="flex-1 text-sm text-helm-fg leading-relaxed">
             Trenston uses a session cookie to keep you signed in, a small preference to remember this notice,
-            and cookieless Vercel Analytics for page views. No advertising cookies. Details in our{" "}
+            and cookieless analytics for page views and anonymous button counts. No advertising cookies. Details in our{" "}
             <Link to="/privacy" className="font-semibold text-helm-fg underline underline-offset-2 hover:opacity-80">Privacy Policy</Link>.
           </p>
           <button

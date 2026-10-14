@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { track } from "@/lib/analytics";
 import { useAuth } from "@/context/AuthContext";
 import { guideById } from "@/lib/pageGuides";
 import TourOverlay from "@/components/guide/TourOverlay";
@@ -94,6 +95,7 @@ export function GuideProvider({ children }) {
     if (!guide) return;
     setHelpOpen(false);
     markSeen(id);
+    track("tour_started", { guide: id });
     const here = guide.path ? guide.path.test(location.pathname.replace(/\/+$/, "") || "/") : true;
     if (route && location.pathname !== route && !here) {
       setPending(id);
@@ -126,8 +128,9 @@ export function GuideProvider({ children }) {
   const guide = active ? guideById(active.id) : null;
   const close = useCallback((finished) => {
     setActive(null);
+    if (finished && active?.id) track("tour_finished", { guide: active.id });
     if (finished) toast("Tour done. Press ? at the top of any page to see help again.");
-  }, []);
+  }, [active?.id]);
 
   const value = useMemo(() => ({
     seen, isSeen, markSeen, startTour, resetAll, activeTour: active, helpOpen, setHelpOpen,

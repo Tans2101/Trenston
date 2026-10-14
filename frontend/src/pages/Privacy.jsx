@@ -214,6 +214,11 @@ export default function Privacy() {
               Trenston&apos;s database and is not sent to Google Analytics or other advertising or analytics vendors.
               We do not use Google Analytics, session-recording, or advertising trackers.
             </p>
+            <p className="mt-3">
+              To see where visitors drop off, we also count anonymous button clicks and sign-up page views (for
+              example, which plan button was pressed). These counts carry no cookie, account, email, or IP
+              address, and are skipped entirely if your browser sends Do Not Track.
+            </p>
           </section>
 
           <section>

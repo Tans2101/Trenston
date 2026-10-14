@@ -260,6 +260,10 @@ const AI_ACCESS = [
 
 const QUESTIONS = [
   {
+    q: "Is Trenston accessible?",
+    a: "We build toward WCAG 2.1 AA: full keyboard navigation with a visible focus ring, labelled controls, and plain-text summaries for key charts. We have not had a formal third-party accessibility audit yet. If something blocks you, email contact@trenston.com and we will fix it.",
+  },
+  {
     q: "Can other companies see our workspace?",
     a: "No. Queries are scoped to the signed-in workspace. Members of another company cannot read your financials, documents, or decisions.",
   },

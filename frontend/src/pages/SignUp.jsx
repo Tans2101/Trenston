@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SignUp, useAuth as useClerkAuth, useSession, useClerk } from "@clerk/clerk-react";
@@ -41,6 +42,8 @@ function SignUpClerk() {
   const { clerkReady, clerkTimedOut } = useClerkReady();
 
   const clerkComplete = clerkSessionComplete({ isSignedIn, userId, sessionId, session, sessionStatus });
+
+  useEffect(() => { track("signup_view"); }, []);
 
   useEffect(() => {
     if (!loading && user) navigate("/app", { replace: true });

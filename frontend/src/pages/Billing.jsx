@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -146,6 +147,7 @@ export default function Billing() {
 
   const activatePaddle = async (planId) => {
     if (planId === "free") return;
+    track("upgrade_click", { plan: planId });
     const tier = plans.find((p) => p.id === planId);
     if (tier && tier.checkout_available === false) {
       toast.error(`${tier.label} checkout isn’t set up yet. Add PADDLE_PRICE_ID_${planId.toUpperCase()} on Render`);

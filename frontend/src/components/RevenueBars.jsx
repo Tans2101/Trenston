@@ -4,11 +4,33 @@ import {
 import { formatAxisMoney } from "@/lib/formatAxisMoney";
 import { formatMoney } from "@/lib/money";
 
+/** One plain sentence for screen readers (and anyone who can't read the bars). */
+export function revenueSummary(data, symbol) {
+  const rows = (data || []).filter((r) => r && r.month);
+  if (!rows.length) return "Revenue by month: no data yet.";
+  const last = rows[rows.length - 1];
+  const cur = Number(last.current);
+  const prev = Number(last.last);
+  const span = `Revenue by month, ${rows[0].month} to ${last.month}.`;
+  if (!Number.isFinite(cur)) return span;
+  let out = `${span} ${last.month}: ${formatMoney(Math.round(cur), symbol)}`;
+  if (Number.isFinite(prev) && prev > 0) {
+    const pct = Math.round(((cur - prev) / prev) * 100);
+    out += `, ${pct >= 0 ? "up" : "down"} ${Math.abs(pct)} percent on the month before (${formatMoney(Math.round(prev), symbol)}).`;
+  } else {
+    out += ".";
+  }
+  return out;
+}
+
 /** Current vs prior month revenue bars for the Briefing hero (lazy-loaded with recharts). */
 export default function RevenueBars({
   data, axisStroke, cursorFill, tooltipBg, tooltipBorder, tooltipFg, moneySymbol, currentBar, lastBar,
 }) {
+  const summary = revenueSummary(data, moneySymbol);
   return (
+    <div role="img" aria-label={summary}>
+      <p className="sr-only">{summary}</p>
 <ResponsiveContainer width="100%" height={220}>
               <BarChart data={data} margin={{ left: -8, right: 8, top: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--helm-line)" vertical={false} />
@@ -46,5 +68,6 @@ export default function RevenueBars({
                 <Bar dataKey="last" name="last" fill={lastBar} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+    </div>
   );
 }

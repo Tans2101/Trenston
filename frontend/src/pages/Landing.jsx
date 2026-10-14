@@ -33,6 +33,7 @@ import {
   FOUNDER_NAME,
   FOUNDER_NOTE,
   FOUNDER_ROLE,
+  GET_STARTED_STEPS,
   HERO_OUTCOME,
   HOME_FAQ,
   HOW_IT_WORKS,
@@ -110,11 +111,26 @@ export default function Landing() {
               </MkButton>
               <MkLink href="#how" className="text-base text-mk-black">See how it works</MkLink>
             </motion.div>
+            <motion.ol
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.55 }}
+              aria-label="How to get started"
+              data-testid="hero-steps"
+              className="mt-8 flex max-w-xl list-none flex-col gap-2 p-0 text-sm text-mk-gray sm:flex-row sm:gap-6"
+            >
+              {GET_STARTED_STEPS.map((step, i) => (
+                <li key={step} className="flex items-start gap-2.5">
+                  <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-mk-black text-[11px] font-semibold text-mk-black">{i + 1}</span>
+                  <span className="leading-snug">{step}</span>
+                </li>
+              ))}
+            </motion.ol>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, delay: 0.6 }}
-              className="mt-12 max-w-md text-sm leading-relaxed text-mk-gray"
+              className="mt-8 max-w-md text-sm leading-relaxed text-mk-gray"
             >
               {AUDIENCE}
             </motion.p>

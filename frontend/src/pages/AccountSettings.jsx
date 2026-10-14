@@ -432,6 +432,7 @@ export default function AccountSettings() {
               accept="image/jpeg,image/png,image/webp"
               className="hidden"
               data-testid="profile-picture-input"
+                aria-label="Upload profile picture"
               onChange={(e) => uploadPicture(e.target.files?.[0])}
             />
             <button
@@ -573,6 +574,7 @@ export default function AccountSettings() {
                 accept="image/jpeg,image/png,image/webp"
                 className="hidden"
                 data-testid="company-logo-input"
+                aria-label="Upload company logo"
                 onChange={(e) => uploadLogo(e.target.files?.[0])}
               />
               <button

@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 import llm as helm_llm
 import document_cleanup
 import rate_limit as doc_rate_limit
+import site_events
 import storage as doc_storage
 import quickbooks as qb_sync
 import xero as xero_sync
@@ -16327,6 +16328,21 @@ async def paddle_portal(principal=Depends(require("billing:manage"))):
         raise HTTPException(status_code=502, detail="Could not open billing portal")
 
 
+@api_router.post("/events", status_code=204)
+async def record_site_event(request: Request):
+    """Anonymous funnel counter for the public site. Always 204: a tracking
+    problem must never show up as an error to a visitor."""
+    try:
+        body = await request.json()
+        if isinstance(body, dict):
+            await site_events.record(
+                db, body.get("name"), body.get("path"), body.get("props"), _client_ip(request),
+            )
+    except Exception:
+        logger.debug("site event ignored", exc_info=True)
+    return Response(status_code=204)
+
+
 @api_router.post("/webhook/paddle")
 async def paddle_webhook(request: Request):
     # Live deliveries must come from Paddle's published IPs. Sandbox stays
@@ -18298,6 +18314,9 @@ async def _ensure_indexes():
         (db.join_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS}),
         (db.join_rate_events, [("client_ip", 1)], {}),
         (db.join_rate_buckets, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS * 2}),
+        (db.site_events, [("created_at", 1)], {"expireAfterSeconds": site_events.RETENTION_DAYS * 86400}),
+        (db.site_events, [("name", 1), ("created_at", -1)], {}),
+        (db.site_event_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.api_keys, [("key_hash", 1)], {"unique": True}),
         (db.api_keys, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
         (db.api_keys, [("id", 1)], {"unique": True}),
