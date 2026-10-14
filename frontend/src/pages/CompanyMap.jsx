@@ -17,7 +17,7 @@ const TONE_STROKE = {
 const TONE_FILL = {
   ok: "fill-helm-status-positive/10",
   warn: "fill-helm-status-warning/10",
-  bad: "fill-helm-status-negative/12",
+  bad: "fill-helm-status-negative/10",
   neutral: "fill-helm-card",
 };
 const TONE_TEXT = {
