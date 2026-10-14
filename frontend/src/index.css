@@ -1678,3 +1678,13 @@ html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245
 @media (max-height: 820px) {
   .app-shell .rail-promo-wrap { display: none; }
 }
+
+/* Touch screens: tiny inline controls get a 44px-ish invisible hit area without changing the layout. */
+@media (pointer: coarse), (max-width: 640px) {
+  [data-testid^="term-"],
+  [data-testid="new-note-btn"],
+  [data-testid="page-intro-off"] { position: relative; }
+  [data-testid^="term-"]::after,
+  [data-testid="new-note-btn"]::after,
+  [data-testid="page-intro-off"]::after { content: ""; position: absolute; inset: -14px -10px; }
+}
