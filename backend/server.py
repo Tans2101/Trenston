@@ -192,6 +192,10 @@ def _make_mongo_client(url: str) -> AsyncIOMotorClient:
         serverSelectionTimeoutMS=8000 if is_atlas else 3000,
         connectTimeoutMS=8000 if is_atlas else 3000,
         socketTimeoutMS=10000,
+        # Drop pooled sockets before Atlas / the network silently kills them while idle,
+        # so the first request after a quiet spell doesn't wait on a dead connection.
+        maxIdleTimeMS=45000,
+        minPoolSize=1 if is_atlas else 0,
     )
 
 
@@ -18643,18 +18647,19 @@ async def _keep_clerk_probes_warm() -> None:
 
     Its Clerk health probes are cached for 120s; whoever hit it after a quiet
     spell used to pay for 4 outbound Clerk calls (up to 10s each). Refresh them
-    in the background every 90s, and keep the JWKS warm so local token
+    in the background every 30s (also pinging Mongo so pooled sockets stay alive), and keep the JWKS warm so local token
     verification never has to fetch keys during a sign-in.
     """
     while True:
         try:
+            await _mongo_ping()
             await auth_config()
             await clerk_auth.prefetch_jwks()
         except asyncio.CancelledError:
             raise
         except Exception:
             logger.warning("clerk probe warm-up failed", exc_info=True)
-        await asyncio.sleep(90)
+        await asyncio.sleep(30)
 
 
 async def _run_sales_finance_migration() -> None:

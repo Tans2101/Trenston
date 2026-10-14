@@ -51,9 +51,10 @@ export default function ProtectedRouteClerk() {
       setConnectSlow(false);
       return undefined;
     }
-    // Longer than the bridge's own retries, so we only show an error when it is
-    // genuinely stuck, not while a slow connection is still finishing.
-    const t = setTimeout(() => setConnectTimedOut(true), 45000);
+    // Longer than the bridge's own retries: the first sign-in after a quiet spell can
+    // take a minute while the server wakes its database link, and the bridge keeps
+    // retrying and finishes on its own, so only show an error when it is truly stuck.
+    const t = setTimeout(() => setConnectTimedOut(true), 120000);
     const slow = setTimeout(() => setConnectSlow(true), 8000);
     return () => { clearTimeout(t); clearTimeout(slow); };
   }, [user, clerkComplete, sessionError]);
@@ -113,7 +114,7 @@ export default function ProtectedRouteClerk() {
         </div>
       );
     }
-    return <LoadingScreen label={connectSlow ? "Still connecting, this is taking a little longer than usual" : "Connecting your account"} />;
+    return <LoadingScreen label={connectSlow ? "Still connecting. The first sign-in after a quiet spell can take up to a minute" : "Connecting your account"} />;
   }
 
   rememberOAuthReturn(location);

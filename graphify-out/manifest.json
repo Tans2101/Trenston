@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1791966865.8095865,
-    "seen": 1791967087.433841,
-    "ast_hash": "66e955b8cc45613c36bc7d7e69bb145f",
+    "mtime": 1791968648.6351662,
+    "seen": 1791968699.5543232,
+    "ast_hash": "f9aa7295b53e3249684f8156e090165b",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1362,9 +1362,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ProtectedRouteClerk.jsx": {
-    "mtime": 1791966886.5516574,
-    "seen": 1791967087.434081,
-    "ast_hash": "f7a0a5e5565ce0dd23ab2ffc59b47128",
+    "mtime": 1791968652.3671663,
+    "seen": 1791968699.5546706,
+    "ast_hash": "73d7f37cdafbedfd38bc88e369e4c41a",
     "semantic_hash": ""
   },
   "frontend/src/components/ReportsDailyDigest.jsx": {
@@ -5106,8 +5106,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791967057.7455978,
-    "seen": 1791967087.434832,
+    "mtime": 1791968662.7471669,
+    "seen": 1791968699.555457,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
