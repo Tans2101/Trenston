@@ -37,6 +37,7 @@ import quickbooks as qb_sync
 import xero as xero_sync
 import sap_b1 as sap_b1_sync
 import hubspot as hubspot_sync
+import integration_revoke
 import accounting_map as amap
 import google_oauth as gcal
 import tz_utils
@@ -14888,10 +14889,14 @@ async def integration_connect(provider: str, request: Request, principal=Depends
             "xero": "XERO_CLIENT_ID / XERO_CLIENT_SECRET",
             "hubspot": "HUBSPOT_CLIENT_ID / HUBSPOT_CLIENT_SECRET",
         }.get(provider, "OAuth credentials")
+        # Operators read the env names in the logs; customers get plain words.
+        logger.error("Integration %s is not configured: set %s on the API host", provider, missing)
+        label = {
+            "google": "Google", "quickbooks": "QuickBooks", "xero": "Xero", "hubspot": "HubSpot",
+        }.get(provider, "This integration")
         return {
             "configured": False,
-            "message": f"Not configured yet. Set {missing} on the API host, then reconnect.",
-            "redirect_uri": cfg["redirect_uri"],
+            "message": f"{label} isn't available to connect yet. We're setting it up; email contact@trenston.com if you need it sooner.",
         }
     nonce = secrets.token_urlsafe(24)
     state = _sign_state(provider, principal["workspace_id"], principal["user_id"], nonce)
@@ -15200,7 +15205,11 @@ async def _complete_oauth_callback(
 async def integration_disconnect(provider: str, principal=Depends(get_principal)):
     """Disconnect. Google clears only the calling user's tokens; others need integrations:manage."""
     if provider == "google":
+        old = await _user_google_tokens(principal["workspace_id"], principal["user_id"])
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
+        if old:
+            # Remove Trenston from the user's Google "third-party access" list too.
+            asyncio.create_task(integration_revoke.revoke_google(old))
         return {"ok": True}
     if "integrations:manage" not in perms_for(principal["pack"]):
         raise HTTPException(status_code=403, detail="Only workspace owners can disconnect this integration")
@@ -15221,7 +15230,21 @@ async def integration_disconnect(provider: str, principal=Depends(get_principal)
         unset = {"hubspot_last_synced_at": ""}
     elif provider == "sap_b1":
         unset = {"sap_b1_last_synced_at": ""}
+    old_ws = await get_ws(principal["workspace_id"])
+    old = _integration_tokens(old_ws, field)
     await _store_integration_tokens(principal["workspace_id"], field, None, extra_unset=unset)
+    if old:
+        # Best effort, never blocks the disconnect: revoke the grant at the provider
+        # (Intuit requires this) and end any open SAP session.
+        if provider == "quickbooks":
+            asyncio.create_task(integration_revoke.revoke_quickbooks(old, QB_CLIENT_ID, QB_CLIENT_SECRET))
+        elif provider == "xero":
+            asyncio.create_task(integration_revoke.revoke_xero(old, XERO_CLIENT_ID, XERO_CLIENT_SECRET))
+        elif provider == "hubspot":
+            asyncio.create_task(integration_revoke.revoke_hubspot(old))
+        elif provider == "sap_b1":
+            asyncio.create_task(sap_b1_sync.logout(old))
+    await log_activity(principal, "integrations", f"{provider}.disconnect", f"Disconnected {provider}")
     return {"ok": True}
 
 
@@ -15253,7 +15276,10 @@ async def sap_b1_connect(payload: SapB1ConnectInput, principal=Depends(require_i
     except sap_b1_sync.SapB1TransientError as exc:
         raise HTTPException(status_code=503, detail="SAP Business One is temporarily unavailable. Try again in a few minutes.") from exc
     except sap_b1_sync.SapB1AuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc) or "SAP Business One login rejected") from exc
+        raise HTTPException(
+            status_code=401,
+            detail="SAP Business One rejected the login. Check the company database, username and password.",
+        ) from exc
     except sap_b1_sync.SapB1Error as exc:
         raise HTTPException(status_code=502, detail=str(exc) or "SAP Business One connection failed") from exc
     except httpx.HTTPError as exc:
@@ -15284,6 +15310,7 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         await _store_integration_tokens(ws_id, "sap_b1_credentials", None, extra_unset={"sap_b1_last_synced_at": ""})
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
+    watermark = _sync_watermark()
     since = c.get("sap_b1_last_synced_at")
     txns, complete, live, deleted = await sap_b1_sync.fetch_sap_transactions(live, since)
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
@@ -15292,7 +15319,7 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
     )
     last_synced_at = None
     if complete:
-        last_synced_at = datetime.now(timezone.utc).isoformat()
+        last_synced_at = watermark
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
@@ -15500,6 +15527,17 @@ async def _upsert_accounting_sync_entries(
     return synced_count
 
 
+# Incremental syncs ask providers for records changed since the last watermark.
+# The watermark is taken when the sync STARTS (minus a margin for clock skew),
+# not when it ends: records edited while a sync was running used to fall in the
+# gap and were never picked up. Upserts are idempotent, so overlap is harmless.
+SYNC_WATERMARK_OVERLAP = timedelta(minutes=5)
+
+
+def _sync_watermark() -> str:
+    return (datetime.now(timezone.utc) - SYNC_WATERMARK_OVERLAP).isoformat()
+
+
 def _system_accounting_principal(workspace: dict, token_field: str) -> dict:
     """Actor for cron syncs — prefer the teammate who connected the grant."""
     by_field = _INTEGRATION_CONNECTED_BY.get(token_field)
@@ -15524,6 +15562,7 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
 
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
+    watermark = _sync_watermark()
     since = c.get("qb_last_synced_at")
     txns, complete, tokens, deleted = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
@@ -15532,7 +15571,7 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     )
     last_synced_at = None
     if complete:
-        last_synced_at = datetime.now(timezone.utc).isoformat()
+        last_synced_at = watermark
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
@@ -15549,6 +15588,7 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
+    watermark = _sync_watermark()
     since = c.get("xero_last_synced_at")
     txns, complete, tokens, deleted = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
@@ -15557,7 +15597,7 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     )
     last_synced_at = None
     if complete:
-        last_synced_at = datetime.now(timezone.utc).isoformat()
+        last_synced_at = watermark
         await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
@@ -15761,12 +15801,13 @@ async def hubspot_sync_endpoint(principal=Depends(require_integration_provider("
         tokens = await hubspot_sync.refresh_hubspot_token(tokens)
         await _store_integration_tokens(ws_id, "hubspot_tokens", tokens)
 
+        watermark = _sync_watermark()
         since = c.get("hubspot_last_synced_at")
         deals, complete = await hubspot_sync.fetch_deals(tokens, since)
         synced_count = await _upsert_hubspot_deals(ws_id=ws_id, principal=principal, deals=deals)
         last_synced_at = None
         if complete:
-            last_synced_at = datetime.now(timezone.utc).isoformat()
+            last_synced_at = watermark
             await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"hubspot_last_synced_at": last_synced_at}})
         await log_activity(
             principal, "integrations", "hubspot.sync",
@@ -15775,6 +15816,9 @@ async def hubspot_sync_endpoint(principal=Depends(require_integration_provider("
         )
         return {"ok": True, "synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
+    except hubspot_sync.HubSpotTransientError as exc:
+        logger.warning("HubSpot temporarily unavailable for %s: %s", ws_id, exc)
+        raise HTTPException(status_code=503, detail="HubSpot is temporarily unavailable. Try again in a few minutes.") from exc
     except hubspot_sync.HubSpotAuthError as exc:
         logger.warning("HubSpot auth failed for %s: %s", ws_id, exc)
         await _store_integration_tokens(ws_id, "hubspot_tokens", None, extra_unset={"hubspot_last_synced_at": ""})

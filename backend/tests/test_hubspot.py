@@ -98,9 +98,10 @@ def test_refresh_raises_on_failure():
         "expires_in": 21600,
         "obtained_at": (datetime.now(timezone.utc) - timedelta(hours=8)).isoformat(),
     }
+    # HubSpot reports a dead refresh token as 400 BAD_REFRESH_TOKEN; only that disconnects.
     mock_resp = MagicMock()
-    mock_resp.status_code = 401
-    mock_resp.text = "invalid"
+    mock_resp.status_code = 400
+    mock_resp.text = '{"status": "BAD_REFRESH_TOKEN", "message": "missing or unknown refresh token"}'
     mock_hc = AsyncMock()
     mock_hc.post = AsyncMock(return_value=mock_resp)
     mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)

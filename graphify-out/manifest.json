@@ -162,10 +162,10 @@
     "semantic_hash": "42636ed0155e03ace5a75523c8e86805"
   },
   "backend/hubspot.py": {
-    "mtime": 1790515659.5391483,
-    "seen": 1791795297.0870218,
-    "ast_hash": "20d2f289b2a9f2a8ad0b97774527daf8",
-    "semantic_hash": "20d2f289b2a9f2a8ad0b97774527daf8"
+    "mtime": 1791972009.228138,
+    "seen": 1791972059.9557261,
+    "ast_hash": "4a5fea7bc9dfe9efb0758e1cccde2b5c",
+    "semantic_hash": ""
   },
   "backend/integration_errors.py": {
     "mtime": 1790515659.5391483,
@@ -294,10 +294,10 @@
     "semantic_hash": "53db5b403a52d6ba89fb32e52ee7d533"
   },
   "backend/sap_b1.py": {
-    "mtime": 1790515659.5391483,
-    "seen": 1791795297.087087,
-    "ast_hash": "b0a02c5407da5e1998010cc0a44c449b",
-    "semantic_hash": "b0a02c5407da5e1998010cc0a44c449b"
+    "mtime": 1791972023.3488765,
+    "seen": 1791972059.9557686,
+    "ast_hash": "78bbd08de39566b063f71d10e3945143",
+    "semantic_hash": ""
   },
   "backend/scripts/check_prod_env.py": {
     "mtime": 1791958095.6734917,
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1791968648.6351662,
-    "seen": 1791968699.5543232,
-    "ast_hash": "f9aa7295b53e3249684f8156e090165b",
+    "mtime": 1791972009.2286596,
+    "seen": 1791972059.9557939,
+    "ast_hash": "5deae4d45d01aa3fc7c7a2f62fa34502",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -762,10 +762,10 @@
     "semantic_hash": "bae251cba0e87f7ba1f0e638b22803c7"
   },
   "backend/tests/test_hubspot.py": {
-    "mtime": 1790515659.548069,
-    "seen": 1791795297.0873044,
-    "ast_hash": "113e26ec426b29ff686060662c535d37",
-    "semantic_hash": "113e26ec426b29ff686060662c535d37"
+    "mtime": 1791972023.3494978,
+    "seen": 1791972059.9559052,
+    "ast_hash": "1091a533ae50a73031d64a82a82446a6",
+    "semantic_hash": ""
   },
   "backend/tests/test_index_health.py": {
     "mtime": 1790515659.548069,
@@ -5124,9 +5124,9 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1791958095.689932,
-    "seen": 1791967087.4348376,
-    "ast_hash": "b23b55e9ff5618ab20e20cea6b32e01b",
+    "mtime": 1791972009.2286596,
+    "seen": 1791972059.9568393,
+    "ast_hash": "9c9f25ed5e10042a68d59336138bd43a",
     "semantic_hash": ""
   },
   "favicon-and-profile/trenston-medallion-cream-1024.png": {
@@ -6279,6 +6279,18 @@
     "mtime": 1791970082.8705804,
     "seen": 1791970669.665494,
     "ast_hash": "72ab8b5036f3f07163c95b131352b12a",
+    "semantic_hash": ""
+  },
+  "backend/integration_revoke.py": {
+    "mtime": 1791971363.1086214,
+    "seen": 1791972059.9557316,
+    "ast_hash": "9cd6ea4eb1fd1b606d7713b670ae9267",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_integration_readiness.py": {
+    "mtime": 1791971439.828626,
+    "seen": 1791972059.9559104,
+    "ast_hash": "d18e1416fdb18f8db0964390c03b6766",
     "semantic_hash": ""
   }
 }

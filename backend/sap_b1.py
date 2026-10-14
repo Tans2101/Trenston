@@ -52,6 +52,25 @@ class SapB1Error(Exception):
     """Non-auth Service Layer failure."""
 
 
+SAP_CERT_MESSAGE = (
+    "Your SAP Service Layer's HTTPS certificate isn't trusted (it is probably self-signed). "
+    "Ask your SAP partner to install a certificate from a public authority, then connect again."
+)
+
+
+def _is_certificate_error(exc: BaseException) -> bool:
+    """True when a connect failure was caused by TLS certificate verification."""
+    seen = 0
+    cur: Optional[BaseException] = exc
+    while cur is not None and seen < 6:
+        text = f"{type(cur).__name__} {cur}".lower()
+        if "certificate" in text or "ssl" in text and "verify" in text:
+            return True
+        cur = cur.__cause__ or cur.__context__
+        seen += 1
+    return False
+
+
 def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     """True when the address must not be contacted from the Trenston API."""
     # IPv4-mapped IPv6 (::ffff:x.x.x.x) → check the embedded IPv4.
@@ -316,6 +335,10 @@ async def login(
             )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
         logger.warning("SAP B1 login network/timeout error: %s", exc)
+        if _is_certificate_error(exc):
+            # Many on-prem Service Layers use a self-signed certificate. Retrying never
+            # fixes that, so say what to change instead of "temporarily unavailable".
+            raise SapB1Error(SAP_CERT_MESSAGE) from exc
         raise SapB1TransientError("SAP connection temporarily unavailable") from exc
     if resp.status_code in (401, 403):
         logger.warning(

@@ -73,6 +73,13 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: GOOGLE_PICKER_API_KEY
+        sync: false
+        # Google Cloud → APIs & Services → Credentials → API key, restricted to the
+        # Google Picker API and HTTP referrers https://www.trenston.com/*. Powers "Import from Drive".
+      - key: GOOGLE_CLOUD_PROJECT_NUMBER
+        sync: false
+        # Google Cloud → Project settings → Project number (digits only). Drive picker app id.
       - key: QUICKBOOKS_CLIENT_ID
         sync: false
       - key: QUICKBOOKS_CLIENT_SECRET

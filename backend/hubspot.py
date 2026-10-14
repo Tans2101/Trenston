@@ -1,11 +1,18 @@
 """HubSpot CRM — token refresh and deal sync into Trenston Pipeline."""
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
+
+from integration_errors import IntegrationRetryableError
+
+logger = logging.getLogger(__name__)
 
 HUBSPOT_CLIENT_ID = os.environ.get("HUBSPOT_CLIENT_ID", "")
 HUBSPOT_CLIENT_SECRET = os.environ.get("HUBSPOT_CLIENT_SECRET", "")
@@ -36,6 +43,25 @@ class HubSpotAuthError(Exception):
     """Refresh token invalid or revoked — user must reconnect."""
 
 
+class HubSpotTransientError(IntegrationRetryableError):
+    """HubSpot or network hiccup — keep the connection and retry later."""
+
+
+def _is_revoked_refresh(status_code: int, body: str) -> bool:
+    """HubSpot reports a dead refresh token as 400 BAD_REFRESH_TOKEN (or invalid_grant)."""
+    if status_code not in (400, 401):
+        return False
+    try:
+        payload = json.loads(body or "")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    status = str(payload.get("status") or "").upper()
+    err = str(payload.get("error") or "").lower()
+    return status == "BAD_REFRESH_TOKEN" or err == "invalid_grant"
+
+
 def _token_needs_refresh(tokens: dict) -> bool:
     obtained = tokens.get("obtained_at")
     if not obtained:
@@ -58,19 +84,27 @@ async def refresh_hubspot_token(tokens: dict) -> dict:
     if not HUBSPOT_CLIENT_ID or not HUBSPOT_CLIENT_SECRET:
         raise HubSpotAuthError("HubSpot OAuth is not configured")
 
-    async with httpx.AsyncClient(timeout=30.0) as hc:
-        resp = await hc.post(
-            TOKEN_URL,
-            data={
-                "grant_type": "refresh_token",
-                "client_id": HUBSPOT_CLIENT_ID,
-                "client_secret": HUBSPOT_CLIENT_SECRET,
-                "refresh_token": refresh_token,
-            },
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-        )
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as hc:
+            resp = await hc.post(
+                TOKEN_URL,
+                data={
+                    "grant_type": "refresh_token",
+                    "client_id": HUBSPOT_CLIENT_ID,
+                    "client_secret": HUBSPOT_CLIENT_SECRET,
+                    "refresh_token": refresh_token,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+        raise HubSpotTransientError("HubSpot token refresh temporarily unavailable") from exc
     if resp.status_code != 200:
-        raise HubSpotAuthError(resp.text[:300] or "Token refresh failed")
+        # Only a confirmed dead refresh token disconnects. 5xx, 429 and other
+        # errors used to wipe the connection too, forcing a needless reconnect.
+        if _is_revoked_refresh(resp.status_code, resp.text or ""):
+            raise HubSpotAuthError((resp.text or "")[:300] or "HubSpot refresh token revoked")
+        logger.warning("HubSpot token refresh failed (%s): %s", resp.status_code, (resp.text or "")[:300])
+        raise HubSpotTransientError(f"HubSpot token refresh temporarily unavailable ({resp.status_code})")
 
     updated = {**tokens, **resp.json()}
     updated["obtained_at"] = datetime.now(timezone.utc).isoformat()
@@ -152,8 +186,33 @@ async def _auth_headers(access_token: str) -> dict:
     return {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
 
 
+HUBSPOT_MAX_429_RETRIES = 3
+
+
+async def _send(hc: httpx.AsyncClient, method: str, url: str, **kwargs) -> httpx.Response:
+    """One HubSpot API call with 429 backoff; network errors become transient."""
+    for attempt in range(HUBSPOT_MAX_429_RETRIES + 1):
+        try:
+            resp = await getattr(hc, method)(url, **kwargs)
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise HubSpotTransientError("HubSpot temporarily unavailable") from exc
+        if resp.status_code != 429:
+            if resp.status_code >= 500:
+                raise HubSpotTransientError(f"HubSpot temporarily unavailable ({resp.status_code})")
+            return resp
+        if attempt >= HUBSPOT_MAX_429_RETRIES:
+            break
+        try:
+            delay = float(resp.headers.get("Retry-After") or 0) or (2 ** attempt)
+        except ValueError:
+            delay = float(2 ** attempt)
+        await asyncio.sleep(min(max(delay, 1.0), 20.0))
+    raise HubSpotTransientError("HubSpot rate limit reached. Try again in a minute")
+
+
 async def _fetch_stage_labels(hc: httpx.AsyncClient, access_token: str) -> dict[str, str]:
-    resp = await hc.get(
+    resp = await _send(
+        hc, "get",
         f"{API_BASE}/crm/v3/pipelines/deals",
         headers=await _auth_headers(access_token),
     )
@@ -176,7 +235,8 @@ async def _fetch_company_names(hc: httpx.AsyncClient, access_token: str, company
     unique = [c for c in dict.fromkeys(company_ids) if c]
     for i in range(0, len(unique), 100):
         chunk = unique[i:i + 100]
-        resp = await hc.post(
+        resp = await _send(
+            hc, "post",
             f"{API_BASE}/crm/v3/objects/companies/batch/read",
             headers=await _auth_headers(access_token),
             json={"properties": ["name"], "inputs": [{"id": cid} for cid in chunk]},
@@ -199,7 +259,8 @@ async def _fetch_deal_company_ids(hc: httpx.AsyncClient, access_token: str, deal
     unique = [d for d in dict.fromkeys(deal_ids) if d]
     for i in range(0, len(unique), 100):
         chunk = unique[i:i + 100]
-        resp = await hc.post(
+        resp = await _send(
+            hc, "post",
             f"{API_BASE}/crm/v4/associations/deals/companies/batch/read",
             headers=await _auth_headers(access_token),
             json={"inputs": [{"id": did} for did in chunk]},
@@ -253,7 +314,8 @@ async def _list_or_search_deals(
                 continue
             if after:
                 body["after"] = after
-            resp = await hc.post(
+            resp = await _send(
+                hc, "post",
                 f"{API_BASE}/crm/v3/objects/deals/search",
                 headers=await _auth_headers(access_token),
                 json=body,
@@ -265,7 +327,8 @@ async def _list_or_search_deals(
             }
             if after:
                 params["after"] = after
-            resp = await hc.get(
+            resp = await _send(
+                hc, "get",
                 f"{API_BASE}/crm/v3/objects/deals",
                 headers=await _auth_headers(access_token),
                 params=params,
