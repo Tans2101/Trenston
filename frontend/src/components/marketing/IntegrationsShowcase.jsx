@@ -1,20 +1,19 @@
 import { INTEGRATIONS_SHOWCASE } from "@/lib/marketingCopy";
-import { MkLink, Reveal, SectionHeader } from "@/components/marketing/mk";
+import { MkLink, SectionHeader } from "@/components/marketing/mk";
 import BrandLogo, { integrationIdFor } from "@/components/BrandLogo";
 
-/** Vendor logos in their own brand colours. See PUBLIC_INTEGRATIONS_ATTRIBUTION for the trademark notice. */
-function IntegrationBadge({ name }) {
+function MarqueeItem({ item }) {
   return (
-    <div
-      aria-hidden
-      className="flex h-11 w-11 shrink-0 items-center justify-center border border-mk-line bg-white"
-    >
-      <BrandLogo id={integrationIdFor(name)} className="h-6 w-6" />
-    </div>
+    <li className="mk-marquee__item">
+      <BrandLogo id={integrationIdFor(item.name)} className="h-8 w-8 shrink-0" />
+      <span className="mk-marquee__name">{item.name}</span>
+    </li>
   );
 }
 
 export default function IntegrationsShowcase({ compact = false }) {
+  // Two identical halves; the track slides left by exactly one half, so the loop has no seam.
+  const half = [...INTEGRATIONS_SHOWCASE, ...INTEGRATIONS_SHOWCASE];
   return (
     <section
       className={`bg-white px-6 ${compact ? "py-20" : "py-24 md:py-28"}`}
@@ -28,24 +27,25 @@ export default function IntegrationsShowcase({ compact = false }) {
           intro="Connect what you run today. Nothing requires an integration. Manual entry stays available."
           action={<MkLink to="/integrations" className="text-mk-navy">See what each integration does</MkLink>}
         />
-        <ul className="mt-14 grid list-none border-t border-mk-black p-0 sm:grid-cols-2 lg:grid-cols-3">
-          {INTEGRATIONS_SHOWCASE.map((item, i) => (
-            <Reveal
-              as="li"
-              key={item.name}
-              i={i % 3}
-              className="group flex items-center gap-5 border-b border-mk-line py-6 sm:pr-8"
-            >
-              <IntegrationBadge name={item.name} />
-              <div>
-                <p className="text-lg font-semibold tracking-tight text-mk-black">
-                  <span className="mk-title-line">{item.name}</span>
-                </p>
-                <p className="mt-1 text-xs font-semibold uppercase tracking-[0.14em] text-mk-gray">{item.note}</p>
-              </div>
-            </Reveal>
+      </div>
+
+      {/* Screen readers get a plain list; the moving strip is decoration. */}
+      <ul className="sr-only">
+        {INTEGRATIONS_SHOWCASE.map((item) => (
+          <li key={item.name}>{item.name}, {item.note}</li>
+        ))}
+      </ul>
+      <div className="mk-marquee mt-14" aria-hidden data-testid="integrations-marquee">
+        <div className="mk-marquee__track">
+          {[0, 1].map((copy) => (
+            <ul key={copy} className="mk-marquee__half">
+              {half.map((item, i) => <MarqueeItem key={`${copy}-${i}`} item={item} />)}
+            </ul>
           ))}
-        </ul>
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-7xl">
         <p className="mt-8 max-w-2xl text-sm leading-relaxed text-mk-gray" data-testid="integrations-trust">
           Our QuickBooks connection is approved by Intuit as a developer app, and Trenston only reads your accounting data.
         </p>

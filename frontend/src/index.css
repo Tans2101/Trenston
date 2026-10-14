@@ -1819,3 +1819,38 @@ html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-colo
   transition: transform 150ms ease;
 }
 .skip-link:focus { transform: translateY(0); outline: 2px solid #C99A2E; outline-offset: 2px; }
+
+/* Integrations strip: logo + name, side by side, sliding left. */
+.mk-marquee {
+  overflow: hidden;
+  border-block: 1px solid var(--mk-line, #E5E5E5);
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+.mk-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: mk-marquee 45s linear infinite;
+}
+.mk-marquee:hover .mk-marquee__track { animation-play-state: paused; }
+.mk-marquee__half { display: flex; flex-shrink: 0; margin: 0; padding: 0; list-style: none; }
+.mk-marquee__item {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 1.5rem 2.75rem;
+  white-space: nowrap;
+}
+.mk-marquee__name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #0A0A0A;
+}
+@keyframes mk-marquee { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .mk-marquee__track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .mk-marquee__half:nth-child(2) { display: none; }
+  .mk-marquee__half:first-child .mk-marquee__item:nth-child(n+7) { display: none; }
+  .mk-marquee { -webkit-mask-image: none; mask-image: none; }
+}
