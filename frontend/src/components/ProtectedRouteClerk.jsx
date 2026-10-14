@@ -87,13 +87,13 @@ export default function ProtectedRouteClerk() {
     if (sessionError || connectTimedOut) {
       const message = sessionError || "Connecting your account is taking too long. Try again.";
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-helm-ink p-8 text-center">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-helm-bg p-8 text-center">
           <p className="text-lg text-helm-fg mb-2">Could not connect your account</p>
           <p className="text-sm text-helm-status-negative max-w-md mb-6">{message}</p>
           {/* Reload keeps the Clerk session and re-runs the connection; signing out is the last resort. */}
           <button
             type="button"
-            className="rounded-lg bg-helm-gold text-helm-navy px-4 py-2 text-sm font-medium"
+            className="rounded-lg bg-helm-fg text-helm-bg px-4 py-2 text-sm font-medium"
             onClick={() => window.location.reload()}
           >
             Try again
