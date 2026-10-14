@@ -3,11 +3,13 @@
  * and impact ranking. Kept out of the React page so behavior is unit-testable.
  */
 
+import { isFatalSoftLoad } from "@/lib/softRefresh";
+
 const IMPACT_RANK = { High: 0, Medium: 1, Low: 2 };
 
 /** Fatal page error only when there is no cached payload. */
 export function isFatalDecisionsLoad({ error, data }) {
-  return Boolean((error && !data) || !data);
+  return isFatalSoftLoad({ error, data });
 }
 
 /**

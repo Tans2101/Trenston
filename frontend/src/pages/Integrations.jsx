@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -11,6 +11,7 @@ import { PageHeader, GlassCard, ErrorScreen, SkeletonCardList } from "@/componen
 import { cn } from "@/lib/utils";
 import BrandLogo, { hasBrandLogo } from "@/components/BrandLogo";
 import { confirmAction } from "@/components/ConfirmHost";
+import { isFatalSoftLoad, softRefreshKey } from "@/lib/softRefresh";
 
 /** Where to go right after a provider connects, so the win is visible. */
 const NEXT_STEP = {
@@ -19,6 +20,14 @@ const NEXT_STEP = {
   sap_b1: { label: "View Financials", to: "/app/financials" },
   google: { label: "Open Calendar", to: "/app/calendar" },
   hubspot: { label: "Open Sales", to: "/app/sales" },
+};
+
+const PROVIDER_LABEL = {
+  google: "Google Workspace",
+  quickbooks: "QuickBooks",
+  xero: "Xero",
+  hubspot: "HubSpot",
+  sap_b1: "SAP Business One",
 };
 
 const ICONS = {
@@ -296,19 +305,26 @@ export default function Integrations() {
     password: "",
   });
   const navigate = useNavigate();
+  const softRefreshToastKey = useRef(null);
+  const showSkeleton = loading && !data;
+  const fatalError = isFatalSoftLoad({ error, data });
+  const softRefreshError = Boolean(error && data);
+
+  useEffect(() => {
+    if (!softRefreshError) {
+      softRefreshToastKey.current = null;
+      return;
+    }
+    const key = softRefreshKey(error);
+    if (softRefreshToastKey.current === key) return;
+    softRefreshToastKey.current = key;
+    toast.error(fetchErrorMessage(error, "Could not refresh integrations. Showing last loaded data."));
+  }, [softRefreshError, error]);
 
   useEffect(() => {
     if (params.get("connected")) {
       const connected = params.get("connected");
-      const name = connected === "google"
-        ? "Google Workspace"
-        : connected === "quickbooks"
-          ? "QuickBooks"
-          : connected === "xero"
-            ? "Xero"
-            : connected === "hubspot"
-              ? "HubSpot"
-            : connected;
+      const name = PROVIDER_LABEL[connected] || connected;
       const next = NEXT_STEP[connected];
       toast.success(`${name} connected. Your data will flow into Trenston`, next ? {
         action: { label: next.label, onClick: () => navigate(next.to) },
@@ -324,17 +340,7 @@ export default function Integrations() {
       const err = params.get("error");
       const provider = params.get("provider");
       const reason = (params.get("reason") || "").toLowerCase();
-      const providerName = provider === "quickbooks"
-        ? "QuickBooks"
-        : provider === "xero"
-          ? "Xero"
-          : provider === "hubspot"
-            ? "HubSpot"
-            : provider === "google"
-              ? "Google"
-              : provider === "sap_b1"
-                ? "SAP Business One"
-                : "the app";
+      const providerName = PROVIDER_LABEL[provider] || (provider ? provider : "the app");
       // Customer-facing copy never includes hosting/config instructions; the raw
       // reason is kept for workspace managers under "Technical details".
       let message = `We couldn't finish connecting ${providerName}. Please try again. If it keeps happening, contact support.`;
@@ -350,7 +356,7 @@ export default function Integrations() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  if (loading) {
+  if (showSkeleton) {
     return (
       <div>
         <PageHeader
@@ -361,7 +367,7 @@ export default function Integrations() {
       </div>
     );
   }
-  if (error || !data) {
+  if (fatalError) {
     return (
       <ErrorScreen
         label="Could not load integrations"
@@ -521,6 +527,19 @@ export default function Integrations() {
         title="Integrations"
         subtitle="Connect your calendar, accounting, and tools. Trenston pulls your data in so the briefing, financials, and calendar stay current."
       />
+
+      {softRefreshError ? (
+        <div
+          className="mb-4 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 text-sm text-helm-fg"
+          data-testid="integrations-soft-refresh-error"
+          role="status"
+        >
+          Could not refresh. Showing last loaded integrations.{" "}
+          <button type="button" onClick={reload} className="text-helm-gold hover:text-helm-gold-hover font-medium underline-offset-2 hover:underline">
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <GlassCard className="p-4 mb-8 fade-up border-helm-line">
         <p className="text-sm text-helm-muted leading-relaxed">
@@ -747,7 +766,6 @@ export default function Integrations() {
                 onNavigate={(route) => navigate(route)}
                 syncingProvider={syncingProvider}
                 disconnectingProvider={disconnectingProvider}
-            disconnectingProvider={disconnectingProvider}
               />
             ))}
             <a

@@ -1,13 +1,15 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, useScroll, useTransform } from "motion/react";
 import LaptopMockup from "@/components/marketing/LaptopMockup";
-import dashboardBriefing from "@/assets/marketing/dashboard-briefing.png";
+import dashboardBriefing from "@/assets/marketing/dashboard-briefing.webp";
 import { AskScreen, DecisionScreen, PackScreen } from "@/components/marketing/ProductScreens";
-import DepartmentsShowcase from "@/components/marketing/DepartmentsShowcase";
-import IntegrationsShowcase from "@/components/marketing/IntegrationsShowcase";
-import PlanCards from "@/components/marketing/PlanCards";
 import TestimonialCard from "@/components/marketing/TestimonialCard";
+
+// Below-fold marketing blocks — keep them out of the hero critical path.
+const IntegrationsShowcase = lazy(() => import("@/components/marketing/IntegrationsShowcase"));
+const DepartmentsShowcase = lazy(() => import("@/components/marketing/DepartmentsShowcase"));
+const PlanCards = lazy(() => import("@/components/marketing/PlanCards"));
 import {
   CtaBand,
   DISPLAY,
@@ -146,6 +148,7 @@ export default function Landing() {
             <LaptopMockup
               src={dashboardBriefing}
               alt="The Briefing screen in Trenston, showing revenue, burn, runway and a revenue-by-month chart"
+              priority
             />
           </motion.div>
         </div>
@@ -211,9 +214,13 @@ export default function Landing() {
         </div>
       </section>
 
-      <IntegrationsShowcase />
+      <Suspense fallback={null}>
+        <IntegrationsShowcase />
+      </Suspense>
 
-      <DepartmentsShowcase />
+      <Suspense fallback={null}>
+        <DepartmentsShowcase />
+      </Suspense>
 
       {/* Founder note — BlackRock-style letter callout */}
       <section className="bg-white px-6 py-24 md:py-28">
@@ -248,7 +255,9 @@ export default function Landing() {
             action={<MkLink to="/pricing" className="text-mk-navy">Full pricing page</MkLink>}
           />
           <div className="mt-14">
-            <PlanCards authed={authed} onEnter={enter} ctaTestIdPrefix="pricing-cta" renewalTestIdPrefix="pricing-renewal" />
+            <Suspense fallback={null}>
+              <PlanCards authed={authed} onEnter={enter} ctaTestIdPrefix="pricing-cta" renewalTestIdPrefix="pricing-renewal" />
+            </Suspense>
           </div>
 
           <div className="mt-28 grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">

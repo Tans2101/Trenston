@@ -1,8 +1,7 @@
 <!doctype html>
 <html lang="en">
     <head>
-    <!-- Sign-in talks to Clerk first; open that connection early. -->
-    <link rel="preconnect" href="https://clerk.trenston.com" crossorigin />
+    <!-- DNS only on every page; Login/SignUp open a full preconnect when needed. -->
     <link rel="dns-prefetch" href="https://clerk.trenston.com" />
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

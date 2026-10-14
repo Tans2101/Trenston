@@ -6,7 +6,16 @@ import styles from "./LaptopMockup.module.css";
  * markup/CSS (top lid with camera notch + glass glare, bottom aluminum base
  * assembly with hinge highlight and thumb-cutout notch).
  */
-export default function LaptopMockup({ src, alt = "", caption, className, children }) {
+export default function LaptopMockup({
+  src,
+  alt = "",
+  caption,
+  className,
+  children,
+  priority = false,
+  width = 1600,
+  height = 1000,
+}) {
   return (
     <div className={cn("w-full", className)}>
       <div className={styles.macbookFrame}>
@@ -19,7 +28,20 @@ export default function LaptopMockup({ src, alt = "", caption, className, childr
             {/* A real screenshot fills the panel edge-to-edge; when there
                 isn't one yet, render a composed UI fragment instead (never
                 stretched — same object-fit rules don't apply to markup). */}
-            {src ? <img src={src} alt={alt} /> : <div className={styles.screenContentInner}>{children}</div>}
+            {src ? (
+              <img
+                src={src}
+                alt={alt}
+                width={width}
+                height={height}
+                decoding="async"
+                {...(priority
+                  ? { fetchPriority: "high" }
+                  : { loading: "lazy", fetchPriority: "low" })}
+              />
+            ) : (
+              <div className={styles.screenContentInner}>{children}</div>
+            )}
           </div>
         </div>
 

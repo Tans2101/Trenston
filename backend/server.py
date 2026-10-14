@@ -2877,6 +2877,12 @@ async def demo_login_removed():
 
 @api_router.get("/auth/google/login")
 async def google_login(request: Request, redirect: Optional[str] = None):
+    # Account login goes through Clerk when configured; this route is legacy.
+    if clerk_auth.clerk_configured():
+        raise HTTPException(
+            status_code=410,
+            detail="Google account sign-in uses Clerk. Open /login.",
+        )
     if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET):
         raise HTTPException(status_code=400, detail="Google OAuth not configured")
     dest = redirect or (f"{APP_URL}/app" if APP_URL else "/app")
@@ -2909,6 +2915,8 @@ async def google_callback(
     state: Optional[str] = None,
     error: Optional[str] = None,
 ):
+    if clerk_auth.clerk_configured():
+        return RedirectResponse(f"{APP_URL or ''}/login?error=oauth")
     fail = f"{APP_URL or ''}/login?error=oauth"
     if error or not code or not state:
         return RedirectResponse(fail)
@@ -4143,6 +4151,8 @@ _gmail_briefing_cache: dict[str, tuple[list, dict, float]] = {}
 _gmail_briefing_refresh_inflight: set[str] = set()
 _gmail_briefing_refresh_tasks: set[asyncio.Task] = set()
 _gmail_briefing_cold_inflight: dict[str, asyncio.Future] = {}
+# Bumped on invalidate so in-flight soft-refresh cannot rewrite after disconnect.
+_gmail_briefing_cache_generation: dict[str, int] = {}
 
 
 def _gmail_briefing_cache_key(workspace: dict, principal: dict | None) -> str:
@@ -4167,6 +4177,7 @@ def clear_gmail_briefing_cache() -> None:
         if not fut.done():
             fut.cancel()
     _gmail_briefing_cold_inflight.clear()
+    _gmail_briefing_cache_generation.clear()
 
 
 def invalidate_gmail_briefing_cache_for_user(workspace_id: str, user_id: str) -> None:
@@ -4175,12 +4186,20 @@ def invalidate_gmail_briefing_cache_for_user(workspace_id: str, user_id: str) ->
         return
     key = f"{workspace_id}:{user_id}"
     _gmail_briefing_cache.pop(key, None)
+    _gmail_briefing_cache_generation[key] = _gmail_briefing_cache_generation.get(key, 0) + 1
+    _gmail_briefing_refresh_inflight.discard(key)
 
 
 async def _briefing_gmail_fetch_and_store(
     workspace: dict, principal: dict | None, cache_key: str,
+    *, generation: int | None = None,
 ) -> tuple[list, dict]:
     """Live Gmail fetch with the existing 3s timeout; updates SWR cache on success."""
+    gen_at_start = (
+        generation
+        if generation is not None
+        else _gmail_briefing_cache_generation.get(cache_key, 0)
+    )
     connected_hint = False
     if principal and principal.get("user_id"):
         connected_hint = await _user_google_tokens_present(
@@ -4195,9 +4214,11 @@ async def _briefing_gmail_fetch_and_store(
         logger.warning("Gmail briefing fetch timed out for %s", workspace.get("workspace_id"))
         threads, meta = _gmail_timeout_fallback(connected=connected_hint)
         # Cache briefly so repeated cold loads do not each wait ~3s.
-        _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
+        if _gmail_briefing_cache_generation.get(cache_key, 0) == gen_at_start:
+            _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
         return threads, meta
-    _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
+    if _gmail_briefing_cache_generation.get(cache_key, 0) == gen_at_start:
+        _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
     return threads, meta
 
 
@@ -4207,10 +4228,13 @@ def _schedule_gmail_briefing_refresh(
     if cache_key in _gmail_briefing_refresh_inflight:
         return
     _gmail_briefing_refresh_inflight.add(cache_key)
+    generation = _gmail_briefing_cache_generation.get(cache_key, 0)
 
     async def _run() -> None:
         try:
-            await _briefing_gmail_fetch_and_store(workspace, principal, cache_key)
+            await _briefing_gmail_fetch_and_store(
+                workspace, principal, cache_key, generation=generation,
+            )
         except Exception:
             logger.exception("background Gmail briefing refresh failed for %s", cache_key)
         finally:

@@ -104,3 +104,11 @@ def test_company_patch_saves_valid_timezone():
         asyncio.run(server.update_company(server.CompanySetupInput(timezone="Asia/Singapore"), principal=principal))
     update = fake_db.workspaces.update_one.await_args.args[1]["$set"]
     assert update["timezone"] == "Asia/Singapore"
+
+
+def test_month_bounds_utc_follows_workspace_local_month():
+    """Manila Oct 1 00:30 is still September UTC — month bounds must be October."""
+    ws = {"timezone": "Asia/Manila"}
+    start, end = tz_utils.month_bounds_utc(ws, date(2026, 10, 1))
+    assert start == datetime(2026, 9, 30, 16, 0, tzinfo=timezone.utc)
+    assert end == datetime(2026, 10, 31, 16, 0, tzinfo=timezone.utc)

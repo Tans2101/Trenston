@@ -174,3 +174,38 @@ async def test_gmail_cold_miss_single_flight():
     assert a[0][0]["id"] == "one"
     assert b[0][0]["id"] == "one"
     assert calls["n"] == 1
+
+
+@pytest.mark.asyncio
+async def test_gmail_invalidate_drops_inflight_refresh_write():
+    """Disconnect must fence an in-flight soft-refresh so old threads do not return."""
+    ws = {"workspace_id": "ws_inv"}
+    principal = {"user_id": "u_inv", "workspace_id": "ws_inv"}
+    key = server._gmail_briefing_cache_key(ws, principal)
+    server._gmail_briefing_cache[key] = (
+        [{"id": "old"}],
+        {"connected": True, "needs_reconnect": False, "compose": True},
+        time.monotonic(),
+    )
+    release = asyncio.Event()
+    started = asyncio.Event()
+
+    async def slow_fetch(*_a, **_k):
+        started.set()
+        await release.wait()
+        return [{"id": "stale-after-disconnect"}], {"connected": True, "needs_reconnect": False, "compose": True}
+
+    with patch.object(server, "_briefing_email_threads", side_effect=slow_fetch), \
+            patch.object(server, "_user_google_tokens_present", new=AsyncMock(return_value=True)):
+        task = asyncio.create_task(
+            server._briefing_gmail_fetch_and_store(
+                ws, principal, key,
+                generation=server._gmail_briefing_cache_generation.get(key, 0),
+            )
+        )
+        await started.wait()
+        server.invalidate_gmail_briefing_cache_for_user("ws_inv", "u_inv")
+        assert key not in server._gmail_briefing_cache
+        release.set()
+        await task
+    assert key not in server._gmail_briefing_cache

@@ -12,7 +12,6 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Optional
 
-import decision_engine
 import department_migrate as dept_migrate
 import departments_catalog as dept_catalog
 import maintenance_ops as maint_ops
@@ -82,7 +81,7 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
                 },
             ).to_list(2000)
             lead = proc_metrics.department_lead_time_summary(rows, today=local_today)
-            month_start, month_end = decision_engine.month_period_bounds()
+            month_start, month_end = tz_utils.month_bounds_utc(ws_tz, local_today)
             spend = proc_spend.spend_rollup(
                 rows,
                 period_start=month_start,
@@ -206,7 +205,7 @@ async def assemble_ops_briefing_data(db, workspace_id: str) -> dict:
                 {"department_id": maint_dept["department_id"]}, {"_id": 0},
             ).to_list(2000)
             renewals = maint_ops.contracts_needing_attention(contract_rows, today=local_today)
-            month_start, month_end = decision_engine.month_period_bounds()
+            month_start, month_end = tz_utils.month_bounds_utc(ws_tz, local_today)
             resolved = await db.maintenance_tickets.find(
                 {
                     "department_id": maint_dept["department_id"],

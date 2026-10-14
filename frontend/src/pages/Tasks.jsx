@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatDay } from "@/lib/dates";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { PageHeader, GlassCard, ErrorScreen, EmptyState, SkeletonCardList } from
 import { cn } from "@/lib/utils";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 import { highlightRecord } from "@/lib/signalRoute";
+import { isFatalSoftLoad, softRefreshKey } from "@/lib/softRefresh";
 
 const priorityStyle = {
   High: "text-helm-status-negative bg-helm-status-negative/12",
@@ -19,11 +20,12 @@ const priorityStyle = {
 const emptyTask = () => ({ title: "", priority: "Medium", tag: "General", due: "", assignee_user_id: "" });
 
 export default function Tasks() {
-  const { data, loading, error, reload, setData } = useFetch("/tasks");
+  const { data, loading, error, reload, setData, isFetching } = useFetch("/tasks");
   const { data: membersData } = useFetch("/members");
   const [searchParams] = useSearchParams();
   const focusTaskId = searchParams.get("task") || "";
   const [dragId, setDragId] = useState(null);
+  const [movingId, setMovingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyTask());
   const [busy, setBusy] = useState(false);
@@ -31,6 +33,10 @@ export default function Tasks() {
   const hasItems = Boolean(data?.items?.length);
   const location = useLocation();
   const navigate = useNavigate();
+  const softRefreshToastKey = useRef(null);
+  const showSkeleton = loading && !data;
+  const fatalError = isFatalSoftLoad({ error, data });
+  const softRefreshError = Boolean(error && data);
 
   // Open the new-task form pre-filled from another screen (e.g. an Ask Trenston answer).
   useEffect(() => {
@@ -44,10 +50,27 @@ export default function Tasks() {
   // ?task=<id> deep link — scroll to and flash the card once the board renders.
   useEffect(() => {
     if (!focusTaskId || !hasItems) return;
+    if (isFetching) return;
+    const known = (data?.items || []).some((t) => t.id === focusTaskId);
+    if (!known) {
+      toast.error("That task is no longer on the board");
+      return;
+    }
     highlightRecord(focusTaskId);
-  }, [focusTaskId, hasItems]);
+  }, [focusTaskId, hasItems, isFetching, data?.items]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!softRefreshError) {
+      softRefreshToastKey.current = null;
+      return;
+    }
+    const key = softRefreshKey(error);
+    if (softRefreshToastKey.current === key) return;
+    softRefreshToastKey.current = key;
+    toast.error(fetchErrorMessage(error, "Could not refresh tasks. Showing last loaded board."));
+  }, [softRefreshError, error]);
+
+  if (showSkeleton) {
     return (
       <div>
         <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your own tasks have a line down the left edge." />
@@ -59,7 +82,7 @@ export default function Tasks() {
       </div>
     );
   }
-  if (error || !data) {
+  if (fatalError) {
     return (
       <ErrorScreen
         label="Could not load board"
@@ -76,6 +99,8 @@ export default function Tasks() {
   });
 
   const move = async (taskId, column) => {
+    if (movingId) return;
+    setMovingId(taskId);
     let snapshot = null;
     setData((prev) => {
       if (!prev) return prev;
@@ -90,6 +115,8 @@ export default function Tasks() {
     } catch (e) {
       if (snapshot) setData(snapshot);
       toast.error(e?.response?.data?.detail || "Failed to move task");
+    } finally {
+      setMovingId(null);
     }
   };
 
@@ -259,6 +286,19 @@ export default function Tasks() {
   return (
     <div>
       <PageHeader title="Tasks" subtitle="Delegate, track and sync work across your team. Drag cards across the board. Your own tasks have a line down the left edge." action={action} />
+
+      {softRefreshError ? (
+        <div
+          className="mb-4 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 text-sm text-helm-fg"
+          data-testid="tasks-soft-refresh-error"
+          role="status"
+        >
+          Could not refresh. Showing last loaded board.{" "}
+          <button type="button" onClick={reload} className="text-helm-gold hover:text-helm-gold-hover font-medium underline-offset-2 hover:underline">
+            Retry
+          </button>
+        </div>
+      ) : null}
       {data.items.length === 0 ? (
         <EmptyState title="Nothing on the board yet" body="Write each task as an action with an owner and a date, for example: Send Acme the quote, Ann, Friday. Faster: press Ctrl+K on any page and type task send Acme the quote friday."
           action={canCreate ? <button data-testid="empty-new-task-btn" onClick={() => { setForm(emptyTask()); setShowForm(true); }} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> New task</button> : null} />

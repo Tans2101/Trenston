@@ -152,4 +152,3 @@ export async function fetchAuthConfig() {
   return data;
 }
 
-export { isBootstrapPath };

@@ -74,3 +74,19 @@ def week_bounds_utc(ws: Optional[dict], week_start: date) -> tuple[str, str]:
     start = datetime.combine(week_start, time.min, tzinfo=tz)
     end = datetime.combine(week_start + timedelta(days=7), time.min, tzinfo=tz)
     return _utc_iso(start), _utc_iso(end)
+
+
+def month_bounds_utc(ws: Optional[dict], day: Optional[date] = None) -> tuple[datetime, datetime]:
+    """UTC-aware [start, next_month_start) for the workspace-local calendar month of `day`.
+
+    Uses the workspace timezone so Manila morning on the 1st is not attributed
+    to the previous UTC month (unlike bare UTC month_period_bounds()).
+    """
+    local_day = day or workspace_today(ws)
+    tz = workspace_tz(ws)
+    start_local = datetime(local_day.year, local_day.month, 1, tzinfo=tz)
+    if local_day.month == 12:
+        end_local = datetime(local_day.year + 1, 1, 1, tzinfo=tz)
+    else:
+        end_local = datetime(local_day.year, local_day.month + 1, 1, tzinfo=tz)
+    return start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)

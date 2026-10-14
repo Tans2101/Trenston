@@ -37,7 +37,8 @@ const prefilledForm = (prefill) => {
 
 export default function Decisions() {
   const { data, loading, error, reload, isFetching } = useFetch("/decisions");
-  const { data: membersData } = useFetch("/members");
+  // Members only needed when the viewer can act (create / delegate).
+  const { data: membersData } = useFetch(data?.can_act ? "/members" : null);
   const { busy, act, approveSuggestion, dismissSuggestion } = useDecisionActions(reload);
   const location = useLocation();
   const navigate = useNavigate();

@@ -6,7 +6,7 @@ import {
   FinanceScreen,
   TeamScreen,
 } from "@/components/marketing/ProductScreens";
-import dashboardBriefing from "@/assets/marketing/dashboard-briefing.png";
+import dashboardBriefing from "@/assets/marketing/dashboard-briefing.webp";
 import { cn } from "@/lib/utils";
 
 /**

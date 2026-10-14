@@ -13,9 +13,11 @@ import { CLERK_SIGN_IN_PATH, helmSignUpUrl } from "@/lib/helmUrls";
 import AuthMarketingHeader from "@/components/marketing/AuthMarketingHeader";
 import AuthProductShowcase from "@/components/marketing/AuthProductShowcase";
 import trenstonMarkMono from "@/assets/trenston-mark-mono.svg";
+import { ensureClerkPreconnect } from "@/lib/clerkPreconnect";
 
 export default function Login() {
   const { clerkEnabled, configLoading } = useClerkMode();
+  useEffect(() => { ensureClerkPreconnect(); }, []);
   if (configLoading) {
     return <LoadingScreen label="Loading sign-in" />;
   }
