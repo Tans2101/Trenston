@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { GripVertical, Plus, X, Sparkles } from "lucide-react";
@@ -220,7 +221,7 @@ export default function Tasks() {
                             )}
                             data-testid={t.overdue ? `task-overdue-${t.id}` : undefined}
                           >
-                            {t.due}
+                            {formatDay(t.due, t.due)}
                           </span>
                         )}
                       </div>

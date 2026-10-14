@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, PenLine } from "lucide-react";
@@ -521,7 +522,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                       <td className="px-3 py-2 text-helm-muted">{s.task}</td>
                       <td className="px-3 py-2 font-mono text-xs">{s.frequency_days}d</td>
                       <td className={cn("px-3 py-2 font-mono text-xs", s.is_overdue ? "text-helm-status-negative" : "text-helm-muted")}>
-                        {s.next_due_at ? String(s.next_due_at).slice(0, 10) : "Not yet established"}
+                        {s.next_due_at ? formatDay(s.next_due_at) : "Not yet established"}
                       </td>
                       <td className="px-3 py-2">
                         {canManage && (
@@ -692,7 +693,7 @@ export default function MaintenanceOpsPanels({ ticketData, onTicketsReload }) {
                   {costs.map((c) => (
                     <tr key={c.id} className="border-b border-helm-line">
                       <td className="px-3 py-2 font-mono text-xs text-helm-muted">
-                        {c.created_at ? String(c.created_at).slice(0, 10) : "—"}
+                        {c.created_at ? formatDay(c.created_at) : "—"}
                       </td>
                       <td className="px-3 py-2 text-helm-fg">{c.description || "—"}</td>
                       <td className="px-3 py-2 text-helm-muted text-xs">{c.category || "general"}</td>

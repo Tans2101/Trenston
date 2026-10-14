@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { toast } from "sonner";
 import { FileText, FolderOpen, ExternalLink } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
@@ -141,7 +142,7 @@ export default function DocumentsLibrarySettings() {
                               : doc.report_date
                                 ? `Report date · ${doc.report_date}`
                                 : doc.uploaded_at
-                                  ? `Uploaded · ${String(doc.uploaded_at).slice(0, 10)}`
+                                  ? `Uploaded · ${formatDay(doc.uploaded_at)}`
                                   : CONTEXT_LABELS[ctx]}
                           </p>
                         </div>

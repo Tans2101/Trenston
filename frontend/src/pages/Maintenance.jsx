@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Wrench } from "lucide-react";
@@ -50,7 +51,7 @@ function formatBlockingOrders(orders) {
   return orders.map((o) => {
     const ref = o.reference || o.work_order_id || "work order";
     const due = o.due_date || "";
-    return due ? `${ref} (due ${due})` : ref;
+    return due ? `${ref} (due ${formatDay(due, due)})` : ref;
   }).join(", ");
 }
 
@@ -66,7 +67,7 @@ function BlockingProductionBadge({ orders, ticketId }) {
       Blocking:&nbsp;
       {orders.map((o, i) => {
         const ref = o.reference || o.work_order_id || "work order";
-        const text = o.due_date ? `${ref} (due ${o.due_date})` : ref;
+        const text = o.due_date ? `${ref} (due ${formatDay(o.due_date, o.due_date)})` : ref;
         return (
           <span key={o.work_order_id || i} className="truncate">
             {i > 0 && ", "}

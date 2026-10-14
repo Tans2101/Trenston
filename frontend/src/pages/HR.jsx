@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { toast } from "sonner";
 import { Plus, X, Users, ChevronUp, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
@@ -954,8 +955,8 @@ export default function HR() {
                       <td className="px-3 py-2.5 text-helm-fg">{req.employee_name || req.title}</td>
                       <td className="px-3 py-2.5 text-helm-muted text-xs capitalize">{req.type}</td>
                       <td className="px-3 py-2.5 text-helm-muted font-mono text-xs">
-                        {req.start_date}
-                        {req.end_date && req.end_date !== req.start_date ? ` → ${req.end_date}` : ""}
+                        {formatDay(req.start_date, req.start_date)}
+                        {req.end_date && req.end_date !== req.start_date ? ` → ${formatDay(req.end_date, req.end_date)}` : ""}
                       </td>
                       <td className="px-3 py-2.5 text-[10px] font-mono uppercase tracking-wide text-helm-muted">
                         {req.status}

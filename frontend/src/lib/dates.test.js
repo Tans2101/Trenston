@@ -1,4 +1,4 @@
-import { addDaysISO, formatTimeInTz, thisMonthISO, todayISO } from "./dates";
+import { formatDay, addDaysISO, formatTimeInTz, thisMonthISO, todayISO } from "./dates";
 
 describe("dates", () => {
   afterEach(() => {
@@ -26,5 +26,16 @@ describe("dates", () => {
   it("formatTimeInTz renders in the given zone", () => {
     expect(formatTimeInTz("2026-09-24T23:30:00Z", "Asia/Manila")).toBe("7:30 AM");
     expect(formatTimeInTz("", "Asia/Manila")).toBe("");
+  });
+});
+
+describe("formatDay", () => {
+  it("writes plain-language dates", () => {
+    expect(formatDay("2026-10-14")).toBe("Oct 14, 2026");
+    expect(formatDay("2026-01-05T09:00:00Z")).toBe("Jan 5, 2026");
+  });
+  it("falls back for non-dates", () => {
+    expect(formatDay("soon", "soon")).toBe("soon");
+    expect(formatDay(null)).toBe("");
   });
 });

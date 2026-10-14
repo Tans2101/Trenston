@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Scale, FileText, Upload } from "lucide-react";
@@ -417,7 +418,7 @@ export default function Legal() {
                     )}
                     data-testid={`legal-due-${m.id}`}
                   >
-                    {m.due_date ? (overdue ? `Overdue ${m.due_date}` : m.due_date) : "—"}
+                    {m.due_date ? (overdue ? `Overdue ${formatDay(m.due_date, m.due_date)}` : formatDay(m.due_date, m.due_date)) : "—"}
                   </td>
                   <td className="px-3 py-2.5 text-helm-muted">
                     {m.has_document ? <FileText className="w-3.5 h-3.5 text-helm-gold" /> : "—"}

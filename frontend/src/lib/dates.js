@@ -58,3 +58,18 @@ export function supportedTimezones() {
   }
   return [DEFAULT_TIMEZONE];
 }
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * Plain-language day for a YYYY-MM-DD (or full ISO) string: "Oct 14, 2026".
+ * Calendar math only, so it never shifts a day across timezones. Returns
+ * `fallback` when the value isn't a date.
+ */
+export function formatDay(value, fallback = "") {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
+  if (!m) return fallback;
+  const month = MONTHS[Number(m[2]) - 1];
+  if (!month) return fallback;
+  return `${month} ${Number(m[3])}, ${m[1]}`;
+}

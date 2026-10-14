@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { Link, useNavigate } from "react-router-dom";
@@ -272,7 +273,7 @@ export default function Briefing() {
       ) : null}
       <header className="mb-8 fade-up">
         <p className="text-xs uppercase tracking-[0.18em] text-helm-muted mb-3">
-          {data.date} · {briefingLabel}
+          {formatDay(data.date, data.date)} · {briefingLabel}
         </p>
         <h1 className="font-display text-3xl md:text-4xl font-normal tracking-tight text-helm-fg">{greeting}.</h1>
         {showSetupPrompt ? (

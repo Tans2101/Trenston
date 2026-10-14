@@ -203,9 +203,9 @@ function weekNumber(d) {
 
 function formatAgendaDay(d, today) {
   const tomorrow = addDays(today, 1);
-  if (sameDay(d, today)) return `TODAY · ${d.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "2-digit" })}`;
-  if (sameDay(d, tomorrow)) return `TOMORROW · ${d.toLocaleDateString(undefined, { month: "numeric", day: "numeric", year: "2-digit" })}`;
-  return d.toLocaleDateString(undefined, { weekday: "long", month: "numeric", day: "numeric" }).toUpperCase();
+  if (sameDay(d, today)) return `TODAY · ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  if (sameDay(d, tomorrow)) return `TOMORROW · ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }).toUpperCase();
 }
 
 function MiniMonth({ month, selected, weekDays, onSelectDay, onPrev, onNext }) {

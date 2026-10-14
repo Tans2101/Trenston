@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { formatDay } from "@/lib/dates";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Plus, X, Package } from "lucide-react";
@@ -165,7 +166,7 @@ function formatBlockingOrders(orders) {
   return orders.map((o) => {
     const ref = o.reference || o.work_order_id || "work order";
     const due = o.due_date || "";
-    return due ? `${ref} (due ${due})` : ref;
+    return due ? `${ref} (due ${formatDay(due, due)})` : ref;
   }).join(", ");
 }
 
@@ -181,7 +182,7 @@ function BlockingProductionBadge({ orders, requestId }) {
       Blocking:&nbsp;
       {orders.map((o, i) => {
         const ref = o.reference || o.work_order_id || "work order";
-        const text = o.due_date ? `${ref} (due ${o.due_date})` : ref;
+        const text = o.due_date ? `${ref} (due ${formatDay(o.due_date, o.due_date)})` : ref;
         return (
           <span key={o.work_order_id || i} className="truncate">
             {i > 0 && ", "}
@@ -636,7 +637,7 @@ export default function Procurement() {
             >
               {r.item || "Request"}
               {r.vendor_name ? ` · ${r.vendor_name}` : ""}
-              {r.expected_delivery_date ? ` · due ${r.expected_delivery_date}` : ""}
+              {r.expected_delivery_date ? ` · due ${formatDay(r.expected_delivery_date, r.expected_delivery_date)}` : ""}
             </button>
           ))}
         </div>
@@ -845,7 +846,7 @@ export default function Procurement() {
                   >
                     {req.expected_delivery_date
                       ? (isExpectedDeliveryOverdue(req.expected_delivery_date, req.status)
-                        ? `Overdue ${req.expected_delivery_date}`
+                        ? `Overdue ${formatDay(req.expected_delivery_date, req.expected_delivery_date)}`
                         : req.expected_delivery_date)
                       : "—"}
                   </td>
@@ -1008,9 +1009,9 @@ export default function Procurement() {
             </div>
             {selected.actual_delivery_date && (
               <p className="sm:col-span-3 text-[11px] text-helm-muted">
-                Delivered {selected.actual_delivery_date}
-                {selected.ordered_at ? ` · ordered ${String(selected.ordered_at).slice(0, 10)}` : ""}
-                {selected.vendor_selected_at ? ` · vendor locked ${String(selected.vendor_selected_at).slice(0, 10)}` : ""}
+                Delivered {formatDay(selected.actual_delivery_date, selected.actual_delivery_date)}
+                {selected.ordered_at ? ` · ordered ${formatDay(selected.ordered_at)}` : ""}
+                {selected.vendor_selected_at ? ` · vendor locked ${formatDay(selected.vendor_selected_at)}` : ""}
               </p>
             )}
           </div>
@@ -1210,7 +1211,7 @@ export default function Procurement() {
                       {" · "}
                       {s.last_cost != null ? `last paid ${formatMoney(s.last_cost, moneySymbol, { decimals: 2 })}` : "no cost on file"}
                       {`, ordered ${s.times_used}x`}
-                      {s.last_ordered_at ? `, most recently ${String(s.last_ordered_at).slice(0, 10)}` : ""}
+                      {s.last_ordered_at ? `, most recently ${formatDay(s.last_ordered_at)}` : ""}
                     </span>
                     <span className="block text-helm-muted mt-0.5">
                       {s.delay_sample_count
