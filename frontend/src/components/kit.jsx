@@ -178,7 +178,7 @@ export function ErrorScreen({
 
 export function EmptyState({ icon: Icon, title, body, action }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-10 sm:py-16 px-6 fade-up">
+    <div data-empty-state className="flex flex-col items-center justify-center text-center py-10 sm:py-16 px-6 fade-up">
       {Icon && (
         <div className="w-14 h-14 rounded-2xl bg-helm-navy/5 border border-helm-line flex items-center justify-center mb-5">
           <Icon className="w-6 h-6 text-helm-gold" />

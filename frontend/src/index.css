@@ -1862,52 +1862,84 @@ html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-colo
 html[data-theme="light"] .app-shell .app-main :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-radius: 8px; }
 html[data-theme="light"] .app-shell .app-main button.rounded-md { border-radius: 8px; }
 
-/* ───────── Light app: tonal layers instead of boxes ─────────
-   The canvas stays white. Depth comes from three surfaces: white cards with a hairline
-   edge, a soft neutral tint for supporting panels and the sidebar, and a gold wash for
-   the one thing on a page that matters most. Later blocks win, so keep this last. */
+/* ───────── Light app: white canvas, filled cards ─────────
+   The page, sidebar and top bar are pure white. Cards are told apart by a soft warm
+   fill instead of a white box with an outline and shadow, and anything inside a card
+   (rows, inputs, buttons) goes back to white so it reads as a layer on top. Gold marks
+   the one panel that matters most on a page. Later blocks win, so keep this last. */
 html[data-theme="light"] .app-shell {
-  --app-tint: #F6F6F3;
-  --app-hairline: #EDEDEA;
-  --app-gold-wash: rgb(201 154 46 / 0.09);
+  --app-fill: #F5F5F1;
+  --app-fill-edge: #ECEBE5;
+  --app-hairline: #E6E5DF;
+  --app-gold-wash: color-mix(in srgb, #C99A2E 11%, #FFFFFF);
 }
 
-/* Main cards: hairline edge, slightly tighter corners, no shadow. */
-html[data-theme="light"] .app-shell .app-main .rounded-xl.border.bg-helm-card {
-  border-color: var(--app-hairline) !important;
-  border-radius: 12px;
-  box-shadow: none;
+/* Canvas: pure white everywhere behind the app. */
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root,
+html[data-theme="light"] .app-shell,
+html[data-theme="light"] .app-shell .app-main,
+html[data-theme="light"] .app-shell [data-testid="desktop-top-bar"] {
+  background-color: #FFFFFF !important;
 }
-
-/* Sidebar sits on the tint so the workspace reads as the bright area. */
 html[data-theme="light"] .app-shell .cir-rail {
-  --cir-cloud: var(--app-tint);
+  --cir-cloud: #FFFFFF;
   --cir-edge: var(--app-hairline);
 }
 
-/* Get started checklist: supporting panel, tinted, no outline. */
-html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] {
-  background-color: var(--app-tint) !important;
-  border-color: transparent !important;
-  border-radius: 12px;
-  box-shadow: none;
-}
-html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] ul,
-html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] li {
-  border-color: #E6E6E2 !important;
+/* Cards: warm fill, no outline, no shadow. Floating menus and dialogs are excluded. */
+html[data-theme="light"] .app-shell .app-main :is(div, section, article, aside, li, a, form):is(.rounded-xl, .rounded-2xl)[class*="bg-helm-card"]:not(.absolute):not(.fixed):not([class*="shadow-lg"]):not([class*="shadow-xl"]):not([class*="shadow-2xl"]):not([data-testid="briefing-ai-summary"]):not([data-testid="briefing-setup-prompt"]) {
+  background-color: var(--app-fill) !important;
+  border-color: var(--app-fill-edge) !important;
+  box-shadow: none !important;
+  border-radius: 14px;
 }
 
-/* Today's summary: the focal panel, gold wash instead of a white box with an outline. */
-html[data-theme="light"] .app-shell [data-testid="briefing-ai-summary"] {
-  background-color: var(--app-gold-wash) !important;
-  border-color: transparent !important;
-  border-left-color: var(--app-accent) !important;
-  border-radius: 12px;
-  box-shadow: none;
+/* Inside a filled card, bordered rows, inputs, buttons and soft wells sit in white. */
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-card"]:is(.rounded-xl, .rounded-2xl) :is(.border, input, select, textarea)[class*="rounded"]:not(.rounded-full):not([class*="bg-helm-gold"]):not([class*="bg-helm-fg"]):not([class*="bg-helm-navy"]),
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-card"]:is(.rounded-xl, .rounded-2xl) [class*="bg-helm-fg/[0.0"],
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-card"]:is(.rounded-xl, .rounded-2xl) [class*="bg-helm-card"] {
+  background-color: #FFFFFF !important;
+  border-color: var(--app-hairline) !important;
 }
 
-/* Quiet secondary panels (setup prompt, intro) lose their outline too. */
-html[data-theme="light"] .app-shell [data-testid="briefing-setup-prompt"] {
+/* Soft wells on the page itself (kanban columns and similar) use the same fill. */
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-fg/[0.0"] { background-color: var(--app-fill); }
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-fg/[0.0"] [class*="bg-helm-card"] {
+  background-color: #FFFFFF !important;
+  border-color: var(--app-hairline) !important;
+}
+
+/* Get started checklist: a filled panel; its dividers soften to match. */
+html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] :is(ul, li) {
+  border-color: #E4E3DC !important;
+}
+html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] li .border { background-color: #FFFFFF; }
+
+/* Today's summary and setup prompt: the focal panels, in a gold wash with the gold bar. */
+html[data-theme="light"] .app-shell .app-main [data-testid="briefing-ai-summary"],
+html[data-theme="light"] .app-shell .app-main [data-testid="briefing-setup-prompt"] {
   background-color: var(--app-gold-wash) !important;
   border-color: transparent !important;
+  border-radius: 14px;
+  box-shadow: none !important;
 }
+html[data-theme="light"] .app-shell .app-main [data-testid="briefing-ai-summary"] { border-left-color: var(--app-accent) !important; }
+
+/* First-visit intro card: same quiet fill as other panels, gold edge kept. */
+html[data-theme="light"] .app-shell [data-testid="page-intro"] {
+  background: var(--app-fill);
+  border-color: transparent;
+  border-left-color: var(--app-accent);
+}
+
+/* Empty states on a bare page get the same soft panel, so the page still has structure.
+   Inside a filled card they stay transparent. */
+html[data-theme="light"] .app-shell .app-main [data-empty-state] {
+  background-color: var(--app-fill);
+  border-radius: 16px;
+}
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-card"] [data-empty-state],
+html[data-theme="light"] .app-shell .app-main [class*="bg-helm-fg/[0.0"] [data-empty-state] { background-color: transparent; }
+html[data-theme="light"] .app-shell .app-main [data-empty-state] > div:first-child { background-color: #FFFFFF; }
