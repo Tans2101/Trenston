@@ -1,9 +1,8 @@
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { lazyWithReload } from "@/lib/chunkReload";
+import { SkeletonChart } from "@/components/kit";
 import Term from "@/components/guide/Term";
 import { useNavigate } from "react-router-dom";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-} from "recharts";
 import {
   ChevronLeft, ChevronRight, Plus, Sparkles, ArrowRight, Wallet, Users,
 } from "lucide-react";
@@ -11,8 +10,6 @@ import { useFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
-import { formatAxisMoney } from "@/lib/formatAxisMoney";
-import { formatMoney } from "@/lib/money";
 import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import {
   allFinanceKpisMissing,
@@ -38,6 +35,9 @@ const METRIC_KEYS = [
   { id: "runway", label: "Runway", match: /runway/i, href: "/app/financials#cash" },
   { id: "cash", label: "Cash", match: /cash/i, href: "/app/financials#cash" },
 ];
+
+// recharts is large; load it after the numbers and text have painted.
+const RevenueBars = lazyWithReload(() => import("@/components/RevenueBars"));
 
 function spendColors(dark) {
   // Monochrome navy scale per theme (no gold / ember in the product UI).
@@ -327,43 +327,19 @@ export default function BriefingCockpitHero({
           </div>
         ) : chartState === "ready" ? (
           <>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={visibleChart} margin={{ left: -8, right: 8, top: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--helm-line)" vertical={false} />
-                <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tick={{ fill: axisStroke }} />
-                <YAxis
-                  stroke={axisStroke}
-                  fontSize={11}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: axisStroke }}
-                  tickFormatter={(v) => formatAxisMoney(v, { symbol: moneySymbol })}
-                  width={48}
-                />
-                <Tooltip
-                  cursor={{ fill: cursorFill }}
-                  contentStyle={{
-                    background: tooltipBg,
-                    border: `1px solid ${tooltipBorder}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: tooltipFg,
-                  }}
-                  labelStyle={{ color: tooltipFg, fontWeight: 500 }}
-                  itemStyle={{ color: tooltipFg }}
-                  formatter={(value, name) => {
-                    if (value == null) return ["—", name === "current" ? "Current month" : "Prior month"];
-                    return [
-                      typeof value === "number" ? formatMoney(Math.round(value), moneySymbol) : value,
-                      name === "current" ? "Current month" : "Prior month",
-                    ];
-                  }}
-                  labelFormatter={(label) => `${label} revenue`}
-                />
-                <Bar dataKey="current" name="current" fill={currentBar} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="last" name="last" fill={lastBar} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <Suspense fallback={<SkeletonChart />}>
+              <RevenueBars
+                data={visibleChart}
+                axisStroke={axisStroke}
+                cursorFill={cursorFill}
+                tooltipBg={tooltipBg}
+                tooltipBorder={tooltipBorder}
+                tooltipFg={tooltipFg}
+                moneySymbol={moneySymbol}
+                currentBar={currentBar}
+                lastBar={lastBar}
+              />
+            </Suspense>
             {chartData.length > 6 && (
               <div className="mt-2 flex justify-end gap-1">
                 <button
