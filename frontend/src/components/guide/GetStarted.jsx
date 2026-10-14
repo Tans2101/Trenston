@@ -32,7 +32,7 @@ export function GetStartedView({ checklist, onShow, onHide, busy }) {
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-helm-line" aria-hidden>
+      <div className="mt-3 h-1 overflow-hidden rounded-full bg-helm-line" aria-hidden>
         <div className="h-full rounded-full bg-helm-gold transition-all" style={{ width: `${pct}%` }} />
       </div>
       <ul className="mt-4 divide-y divide-helm-line border-y border-helm-line">

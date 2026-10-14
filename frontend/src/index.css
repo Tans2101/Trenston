@@ -1854,3 +1854,10 @@ html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-colo
   .mk-marquee__half:first-child .mk-marquee__item:nth-child(n+7) { display: none; }
   .mk-marquee { -webkit-mask-image: none; mask-image: none; }
 }
+
+/* Financial precision: numbers line up in tables and mono labels. */
+.app-main td, .app-main th, .app-main .font-mono { font-variant-numeric: tabular-nums; }
+
+/* Controls share one corner radius so buttons, inputs and the search bar read as a set. */
+html[data-theme="light"] .app-shell .app-main :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-radius: 8px; }
+html[data-theme="light"] .app-shell .app-main button.rounded-md { border-radius: 8px; }

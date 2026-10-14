@@ -427,7 +427,7 @@ export default function Briefing() {
       )}
 
       <section
-        className="mb-6 fade-up rounded-xl border border-helm-line border-l-4 border-l-helm-gold bg-helm-card p-5 md:p-6 shadow-sm"
+        className="mb-6 fade-up rounded-xl border border-helm-line border-l-4 border-l-helm-gold bg-helm-card p-4 md:p-5 shadow-sm"
         data-testid="briefing-ai-summary"
       >
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -455,15 +455,15 @@ export default function Briefing() {
             <p className="text-helm-fg leading-relaxed text-[15px] max-w-3xl">{data.ai_summary}</p>
           </>
         ) : canGenerateAi ? (
-          <div>
-            <p className="text-helm-muted text-sm mb-4 max-w-xl">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-6">
+            <p className="text-helm-muted text-sm max-w-xl">
               Pull a short plain-language read of what changed, what needs a decision, and what to watch, from your live company data.
             </p>
             <button
               data-testid="generate-briefing-btn"
               onClick={generate}
               disabled={genLoading}
-              className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2 transition-colors hover:bg-helm-gold-hover disabled:opacity-60"
+              className="inline-flex shrink-0 items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2 transition-colors hover:bg-helm-gold-hover disabled:opacity-60"
             >
               {genLoading ? "Writing summary…" : "Write today\u2019s summary"}
               {!genLoading && <Send className="w-3.5 h-3.5" />}
