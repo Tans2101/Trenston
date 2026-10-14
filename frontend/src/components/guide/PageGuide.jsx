@@ -5,17 +5,30 @@ import { cn } from "@/lib/utils";
 import { guideForPath } from "@/lib/pageGuides";
 import { TIPS_OFF, useGuides } from "@/components/guide/GuideProvider";
 
+const INTRO_DONE = "intro-done";
+
 /**
- * First-visit card at the top of a page: what the page is for, and a way to be
- * shown around. Shows once per person per page.
+ * First-visit card: what the page is for, and a way to be shown around. It shows
+ * on the first page a person lands on and then never again; the "?" button in the
+ * top bar still explains any page on demand.
  */
 export function PageIntro() {
   const { pathname } = useLocation();
   const { isSeen, markSeen, startTour, activeTour, checklistShowing } = useGuides();
   const guide = guideForPath(pathname);
-  if (!guide || activeTour || isSeen(guide.id) || isSeen(TIPS_OFF)) return null;
-  // The Get started list already offers this tour as its first step.
-  if (checklistShowing && (guide.id === "briefing" || guide.id === "myday")) return null;
+  const hidden = !guide || activeTour || isSeen(guide.id) || isSeen(TIPS_OFF)
+    // The Get started list already offers this tour as its first step.
+    || (checklistShowing && (guide.id === "briefing" || guide.id === "myday"));
+  const shownId = hidden ? null : guide.id;
+  const introDone = isSeen(INTRO_DONE);
+  // Once the card has been on screen and the person moves on, it has done its job.
+  const doneRef = useRef(false);
+  doneRef.current = introDone;
+  useEffect(() => {
+    if (!shownId) return undefined;
+    return () => { if (!doneRef.current) markSeen(INTRO_DONE); };
+  }, [shownId, markSeen]);
+  if (hidden || introDone) return null;
   const hasTour = guide.steps.length > 0;
 
   return (
@@ -33,7 +46,7 @@ export function PageIntro() {
         {hasTour && (
           <button
             type="button"
-            onClick={() => startTour(guide.id)}
+            onClick={() => { markSeen(INTRO_DONE); startTour(guide.id); }}
             data-testid="page-intro-tour"
             className="rounded-md bg-helm-gold px-3.5 py-2 text-sm font-medium text-helm-navy hover:bg-helm-gold-hover"
           >
@@ -42,7 +55,7 @@ export function PageIntro() {
         )}
         <button
           type="button"
-          onClick={() => markSeen(guide.id)}
+          onClick={() => { markSeen(INTRO_DONE); markSeen(guide.id); }}
           data-testid="page-intro-dismiss"
           className="rounded-md border border-helm-line px-3.5 py-2 text-sm text-helm-fg hover:bg-helm-fg/[0.04]"
         >
