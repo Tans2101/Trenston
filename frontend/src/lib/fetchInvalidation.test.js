@@ -73,4 +73,22 @@ describe("fetchPathsToInvalidate", () => {
     expect(paths).toContain("/me/work-items");
     expect(paths).toContain("/calendar");
   });
+
+  test("financials writes also invalidate modeling baseline", () => {
+    const paths = fetchPathsToInvalidate("PUT", "/financials/min-reserve");
+    expect(paths).toContain("/financials");
+    expect(paths).toContain("/modeling/baseline");
+  });
+
+  test("deal writes that refresh financials also refresh modeling baseline", () => {
+    const paths = fetchPathsToInvalidate("patch", "/deals/deal_abc");
+    expect(paths).toContain("/financials");
+    expect(paths).toContain("/modeling/baseline");
+  });
+
+  test("modeling scenario writes invalidate the scenario list", () => {
+    const paths = fetchPathsToInvalidate("POST", "/modeling/scenarios");
+    expect(paths).toContain("/modeling/scenarios");
+    expect(paths).not.toContain("/modeling/baseline");
+  });
 });

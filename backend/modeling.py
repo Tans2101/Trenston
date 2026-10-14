@@ -259,8 +259,16 @@ def average_recent(ledger_months: list, current_month: str, *, window: int = 3) 
     if not use:
         return {"revenue": None, "expenses": None, "months": []}
     n = len(use)
+
+    def _avg_field(key: str) -> float:
+        total = 0.0
+        for r in use:
+            v = _num(r.get(key), 0.0)
+            total += 0.0 if v is None else v
+        return total / n
+
     return {
-        "revenue": sum(float(r.get("revenue") or 0) for r in use) / n,
-        "expenses": sum(float(r.get("expenses") or 0) for r in use) / n,
+        "revenue": _avg_field("revenue"),
+        "expenses": _avg_field("expenses"),
         "months": [r["month"] for r in use],
     }

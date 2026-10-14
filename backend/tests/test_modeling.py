@@ -284,6 +284,43 @@ def test_scenario_cap(api):
     assert r.status_code == 400
 
 
+def test_scenario_cap_rolls_back_when_count_slips_past_limit(api):
+    """Concurrent creates can both pass the pre-insert count; post-insert must roll back."""
+    c = _client(api, PRINCIPAL)
+    for i in range(server.MODEL_SCENARIO_CAP):
+        assert c.post("/api/modeling/scenarios", json={"name": f"s{i}", "inputs": {}}).status_code == 200
+
+    real_count = api.model_scenarios.count_documents
+    calls = {"n": 0}
+
+    async def flaky_count(*args, **kwargs):
+        calls["n"] += 1
+        # First call is the pre-insert gate — lie so the request proceeds while
+        # the collection is already at the cap (simulating a concurrent insert).
+        if calls["n"] == 1:
+            return server.MODEL_SCENARIO_CAP - 1
+        return await real_count(*args, **kwargs)
+
+    before_ids = {d["scenario_id"] for d in api.model_scenarios.docs}
+    with patch.object(api.model_scenarios, "count_documents", flaky_count):
+        r = c.post("/api/modeling/scenarios", json={"name": "should roll back", "inputs": {}})
+    assert r.status_code == 400
+    assert {d["scenario_id"] for d in api.model_scenarios.docs} == before_ids
+    assert not any(d.get("name") == "should roll back" for d in api.model_scenarios.docs)
+
+
+def test_average_recent_tolerates_non_numeric_ledger_cells():
+    months = [
+        {"month": "2026-07", "revenue": "100", "expenses": None},
+        {"month": "2026-08", "revenue": "bad", "expenses": 50},
+        {"month": "2026-09", "revenue": float("nan"), "expenses": 150},
+    ]
+    avg = modeling.average_recent(months, "2026-10")
+    assert avg["months"] == ["2026-07", "2026-08", "2026-09"]
+    assert avg["revenue"] == pytest.approx(100 / 3)
+    assert avg["expenses"] == pytest.approx(200 / 3)
+
+
 def test_tenant_isolation(api):
     a = _client(api, PRINCIPAL)
     sid = a.post("/api/modeling/scenarios", json=GOOD).json()["scenario_id"]

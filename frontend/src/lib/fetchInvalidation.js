@@ -33,6 +33,8 @@ const MUTATION_INVALIDATIONS = [
   { match: "/integrations", paths: ["/integrations", "/calendar", "/briefing", "/financials"] },
   { match: "/members", paths: ["/members", "/people", "/access/sections"] },
   { match: "/departments", paths: ["/departments"] },
+  // Scenario CRUD — keep the modeling page's list fresh across tabs.
+  { match: "/modeling/scenarios", paths: ["/modeling/scenarios"] },
 ];
 
 export function fetchPathsToInvalidate(method, urlPath) {
@@ -46,6 +48,10 @@ export function fetchPathsToInvalidate(method, urlPath) {
       rule.paths.forEach((p) => out.add(p));
     }
   }
+  // Modeling baseline is derived from Financials (cash, ledger, reserve). Any
+  // write that refreshes /financials must also drop the cached baseline or the
+  // Modeling page keeps projecting from stale numbers.
+  if (out.has("/financials")) out.add("/modeling/baseline");
   return [...out];
 }
 

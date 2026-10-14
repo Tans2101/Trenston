@@ -7606,6 +7606,13 @@ async def create_model_scenario(payload: ModelScenarioIn, principal=Depends(requ
         "updated_at": now,
     }
     await db.model_scenarios.insert_one(dict(doc))
+    # Two concurrent creates can both pass the count check; roll back the excess.
+    if await db.model_scenarios.count_documents({"workspace_id": ws_id}) > MODEL_SCENARIO_CAP:
+        await db.model_scenarios.delete_one({"workspace_id": ws_id, "scenario_id": doc["scenario_id"]})
+        raise HTTPException(
+            status_code=400,
+            detail=f"You can save up to {MODEL_SCENARIO_CAP} scenarios. Delete one to add another.",
+        )
     return _scenario_out(doc)
 
 

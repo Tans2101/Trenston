@@ -870,8 +870,7 @@ function LockedPreview({ access, theme }) {
 function ModelingWorkspace({ theme }) {
   const baselineQ = useFetch("/modeling/baseline");
   const scenariosQ = useFetch("/modeling/scenarios");
-  const [baselineOverride, setBaselineOverride] = useState(null);
-  const baseline = baselineOverride || baselineQ.data;
+  const baseline = baselineQ.data;
   const scenarios = useMemo(() => scenariosQ.data?.scenarios || [], [scenariosQ.data]);
   const cap = scenariosQ.data?.cap || 20;
 
@@ -901,6 +900,15 @@ function ModelingWorkspace({ theme }) {
       setDraft(null);
     }
   }, [activeId, scenarios, scenariosQ.data]);
+
+  // Drop compare chips for scenarios that no longer exist (deleted elsewhere / capped list).
+  useEffect(() => {
+    if (!scenariosQ.data) return;
+    setCompare((c) => {
+      const next = c.filter((id) => id === BASELINE_ID || scenarios.some((s) => s.scenario_id === id));
+      return next.length === c.length ? c : next;
+    });
+  }, [scenarios, scenariosQ.data]);
 
   const inputs = draft || savedInputs;
   const deferredInputs = useDeferredValue(inputs);
@@ -973,9 +981,18 @@ function ModelingWorkspace({ theme }) {
   const createScenario = async (name, body) => {
     try {
       const { data } = await api.post("/modeling/scenarios", { name, inputs: body });
-      await scenariosQ.reload();
+      // Optimistic list update so a reload failure cannot leave the new id selected
+      // against an empty/stale list (which would bounce back to baseline).
+      scenariosQ.setData((prev) => {
+        const list = prev?.scenarios || [];
+        if (list.some((s) => s.scenario_id === data.scenario_id)) {
+          return prev;
+        }
+        return { ...(prev || {}), scenarios: [...list, data], cap: prev?.cap ?? cap };
+      });
       setActiveId(data.scenario_id);
       setDraft(null);
+      scenariosQ.reload();
       toast.success("Scenario saved");
       return true;
     } catch (e) {
@@ -989,9 +1006,16 @@ function ModelingWorkspace({ theme }) {
     if (!s) return false;
     setBusy(true);
     try {
-      await api.put(`/modeling/scenarios/${activeId}`, { name: patch.name ?? s.name, inputs: patch.inputs ?? s.inputs });
-      await scenariosQ.reload();
+      const { data } = await api.put(`/modeling/scenarios/${activeId}`, { name: patch.name ?? s.name, inputs: patch.inputs ?? s.inputs });
+      scenariosQ.setData((prev) => {
+        if (!prev?.scenarios) return prev;
+        return {
+          ...prev,
+          scenarios: prev.scenarios.map((row) => (row.scenario_id === data.scenario_id ? data : row)),
+        };
+      });
       if (patch.inputs) setDraft(null);
+      scenariosQ.reload();
       toast.success(patch.name ? "Scenario renamed" : "Scenario saved");
       return true;
     } catch (e) {
@@ -1013,7 +1037,11 @@ function ModelingWorkspace({ theme }) {
       setActiveId(BASELINE_ID);
       setDraft(null);
       setCompare((c) => c.filter((x) => x !== s.scenario_id));
-      await scenariosQ.reload();
+      scenariosQ.setData((prev) => {
+        if (!prev?.scenarios) return prev;
+        return { ...prev, scenarios: prev.scenarios.filter((row) => row.scenario_id !== s.scenario_id) };
+      });
+      scenariosQ.reload();
       toast.success("Scenario deleted");
     } catch (e) {
       toast.error(errMsg(e, "Could not delete scenario"));
@@ -1026,7 +1054,9 @@ function ModelingWorkspace({ theme }) {
     setReserveBusy(true);
     try {
       const { data } = await api.put("/financials/min-reserve", { value });
-      setBaselineOverride({ ...baseline, min_cash_reserve: data.min_cash_reserve });
+      // Patch only the reserve field — never freeze cash/ledger behind a full
+      // baseline override (refetch from financials writes must still apply).
+      baselineQ.setData((prev) => (prev ? { ...prev, min_cash_reserve: data.min_cash_reserve } : prev));
       toast.success(value === null ? "Company reserve cleared" : "Company reserve updated. Runway alerts will use it.");
     } catch (e) {
       toast.error(errMsg(e, "Could not update the reserve"));
@@ -1122,12 +1152,10 @@ function ModelingWorkspace({ theme }) {
           }
           onClose={() => setDialog(null)}
           onSubmit={async (name) => {
-            let ok;
-            if (dialog.kind === "rename") ok = await updateScenario({ name });
-            else if (dialog.kind === "duplicate") {
-              const s = scenarios.find((x) => x.scenario_id === activeId);
-              ok = await createScenario(name, s ? s.inputs : inputs);
-            } else ok = await createScenario(name, inputs);
+            // Duplicate / save-as both keep the on-screen draft (including unsaved edits).
+            const ok = dialog.kind === "rename"
+              ? await updateScenario({ name })
+              : await createScenario(name, inputs);
             if (ok) setDialog(null);
             return ok;
           }}
