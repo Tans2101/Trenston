@@ -178,14 +178,14 @@ export function ErrorScreen({
 
 export function EmptyState({ icon: Icon, title, body, action }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-24 px-6 fade-up">
+    <div className="flex flex-col items-center justify-center text-center py-10 sm:py-16 px-6 fade-up">
       {Icon && (
         <div className="w-14 h-14 rounded-2xl bg-helm-navy/5 border border-helm-line flex items-center justify-center mb-5">
           <Icon className="w-6 h-6 text-helm-gold" />
         </div>
       )}
       <h3 className="font-display text-xl text-helm-fg font-medium tracking-tight">{title}</h3>
-      {body && <p className="text-sm text-helm-muted mt-2 max-w-sm leading-relaxed font-sans">{body}</p>}
+      {body && <p className="text-sm text-helm-muted mt-2 max-w-md leading-relaxed font-sans">{body}</p>}
       {action && <div className="mt-6">{action}</div>}
     </div>
   );
