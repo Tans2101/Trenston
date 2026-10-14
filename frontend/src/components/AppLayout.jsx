@@ -1131,7 +1131,7 @@ export default function AppLayout() {
             {profileMenu(false)}
           </div>
         </div>
-        <div className="w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">
+        <div className="app-content w-full px-5 md:px-8 lg:px-10 py-8 md:py-10">
           <PageIntro />
           {onBilling ? (
             <Outlet />

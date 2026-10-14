@@ -1242,9 +1242,9 @@
     "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791944479.239296,
-    "seen": 1791944543.9741747,
-    "ast_hash": "122afc406d29d7c4ed6d4dcfa8bf41c4",
+    "mtime": 1791945991.3762512,
+    "seen": 1791946099.5499065,
+    "ast_hash": "ac35d0a3410f85e0e472fcbb5243545d",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791944998.449992,
-    "seen": 1791945052.091758,
+    "mtime": 1791946051.00719,
+    "seen": 1791946099.5507736,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },

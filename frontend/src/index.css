@@ -1675,7 +1675,7 @@ html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245
 }
 
 /* Short laptop screens: hide the promo card so the grouped nav list keeps its room. */
-@media (max-height: 820px) {
+@media (max-height: 980px) {
   .app-shell .rail-promo-wrap { display: none; }
 }
 
@@ -1701,3 +1701,73 @@ html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245
   outline-offset: 1px;
 }
 .app-rail :where(a, button):focus-visible { outline-offset: -2px; }
+
+/* ───────── App light-mode refresh ─────────
+   Goals: calmer cards, one warm accent, clearer type hierarchy, readable width.
+   Scoped to the signed-in app in light mode only. */
+html[data-theme="light"] .app-shell {
+  --helm-card: #FFFFFF;
+  --helm-line: color-mix(in srgb, #111111 11%, transparent);
+  --app-accent: #C99A2E;      /* bars, underlines, markers */
+  --app-accent-ink: #8A5F00;  /* accent text on white (AA) */
+  --cir-edge: #ECECEA;
+}
+
+/* Cards sit on the page by their border alone, no drop shadow. */
+html[data-theme="light"] .app-shell .shadow-sm,
+html[data-theme="light"] .app-shell .shadow { box-shadow: none; }
+
+/* Readable column on big screens. */
+html[data-theme="light"] .app-shell .app-content { max-width: 1280px; margin-inline: auto; }
+
+/* Page titles: one clear focal point per page. */
+html[data-theme="light"] .app-main h1.font-display {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  font-size: clamp(2rem, 3.4vw, 2.875rem);
+}
+html[data-theme="light"] .app-main h1.font-display + p {
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 44rem;
+}
+
+/* Small label above a title picks up the accent, with a short dash. */
+html[data-theme="light"] .app-main p.uppercase:has(+ h1) {
+  color: var(--app-accent-ink) !important;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+html[data-theme="light"] .app-main p.uppercase:has(+ h1)::before {
+  content: "";
+  width: 1.25rem;
+  height: 2px;
+  background: var(--app-accent);
+}
+
+/* Section headings a step up from body text. */
+html[data-theme="light"] .app-main h2.font-display {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Tiny labels were 10px mono caps; give them room to breathe. */
+html[data-theme="light"] .app-main [class*="text-[10px]"] { font-size: 11px; }
+
+/* Sidebar: accent bar, soft wash, no navy tint. */
+html[data-theme="light"] .app-shell .cir-rail__indicator {
+  background: rgb(201 154 46 / 0.10) !important;
+  box-shadow: inset 3px 0 0 var(--app-accent);
+}
+html[data-theme="light"] .app-shell .cir-rail__link--solo.cir-rail__link--active {
+  background: rgb(201 154 46 / 0.10);
+  box-shadow: inset 3px 0 0 var(--app-accent);
+}
+html[data-theme="light"] .app-shell .cir-rail__section { color: #8A8F98; }
+
+/* Top bar and inputs: lighter edges to match. */
+html[data-theme="light"] .app-shell [data-testid="desktop-top-bar"] { border-bottom-color: #ECECEA; }
