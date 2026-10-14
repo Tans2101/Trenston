@@ -300,6 +300,9 @@ def test_run_daily_briefing_emails_and_debounces():
     ]
     fake_db = MagicMock()
     fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
+    fake_db.workspaces.find_one_and_update = AsyncMock(
+        return_value={"workspace_id": "ws_send", "daily_briefing_emailed_date": day},
+    )
     fake_db.workspaces.update_one = AsyncMock()
     fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
 
@@ -314,7 +317,7 @@ def test_run_daily_briefing_emails_and_debounces():
             return ["empty@test"]
         return ["ceo@send.test"] if wid == "ws_send" else []
 
-    async def fake_assemble(wid):
+    async def fake_assemble(wid, workspace=None):
         if wid == "ws_empty":
             return {"has_content": False, "sections": {}, "month": "2026-09"}
         return {
@@ -368,15 +371,23 @@ def test_run_daily_briefing_emails_and_debounces():
     assert "BGC, Taguig, Philippines" in sent[0]["html"]
     assert "Target vs actual" in sent[0]["html"]
     assert sent[0]["headers"] and "List-Unsubscribe" in sent[0]["headers"]
-    fake_db.workspaces.update_one.assert_awaited_once()
-    set_fields = fake_db.workspaces.update_one.await_args.args[1]["$set"]
+    # Slim projection — never load full workspace blobs for the cron sweep.
+    proj = fake_db.workspaces.find.call_args.args[1]
+    assert set(proj.keys()) >= {"_id", "workspace_id", "name", "daily_briefing_emailed_date"}
+    fake_db.workspaces.find_one_and_update.assert_awaited_once()
+    claim_filt = fake_db.workspaces.find_one_and_update.await_args.args[0]
+    assert claim_filt["workspace_id"] == "ws_send"
+    set_fields = fake_db.workspaces.find_one_and_update.await_args.args[1]["$set"]
     assert set_fields["daily_briefing_emailed_date"] == day
+    # Successful send must not revert the claim.
+    fake_db.workspaces.update_one.assert_not_called()
 
 
 def test_run_daily_briefing_respects_suppression():
     rows = [{"workspace_id": "ws_1", "name": "Suppressed Co"}]
     fake_db = MagicMock()
     fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
+    fake_db.workspaces.find_one_and_update = AsyncMock()
     fake_db.workspaces.update_one = AsyncMock()
     fake_db.email_suppressions.find_one = AsyncMock(
         return_value={"email": "ceo@x.test", "category": "commercial"},
@@ -399,7 +410,68 @@ def test_run_daily_briefing_respects_suppression():
     assert stats["skipped_suppressed"] == 1
     assert stats["sent"] == 0
     send_mock.assert_not_called()
+    fake_db.workspaces.find_one_and_update.assert_not_called()
     fake_db.workspaces.update_one.assert_not_called()
+
+
+def test_run_daily_briefing_atomic_claim_skips_race_loser():
+    """Overlapping cron: find_one_and_update returns None → skip, do not send."""
+    day = "2026-09-19"
+    rows = [{"workspace_id": "ws_race", "name": "Race Co"}]
+    fake_db = MagicMock()
+    fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
+    fake_db.workspaces.find_one_and_update = AsyncMock(return_value=None)
+    fake_db.workspaces.update_one = AsyncMock()
+    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+
+    with (
+        patch.object(server, "db", fake_db),
+        patch.object(server, "SESSION_SECRET", "daily-briefing-test-secret"),
+        patch.object(server, "_alert_recipient_emails", new=AsyncMock(return_value=["ceo@race.test"])),
+        patch.object(
+            server,
+            "assemble_ops_briefing_data",
+            new=AsyncMock(return_value={"has_content": True, "sections": {"sales": {}}, "month": "2026-09"}),
+        ),
+        patch.object(server, "send_resend_email", new=AsyncMock()) as send_mock,
+        patch.object(server, "_daily_briefing_date_key", return_value=day),
+    ):
+        stats = asyncio.run(server.run_daily_briefing_cron())
+
+    assert stats["skipped_already"] == 1
+    assert stats["sent"] == 0
+    send_mock.assert_not_called()
+
+
+def test_run_daily_briefing_reverts_claim_on_send_failure():
+    day = "2026-09-19"
+    rows = [{"workspace_id": "ws_fail", "name": "Fail Co"}]
+    fake_db = MagicMock()
+    fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
+    fake_db.workspaces.find_one_and_update = AsyncMock(
+        return_value={"workspace_id": "ws_fail", "daily_briefing_emailed_date": day},
+    )
+    fake_db.workspaces.update_one = AsyncMock()
+    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+
+    with (
+        patch.object(server, "db", fake_db),
+        patch.object(server, "SESSION_SECRET", "daily-briefing-test-secret"),
+        patch.object(server, "_alert_recipient_emails", new=AsyncMock(return_value=["ceo@fail.test"])),
+        patch.object(
+            server,
+            "assemble_ops_briefing_data",
+            new=AsyncMock(return_value={"has_content": True, "sections": {"sales": {}}, "month": "2026-09"}),
+        ),
+        patch.object(server, "send_resend_email", new=AsyncMock(return_value={"sent": False})),
+        patch.object(server, "_daily_briefing_date_key", return_value=day),
+    ):
+        stats = asyncio.run(server.run_daily_briefing_cron())
+
+    assert stats["send_failed"] == 1
+    assert stats["sent"] == 0
+    unset = fake_db.workspaces.update_one.await_args.args[1]["$unset"]
+    assert "daily_briefing_emailed_date" in unset
 
 
 def test_daily_briefing_date_key_format():

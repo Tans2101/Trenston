@@ -4066,13 +4066,13 @@ def _fmt_days_metric(value: Optional[float]) -> str:
     return f"{n:.1f}d"
 
 
-async def assemble_ops_briefing_data(workspace_id: str) -> dict:
+async def assemble_ops_briefing_data(workspace_id: str, workspace: dict | None = None) -> dict:
     """Shared ops snapshot for Briefing UI and the daily briefing email cron."""
     import ops_briefing as ob
-    return await ob.assemble_ops_briefing_data(db, workspace_id)
+    return await ob.assemble_ops_briefing_data(db, workspace_id, workspace=workspace)
 
 
-async def _briefing_ops_metrics(workspace_id: str) -> list[dict]:
+async def _briefing_ops_metrics(workspace_id: str, workspace: dict | None = None) -> list[dict]:
     """Procurement / Production / Sales / Maintenance rollups for Briefing.
 
     Delegates to assemble_ops_briefing_data so the daily email uses the same
@@ -4080,7 +4080,7 @@ async def _briefing_ops_metrics(workspace_id: str) -> list[dict]:
     tracked / no data — never fabricated zeros.
     """
     import ops_briefing as ob
-    data = await assemble_ops_briefing_data(workspace_id)
+    data = await assemble_ops_briefing_data(workspace_id, workspace=workspace)
     return ob.ops_briefing_metric_cards(data)
 
 
@@ -4122,18 +4122,19 @@ async def briefing(principal=Depends(get_principal)):
 
     async def _load_ops():
         try:
-            return await _briefing_ops_metrics(c["workspace_id"])
+            return await _briefing_ops_metrics(c["workspace_id"], workspace=c)
         except Exception:
             logger.exception("briefing ops metrics failed for %s", c.get("workspace_id"))
             return []
 
-    fin, acts, ups, (email_threads, gmail_meta), freshness, ops_metrics = await asyncio.gather(
+    fin, acts, ups, (email_threads, gmail_meta), freshness, ops_metrics, can_act = await asyncio.gather(
         _load_fin(),
         _load_acts(),
         _load_updates(),
         _briefing_gmail_swr(c, principal),
         helm_freshness.resolve_workspace_data_as_of(db, c),
         _load_ops(),
+        can_section_write(principal, "decisions", "decisions:act"),
     )
 
     metrics = []
@@ -4180,9 +4181,7 @@ async def briefing(principal=Depends(get_principal)):
     can_generate = (
         can_ai_briefing and "briefing:generate" in perms_for(principal.get("pack") or "member")
     )
-    # Same gate the decision act / assign / dismiss endpoints enforce, so the
-    # Briefing can hide action buttons the caller would get a 403 on.
-    can_act = await can_section_write(principal, "decisions", "decisions:act")
+    # can_act loaded in the gather above — same gate as decision act endpoints.
     return {
         **b,
         "is_pro": is_pro,
@@ -4957,16 +4956,20 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
 
     async def _load_ops():
         try:
-            return await _briefing_ops_metrics(c["workspace_id"])
+            return await _briefing_ops_metrics(c["workspace_id"], workspace=c)
         except Exception:
             logger.exception("briefing generate ops metrics failed for %s", c.get("workspace_id"))
             return []
 
     # Always load ledger for synthesis; metrics cards still respect financials access.
-    fin, acts, ops_metrics = await asyncio.gather(
+    # Calendar + freshness run in the same gather (not after) so generate latency
+    # is max(fin, acts, ops, calendar, freshness) instead of sum.
+    fin, acts, ops_metrics, cal_snap, freshness = await asyncio.gather(
         compute_financials(c["workspace_id"]),
         _load_acts(),
         _load_ops(),
+        _google_calendar_snapshot(c, principal=principal),
+        helm_freshness.resolve_workspace_data_as_of(db, c),
     )
     # Same live feed builders as GET /briefing — do not ground on seed alone.
     act_items = [_briefing_activity_item(a) for a in acts]
@@ -4985,7 +4988,6 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
                 "section": "finance",
             })
     metrics.extend(ops_metrics or [])
-    cal_snap = await _google_calendar_snapshot(c, principal=principal)
     context = {
         "company": c["name"],
         "metrics": metrics,
@@ -5016,9 +5018,8 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     )
     text = await helm_llm.complete(
         system,
-        f"Company data for today:\n{json.dumps(context, indent=2)}\n\nWrite today's short briefing note.",
+        f"Company data for today:\n{json.dumps(context, separators=(',', ':'))}\n\nWrite today's short briefing note.",
     )
-    freshness = await helm_freshness.resolve_workspace_data_as_of(db, c)
     await db.workspaces.update_one(
         {"workspace_id": c["workspace_id"]},
         {"$set": {
@@ -17327,10 +17328,18 @@ async def run_daily_briefing_cron() -> dict:
     with daily_briefing_emailed_date (UTC ISO date) so a re-run the same day
     does not double-send. Recipients + suppression list match the weekly digest.
     Fixed UTC morning hour (v1 — no per-workspace timezone field yet).
+
+    Loads a slim projection (not full workspace docs). After assemble confirms
+    content, claims the day with find_one_and_update so overlapping cron runs
+    cannot double-email; reverts the claim if every send fails.
     """
     import email_compliance as ec
+    from pymongo import ReturnDocument
 
-    workspaces = await db.workspaces.find({}, {"_id": 0}).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
+    workspaces = await db.workspaces.find(
+        {},
+        {"_id": 0, "workspace_id": 1, "name": 1, "daily_briefing_emailed_date": 1, "timezone": 1},
+    ).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
     day = _daily_briefing_date_key()
     app_url = _app_base_url()
     api_base = public_api_origin()
@@ -17349,6 +17358,7 @@ async def run_daily_briefing_cron() -> dict:
         wid = (c.get("workspace_id") or "").strip()
         if not wid:
             continue
+        claimed = False
         try:
             if (c.get("daily_briefing_emailed_date") or "") == day:
                 stats["skipped_already"] += 1
@@ -17361,10 +17371,29 @@ async def run_daily_briefing_cron() -> dict:
             if not sendable:
                 stats["skipped_suppressed"] += 1
                 continue
-            data = await assemble_ops_briefing_data(wid)
+            data = await assemble_ops_briefing_data(wid, workspace=c)
             if not data.get("has_content"):
                 stats["skipped_empty"] += 1
                 continue
+            # Atomic claim after we know we will send — racing crons: loser skips.
+            claim = await db.workspaces.find_one_and_update(
+                {
+                    "workspace_id": wid,
+                    "$or": [
+                        {"daily_briefing_emailed_date": {"$ne": day}},
+                        {"daily_briefing_emailed_date": {"$exists": False}},
+                    ],
+                },
+                {"$set": {
+                    "daily_briefing_emailed_date": day,
+                    "daily_briefing_emailed_at": datetime.now(timezone.utc).isoformat(),
+                }},
+                return_document=ReturnDocument.AFTER,
+            )
+            if not claim:
+                stats["skipped_already"] += 1
+                continue
+            claimed = True
             ws_name = c.get("name") or "Company"
             any_sent = False
             for addr in sendable:
@@ -17384,17 +17413,32 @@ async def run_daily_briefing_cron() -> dict:
                 if email_result.get("sent"):
                     any_sent = True
             if any_sent:
-                await db.workspaces.update_one(
-                    {"workspace_id": wid},
-                    {"$set": {
-                        "daily_briefing_emailed_date": day,
-                        "daily_briefing_emailed_at": datetime.now(timezone.utc).isoformat(),
-                    }},
-                )
                 stats["sent"] += 1
             else:
+                # Revert claim so a later cron can retry this day.
+                await db.workspaces.update_one(
+                    {"workspace_id": wid, "daily_briefing_emailed_date": day},
+                    {"$unset": {
+                        "daily_briefing_emailed_date": "",
+                        "daily_briefing_emailed_at": "",
+                    }},
+                )
+                claimed = False
                 stats["send_failed"] += 1
         except Exception:
+            if claimed:
+                try:
+                    await db.workspaces.update_one(
+                        {"workspace_id": wid, "daily_briefing_emailed_date": day},
+                        {"$unset": {
+                            "daily_briefing_emailed_date": "",
+                            "daily_briefing_emailed_at": "",
+                        }},
+                    )
+                except Exception:
+                    logger.exception(
+                        "daily briefing cron failed to revert claim for workspace %s", wid,
+                    )
             stats["errors"] += 1
             logger.exception("daily briefing cron failed for workspace %s", wid)
     return stats
