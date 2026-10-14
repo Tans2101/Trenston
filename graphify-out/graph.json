@@ -191925,30 +191925,6 @@
     },
     {
       "source": "frontend_src_pages_briefing_briefing",
-      "target": "frontend_src_components_cirnote_toastgmaildraftnote",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L557",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_pages_briefing_briefing",
-      "target": "frontend_src_lib_notify_toasterror",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L563",
-      "weight": 1.0
-    },
-    {
-      "source": "frontend_src_pages_briefing_briefing",
       "target": "frontend_src_lib_signalroute_moduleroute",
       "relation": "calls",
       "_origin": "ast",
@@ -191956,7 +191932,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L592",
+      "source_location": "L487",
       "weight": 1.0
     },
     {
@@ -191968,7 +191944,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L598",
+      "source_location": "L493",
       "weight": 1.0
     },
     {
@@ -191980,7 +191956,19 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L631",
+      "source_location": "L526",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_pages_briefing_briefing",
+      "target": "frontend_src_lib_signalroute_signalroute",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "frontend/src/pages/Briefing.jsx",
+      "source_location": "L589",
       "weight": 1.0
     },
     {
@@ -191997,14 +191985,26 @@
     },
     {
       "source": "frontend_src_pages_briefing_briefing",
-      "target": "frontend_src_lib_signalroute_signalroute",
+      "target": "frontend_src_components_cirnote_toastgmaildraftnote",
       "relation": "calls",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/pages/Briefing.jsx",
-      "source_location": "L694",
+      "source_location": "L696",
+      "weight": 1.0
+    },
+    {
+      "source": "frontend_src_pages_briefing_briefing",
+      "target": "frontend_src_lib_notify_toasterror",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "frontend/src/pages/Briefing.jsx",
+      "source_location": "L702",
       "weight": 1.0
     },
     {
@@ -377151,5 +377151,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f8dc634aa3f7e17d9051d46313ceb02c66422a7c"
+  "built_at_commit": "61babfed2924c77121b7ee8f195c6423a14bbcde"
 }

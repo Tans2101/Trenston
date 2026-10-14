@@ -2562,9 +2562,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Briefing.jsx": {
-    "mtime": 1791944628.4079237,
-    "seen": 1791945052.0911968,
-    "ast_hash": "4f96121ade90d5706bb3235ebb8b80a5",
+    "mtime": 1791946383.5296986,
+    "seen": 1791946441.2222173,
+    "ast_hash": "db2d2367b1e616b97d70fec1c0b6e8bd",
     "semantic_hash": ""
   },
   "frontend/src/pages/CalendarPage.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791946255.239202,
-    "seen": 1791946271.58833,
+    "mtime": 1791946387.4072099,
+    "seen": 1791946441.2227008,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
