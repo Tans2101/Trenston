@@ -201,6 +201,76 @@ def test_user_from_request_does_not_cookie_fallback_on_clerk_401():
     sessions.find_one.assert_not_called()
 
 
+def test_cookie_auth_revokes_when_clerk_user_gone():
+    """Cookie-only path must not survive a Clerk Dashboard delete (webhook lag)."""
+    from datetime import datetime, timedelta, timezone
+
+    users = _FakeUsers([{
+        "user_id": "u1",
+        "email": "a@example.com",
+        "clerk_id": "user_abc",
+    }])
+    sessions = _FakeSessions()
+    memberships = _FakeMemberships()
+    expires = datetime.now(timezone.utc) + timedelta(days=1)
+
+    class Req:
+        headers = {}
+        cookies = {"session_token": "cookie-1"}
+
+    async def find_session(query, projection=None):
+        if query.get("session_token") == "cookie-1":
+            return {"user_id": "u1", "session_token": "cookie-1", "expires_at": expires}
+        return None
+
+    server._CLERK_ALIVE_CACHE.clear()
+    with patch.object(
+        server,
+        "db",
+        MagicMock(
+            users=users,
+            user_sessions=MagicMock(find_one=find_session, delete_many=sessions.delete_many),
+            memberships=memberships,
+        ),
+    ), patch.object(server.clerk_auth, "clerk_configured", return_value=True), \
+       patch.object(server.clerk_auth, "clerk_user_exists", AsyncMock(return_value=False)):
+        with pytest.raises(HTTPException) as exc:
+            asyncio.run(server._user_from_request(Req()))
+    assert exc.value.status_code == 401
+    assert "Account deleted" in exc.value.detail
+    assert users.docs["u1"].get("deleted_at")
+    assert sessions.deleted == [{"user_id": "u1"}]
+
+
+def test_cookie_auth_fails_open_when_clerk_probe_unknown():
+    from datetime import datetime, timedelta, timezone
+
+    users = _FakeUsers([{
+        "user_id": "u1",
+        "email": "a@example.com",
+        "clerk_id": "user_abc",
+    }])
+    expires = datetime.now(timezone.utc) + timedelta(days=1)
+
+    class Req:
+        headers = {}
+        cookies = {"session_token": "cookie-1"}
+
+    async def find_session(query, projection=None):
+        return {"user_id": "u1", "session_token": "cookie-1", "expires_at": expires}
+
+    server._CLERK_ALIVE_CACHE.clear()
+    with patch.object(
+        server,
+        "db",
+        MagicMock(users=users, user_sessions=MagicMock(find_one=find_session, delete_many=AsyncMock())),
+    ), patch.object(server.clerk_auth, "clerk_configured", return_value=True), \
+       patch.object(server.clerk_auth, "clerk_user_exists", AsyncMock(return_value=None)):
+        out = asyncio.run(server._user_from_request(Req()))
+    assert out["user_id"] == "u1"
+    assert not users.docs["u1"].get("deleted_at")
+
+
 @pytest.mark.asyncio
 async def test_clerk_webhook_user_deleted_revokes(monkeypatch):
     body = json.dumps({

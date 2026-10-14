@@ -96,6 +96,15 @@ def main() -> int:
             )
     elif sk and not pk:
         weak.append("CLERK_PUBLISHABLE_KEY unset — Render will derive from CLERK_JWKS_URL at runtime")
+    webhook_secret = (
+        (os.environ.get("CLERK_WEBHOOK_SIGNING_SECRET") or "").strip()
+        or (os.environ.get("CLERK_WEBHOOK_SECRET") or "").strip()
+    )
+    if sk and not webhook_secret.startswith("whsec_"):
+        weak.append(
+            "CLERK_WEBHOOK_SIGNING_SECRET unset — Clerk Dashboard user.deleted will not "
+            "revoke Trenston sessions until the Svix secret is set (POST /api/webhook/clerk)"
+        )
     if (
         os.environ.get("USE_ATLAS_MONGO", "false").lower() not in ("1", "true", "yes")
         and (os.environ.get("MONGO_URL") or "").startswith("mongodb+srv://")

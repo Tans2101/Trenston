@@ -947,6 +947,32 @@ async def fetch_clerk_user_profile(clerk_user_id: str, *, retries: int = 4) -> d
     )
 
 
+async def clerk_user_exists(clerk_user_id: str) -> bool | None:
+    """Return True if Clerk still has this user, False if gone (404), None if unknown.
+
+    Used as a defense-in-depth check for Trenston httpOnly cookie sessions when the
+    Clerk ``user.deleted`` webhook is not yet configured. Network / auth failures
+    return None so callers can fail open (JWT path remains authoritative).
+    """
+    clerk_user_id = (clerk_user_id or "").strip()
+    if not clerk_user_id or not CLERK_SECRET_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(
+                f"{CLERK_BAPI}/users/{clerk_user_id}",
+                headers=_bapi_headers(),
+            )
+    except Exception:
+        logger.debug("clerk_user_exists probe failed for %s", clerk_user_id, exc_info=True)
+        return None
+    if r.status_code == 200:
+        return True
+    if r.status_code == 404:
+        return False
+    return None
+
+
 async def delete_clerk_user(clerk_user_id: str) -> dict[str, Any]:
     """DELETE https://api.clerk.com/v1/users/{id} — remove the Clerk identity after in-app delete.
 

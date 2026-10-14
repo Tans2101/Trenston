@@ -1199,6 +1199,39 @@ async def _reject_if_deleted(user: dict | None):
         raise HTTPException(status_code=401, detail=ACCOUNT_DELETED_DETAIL)
 
 
+# Cookie-only sessions: when Clerk Dashboard deletes a user but the Svix webhook
+# is not configured yet, the Trenston httpOnly cookie could outlive the identity.
+# Probe Clerk BAPI occasionally; definitive 404 → local revoke. Fail open on errors.
+_CLERK_ALIVE_CACHE: dict[str, tuple[float, bool]] = {}
+_CLERK_ALIVE_TTL_OK = 300.0
+_CLERK_ALIVE_TTL_GONE = 60.0
+
+
+async def _ensure_clerk_identity_alive(user: dict) -> None:
+    """Reject cookie auth when Clerk no longer has this user (webhook lag / missing)."""
+    clerk_id = (user.get("clerk_id") or "").strip()
+    if not clerk_id or not clerk_auth.clerk_configured():
+        return
+    now = time.time()
+    cached = _CLERK_ALIVE_CACHE.get(clerk_id)
+    if cached is not None:
+        at, alive = cached
+        ttl = _CLERK_ALIVE_TTL_OK if alive else _CLERK_ALIVE_TTL_GONE
+        if now - at < ttl:
+            if alive:
+                return
+            await _revoke_local_user_for_clerk_delete(clerk_id)
+            raise HTTPException(status_code=401, detail=ACCOUNT_DELETED_DETAIL)
+    exists = await clerk_auth.clerk_user_exists(clerk_id)
+    if exists is None:
+        return
+    _CLERK_ALIVE_CACHE[clerk_id] = (now, bool(exists))
+    if exists:
+        return
+    await _revoke_local_user_for_clerk_delete(clerk_id)
+    raise HTTPException(status_code=401, detail=ACCOUNT_DELETED_DETAIL)
+
+
 async def _revoke_local_user_for_clerk_delete(clerk_id: str) -> dict:
     """Mark the Mongo user deleted and wipe Trenston sessions (Clerk already gone).
 
@@ -1209,6 +1242,7 @@ async def _revoke_local_user_for_clerk_delete(clerk_id: str) -> dict:
     clerk_id = (clerk_id or "").strip()
     if not clerk_id:
         return {"ok": False, "reason": "missing_clerk_id"}
+    _CLERK_ALIVE_CACHE.pop(clerk_id, None)
     user = await db.users.find_one({"clerk_id": clerk_id}, {"_id": 0})
     if not user:
         # Also match rows already soft-deleted under a preserved clerk id.
@@ -1316,6 +1350,9 @@ async def _user_from_request(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     await _reject_if_deleted(user)
+    # Defense-in-depth when Clerk user.deleted webhook is missing: cookie must
+    # not outlive a Dashboard-deleted Clerk identity.
+    await _ensure_clerk_identity_alive(user)
     return user
 
 

@@ -62,3 +62,14 @@ def test_warns_on_app_url_leading_whitespace(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "APP_URL has leading/trailing whitespace" in out
     assert "Not Found" in out
+
+
+def test_warns_when_clerk_webhook_secret_missing(monkeypatch, capsys):
+    _required_env(monkeypatch)
+    monkeypatch.setenv("INTEGRATION_ENCRYPTION_KEY", Fernet.generate_key().decode())
+    monkeypatch.delenv("CLERK_WEBHOOK_SIGNING_SECRET", raising=False)
+    monkeypatch.delenv("CLERK_WEBHOOK_SECRET", raising=False)
+    assert check_prod_env.main() == 0
+    out = capsys.readouterr().out
+    assert "CLERK_WEBHOOK_SIGNING_SECRET" in out
+    assert "/api/webhook/clerk" in out
