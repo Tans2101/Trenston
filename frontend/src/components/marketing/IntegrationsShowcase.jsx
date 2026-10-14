@@ -46,6 +46,9 @@ export default function IntegrationsShowcase({ compact = false }) {
             </Reveal>
           ))}
         </ul>
+        <p className="mt-8 max-w-2xl text-sm leading-relaxed text-mk-gray" data-testid="integrations-trust">
+          Our QuickBooks connection is approved by Intuit as a developer app, and Trenston only reads your accounting data.
+        </p>
       </div>
     </section>
   );

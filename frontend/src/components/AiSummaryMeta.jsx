@@ -34,7 +34,7 @@ export default function AiSummaryMeta({
       className={cn("text-[11px] font-mono uppercase tracking-wider text-helm-muted", className)}
       data-testid="ai-summary-meta"
     >
-      AI summary
+      AI summary · check key figures
       {asOfLabel ? <> · as of {asOfLabel}</> : null}
       {detailHref ? (
         <>

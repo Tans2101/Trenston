@@ -18206,7 +18206,7 @@
       "file_type": "code",
       "norm_label": "ctaband()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L254"
+      "source_location": "L255"
     },
     {
       "id": "frontend_src_components_marketing_mk_drawline",
@@ -18218,7 +18218,7 @@
       "file_type": "code",
       "norm_label": "drawline()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L343"
+      "source_location": "L344"
     },
     {
       "id": "frontend_src_components_marketing_mk_eyebrow",
@@ -18230,7 +18230,7 @@
       "file_type": "code",
       "norm_label": "eyebrow()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L71"
+      "source_location": "L72"
     },
     {
       "id": "frontend_src_components_marketing_mk_mark",
@@ -18254,7 +18254,7 @@
       "file_type": "code",
       "norm_label": "mkaccordion()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L276"
+      "source_location": "L277"
     },
     {
       "id": "frontend_src_components_marketing_mk_mkbutton",
@@ -18266,7 +18266,7 @@
       "file_type": "code",
       "norm_label": "mkbutton()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L45"
+      "source_location": "L46"
     },
     {
       "id": "frontend_src_components_marketing_mk_mkpage",
@@ -18290,7 +18290,7 @@
       "file_type": "code",
       "norm_label": "pagehero()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L129"
+      "source_location": "L130"
     },
     {
       "id": "frontend_src_components_marketing_mk_reveal",
@@ -18302,7 +18302,7 @@
       "file_type": "code",
       "norm_label": "reveal()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L86"
+      "source_location": "L87"
     },
     {
       "id": "frontend_src_components_marketing_mk_ruleditem",
@@ -18314,7 +18314,7 @@
       "file_type": "code",
       "norm_label": "ruleditem()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L233"
+      "source_location": "L234"
     },
     {
       "id": "frontend_src_components_marketing_mk_splitheadline",
@@ -18326,7 +18326,7 @@
       "file_type": "code",
       "norm_label": "splitheadline()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L104"
+      "source_location": "L105"
     },
     {
       "id": "frontend_src_components_marketing_mk_visualpanel",
@@ -18338,7 +18338,7 @@
       "file_type": "code",
       "norm_label": "visualpanel()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L357"
+      "source_location": "L358"
     },
     {
       "id": "frontend_src_components_marketing_plancards_plancards",
@@ -37562,7 +37562,7 @@
       "file_type": "code",
       "norm_label": "sectionheader()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L204"
+      "source_location": "L205"
     },
     {
       "id": "frontend_src_pages_features_briefingticker",
@@ -41174,7 +41174,7 @@
       "file_type": "code",
       "norm_label": "mklink()",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "frontend_src_pages_integrations_brandbadge",
@@ -187355,7 +187355,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L259",
+      "source_location": "L260",
       "weight": 1.0
     },
     {
@@ -187367,7 +187367,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L347",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -187379,7 +187379,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L74",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -187403,7 +187403,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L279",
+      "source_location": "L280",
       "weight": 1.0
     },
     {
@@ -187415,7 +187415,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L46",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -187427,7 +187427,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -187451,7 +187451,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L131",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -187463,7 +187463,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L235",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -187475,7 +187475,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L206",
+      "source_location": "L207",
       "weight": 1.0
     },
     {
@@ -187487,7 +187487,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L359",
+      "source_location": "L360",
       "weight": 1.0
     },
     {
@@ -339820,7 +339820,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L104",
+      "source_location": "L105",
       "weight": 1.0
     },
     {
@@ -339831,7 +339831,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L129",
+      "source_location": "L130",
       "weight": 1.0
     },
     {
@@ -339864,7 +339864,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L204",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -339886,7 +339886,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L233",
+      "source_location": "L234",
       "weight": 1.0
     },
     {
@@ -339897,7 +339897,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L254",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -339919,7 +339919,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L276",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -339941,7 +339941,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L343",
+      "source_location": "L344",
       "weight": 1.0
     },
     {
@@ -339952,7 +339952,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L357",
+      "source_location": "L358",
       "weight": 1.0
     },
     {
@@ -339963,7 +339963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L45",
+      "source_location": "L46",
       "weight": 1.0
     },
     {
@@ -339974,7 +339974,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -339985,7 +339985,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L71",
+      "source_location": "L72",
       "weight": 1.0
     },
     {
@@ -339996,7 +339996,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/src/components/marketing/mk.jsx",
-      "source_location": "L86",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -378537,5 +378537,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "85be63eb20a76f434d6db13f04beaec0a5f92deb"
+  "built_at_commit": "612ec6429d8a58ef349273c87a7dc1e7cdf15a19"
 }

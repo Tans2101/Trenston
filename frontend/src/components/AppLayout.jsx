@@ -1085,7 +1085,8 @@ export default function AppLayout() {
         />
       </div>
 
-      <main className="app-main lg:pl-[var(--sidebar-w)] relative z-10">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
+      <main id="main-content" tabIndex={-1} className="app-main lg:pl-[var(--sidebar-w)] relative z-10 outline-none">
         {/* Desktop persistent top bar */}
         <div
           className="hidden lg:flex sticky top-0 z-40 h-14 items-center gap-3 px-5 md:px-8 lg:px-10 bg-helm-bg/95 backdrop-blur-md border-b border-helm-line"

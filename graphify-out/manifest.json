@@ -1236,15 +1236,15 @@
     "semantic_hash": ""
   },
   "frontend/src/components/AiSummaryMeta.jsx": {
-    "mtime": 1790515659.5652192,
-    "seen": 1791795297.0875518,
-    "ast_hash": "0a0aa099040070455ed9a447bdbb2df0",
-    "semantic_hash": "0a0aa099040070455ed9a447bdbb2df0"
+    "mtime": 1791948449.8608227,
+    "seen": 1791948521.3326583,
+    "ast_hash": "ed8fccffbaaf6aa8b7f29f874e291993",
+    "semantic_hash": ""
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1791945991.3762512,
-    "seen": 1791946099.5499065,
-    "ast_hash": "ac35d0a3410f85e0e472fcbb5243545d",
+    "mtime": 1791948447.1775627,
+    "seen": 1791948521.3326626,
+    "ast_hash": "61dd217a997a1a1304e50c9bdc0191d5",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1884,9 +1884,9 @@
     "semantic_hash": "0411a5842c83aae1ade7f39e0d31f8c0"
   },
   "frontend/src/components/marketing/IntegrationsShowcase.jsx": {
-    "mtime": 1790675714.9741035,
-    "seen": 1791795297.0878336,
-    "ast_hash": "df138af3e60f036cde31ddf73703f01b",
+    "mtime": 1791948447.178416,
+    "seen": 1791948521.332791,
+    "ast_hash": "a2d61154c3d543efb31d1e9b77e1fe96",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingFooter.jsx": {
@@ -2628,9 +2628,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1791947818.0626478,
-    "seen": 1791947957.714362,
-    "ast_hash": "b1a2b3d19220ed84b49cda0e04b1ff1b",
+    "mtime": 1791948447.1780279,
+    "seen": 1791948521.3329725,
+    "ast_hash": "4e3087d4e257120eb0fd3cb22d990c17",
     "semantic_hash": ""
   },
   "frontend/src/pages/Legal.jsx": {
@@ -5136,8 +5136,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1791947892.6809068,
-    "seen": 1791947957.7151468,
+    "mtime": 1791948454.7686334,
+    "seen": 1791948521.333449,
     "ast_hash": "c98e93afc441a3d07cc87487f513d779",
     "semantic_hash": ""
   },
@@ -5490,9 +5490,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/mk.jsx": {
-    "mtime": 1791863274.6311967,
-    "seen": 1791863569.7750163,
-    "ast_hash": "e5ac8f04b869428ee3a75031cee47b73",
+    "mtime": 1791948447.1767695,
+    "seen": 1791948521.3328013,
+    "ast_hash": "5067928637013091a4e91f7a28cfdea1",
     "semantic_hash": ""
   },
   "frontend/src/lib/accent.js": {

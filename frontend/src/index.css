@@ -1802,3 +1802,20 @@ html[data-theme="light"] .app-shell [data-testid="page-intro"] {
 }
 /* Kanban columns and other soft wells: whisper-gray so cards inside still pop. */
 html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-color: #FAFAF8; }
+
+/* Skip link: hidden until a keyboard user tabs to it. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 1000;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 600;
+  transform: translateY(-200%);
+  transition: transform 150ms ease;
+}
+.skip-link:focus { transform: translateY(0); outline: 2px solid #C99A2E; outline-offset: 2px; }

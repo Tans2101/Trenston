@@ -203,6 +203,11 @@ export default function Landing() {
               <RuledItem key={s.n} dark i={i} index={Number(s.n)} title={s.title} body={s.body} />
             ))}
           </div>
+          <div className="mt-14">
+            <MkButton variant="light" onClick={enter} data-testid="how-cta-btn">
+              {authed ? "Open your cockpit" : "Start free"}
+            </MkButton>
+          </div>
         </div>
       </section>
 

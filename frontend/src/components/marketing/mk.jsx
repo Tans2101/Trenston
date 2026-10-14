@@ -33,8 +33,9 @@ export function MkPage({ authed, onEnter, active, children, className }) {
   return (
     <MotionConfig reducedMotion="user">
       <div className={cn("mk min-h-screen overflow-x-hidden bg-white text-mk-black antialiased", className)}>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
         <MarketingNav authed={authed} onEnter={onEnter} active={active} />
-        <main>{children}</main>
+        <main id="main-content" tabIndex={-1}>{children}</main>
         <MarketingFooter />
       </div>
     </MotionConfig>
