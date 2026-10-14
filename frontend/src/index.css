@@ -1771,3 +1771,34 @@ html[data-theme="light"] .app-shell .cir-rail__section { color: #8A8F98; }
 
 /* Top bar and inputs: lighter edges to match. */
 html[data-theme="light"] .app-shell [data-testid="desktop-top-bar"] { border-bottom-color: #ECECEA; }
+
+/* Light app canvas is pure white (overrides the earlier off-white canvas). Cards are
+   told apart by a soft border, not by a gray page behind them. */
+html[data-theme="light"] .app-shell {
+  --helm-bg: #FFFFFF;
+  --helm-line: #E8E8E5;
+  background: #FFFFFF;
+}
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] #root,
+html[data-theme="light"] .app-shell,
+html[data-theme="light"] .app-shell .bg-helm-bg,
+html[data-theme="light"] .app-shell [class*="bg-helm-bg"],
+html[data-theme="light"] .app-shell .bg-helm-cream,
+html[data-theme="light"] .app-shell [class*="bg-helm-cream"] {
+  background-color: #FFFFFF !important;
+}
+html[data-theme="light"] .app-shell .border-helm-line,
+html[data-theme="light"] .app-shell [class*="border-helm-line"] {
+  border-color: #E8E8E5 !important;
+}
+/* Intro card: quiet white panel with an accent edge instead of a gray-blue tint. */
+html[data-theme="light"] .app-shell [data-testid="page-intro"] {
+  background: #FFFFFF;
+  border: 1px solid #E8E8E5;
+  border-left: 3px solid var(--app-accent);
+  border-radius: 10px;
+}
+/* Kanban columns and other soft wells: whisper-gray so cards inside still pop. */
+html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-color: #FAFAF8; }
