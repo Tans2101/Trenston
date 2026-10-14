@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   LayoutDashboard, GitBranch, Activity, KanbanSquare,
@@ -41,20 +41,20 @@ import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
 const SKIP_WELCOME_KEY = "trenston.setup.skipWelcome";
 
 const NAV = [
-  { to: "/app/me", label: "My Day", icon: Sun, id: "myday", end: true },
-  { to: "/app", label: "Briefing", icon: LayoutDashboard, id: "briefing", end: true },
-  { to: "/app/map", label: "Company map", icon: Network, id: "map", ownerOnly: true },
-  { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions" },
-  { to: "/app/telemetry", label: "Telemetry", icon: Activity, id: "telemetry", section: "telemetry" },
-  { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials" },
-  { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials" },
-  { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks" },
-  { to: "/app/automations", label: "Automations", icon: Zap, id: "automations", ownerOnly: true },
-  { to: "/app/reports", label: "Reports", icon: FileText, id: "reports" },
-  { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar" },
-  { to: "/app/people", label: "People", icon: Contact, id: "people" },
-  { to: "/app/ask", label: "Ask Trenston", icon: MessageSquareText, id: "ask" },
-  { to: "/app/members", label: "Team & Access", icon: UsersRound, id: "members", perm: "members:invite" },
+  { to: "/app/me", label: "My Day", icon: Sun, id: "myday", end: true, group: "Today" },
+  { to: "/app", label: "Briefing", icon: LayoutDashboard, id: "briefing", end: true, group: "Today" },
+  { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions", group: "Today" },
+  { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks", group: "Today" },
+  { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar", group: "Today" },
+  { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials", group: "Money" },
+  { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials", group: "Money" },
+  { to: "/app/telemetry", label: "Telemetry", icon: Activity, id: "telemetry", section: "telemetry", group: "Money" },
+  { to: "/app/map", label: "Company map", icon: Network, id: "map", ownerOnly: true, group: "Company" },
+  { to: "/app/people", label: "People", icon: Contact, id: "people", group: "Company" },
+  { to: "/app/reports", label: "Reports", icon: FileText, id: "reports", group: "Company" },
+  { to: "/app/automations", label: "Automations", icon: Zap, id: "automations", ownerOnly: true, group: "Company" },
+  { to: "/app/ask", label: "Ask Trenston", icon: MessageSquareText, id: "ask", group: "Company" },
+  { to: "/app/members", label: "Team & Access", icon: UsersRound, id: "members", perm: "members:invite", group: "Company" },
 ];
 
 function navItemVisible(item, user, { modelingAllowed = false } = {}) {
@@ -536,8 +536,13 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
         >
           {mainNav.map((item, index) => {
             const shortcut = navShortcutLabel(index);
+            const showGroup = index > 0 && item.group && item.group !== mainNav[index - 1].group;
             return (
-              <SmoothTabItem key={item.id} id={item.id}>
+              <React.Fragment key={item.id}>
+              {showGroup ? (
+                <p className="cir-rail__section" title={item.group}>{item.group}</p>
+              ) : null}
+              <SmoothTabItem id={item.id}>
                 <NavLink
                   to={item.to}
                   end={item.end}
@@ -564,6 +569,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
                   )}
                 </NavLink>
               </SmoothTabItem>
+              </React.Fragment>
             );
           })}
           {deptNav.length > 0 ? (
@@ -604,7 +610,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
       </nav>
 
       <div className="px-1 pb-2 space-y-2">
-        <div className="rail-expanded-only">
+        <div className="rail-expanded-only rail-promo-wrap">
           <SidebarPromoCard
             billingEnforced={billingEnforced}
             isPaid={isPaid}

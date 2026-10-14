@@ -1673,3 +1673,8 @@ html[data-theme="dark"] .plan-badge[data-plan="trial"]    { background: rgba(245
 .app-shell[data-sidebar="collapsed"] .app-rail .cir-rail__section {
   height: 1px; padding: 0; margin: 0.625rem 0.75rem; overflow: hidden; font-size: 0; background: var(--cir-edge);
 }
+
+/* Short laptop screens: hide the promo card so the grouped nav list keeps its room. */
+@media (max-height: 820px) {
+  .app-shell .rail-promo-wrap { display: none; }
+}
