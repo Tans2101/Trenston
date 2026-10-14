@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { UserPlus, User, Mail, Copy, Link2, Shield, Check } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, SkeletonCardList } from "@/components/kit";
@@ -33,10 +34,9 @@ export default function Members() {
   const [deptsDraft, setDeptsDraft] = useState(null);
   const [accessBusy, setAccessBusy] = useState(false);
 
-  useEffect(() => {
-    setGrantsDraft(null);
-    setDeptsDraft(null);
-  }, [accessData]);
+  // Drafts are cleared after a save. They used to be cleared on every refetch of
+  // /access/sections too, so tabbing away and back silently threw away unsaved toggles.
+  useSoftRefreshToast(error, data, "Could not refresh the team. Showing the last loaded list.");
 
   if (loading) {
     return (
@@ -46,7 +46,7 @@ export default function Members() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load team"
@@ -118,7 +118,8 @@ export default function Members() {
   };
 
   const invite = async () => {
-    if (!email.trim()) return;
+    if (busy || !email.trim()) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { toast.error("Enter a valid email address"); return; }
     setBusy(true);
     try {
       const { data: res } = await api.post("/members/invite", { email: email.trim(), pack });
@@ -153,8 +154,14 @@ export default function Members() {
     } catch (e) { toast.error(e?.response?.data?.detail || "Could not remove this member. Please try again."); }
   };
 
-  const copyCode = () => {
-    if (codeData?.join_code) { navigator.clipboard?.writeText(codeData.join_code); toast.success("Invite code copied"); }
+  const copyCode = async () => {
+    if (!codeData?.join_code) return;
+    try {
+      await navigator.clipboard.writeText(codeData.join_code);
+      toast.success("Invite code copied");
+    } catch {
+      toast.error("Could not copy. Select the code instead");
+    }
   };
 
   return (
@@ -311,6 +318,9 @@ export default function Members() {
             >
               {accessBusy ? "Saving…" : "Save access"}
             </button>
+          )}
+          {(grantsDraft || deptsDraft) && !accessBusy && (
+            <span className="ml-3 text-xs text-helm-muted" data-testid="access-unsaved">Unsaved changes</span>
           )}
         </GlassCard>
       )}

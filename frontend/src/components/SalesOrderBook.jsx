@@ -182,6 +182,11 @@ export default function SalesOrderBook() {
       toast.error("Customer, country, and product or service are required");
       return;
     }
+    // Empty boxes are not zero: Number("") is 0, which used to save a free order.
+    if (String(form.price ?? "").trim() === "" || String(form.quantity ?? "").trim() === "") {
+      toast.error("Enter a price and quantity");
+      return;
+    }
     const price = Number(form.price);
     const quantity = Number(form.quantity);
     if (!Number.isFinite(price) || price < 0 || !Number.isFinite(quantity) || quantity <= 0) {

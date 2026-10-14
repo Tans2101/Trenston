@@ -283,8 +283,8 @@ export default function Decisions() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowForm(false)} />
-          <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="decision-form">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit decision" : "Log a decision"}</h3><button onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit decision" : "Log a decision"} onKeyDown={(e) => { if (e.key === "Escape") setShowForm(false); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="decision-form">
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit decision" : "Log a decision"}</h3><button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
             <label className="text-xs text-helm-muted block">Title
               <input data-testid="decision-title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Approve Q3 infra budget" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
             </label>

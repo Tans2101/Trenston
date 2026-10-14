@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpRight, Send, UserCheck, Users, Mail, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import GetStarted from "@/components/guide/GetStarted";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -34,6 +35,7 @@ function BriefLabel({ children, className }) {
 
 export default function Briefing() {
   const { user } = useAuth();
+  const tz = useWorkspaceTimezone();
   const canManageIntegrations = hasPerm(user, "integrations:manage");
   const { data, loading: briefingLoading, error: briefingError, reload: reloadBriefing, setData } = useFetch("/briefing");
   const { data: company, loading: companyLoading, error: companyError, reload: reloadCompany } = useCompanyQuery();
@@ -222,8 +224,10 @@ export default function Briefing() {
     }
   };
 
-  const { greeting: timeGreet, briefingLabel } = dayPartGreeting();
-  const greeting = `${timeGreet}, ${company?.ceo_name?.split(" ")[0] || "there"}`;
+  const { greeting: timeGreet, briefingLabel } = dayPartGreeting(new Date(), tz);
+  // Greet whoever is signed in; a teammate opening Briefing is not the CEO.
+  const firstName = (user?.name || company?.ceo_name || "").trim().split(/\s+/)[0] || "there";
+  const greeting = `${timeGreet}, ${firstName}`;
   const showIntegrationsPrompt = Boolean(
     canManageIntegrations
     && integPrompt

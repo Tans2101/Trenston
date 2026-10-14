@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Plus, X, Factory } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -221,6 +222,7 @@ function UnitField({
 
 export default function Production() {
   const { data, loading, error, reload } = useFetch("/production/work-orders");
+  useSoftRefreshToast(error, data);
   const { data: membersData } = useFetch("/members");
   const tz = useWorkspaceTimezone();
   const { symbol: workspaceSymbol } = useWorkspaceCurrency();
@@ -369,8 +371,10 @@ export default function Production() {
       </div>
     );
   }
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps the page; losing access or the department still wins.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen
@@ -420,8 +424,8 @@ export default function Production() {
     }
     if (form.quantity_planned !== "") {
       const q = Number(form.quantity_planned);
-      if (!Number.isFinite(q)) {
-        toast.error("Quantity planned must be a number");
+      if (!Number.isFinite(q) || q < 0) {
+        toast.error("Quantity planned must be zero or more");
         return;
       }
       body.quantity_planned = q;
@@ -492,16 +496,16 @@ export default function Production() {
     if (draft.quantity_planned === "") body.quantity_planned = null;
     else {
       const q = Number(draft.quantity_planned);
-      if (!Number.isFinite(q)) {
-        toast.error("Quantity planned must be a number");
+      if (!Number.isFinite(q) || q < 0) {
+        toast.error("Quantity planned must be zero or more");
         return;
       }
       body.quantity_planned = q;
     }
     if (draft.quantity_produced !== "" && draft.quantity_produced != null) {
       const q = Number(draft.quantity_produced);
-      if (!Number.isFinite(q)) {
-        toast.error("Quantity produced must be a number");
+      if (!Number.isFinite(q) || q < 0) {
+        toast.error("Quantity produced must be zero or more");
         return;
       }
       body.quantity_produced = q;
@@ -888,6 +892,8 @@ export default function Production() {
                     data-deeplink={order.id}
                     data-testid={`production-row-${order.id}`}
                     onClick={() => setSelectedId(order.id)}
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(order.id); } }}
                     className={cn(
                       "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                       selectedId === order.id && "bg-helm-gold/12",
@@ -982,7 +988,7 @@ export default function Production() {
               <SectionLabel>Work order</SectionLabel>
               <p className="text-helm-fg text-sm mt-1">{selected.reference}</p>
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} className="text-helm-muted hover:text-helm-fg">
+            <button type="button" onClick={() => setSelectedId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
               <X className="w-4 h-4" />
             </button>
           </div>

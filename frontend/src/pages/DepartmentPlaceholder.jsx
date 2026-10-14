@@ -20,8 +20,10 @@ export default function DepartmentPlaceholder() {
     );
   }
 
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps showing the page; access/enablement changes still win.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen

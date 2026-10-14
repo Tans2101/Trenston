@@ -211,7 +211,8 @@ export default function AccountSettings() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Revoking right after click() can cancel the download in Safari/Firefox.
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast.success("Export downloaded");
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Could not export data");
@@ -223,6 +224,10 @@ export default function AccountSettings() {
   const exportActivity = async () => {
     if (!actStart || !actEnd) {
       toast.error("Choose a start and end date");
+      return;
+    }
+    if (actStart > actEnd) {
+      toast.error("The start date must be on or before the end date");
       return;
     }
     setBusy("activity");
@@ -239,7 +244,8 @@ export default function AccountSettings() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Revoking right after click() can cancel the download in Safari/Firefox.
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast.success("Activity log downloaded");
     } catch (e) {
       toast.error(await blobErrorDetail(e, "Could not export activity log"));

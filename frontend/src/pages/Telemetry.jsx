@@ -121,7 +121,7 @@ export default function Telemetry() {
   const [risks, setRisks] = useState([]);
   const [notes, setNotes] = useState("");
   const [targetEnabled, setTargetEnabled] = useState(false);
-  const [growthPct, setGrowthPct] = useState(3);
+  const [growthPct, setGrowthPct] = useState("3");
   const [busy, setBusy] = useState(false);
 
   if (error && !data) {
@@ -187,13 +187,21 @@ export default function Telemetry() {
     setTargetEnabled(!!data.targets?.enabled);
     setGrowthPct(
       data.targets?.monthly_growth_pct != null && data.targets.monthly_growth_pct !== ""
-        ? Number(data.targets.monthly_growth_pct)
-        : 3,
+        ? String(data.targets.monthly_growth_pct)
+        : "3",
     );
     setEditing(true);
   };
 
   const saveTelemetry = async () => {
+    // The field keeps what was typed (so "-", "2." and "" are allowed mid-edit);
+    // parse and clamp only when saving.
+    const parsedGrowth = Number(String(growthPct).trim());
+    if (targetEnabled && (String(growthPct).trim() === "" || !Number.isFinite(parsedGrowth))) {
+      toast.error("Enter a target growth %");
+      return;
+    }
+    const growth = Number.isFinite(parsedGrowth) ? Math.max(-100, Math.min(1000, parsedGrowth)) : 0;
     setBusy(true);
     try {
       await api.patch("/telemetry", {
@@ -201,7 +209,7 @@ export default function Telemetry() {
         notes: notes.trim(),
         targets: {
           enabled: !!targetEnabled,
-          monthly_growth_pct: Number.isFinite(Number(growthPct)) ? Number(growthPct) : 0,
+          monthly_growth_pct: growth,
         },
       });
       toast.success("Telemetry updated");
@@ -496,7 +504,7 @@ export default function Telemetry() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setEditing(false)} />
-          <GlassCard className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="telemetry-edit-form">
+          <GlassCard role="dialog" aria-modal="true" aria-label="Edit telemetry" onKeyDown={(e) => { if (e.key === "Escape") setEditing(false); }} className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="telemetry-edit-form">
             <h3 className="text-lg text-helm-fg font-light">Edit telemetry</h3>
             <p className="text-xs text-helm-muted mt-1 mb-5 leading-relaxed">
               Set an optional revenue target and track risks scored 1–5 for likelihood and impact.
@@ -526,7 +534,7 @@ export default function Telemetry() {
                     min="-100"
                     max="1000"
                     value={growthPct}
-                    onChange={(e) => setGrowthPct(Math.max(-100, Math.min(1000, Number(e.target.value) || 0)))}
+                    onChange={(e) => setGrowthPct(e.target.value)}
                     data-testid="target-growth-pct"
                     className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
                   />

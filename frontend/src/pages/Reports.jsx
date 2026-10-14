@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { FileText, Plus, PenLine, X, Copy, Download, Check, ArrowRight } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage, blobErrorDetail } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList } from "@/components/kit";
@@ -40,6 +41,7 @@ export default function Reports() {
   const [finExporting, setFinExporting] = useState(null);
   const [finPreview, setFinPreview] = useState(null);
   const [finPreviewLoading, setFinPreviewLoading] = useState(false);
+  useSoftRefreshToast(error, data, "Could not refresh reports. Showing the last loaded data.");
 
   useEffect(() => () => {
     if (copyTimer.current) clearTimeout(copyTimer.current);
@@ -85,7 +87,7 @@ export default function Reports() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load reports"
@@ -112,10 +114,10 @@ export default function Reports() {
     setEditing(r.id);
     setPublishingDraftId(null);
     setForm({
-      title: r.title,
-      type: r.type,
-      period: r.period,
-      summary: r.summary,
+      title: r.title || "",
+      type: r.type || "General",
+      period: r.period || "",
+      summary: r.summary || "",
       metrics: (r.metrics?.length ? r.metrics : emptyReport().metrics).slice(0, 3),
     });
     setShowForm(true);
@@ -215,7 +217,8 @@ export default function Reports() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Revoking right after click() can cancel the download in Safari/Firefox.
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast.success(kind === "pdf" ? "PDF downloaded" : "Excel downloaded");
     } catch (e) {
       toast.error(await blobErrorDetail(e, "Could not download export"));
@@ -239,7 +242,8 @@ export default function Reports() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      // Revoking right after click() can cancel the download in Safari/Firefox.
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(await blobErrorDetail(e, "Could not download PDF"));
@@ -506,10 +510,10 @@ export default function Reports() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={closeForm} />
-          <GlassCard className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="report-form">
+          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit report" : "Add a report"} onKeyDown={(e) => { if (e.key === "Escape") closeForm(); }} className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="report-form">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg text-helm-fg font-light">{editing ? "Edit report" : publishingDraftId ? "Review department draft" : "Add a report"}</h3>
-              <button onClick={closeForm} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
+              <button type="button" aria-label="Close" onClick={closeForm} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <label className="text-xs text-helm-muted block">Title
@@ -557,7 +561,7 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
       data-testid={`report-${r.id}`}
     >
       {canWrite && onEdit && (
-        <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute top-3 right-3 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
           <button type="button" onClick={onEdit} className="text-helm-muted hover:text-helm-gold p-1" aria-label="Edit report"><PenLine className="w-3.5 h-3.5" /></button>
           <CirDeleteBtn onClick={onDelete} title="Delete report" />
         </div>
@@ -753,7 +757,10 @@ function PackPreview({ content }) {
         if (/^[-*]\s+/.test(line)) {
           const body = line.replace(/^[-*]\s+/, "");
           const stamp = stampLabelForLine(body);
-          const money = body.match(/^(.*?)(\s+[–—-]\s+)?([£$€]?[\d,]+\.?\d*\s*[KMB]?%?)\s*$/);
+          // Trailing figure goes in the right-hand column. Covers ₱, ₹, ¥ and S$ as well
+          // as $ £ €, and leaves a bare year ("… in 2026") in the sentence.
+          const rawMoney = body.match(/^(.*?)(\s+[–—-]\s+)?((?:S\$|[£$€₱₹¥])?-?[\d,]+\.?\d*\s*[KMB]?%?)\s*$/);
+          const money = rawMoney && !/^(19|20)\d{2}$/.test(rawMoney[3].trim()) && rawMoney[1].trim() ? rawMoney : null;
           return (
             <div
               key={index}

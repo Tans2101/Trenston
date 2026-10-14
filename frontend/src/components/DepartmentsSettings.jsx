@@ -42,7 +42,7 @@ export default function DepartmentsSettings() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) { // keep settings on screen if only a background refresh failed
     return (
       <ErrorScreen
         label="Could not load departments"

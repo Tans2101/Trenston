@@ -5,6 +5,7 @@ import { Plus, X, Users, ChevronUp, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { Link, useSearchParams } from "react-router-dom";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -56,6 +57,7 @@ export default function HR() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState(() => tabFromParams(searchParams));
   const { data, loading, error, reload } = useFetch("/hr/onboarding");
+  useSoftRefreshToast(error, data);
   const { data: tmplData, reload: reloadTmpl } = useFetch("/hr/template");
   const { data: empData, reload: reloadEmp } = useFetch("/hr/employees");
   const { data: offData, reload: reloadOff } = useFetch("/hr/offboarding");
@@ -233,8 +235,10 @@ export default function HR() {
       </div>
     );
   }
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps the page; losing access or the department still wins.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen
@@ -259,6 +263,10 @@ export default function HR() {
   const createInstance = async () => {
     if (!form.hire_name.trim()) {
       toast.error("Hire name is required");
+      return;
+    }
+    if (form.hire_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.hire_email.trim())) {
+      toast.error("Enter a valid email, or leave it blank");
       return;
     }
     setBusy(true);
@@ -426,6 +434,10 @@ export default function HR() {
     }
     if (!leaveForm.start_date || !leaveForm.end_date) {
       toast.error("Start and end dates are required");
+      return;
+    }
+    if (leaveForm.end_date < leaveForm.start_date) {
+      toast.error("The end date can't be before the start date");
       return;
     }
     setBusy(true);
@@ -639,6 +651,8 @@ export default function HR() {
                         data-deeplink={inst.id}
                         data-testid={`hr-row-${inst.id}`}
                         onClick={() => setSelectedId(inst.id)}
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(inst.id); } }}
                         className={cn(
                           "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                           selectedId === inst.id && "bg-helm-gold/12",
@@ -686,7 +700,7 @@ export default function HR() {
                     <p className="text-xs text-helm-muted">{selected.hire_email}</p>
                   )}
                 </div>
-                <button type="button" onClick={() => setSelectedId(null)} className="text-helm-muted hover:text-helm-fg">
+                <button type="button" onClick={() => setSelectedId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -819,6 +833,8 @@ export default function HR() {
                         data-deeplink={emp.id}
                         data-testid={`hr-employee-${emp.id}`}
                         onClick={() => setSelectedEmpId(emp.id)}
+                        tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedEmpId(emp.id); } }}
                         className={cn(
                           "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                           selectedEmpId === emp.id && "bg-helm-gold/12",
@@ -849,7 +865,7 @@ export default function HR() {
                     Employment record only. Trenston never stores medical data, government IDs, compensation, or protected characteristics.
                   </p>
                 </div>
-                <button type="button" onClick={() => setSelectedEmpId(null)} className="text-helm-muted hover:text-helm-fg">
+                <button type="button" onClick={() => setSelectedEmpId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1055,6 +1071,8 @@ export default function HR() {
                       data-deeplink={inst.id}
                       data-testid={`hr-off-row-${inst.id}`}
                       onClick={() => setSelectedOffId(inst.id)}
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedOffId(inst.id); } }}
                       className={cn(
                         "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                         selectedOffId === inst.id && "bg-helm-gold/12",
@@ -1090,7 +1108,7 @@ export default function HR() {
                     Employee stays active until every step is marked done.
                   </p>
                 </div>
-                <button type="button" onClick={() => setSelectedOffId(null)} className="text-helm-muted hover:text-helm-fg">
+                <button type="button" onClick={() => setSelectedOffId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -1191,7 +1209,7 @@ export default function HR() {
       {addingLeave && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAddingLeave(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="hr-leave-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setAddingLeave(false); }} className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="hr-leave-modal">
             <div className="flex items-center justify-between">
               <p className="text-sm text-helm-fg font-medium">Request leave</p>
               <button type="button" onClick={() => setAddingLeave(false)} className="text-helm-muted hover:text-helm-fg">
@@ -1278,7 +1296,7 @@ export default function HR() {
       {adding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAdding(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="hr-create-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setAdding(false); }} className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="hr-create-modal">
             <div className="flex items-center justify-between">
               <p className="text-sm text-helm-fg font-medium">Start onboarding</p>
               <button type="button" onClick={() => setAdding(false)} className="text-helm-muted hover:text-helm-fg">
@@ -1333,7 +1351,7 @@ export default function HR() {
       {editingTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setEditingTemplate(false)} />
-          <div className="relative w-full max-w-lg rounded-md border border-helm-line bg-helm-card p-5 space-y-3 max-h-[85vh] overflow-y-auto" data-testid="hr-template-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setEditingTemplate(false); }} className="relative w-full max-w-lg rounded-md border border-helm-line bg-helm-card p-5 space-y-3 max-h-[85vh] overflow-y-auto" data-testid="hr-template-modal">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-helm-fg font-medium">Onboarding template</p>
@@ -1395,7 +1413,7 @@ export default function HR() {
       {editingOffTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setEditingOffTemplate(false)} />
-          <div className="relative w-full max-w-lg rounded-md border border-helm-line bg-helm-card p-5 space-y-3 max-h-[85vh] overflow-y-auto" data-testid="hr-offboarding-template-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setEditingOffTemplate(false); }} className="relative w-full max-w-lg rounded-md border border-helm-line bg-helm-card p-5 space-y-3 max-h-[85vh] overflow-y-auto" data-testid="hr-offboarding-template-modal">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-helm-fg font-medium">Offboarding template</p>

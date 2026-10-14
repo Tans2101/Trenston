@@ -353,6 +353,10 @@ export default function Automations() {
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setBuilding(false)} />
           <form
             onSubmit={submitForm}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Build a rule"
+            onKeyDown={(e) => { if (e.key === "Escape" && !busy) setBuilding(false); }}
             className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-md border border-helm-line bg-helm-card p-5 space-y-4"
             data-testid="rule-builder"
           >

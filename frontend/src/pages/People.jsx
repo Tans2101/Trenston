@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Plus, PenLine, X, AlertTriangle } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonCardList } from "@/components/kit";
@@ -62,6 +63,7 @@ export default function People() {
   const [busy, setBusy] = useState(false);
 
   const roster = useMemo(() => sortRoster(data?.people), [data?.people]);
+  useSoftRefreshToast(error, data, "Could not refresh the roster. Showing the last loaded list.");
 
   if (loading) {
     return (
@@ -72,7 +74,7 @@ export default function People() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load roster"
@@ -91,9 +93,11 @@ export default function People() {
   const openAdd = () => { setEditing(null); setForm(emptyForm()); setShowForm(true); };
   const openEdit = (p) => {
     setEditing(p.id);
+    // People synced from Team & Access can have no role; a null here crashed Save
+    // (role.trim()) and left the button stuck on "Saving…".
     setForm({
-      name: p.name,
-      role: p.role,
+      name: p.name || "",
+      role: p.role || "",
       inviteToAccess: false,
       email: p.email || "",
       pack: "member",
@@ -105,6 +109,7 @@ export default function People() {
     if (!form.name.trim()) { toast.error("Name is required"); return; }
     if (!editing && form.inviteToAccess) {
       if (!form.email.trim()) { toast.error("Email is required to include in Team & Access"); return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) { toast.error("Enter a valid email address"); return; }
     }
     setBusy(true);
     const payload = { name: form.name.trim(), role: form.role.trim() };
@@ -235,7 +240,7 @@ export default function People() {
                   title={p.has_access ? "Has Trenston login" : "Roster only, no login"}
                   data-testid={`person-avatar-${p.id}`}
                 >
-                  {p.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  {String(p.name || "?").trim().split(/\s+/).map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -285,8 +290,8 @@ export default function People() {
                   )}
                 </div>
                 {canWrite && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEdit(p)} data-testid={`edit-person-${p.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
+                  <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+                    <button type="button" onClick={() => openEdit(p)} aria-label={`Edit ${p.name}`} data-testid={`edit-person-${p.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
                     <CirDeleteBtn onClick={() => del(p)} data-testid={`del-person-${p.id}`} title={p.has_access ? "Has a Team & Access login. Remove them there first, or confirm to try removing from the roster." : "Remove"} />
                   </div>
                 )}
@@ -306,8 +311,8 @@ function PersonForm({ form, setForm, submit, busy, editing, person, close, canIn
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-helm-ink/70" onClick={close} />
-      <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="person-form">
-        <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit person" : "Add a person"}</h3><button onClick={close} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+      <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit person" : "Add a person"} onKeyDown={(e) => { if (e.key === "Escape") close(); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="person-form">
+        <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit person" : "Add a person"}</h3><button type="button" aria-label="Close" onClick={close} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
         <div className="grid grid-cols-2 gap-3">
           <label className="col-span-2 text-xs text-helm-muted">Name
             <input data-testid="person-name" value={form.name} onChange={set("name")} placeholder="Jane Doe" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />

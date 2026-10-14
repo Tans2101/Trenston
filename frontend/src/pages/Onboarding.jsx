@@ -40,7 +40,7 @@ function Box({ checked }) {
 }
 
 export default function Onboarding() {
-  const { data, loading, error, reload } = useDepartmentsQuery();
+  const { data, loading, reload } = useDepartmentsQuery();
   const { data: company } = useCompanyQuery();
   const hasTeam = company?.has_team !== false;
   const [step, setStep] = useState("departments"); // departments | template
@@ -110,7 +110,7 @@ export default function Onboarding() {
     );
   }
 
-  if (error || !data) {
+  if (!data) { // keep the wizard on screen if only a background refresh failed
     return (
       <ErrorScreen
         label="Could not load departments"

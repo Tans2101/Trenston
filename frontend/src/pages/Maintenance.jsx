@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, X, Wrench } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api, apiErrorMessage } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -112,6 +113,7 @@ function formatTicketOpenHours(seconds) {
 
 export default function Maintenance() {
   const { data, loading, error, reload } = useFetch("/maintenance/tickets");
+  useSoftRefreshToast(error, data);
   const { symbol: workspaceSymbol } = useWorkspaceCurrency();
   const moneySymbol = data?.currency_symbol || workspaceSymbol;
   const { data: membersData } = useFetch("/members");
@@ -216,8 +218,10 @@ export default function Maintenance() {
       </div>
     );
   }
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps the page; losing access or the department still wins.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen
@@ -470,6 +474,8 @@ export default function Maintenance() {
                   data-deeplink={t.id}
                   data-testid={`maintenance-row-${t.id}`}
                   onClick={() => setSelectedId(t.id)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(t.id); } }}
                   className={cn(
                     "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                     selectedId === t.id && "bg-helm-gold/12",
@@ -518,7 +524,7 @@ export default function Maintenance() {
                 <ChronicEquipmentBadge ticket={selected} />
               </div>
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} className="text-helm-muted hover:text-helm-fg">
+            <button type="button" onClick={() => setSelectedId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -673,7 +679,7 @@ export default function Maintenance() {
       {adding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAdding(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="maintenance-create-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setAdding(false); }} className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="maintenance-create-modal">
             <div className="flex items-center justify-between">
               <p className="text-sm text-helm-fg font-medium">Report maintenance ticket</p>
               <button type="button" onClick={() => setAdding(false)} className="text-helm-muted hover:text-helm-fg">

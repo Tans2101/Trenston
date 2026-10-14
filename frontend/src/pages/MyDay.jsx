@@ -9,7 +9,7 @@ import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { api } from "@/lib/api";
 import GetStarted from "@/components/guide/GetStarted";
 import { useAuth } from "@/context/AuthContext";
-import { todayISO } from "@/lib/dates";
+import { formatDay, todayISO } from "@/lib/dates";
 import { dayPartGreeting } from "@/lib/greeting";
 import {
   hasMyDaySoftRefreshError,
@@ -356,7 +356,7 @@ export default function MyDay() {
           <div className="space-y-2">
             {workItems.map((item) => {
               const Icon = departmentIcon(item.icon);
-              const dueLabel = item.due_date || "No due date";
+              const dueLabel = formatDay(item.due_date, item.due_date || "No due date");
               return (
                 <Link
                   key={item.id}
@@ -452,7 +452,7 @@ export default function MyDay() {
                 >
                   <p className="text-sm leading-relaxed pr-6 whitespace-pre-wrap">{n.text}</p>
                   <div className="absolute top-2 right-2 flex gap-1">
-                    <button onClick={() => startEdit(n)} className="opacity-60 hover:opacity-100 p-0.5"><PenLine className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => startEdit(n)} aria-label="Edit note" title="Edit note" className="opacity-60 hover:opacity-100 p-0.5"><PenLine className="w-3.5 h-3.5" /></button>
                     <CirDeleteBtn onClick={() => delNote(n)} data-testid={`del-note-${n.note_id}`} title="Delete note" />
                   </div>
                 </div>
@@ -582,6 +582,7 @@ export default function MyDay() {
                     type="button"
                     disabled={taskMovingId === t.id}
                     onClick={() => moveTask(t, "done")}
+                    aria-label={`Mark "${t.title}" done`}
                     className="text-helm-muted hover:text-helm-status-positive shrink-0 disabled:opacity-50"
                   >
                     <Circle className="w-4 h-4" />
@@ -594,7 +595,7 @@ export default function MyDay() {
                   </Link>
                   {t.due && (
                     <span className={cn("text-[11px] font-mono shrink-0", overdue ? "text-helm-status-negative" : "text-helm-muted")}>
-                      {t.due}
+                      {formatDay(t.due, t.due)}
                     </span>
                   )}
                 </GlassCard>
@@ -606,6 +607,7 @@ export default function MyDay() {
                   type="button"
                   disabled={taskMovingId === t.id}
                   onClick={() => moveTask(t, "in_progress")}
+                  aria-label={`Reopen "${t.title}"`}
                   className="text-helm-status-positive shrink-0 disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-4 h-4" />

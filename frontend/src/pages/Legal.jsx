@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, X, Scale, FileText, Upload } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -60,6 +61,7 @@ export default function Legal() {
     ? `/legal/matters?counterparty=${encodeURIComponent(counterpartyFilter.trim())}`
     : "/legal/matters";
   const { data, loading, error, reload } = useFetch(mattersUrl);
+  useSoftRefreshToast(error, data);
   const { data: membersData } = useFetch("/members");
   const [showFiled, setShowFiled] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -73,6 +75,11 @@ export default function Legal() {
   const [searchParams] = useSearchParams();
   const deepItemId = searchParams.get("item");
   const handledDeepLink = useRef(null);
+  // Counterparty lookups: debounce, and drop responses that arrive after a newer
+  // keystroke (they used to overwrite the list with stale suggestions).
+  const suggestSeq = useRef(0);
+  const suggestTimer = useRef(null);
+  useEffect(() => () => clearTimeout(suggestTimer.current), []);
 
   const allMatters = useMemo(() => data?.matters || [], [data?.matters]);
   const visible = useMemo(
@@ -131,8 +138,10 @@ export default function Legal() {
       </div>
     );
   }
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps the page; losing access or the department still wins.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen
@@ -396,6 +405,9 @@ export default function Legal() {
                   data-deeplink={m.id}
                   data-testid={`legal-row-${m.id}`}
                   onClick={() => setSelectedId(m.id)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(m.id); } }}
+                  aria-label={`Open ${m.title}`}
                   className={cn(
                     "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                     selectedId === m.id && "bg-helm-gold/12",
@@ -438,7 +450,7 @@ export default function Legal() {
               <SectionLabel>Matter detail</SectionLabel>
               <p className="text-helm-fg text-sm mt-1">{selected.title}</p>
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} className="text-helm-muted hover:text-helm-fg">
+            <button type="button" onClick={() => setSelectedId(null)} aria-label="Close matter" className="text-helm-muted hover:text-helm-fg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -648,10 +660,10 @@ export default function Legal() {
       {adding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAdding(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="legal-create-modal">
+          <div role="dialog" aria-modal="true" aria-label="New legal matter" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setAdding(false); }} className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="legal-create-modal">
             <div className="flex items-center justify-between">
               <p className="text-sm text-helm-fg font-medium">New legal matter</p>
-              <button type="button" onClick={() => setAdding(false)} className="text-helm-muted hover:text-helm-fg">
+              <button type="button" onClick={() => setAdding(false)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -694,20 +706,24 @@ export default function Legal() {
               <input
                 data-testid="legal-new-counterparty"
                 value={form.counterparty}
-                onChange={async (e) => {
+                onChange={(e) => {
                   const value = e.target.value;
                   setForm((f) => ({ ...f, counterparty: value }));
                   const q = value.trim();
+                  const seq = ++suggestSeq.current;
+                  clearTimeout(suggestTimer.current);
                   if (q.length < 1) {
                     setCounterpartySuggestions([]);
                     return;
                   }
-                  try {
-                    const { data: res } = await api.get("/legal/counterparty-suggestions", { params: { q } });
-                    setCounterpartySuggestions(res?.suggestions || []);
-                  } catch {
-                    setCounterpartySuggestions([]);
-                  }
+                  suggestTimer.current = setTimeout(async () => {
+                    try {
+                      const { data: res } = await api.get("/legal/counterparty-suggestions", { params: { q } });
+                      if (seq === suggestSeq.current) setCounterpartySuggestions(res?.suggestions || []);
+                    } catch {
+                      if (seq === suggestSeq.current) setCounterpartySuggestions([]);
+                    }
+                  }, 200);
                 }}
                 placeholder="Vendor, customer, or other party"
                 className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
@@ -728,7 +744,7 @@ export default function Legal() {
                     className="w-full text-left rounded-md border border-helm-line px-3 py-1.5 text-xs text-helm-fg hover:bg-helm-fg/[0.04]"
                   >
                     <span className="font-medium">{s.counterparty}</span>
-                    <span className="text-helm-muted"> · {s.matter_count} · last {s.last_matter_date || "—"}</span>
+                    <span className="text-helm-muted"> · {s.matter_count} · last {formatDay(s.last_matter_date, s.last_matter_date || "—")}</span>
                   </button>
                 ))}
               </div>

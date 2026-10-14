@@ -7,6 +7,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useFetch, useInvalidateFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { API, api, getApiAuthHeaders, apiErrorMessage, apiForbiddenReason } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { dayPartGreeting } from "@/lib/greeting";
@@ -144,8 +145,9 @@ export default function AskHelm() {
   const sentThisVisit = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const firstName = (user?.name || company?.ceo_name || "there").split(" ")[0];
-  const { greeting: timeGreet } = dayPartGreeting();
+  const tz = useWorkspaceTimezone();
+  const firstName = (user?.name || company?.ceo_name || "there").trim().split(/\s+/)[0] || "there";
+  const { greeting: timeGreet } = dayPartGreeting(new Date(), tz);
 
   // Live-data prompts first (low runway, falling MRR), then the standing ones.
   const suggestions = useMemo(() => {
@@ -374,7 +376,7 @@ export default function AskHelm() {
 
   const empty = messages.length === 0;
   const lastIndex = messages.length - 1;
-  const showFollowUps = !empty && !streaming && !input && messages[lastIndex]?.role === "assistant" && !messages[lastIndex]?.isError;
+  const showFollowUps = !empty && !streaming && !input && !outOfMessages && messages[lastIndex]?.role === "assistant" && !messages[lastIndex]?.isError;
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-7.5rem)] w-full max-w-4xl flex-col md:h-[calc(100dvh-8.5rem)]" data-testid="ask-trenston-layout">
@@ -414,8 +416,9 @@ export default function AskHelm() {
                   key={s}
                   type="button"
                   onClick={() => send(s)}
+                  disabled={outOfMessages}
                   data-testid="ask-suggestion"
-                  className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3.5 text-left text-sm text-helm-fg transition-colors hover:border-helm-gold/35 hover:bg-helm-fg/[0.04]"
+                  className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3.5 text-left text-sm text-helm-fg transition-colors hover:border-helm-gold/35 hover:bg-helm-fg/[0.04] disabled:opacity-50 disabled:hover:border-helm-line"
                 >
                   {s}
                 </button>

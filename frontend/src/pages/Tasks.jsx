@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { buildAssigneeOptions } from "@/lib/assigneeOptions";
 import { highlightRecord } from "@/lib/signalRoute";
 import { isFatalSoftLoad, softRefreshKey } from "@/lib/softRefresh";
+import { confirmAction } from "@/components/ConfirmHost";
 
 const priorityStyle = {
   High: "text-helm-status-negative bg-helm-status-negative/12",
@@ -30,10 +31,12 @@ export default function Tasks() {
   const [form, setForm] = useState(emptyTask());
   const [busy, setBusy] = useState(false);
   const [clearingDone, setClearingDone] = useState(false);
-  const hasItems = Boolean(data?.items?.length);
   const location = useLocation();
   const navigate = useNavigate();
   const softRefreshToastKey = useRef(null);
+  // The deep link is handled once per ?task= value, not on every board update
+  // (moving or clearing cards used to re-flash it or repeat the "gone" toast).
+  const focusHandledRef = useRef(null);
   const showSkeleton = loading && !data;
   const fatalError = isFatalSoftLoad({ error, data });
   const softRefreshError = Boolean(error && data);
@@ -49,15 +52,16 @@ export default function Tasks() {
 
   // ?task=<id> deep link — scroll to and flash the card once the board renders.
   useEffect(() => {
-    if (!focusTaskId || !hasItems) return;
+    if (!focusTaskId || !data?.items || focusHandledRef.current === focusTaskId) return;
     if (isFetching) return;
-    const known = (data?.items || []).some((t) => t.id === focusTaskId);
+    focusHandledRef.current = focusTaskId;
+    const known = data.items.some((t) => t.id === focusTaskId);
     if (!known) {
       toast.error("That task is no longer on the board");
       return;
     }
     highlightRecord(focusTaskId);
-  }, [focusTaskId, hasItems, isFetching, data?.items]);
+  }, [focusTaskId, isFetching, data?.items]);
 
   useEffect(() => {
     if (!softRefreshError) {
@@ -100,6 +104,8 @@ export default function Tasks() {
 
   const move = async (taskId, column) => {
     if (movingId) return;
+    const current = data.items.find((t) => t.id === taskId);
+    if (!current || current.column === column) return;
     setMovingId(taskId);
     let snapshot = null;
     setData((prev) => {
@@ -126,6 +132,12 @@ export default function Tasks() {
 
   const clearDone = async () => {
     if (clearingDone) return;
+    if (!(await confirmAction({
+      title: "Clear finished tasks?",
+      description: "Tasks in Done are removed from the board for good.",
+      confirmLabel: "Clear",
+      destructive: true,
+    }))) return;
     setClearingDone(true);
     let snapshot = null;
     setData((prev) => {
@@ -264,9 +276,10 @@ export default function Tasks() {
                         <select
                           value={t.column}
                           onChange={(e) => move(t.id, e.target.value)}
+                          disabled={!canDrag || movingId === t.id}
                           aria-label={`Move "${t.title}" to stage`}
                           data-testid={`task-stage-${t.id}`}
-                          className="ml-auto max-w-[8.5rem] text-[10px] font-mono rounded px-1.5 py-0.5 border border-helm-line bg-helm-card text-helm-muted hover:text-helm-fg focus:outline-none focus:border-helm-gold/40"
+                          className="ml-auto max-w-[8.5rem] text-[10px] font-mono rounded px-1.5 py-0.5 border border-helm-line bg-helm-card text-helm-muted hover:text-helm-fg focus:outline-none focus:border-helm-gold/40 disabled:opacity-60 disabled:hover:text-helm-muted"
                         >
                           {data.columns.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
@@ -307,8 +320,8 @@ export default function Tasks() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowForm(false)} />
-          <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="task-form">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">New task</h3><button onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+          <GlassCard role="dialog" aria-modal="true" aria-label="New task" onKeyDown={(e) => { if (e.key === "Escape") setShowForm(false); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="task-form">
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">New task</h3><button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
             <label className="text-xs text-helm-muted block">Title
               <input data-testid="task-title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="What needs doing?" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
             </label>

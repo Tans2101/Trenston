@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, X, Package } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api, apiErrorMessage } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, ConfirmDialog,
@@ -205,6 +206,7 @@ function BlockingProductionBadge({ orders, requestId }) {
 
 export default function Procurement() {
   const { data, loading, error, reload } = useFetch("/procurement/requests");
+  useSoftRefreshToast(error, data);
   const { symbol: workspaceSymbol } = useWorkspaceCurrency();
   const moneySymbol = data?.currency_symbol || workspaceSymbol;
   const [showClosed, setShowClosed] = useState(false);
@@ -330,8 +332,10 @@ export default function Procurement() {
       </div>
     );
   }
-  if (error) {
-    const status = error?.response?.status;
+  // A failed background refresh keeps the page; losing access or the department still wins.
+  const errStatus = error?.response?.status;
+  if (error && (!data || errStatus === 403 || errStatus === 404)) {
+    const status = errStatus;
     if (status === 403) {
       return (
         <ErrorScreen
@@ -509,6 +513,11 @@ export default function Procurement() {
   };
 
   const saveProcurementBudget = async () => {
+    // An empty box used to save a budget of 0 (Number("") is 0), flagging every month as over budget.
+    if (String(budgetDraft).trim() === "") {
+      toast.error("Enter a monthly budget, or use Clear to remove it");
+      return;
+    }
     const t = Number(budgetDraft);
     if (!Number.isFinite(t) || t < 0) {
       toast.error("Enter a non-negative budget");
@@ -816,6 +825,8 @@ export default function Procurement() {
                   data-deeplink={req.id}
                   data-testid={`procurement-row-${req.id}`}
                   onClick={() => setSelectedId(req.id)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedId(req.id); } }}
                   className={cn(
                     "border-b border-helm-line cursor-pointer transition-colors hover:bg-helm-fg/[0.03]",
                     selectedId === req.id && "bg-helm-gold/12",
@@ -874,7 +885,7 @@ export default function Procurement() {
                 </div>
               )}
             </div>
-            <button type="button" onClick={() => setSelectedId(null)} className="text-helm-muted hover:text-helm-fg">
+            <button type="button" onClick={() => setSelectedId(null)} aria-label="Close" className="text-helm-muted hover:text-helm-fg">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -1139,7 +1150,7 @@ export default function Procurement() {
       {adding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => !busy && setAdding(false)} />
-          <div className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="procurement-create-modal">
+          <div role="dialog" aria-modal="true" onKeyDown={(e) => { if (e.key === "Escape" && !busy) setAdding(false); }} className="relative w-full max-w-md rounded-md border border-helm-line bg-helm-card p-5 space-y-3" data-testid="procurement-create-modal">
             <div className="flex items-center justify-between">
               <p className="text-sm text-helm-fg font-medium">New purchase request</p>
               <button type="button" onClick={() => setAdding(false)} className="text-helm-muted hover:text-helm-fg">

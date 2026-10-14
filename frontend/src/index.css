@@ -1889,7 +1889,7 @@ html[data-theme="light"] .app-shell .cir-rail {
 }
 
 /* Cards: warm fill, no outline, no shadow. Floating menus and dialogs are excluded. */
-html[data-theme="light"] .app-shell .app-main :is(div, section, article, aside, li, a, form):is(.rounded-xl, .rounded-2xl)[class*="bg-helm-card"]:not(.absolute):not(.fixed):not([class*="shadow-lg"]):not([class*="shadow-xl"]):not([class*="shadow-2xl"]):not([data-testid="briefing-ai-summary"]):not([data-testid="briefing-setup-prompt"]) {
+html[data-theme="light"] .app-shell .app-main :is(div, section, article, aside, li, a, form):is(.rounded-xl, .rounded-2xl)[class*="bg-helm-card"]:not(:is(.absolute, .fixed, .fixed *, .absolute *, [role="dialog"] *, [class*="shadow-lg"], [class*="shadow-xl"], [class*="shadow-2xl"], [data-testid="briefing-ai-summary"], [data-testid="briefing-setup-prompt"])) {
   background-color: var(--app-fill) !important;
   border-color: var(--app-fill-edge) !important;
   box-shadow: none !important;
@@ -1943,3 +1943,6 @@ html[data-theme="light"] .app-shell .app-main [data-empty-state] {
 html[data-theme="light"] .app-shell .app-main [class*="bg-helm-card"] [data-empty-state],
 html[data-theme="light"] .app-shell .app-main [class*="bg-helm-fg/[0.0"] [data-empty-state] { background-color: transparent; }
 html[data-theme="light"] .app-shell .app-main [data-empty-state] > div:first-child { background-color: #FFFFFF; }
+
+/* Company map nodes are keyboard-focusable SVG groups; show focus on the node outline. */
+[data-testid^="map-node-"]:focus-visible rect { stroke-width: 3; stroke: var(--helm-fg); }

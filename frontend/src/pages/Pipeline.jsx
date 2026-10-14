@@ -18,6 +18,8 @@ import { useWorkspaceCurrency } from "@/hooks/useWorkspaceCurrency";
 import { formatMoney } from "@/lib/money";
 import { entryHref, highlightRecord } from "@/lib/signalRoute";
 import { useAuth } from "@/context/AuthContext";
+import { formatDay } from "@/lib/dates";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 
 const stageStyle = {
   lead: "text-helm-fg bg-helm-fg/5",
@@ -140,6 +142,7 @@ export default function Pipeline() {
 
   const loading = dealsQuery.isLoading;
   const loadError = dealsQuery.error ?? null;
+  useSoftRefreshToast(loadError, dealsQuery.data, "Could not refresh deals. Showing the last loaded pipeline.");
 
   const reload = useCallback(async () => {
     setExtraDeals([]);
@@ -202,7 +205,8 @@ export default function Pipeline() {
       </div>
     );
   }
-  if (loadError || !meta) {
+  // Keep the loaded pipeline when a background refresh fails.
+  if (!meta) {
     return (
       <ErrorScreen
         label="Could not load pipeline"
@@ -275,6 +279,10 @@ export default function Pipeline() {
 
   const save = async () => {
     if (!form.name.trim()) { toast.error("Deal name required"); return; }
+    if (form.value !== "" && (!Number.isFinite(Number(form.value)) || Number(form.value) < 0)) {
+      toast.error("Deal value must be zero or more");
+      return;
+    }
     setBusy(true);
     const payload = dealPayload(form);
     try {
@@ -418,12 +426,12 @@ export default function Pipeline() {
                         <p className="text-xs text-helm-muted truncate">
                           {d.company || "—"}
                           {d.owner_name ? ` · Owner ${d.owner_name}` : ""}
-                          {d.close_date ? ` · close ${d.close_date}` : ""}
+                          {d.close_date ? ` · close ${formatDay(d.close_date, d.close_date)}` : ""}
                         </p>
                         {(d.next_step || d.next_step_date) ? (
                           <p className="text-[11px] text-helm-gold mt-0.5 truncate" data-testid={`deal-next-step-${d.id}`}>
                             Next: {d.next_step || "Follow up"}
-                            {d.next_step_date ? ` · ${d.next_step_date}` : ""}
+                            {d.next_step_date ? ` · ${formatDay(d.next_step_date, d.next_step_date)}` : ""}
                           </p>
                         ) : null}
                         {d.created_by_name ? (
@@ -442,8 +450,9 @@ export default function Pipeline() {
                         <span className={cn("text-[10px] font-mono uppercase rounded px-1.5 py-0.5", stageStyle[d.stage])}>{s.label}</span>
                       )}
                       {canWrite && (
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => openEdit(d)} data-testid={`edit-deal-${d.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
+                        <div className="flex items-center gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+                          {/* Always visible on touch screens (no hover there); hover-revealed on desktop. */}
+                          <button type="button" onClick={() => openEdit(d)} aria-label={`Edit ${d.name}`} data-testid={`edit-deal-${d.id}`} className="text-helm-muted hover:text-helm-gold p-1"><PenLine className="w-3.5 h-3.5" /></button>
                           <CirDeleteBtn onClick={() => setConfirmDeleteDeal(d)} data-testid={`del-deal-${d.id}`} title="Delete deal" />
                         </div>
                       )}
@@ -473,8 +482,8 @@ export default function Pipeline() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowForm(false)} />
-          <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="deal-form">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit deal" : "New deal"}</h3><button onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit deal" : "New deal"} onKeyDown={(e) => { if (e.key === "Escape") setShowForm(false); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="deal-form">
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">{editing ? "Edit deal" : "New deal"}</h3><button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
             <label className="text-xs text-helm-muted block">Deal name
               <input data-testid="deal-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Acme Corp Enterprise" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
             </label>

@@ -887,6 +887,22 @@ export default function AppLayout() {
   const { user, logout } = useAuth();
   const { data: billing } = useFetch("/billing/plans");
   const { data: company, loading: companyLoading } = useCompanyQuery();
+
+  // Escape closes the open in-page dialog even when focus is still on the button
+  // that opened it. Dialogs handle Escape in their own onKeyDown, which only fires
+  // when focus is inside, so forward the key to the top-most one otherwise.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+      const top = dialogs[dialogs.length - 1];
+      if (!top || top.contains(document.activeElement)) return;
+      top.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const billingEnforced = billing?.billing_enforced === true;
   const pastDue = billingEnforced && billing?.subscription_status === "past_due";
   const trialing = billing?.subscription_status === "trialing";

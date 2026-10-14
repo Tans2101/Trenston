@@ -501,6 +501,16 @@ export default function Integrations() {
   const saveSlackWebhook = async (nextUrl = slackUrl) => {
     if (!gate("slack")) return;
     const url = (nextUrl || "").trim();
+    if (!url && !(await confirmAction({
+      title: "Remove the Slack webhook?",
+      description: "Trenston stops posting alerts to Slack until you add a webhook again.",
+      confirmLabel: "Remove",
+      destructive: true,
+    }))) return;
+    if (url && !/^https:\/\/hooks\.slack\.com\//i.test(url)) {
+      toast.error("Paste a Slack Incoming Webhook URL (it starts with https://hooks.slack.com/)");
+      return;
+    }
     setSlackBusy(true);
     try {
       await api.put("/integrations/slack-webhook", { webhook_url: url });
@@ -583,13 +593,10 @@ export default function Integrations() {
       )}
 
       <h2 className="text-[11px] font-mono uppercase tracking-[0.2em] text-helm-muted mb-3">Connect your accounts</h2>
-      {data.can_manage && typeof data.encryption_ready === "boolean" && (
-        <p className="text-xs text-helm-muted mb-3" data-testid="oauth-diag">
-          Encryption: {data.encryption_ready ? "ready" : "missing INTEGRATION_ENCRYPTION_KEY on Render"}
-          {data.quickbooks_env ? ` · QuickBooks env: ${data.quickbooks_env}` : ""}
-          {data.oauth_redirect_uris?.quickbooks
-            ? ` · QB redirect: ${data.oauth_redirect_uris.quickbooks}`
-            : ""}
+      {/* Customer-facing: no hosting env names or redirect URIs, only what the owner can act on. */}
+      {data.can_manage && data.encryption_ready === false && (
+        <p className="text-xs text-helm-status-warning mb-3" data-testid="oauth-diag">
+          Secure storage for connections is not ready yet, so new connections may fail. Email contact@trenston.com and we will sort it out.
         </p>
       )}
       {oauthError && data.can_manage && (
@@ -789,8 +796,12 @@ export default function Integrations() {
       )}
 
       {sapModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" data-testid="sap-b1-connect-modal">
-          <GlassCard className="w-full max-w-md p-5">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+          data-testid="sap-b1-connect-modal"
+          onKeyDown={(e) => { if (e.key === "Escape" && !sapBusy) setSapModalOpen(false); }}
+        >
+          <GlassCard role="dialog" aria-modal="true" aria-label="Connect SAP Business One" className="w-full max-w-md p-5">
             <h3 className="text-helm-fg font-medium text-lg">Connect SAP Business One</h3>
             <p className="text-sm text-helm-muted mt-1 leading-relaxed">
               Enter your Service Layer URL and company login. Trenston encrypts these credentials and syncs A/R + A/P invoices into Financials.
@@ -820,6 +831,7 @@ export default function Integrations() {
                 Username
                 <input
                   data-testid="sap-b1-username"
+                  autoComplete="off"
                   value={sapForm.username}
                   onChange={(e) => setSapForm((f) => ({ ...f, username: e.target.value }))}
                   className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40"
@@ -829,6 +841,8 @@ export default function Integrations() {
                 Password
                 <input
                   type="password"
+                  // Stops the browser auto-filling the user's saved Trenston password here.
+                  autoComplete="new-password"
                   data-testid="sap-b1-password"
                   value={sapForm.password}
                   onChange={(e) => setSapForm((f) => ({ ...f, password: e.target.value }))}

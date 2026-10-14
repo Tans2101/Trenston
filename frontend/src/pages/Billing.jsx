@@ -4,6 +4,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, ArrowLeft, ShieldCheck, ExternalLink, AlertTriangle } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
+import { confirmAction } from "@/components/ConfirmHost";
 import { api } from "@/lib/api";
 import { initPaddle } from "@/lib/paddle";
 import { PLANS } from "@/lib/marketingCopy";
@@ -86,6 +88,7 @@ export default function Billing() {
   const [busy, setBusy] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  useSoftRefreshToast(error, data, "Could not refresh billing. Showing the last loaded plan.");
 
   useEffect(() => {
     const notice = location.state?.billingNotice;
@@ -108,7 +111,7 @@ export default function Billing() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load billing"
@@ -150,7 +153,7 @@ export default function Billing() {
     track("upgrade_click", { plan: planId });
     const tier = plans.find((p) => p.id === planId);
     if (tier && tier.checkout_available === false) {
-      toast.error(`${tier.label} checkout isn’t set up yet. Add PADDLE_PRICE_ID_${planId.toUpperCase()} on Render`);
+      toast.error(`${tier.label} checkout isn’t available yet. Try again soon, or email contact@trenston.com.`);
       return;
     }
     setBusy(planId);
@@ -175,13 +178,13 @@ export default function Billing() {
               String(detail || "").toLowerCase().includes("default payment link") ||
               String(detail || "").toLowerCase().includes("approved")
             ) {
-              toast.error(
-                "Paddle checkout isn’t approved for this domain yet. In Paddle → Checkout: set Default payment link to https://www.trenston.com/app/billing and approve trenston.com / www.trenston.com.",
-              );
+              console.error("[billing] Paddle checkout domain not approved", code, detail);
+              toast.error("Checkout couldn’t start. Please try again in a few minutes, or email contact@trenston.com.");
               return;
             }
             if (name === "checkout.error") {
-              toast.error(detail || "Paddle checkout failed. Check the browser console for details.");
+              console.error("[billing] Paddle checkout error", ev);
+              toast.error(detail || "Checkout failed. Please try again.");
               return;
             }
             if (detail) toast.message(detail);
@@ -205,7 +208,7 @@ export default function Billing() {
         cfg.paddle_customer_id,
       );
       Paddle.Checkout.open({
-        settings: { displayMode: "overlay", theme: "dark" },
+        settings: { displayMode: "overlay", theme: document.documentElement.dataset.theme === "light" ? "light" : "dark" },
         items: [{ priceId: cfg.price_id, quantity: 1 }],
         customData: {
           workspace_id: cfg.workspace_id,
@@ -223,6 +226,13 @@ export default function Billing() {
   };
 
   const scheduleDowngrade = async (planId) => {
+    const target = plans.find((p) => p.id === planId);
+    if (!(await confirmAction({
+      title: `Downgrade to ${target?.label || planId}?`,
+      description: "It takes effect at the end of this billing period. Features not in that plan turn off then. There is no refund for the rest of this period.",
+      confirmLabel: "Schedule downgrade",
+      destructive: true,
+    }))) return;
     setBusy(`down-${planId}`);
     try {
       const { data: res } = await api.post("/billing/schedule-plan", { plan: planId });
@@ -313,7 +323,8 @@ export default function Billing() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-helm-muted hover:text-helm-fg mb-6 transition-colors" data-testid="billing-back">
+      {/* Opened directly (e.g. from an email), there is no in-app page to go back to. */}
+      <button type="button" onClick={() => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate("/app"))} className="flex items-center gap-1.5 text-sm text-helm-muted hover:text-helm-fg mb-6 transition-colors" data-testid="billing-back">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
@@ -350,10 +361,9 @@ export default function Billing() {
 
       {!billingEnforced && (
         <div className="mb-6 rounded-lg border border-helm-status-positive/35 bg-helm-status-positive/12 px-4 py-3 text-sm text-helm-fg" data-testid="billing-standby-banner">
-          <p className="font-medium text-helm-status-positive">Billing is paused</p>
+          <p className="font-medium text-helm-status-positive">Every feature is open during early access</p>
           <p className="text-helm-status-positive/80 mt-0.5">
-            Feature gates are open while you build. Set <code className="font-mono text-xs">BILLING_ENFORCED=true</code> when ready.
-            Configure <code className="font-mono text-xs">PADDLE_PRICE_ID_STARTER</code>, <code className="font-mono text-xs">PADDLE_PRICE_ID_GROWTH</code>, and <code className="font-mono text-xs">PADDLE_PRICE_ID_BUSINESS</code>.
+            You won’t be charged while this is on. Choosing a plan now is optional.
           </p>
         </div>
       )}

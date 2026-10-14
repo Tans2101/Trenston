@@ -9,6 +9,7 @@ import {
 import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart, SkeletonCardList, Delta } from "@/components/kit";
 import {
@@ -187,6 +188,7 @@ export default function Financials() {
   const location = useLocation();
   const { data, loading, error, reload, isFetching } = useFetch("/financials");
   const { data: activityData, reload: reloadActs } = useFetch("/activities");
+  useSoftRefreshToast(error, data, "Could not refresh financials. Showing the last loaded numbers.");
   const tz = useWorkspaceTimezone();
   const { currency: workspaceCurrency, symbol: workspaceSymbol } = useWorkspaceCurrency();
   const { data: company } = useCompanyQuery();
@@ -444,7 +446,7 @@ export default function Financials() {
       </div>
     );
   }
-  if (error || !data) {
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load financials"
@@ -534,8 +536,8 @@ export default function Financials() {
       toast.error("Enter a valid cash amount");
       return;
     }
-    if (gmValue != null && !Number.isFinite(gmValue)) {
-      toast.error("Enter a valid gross margin");
+    if (gmValue != null && (!Number.isFinite(gmValue) || gmValue < -100 || gmValue > 100)) {
+      toast.error("Gross margin is a percentage between -100 and 100");
       return;
     }
     const reserveRaw = String(reserve ?? "").trim();
@@ -1306,7 +1308,7 @@ export default function Financials() {
                         data-deeplink={e.id}
                       >
                         <td className="whitespace-nowrap py-3.5 pl-6 pr-4 align-top font-mono text-xs text-helm-muted">
-                          {e.month}
+                          {monthLabel(e.month) || e.month}
                           {e.scheduled && (
                             <span className="mt-1 block font-mono text-[9px] uppercase tracking-wide text-helm-gold">Upcoming</span>
                           )}
@@ -1375,7 +1377,7 @@ export default function Financials() {
                   {visibleEntries.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-6 py-10 text-center text-sm text-helm-muted">
-                        No {ledgerFilter === "revenue" ? "revenue" : "expense"} entries yet.
+                        {ledgerFilter === "all" ? "No entries yet." : `No ${ledgerFilter === "revenue" ? "revenue" : "expense"} entries yet.`}
                       </td>
                     </tr>
                   )}
@@ -1418,7 +1420,7 @@ export default function Financials() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowForm(false)} />
-          <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="entry-form">
+          <GlassCard role="dialog" aria-modal="true" aria-label="Financial entry" onKeyDown={(e) => { if (e.key === "Escape") setShowForm(false); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="entry-form">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg text-helm-fg font-light">
                 {form.source_document_id
@@ -1427,7 +1429,7 @@ export default function Financials() {
                     ? "Add a one-off entry"
                     : "Log a financial entry"}
               </h3>
-              <button onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
+              <button type="button" aria-label="Close" onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
             </div>
             {hasAccountingSync && !form.source_document_id && (
               <p className="mb-4 text-xs text-helm-muted leading-relaxed" data-testid="accounting-sync-note">
@@ -1535,8 +1537,8 @@ export default function Financials() {
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowSettings(false)} />
-          <GlassCard className="relative w-full max-w-sm m-4 rounded-2xl p-6" data-testid="settings-form">
-            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">Cash, reserve & margin</h3><button onClick={() => setShowSettings(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
+          <GlassCard role="dialog" aria-modal="true" aria-label="Cash, reserve and margin" onKeyDown={(e) => { if (e.key === "Escape") setShowSettings(false); }} className="relative w-full max-w-sm m-4 rounded-2xl p-6" data-testid="settings-form">
+            <div className="flex items-center justify-between mb-5"><h3 className="text-lg text-helm-fg font-light">Cash, reserve & margin</h3><button type="button" aria-label="Close" onClick={() => setShowSettings(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button></div>
             <label className="text-xs text-helm-muted block">Cash in bank
               <input data-testid="settings-cash" type="number" value={cash} onChange={(e) => setCash(e.target.value)} placeholder="3100000" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
             </label>

@@ -9,6 +9,7 @@ import {
 import { ChevronDown, Plus, X, Lock, SlidersHorizontal, MoreHorizontal, Table2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { useTheme } from "@/context/ThemeContext";
 import { PageHeader, ErrorScreen } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -565,13 +566,19 @@ function NameDialog({ title, initial, confirmLabel, onSubmit, onClose }) {
   const [name, setName] = useState(initial || "");
   const [busy, setBusy] = useState(false);
   const ref = useRef(null);
+  // Focus and select once on open. This used to re-run on every parent render
+  // (onClose is a new function each time), re-selecting the name mid-typing.
   useEffect(() => {
     ref.current?.focus();
     ref.current?.select();
-    const onKey = (e) => { if (e.key === "Escape" && !busy) onClose(); };
+  }, []);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape" && !busy) closeRef.current(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [busy, onClose]);
+  }, [busy]);
   const trimmed = name.replace(/\s+/g, " ").trim();
   const submit = async (e) => {
     e.preventDefault();
@@ -873,6 +880,7 @@ function ModelingWorkspace({ theme }) {
   const baseline = baselineQ.data;
   const scenarios = useMemo(() => scenariosQ.data?.scenarios || [], [scenariosQ.data]);
   const cap = scenariosQ.data?.cap || 20;
+  useSoftRefreshToast(baselineQ.error || scenariosQ.error, baselineQ.data && scenariosQ.data, "Could not refresh. Your scenario is still here.");
 
   const [activeId, setActiveId] = useState(BASELINE_ID);
   const [draft, setDraft] = useState(null);
@@ -1065,7 +1073,9 @@ function ModelingWorkspace({ theme }) {
     }
   };
 
-  if (baselineQ.error || scenariosQ.error) {
+  // Only a first load with nothing to show is fatal; a failed background refresh
+  // must not wipe the page (and any unsaved scenario edits).
+  if ((baselineQ.error && !baselineQ.data) || (scenariosQ.error && !scenariosQ.data)) {
     return (
       <ErrorScreen
         label="Could not load Financial Modeling"

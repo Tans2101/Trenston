@@ -378,7 +378,8 @@ function WeekGrid({ weekDays, events, selectedDay, onEventClick }) {
       {/* Day headers */}
       <div className="grid border-b border-helm-line shrink-0" style={{ gridTemplateColumns: "52px repeat(7, 1fr)" }}>
         <div className="px-2 py-2 text-[10px] font-mono text-helm-muted border-r border-helm-line">
-          CW {weekNumber(weekDays[0])}
+          {/* Weeks start on Sunday; ISO week numbers start on Monday, so number the week by its Monday. */}
+          CW {weekNumber(weekDays[Math.min(1, weekDays.length - 1)])}
         </div>
         {weekDays.map((d) => {
           const isToday = sameDay(d, today);
@@ -564,8 +565,14 @@ export default function CalendarPage() {
     setSidebarMonth(new Date(t.getFullYear(), t.getMonth(), 1));
   };
 
+  // Arrows step a day in Day view and a week otherwise, and the selected day moves
+  // with them (Day view used to keep the old day and show an empty schedule).
   const shiftWeek = (delta) => {
-    setWeekStart((ws) => addDays(ws, delta * 7));
+    const step = view === "day" ? delta : delta * 7;
+    const next = addDays(selectedDay, step);
+    setSelectedDay(next);
+    setWeekStart(view === "day" ? startOfWeek(next) : addDays(weekStart, step));
+    setSidebarMonth(new Date(next.getFullYear(), next.getMonth(), 1));
   };
 
   const pickDay = (day) => {
@@ -606,6 +613,7 @@ export default function CalendarPage() {
 
   const submitEvent = async () => {
     if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date || "")) { toast.error("Pick a date"); return; }
     if (form.visibility === "department" && !form.department_id) {
       toast.error("Choose a department for this event");
       return;
@@ -681,7 +689,9 @@ export default function CalendarPage() {
       </div>
     );
   }
-  if (error || !data) {
+  // A failed refetch keeps the last loaded week on screen; only a first load with
+  // nothing to show becomes an error page.
+  if (!data) {
     return (
       <ErrorScreen
         label="Could not load calendar"
@@ -750,6 +760,12 @@ export default function CalendarPage() {
   return (
     <div className="fade-up -mx-2 md:-mx-4">
       {syncBanner}
+      {error ? (
+        <div className="mx-2 md:mx-4 mb-4 rounded-lg border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 text-sm text-helm-fg" role="status" data-testid="calendar-soft-refresh-error">
+          Could not load this week.{" "}
+          <button type="button" onClick={reload} className="text-helm-gold hover:text-helm-gold-hover font-medium underline-offset-2 hover:underline">Retry</button>
+        </div>
+      ) : null}
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-4 px-2 md:px-4">
         <div>
           <h1 className="font-display text-2xl md:text-3xl font-normal tracking-tight text-helm-fg">Calendar</h1>
@@ -772,13 +788,13 @@ export default function CalendarPage() {
             </button>
           )}
           <div className="flex items-center gap-1 rounded-lg border border-helm-line bg-helm-fg/[0.02] p-1">
-            <button type="button" onClick={() => shiftWeek(-1)} className="p-1.5 text-helm-muted hover:text-helm-fg rounded" aria-label="Previous week">
+            <button type="button" onClick={() => shiftWeek(-1)} className="p-1.5 text-helm-muted hover:text-helm-fg rounded" aria-label={view === "day" ? "Previous day" : "Previous week"}>
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button type="button" onClick={goToday} className="px-3 py-1 text-helm-fg hover:text-helm-fg font-mono text-xs uppercase tracking-wider">
               Today
             </button>
-            <button type="button" onClick={() => shiftWeek(1)} className="p-1.5 text-helm-muted hover:text-helm-fg rounded" aria-label="Next week">
+            <button type="button" onClick={() => shiftWeek(1)} className="p-1.5 text-helm-muted hover:text-helm-fg rounded" aria-label={view === "day" ? "Next day" : "Next week"}>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -847,10 +863,10 @@ export default function CalendarPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setShowForm(false)} />
-          <GlassCard className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="event-form">
+          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit event" : "Add event"} onKeyDown={(e) => { if (e.key === "Escape") setShowForm(false); }} className="relative w-full sm:max-w-md m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="event-form">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg text-helm-fg font-light">{editing ? "Edit event" : "Add event"}</h3>
-              <button onClick={() => setShowForm(false)} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
+              <button type="button" onClick={() => setShowForm(false)} aria-label="Close" className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3">
               <label className="text-xs text-helm-muted block">Title
