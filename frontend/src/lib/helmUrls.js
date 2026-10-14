@@ -1,5 +1,5 @@
 /** Clerk component paths — set in app code / build env (Dashboard Paths are locked in Core 2).
- * CRA: REACT_APP_CLERK_SIGN_IN_URL, REACT_APP_CLERK_SIGN_UP_URL
+ * Vite (CRA-compatible names): REACT_APP_CLERK_SIGN_IN_URL, REACT_APP_CLERK_SIGN_UP_URL
  * @see https://clerk.com/docs/guides/development/clerk-environment-variables
  */
 export const CLERK_SIGN_IN_PATH = (

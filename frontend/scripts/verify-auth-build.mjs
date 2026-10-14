@@ -7,7 +7,12 @@ import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 
 const buildDir = join(process.cwd(), "build", "static", "js");
-const files = readdirSync(buildDir).filter((f) => f.endsWith(".js"));
+let files = [];
+try {
+  files = readdirSync(buildDir).filter((f) => f.endsWith(".js"));
+} catch {
+  files = [];
+}
 if (!files.length) {
   console.error("verify-auth-build: no *.js in build/static/js");
   process.exit(1);

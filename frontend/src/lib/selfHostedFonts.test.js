@@ -2,8 +2,9 @@
 const fs = require("fs");
 const path = require("path");
 
-const PUBLIC = path.join(__dirname, "../../public");
-const INDEX = path.join(PUBLIC, "index.html");
+const ROOT = path.join(__dirname, "../..");
+const PUBLIC = path.join(ROOT, "public");
+const INDEX = path.join(ROOT, "index.html");
 const FONTS_CSS = path.join(PUBLIC, "fonts/fonts.css");
 const FONTS_DIR = path.join(PUBLIC, "fonts");
 

@@ -4,8 +4,8 @@ const { HELM_PALETTE, HELM_FLAGGED } = require("./src/design/helmTokens");
 module.exports = {
     darkMode: ["class"],
     content: [
+    "./index.html",
     "./src/**/*.{js,jsx,ts,tsx}",
-    "./public/index.html"
   ],
   theme: {
     extend: {

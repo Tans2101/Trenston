@@ -83,4 +83,4 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Run tests
-        run: CI=true yarn test --watchAll=false
+        run: CI=true yarn test

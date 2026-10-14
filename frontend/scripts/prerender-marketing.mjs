@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Postbuild marketing prerender (CRA-compatible).
+ * Postbuild marketing prerender (Vite build + marketing prerender).
  *
  * Copies build/index.html into per-route static files with route-specific
  * <title>, description, canonical, and Open Graph / Twitter tags rewritten
@@ -73,7 +73,7 @@ function escapeHtml(s) {
 
 function stripEmptyGoogleVerification(html) {
   // Empty verification meta is noise (and fails HTML-tag verification). Keep the
-  // tag only when CRA substituted a non-empty REACT_APP_GOOGLE_SITE_VERIFICATION.
+  // tag only when the build substituted a non-empty REACT_APP_GOOGLE_SITE_VERIFICATION.
   return html.replace(
     /<meta\s+name=["']google-site-verification["']\s+content=["']\s*["']\s*\/?>\s*/i,
     "",

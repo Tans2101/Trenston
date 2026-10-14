@@ -4,7 +4,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 
-const html = readFileSync(join(__dirname, "../../public/index.html"), "utf8");
+const html = readFileSync(join(__dirname, "../../index.html"), "utf8");
 
 // The prerender step puts a plain-text copy of each public page inside #root for
 // crawlers and readers without JavaScript. People whose browsers run JavaScript
