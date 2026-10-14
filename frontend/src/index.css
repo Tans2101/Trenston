@@ -1861,3 +1861,53 @@ html[data-theme="light"] .app-shell [class*="bg-helm-fg/[0.0"] { background-colo
 /* Controls share one corner radius so buttons, inputs and the search bar read as a set. */
 html[data-theme="light"] .app-shell .app-main :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-radius: 8px; }
 html[data-theme="light"] .app-shell .app-main button.rounded-md { border-radius: 8px; }
+
+/* ───────── Light app: tonal layers instead of boxes ─────────
+   The canvas stays white. Depth comes from three surfaces: white cards with a hairline
+   edge, a soft neutral tint for supporting panels and the sidebar, and a gold wash for
+   the one thing on a page that matters most. Later blocks win, so keep this last. */
+html[data-theme="light"] .app-shell {
+  --app-tint: #F6F6F3;
+  --app-hairline: #EDEDEA;
+  --app-gold-wash: rgb(201 154 46 / 0.09);
+}
+
+/* Main cards: hairline edge, slightly tighter corners, no shadow. */
+html[data-theme="light"] .app-shell .app-main .rounded-xl.border.bg-helm-card {
+  border-color: var(--app-hairline) !important;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+/* Sidebar sits on the tint so the workspace reads as the bright area. */
+html[data-theme="light"] .app-shell .cir-rail {
+  --cir-cloud: var(--app-tint);
+  --cir-edge: var(--app-hairline);
+}
+
+/* Get started checklist: supporting panel, tinted, no outline. */
+html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] {
+  background-color: var(--app-tint) !important;
+  border-color: transparent !important;
+  border-radius: 12px;
+  box-shadow: none;
+}
+html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] ul,
+html[data-theme="light"] .app-shell [data-testid="onboarding-checklist"] li {
+  border-color: #E6E6E2 !important;
+}
+
+/* Today's summary: the focal panel, gold wash instead of a white box with an outline. */
+html[data-theme="light"] .app-shell [data-testid="briefing-ai-summary"] {
+  background-color: var(--app-gold-wash) !important;
+  border-color: transparent !important;
+  border-left-color: var(--app-accent) !important;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+/* Quiet secondary panels (setup prompt, intro) lose their outline too. */
+html[data-theme="light"] .app-shell [data-testid="briefing-setup-prompt"] {
+  background-color: var(--app-gold-wash) !important;
+  border-color: transparent !important;
+}
