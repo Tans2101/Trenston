@@ -239,7 +239,9 @@ def test_maint_type_exists():
 
 
 def test_routes_registered():
-    paths = {getattr(r, "path", None) for r in server.app.routes}
+    # FastAPI 0.135+ stores include_router mounts as _IncludedRouter (not flat
+    # APIRoute entries on app.routes). OpenAPI paths remain the stable check.
+    paths = set(server.app.openapi()["paths"])
     for p in (
         "/api/maintenance/spares",
         "/api/maintenance/schedules",

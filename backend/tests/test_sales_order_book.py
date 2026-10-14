@@ -395,10 +395,7 @@ def test_delete_missing_404(sales_api):
 
 
 def test_routes_registered_on_app():
-    paths = {
-        getattr(r, "path", None)
-        for r in server.app.routes
-        if getattr(r, "path", None)
-    }
+    # FastAPI 0.135+ nests include_router under _IncludedRouter; use OpenAPI.
+    paths = set(server.app.openapi()["paths"])
     assert "/api/sales/order-book" in paths
     assert "/api/sales/targets" in paths

@@ -132,12 +132,14 @@ def settings_api():
 
 
 def test_procurement_settings_route_registered():
-    paths = {
-        (getattr(r, "path", None), frozenset(getattr(r, "methods", None) or []))
-        for r in server.app.routes
+    # FastAPI 0.135+ nests include_router under _IncludedRouter; use OpenAPI.
+    methods = {
+        m.upper()
+        for m in (server.app.openapi()["paths"].get("/api/procurement/settings") or {})
+        if m in ("get", "put", "post", "patch", "delete", "head", "options")
     }
-    assert ("/api/procurement/settings", frozenset({"PUT"})) in paths
-    assert ("/api/procurement/settings", frozenset({"GET"})) in paths
+    assert "PUT" in methods
+    assert "GET" in methods
 
 
 def test_member_cannot_set_or_clear_budget(settings_api):

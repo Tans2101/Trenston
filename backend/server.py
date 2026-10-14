@@ -11,6 +11,7 @@ import asyncio
 import logging
 import time
 import base64
+from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import date, datetime, timezone, timedelta
 from typing import Optional, Any, Literal
@@ -292,7 +293,18 @@ def _enforce_production_config() -> None:
 
 _enforce_production_config()
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Names resolved at runtime after the module finishes importing.
+    await startup()
+    try:
+        yield
+    finally:
+        await shutdown_db_client()
+
+
+app = FastAPI(lifespan=lifespan)
 api_router = APIRouter(prefix="/api")
 
 # Join-code attempt limit (10 / 15 min) lives in Mongo — see rate_limit.acquire_join_slot.
@@ -18558,7 +18570,6 @@ async def _connect_mongo_at_startup() -> None:
     logger.error("Mongo unavailable after probing %d candidate URL(s)", len(candidates))
 
 
-@app.on_event("startup")
 async def startup():
     if ENVIRONMENT == "production":
         cred_crypto.assert_encryption_ready()
@@ -18721,6 +18732,5 @@ async def _seal_plaintext_integration_tokens() -> None:
         logger.exception("plaintext integration token seal failed")
 
 
-@app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
