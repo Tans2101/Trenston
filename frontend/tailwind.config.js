@@ -9,6 +9,7 @@ module.exports = {
   ],
   theme: {
     extend: {
+      opacity: { 8: "0.08", 12: "0.12" },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
@@ -57,11 +58,11 @@ module.exports = {
           "status-positive": HELM_FLAGGED.statusPositive,
           "status-negative": HELM_FLAGGED.statusNegative,
           "status-warning": HELM_FLAGGED.statusWarning,
-          fg: "var(--helm-fg)",
-          bg: "var(--helm-bg)",
-          card: "var(--helm-card)",
-          muted: "var(--helm-muted)",
-          line: "var(--helm-line)",
+          fg: "color-mix(in srgb, var(--helm-fg) calc(<alpha-value> * 100%), transparent)",
+          bg: "color-mix(in srgb, var(--helm-bg) calc(<alpha-value> * 100%), transparent)",
+          card: "color-mix(in srgb, var(--helm-card) calc(<alpha-value> * 100%), transparent)",
+          muted: "color-mix(in srgb, var(--helm-muted) calc(<alpha-value> * 100%), transparent)",
+          line: "color-mix(in srgb, var(--helm-line) calc(<alpha-value> * 100%), transparent)",
         },
         gold: {
           DEFAULT: "rgb(var(--helm-accent) / <alpha-value>)",
