@@ -722,7 +722,7 @@ html[data-theme="dark"] .app-shell .cir-rail__indicator {
 }
 .fade-up { animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-/* cir-note — Gmail draft / action notification card (Uiverse-style) */
+/* cir-note: action notification card (Uiverse-style) */
 .cir-note {
   --cir-cloud: #ffffff;
   --cir-edge: #e3e8ee;

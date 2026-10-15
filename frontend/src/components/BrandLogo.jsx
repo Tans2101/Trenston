@@ -3,7 +3,8 @@ import { MONO_PATHS, SLACK_MONO, COLOR_MARKS } from "@/lib/integrationLogoData";
 /** Maps display names used on marketing pages to integration ids. */
 const NAME_TO_ID = {
   google: "google",
-  "google calendar & gmail": "google",
+  "google calendar & drive": "google",
+  "google workspace": "google",
   quickbooks: "quickbooks",
   xero: "xero",
   "sap business one": "sap_b1",

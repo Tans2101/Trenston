@@ -42,7 +42,7 @@ export function buildLlmsTxt() {
     "",
     "## Integrations",
     "",
-    "- Google (Gmail and Calendar), on every plan",
+    "- Google Calendar and Drive, on every plan (Trenston does not request any Gmail access)",
     "- QuickBooks, Xero, and SAP Business One, from Starter",
     "- HubSpot and Slack, from Growth",
     `- Details: ${ORIGIN}/integrations`,

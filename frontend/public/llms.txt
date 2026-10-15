@@ -24,7 +24,7 @@ Trenston brings together what is happening across your company (money, sales, pe
 
 ## Integrations
 
-- Google (Gmail and Calendar), on every plan
+- Google Calendar and Drive, on every plan (Trenston does not request any Gmail access)
 - QuickBooks, Xero, and SAP Business One, from Starter
 - HubSpot and Slack, from Growth
 - Details: https://www.trenston.com/integrations
