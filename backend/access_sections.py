@@ -58,9 +58,9 @@ MANAGEABLE_SECTIONS: list[dict[str, str]] = [
     },
     {
         "id": "telemetry",
-        "label": "Telemetry",
+        "label": "Metrics",
         "perm": "telemetry:write",
-        "description": "KPI notes, risk radar, and manual telemetry inputs.",
+        "description": "KPI notes, risk radar, and manual metric inputs.",
     },
     {
         "id": "calendar",

@@ -7,7 +7,7 @@ export const PACKS = [
   { id: "finance", label: "Finance", icon: DollarSign, style: "text-helm-status-positive bg-helm-status-positive/10 border-helm-status-positive/20", desc: "Reads everything, writes financials." },
   { id: "hr", label: "People / HR", icon: Users2, style: "text-helm-muted bg-helm-muted/10 border-helm-muted/20", desc: "Reads everything, manages the roster & headcount." },
   { id: "sales", label: "Sales", icon: Briefcase, style: "text-helm-status-warning bg-helm-status-warning/10 border-helm-status-warning/20", desc: "Reads everything and can update the sales pipeline." },
-  { id: "ops", label: "Operations", icon: Wrench, style: "text-helm-navy bg-helm-navy/10 border-helm-navy/20", desc: "Reads everything and can update ops work and Telemetry." },
+  { id: "ops", label: "Operations", icon: Wrench, style: "text-helm-navy bg-helm-navy/10 border-helm-navy/20", desc: "Reads everything and can update ops work and Metrics." },
   { id: "member", label: "Member", icon: Shield, style: "text-helm-fg bg-helm-fg/5 border-helm-line", desc: "Read access + works their own tasks and posts a status update." },
 ];
 

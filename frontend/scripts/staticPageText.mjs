@@ -197,7 +197,7 @@ function aboutSections() {
       parts: who.map((v) => `${v.title}: ${v.body}`),
     });
   }
-  if (note) sections.push({ heading: "From the founder", parts: [note] });
+  if (note) sections.push({ heading: "From the founder", parts: note.split(/\\n\\n|\n\n/).filter(Boolean) });
   return sections;
 }
 

@@ -113,7 +113,7 @@ const THIRD_PARTIES = [
   },
   {
     name: "HubSpot",
-    why: "Optional CRM deal sync into Pipeline and Telemetry when connected.",
+    why: "Optional CRM deal sync into Pipeline and Metrics when connected.",
   },
   {
     name: "Slack",

@@ -99,7 +99,7 @@ describe("marketing claim verification log", () => {
   });
 
   test("founder note is first person and adds no personal details", () => {
-    expect(FOUNDER_NOTE).toMatch(/^I built Trenston because/);
+    expect(FOUNDER_NOTE).toMatch(/^I started Trenston/);
     // Signed by the founder, so it must not refer to him in the third person.
     expect(FOUNDER_NOTE).not.toMatch(/\b(he|him|himself|his)\b/i);
     expect(FOUNDER_NOTE).not.toMatch(/\u2014/);

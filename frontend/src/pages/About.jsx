@@ -145,7 +145,9 @@ export default function About() {
             <Eyebrow>Who&apos;s behind Trenston</Eyebrow>
             <h2 className={cn("mt-5 text-5xl md:text-6xl", DISPLAY)}>{FOUNDER_NAME}</h2>
             <p className="mt-2 text-sm font-semibold uppercase tracking-[0.14em] text-mk-gray">{FOUNDER_ROLE}</p>
-            <p className="mt-8 max-w-xl text-xl leading-relaxed text-mk-black">{FOUNDER_NOTE}</p>
+            {FOUNDER_NOTE.split("\n\n").map((para, i) => (
+              <p key={i} className={cn(i === 0 ? "mt-8" : "mt-5", "max-w-xl text-xl leading-relaxed text-mk-black")}>{para}</p>
+            ))}
             <div className="mt-10 flex flex-wrap gap-3">
               <a
                 href={FOUNDER_LINKEDIN_URL}

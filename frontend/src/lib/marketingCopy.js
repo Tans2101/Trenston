@@ -21,7 +21,7 @@ export const WHAT_HELM_IS = WHAT_TRENSTON_IS;
 export const ABOUT_PROBLEM =
   "Founders and CEOs running a company of this size often spend their days opening a dozen tools and asking people for status updates just to know what is happening. Trenston exists to close that gap.";
 export const FOUNDER_NOTE =
-  "I built Trenston because as a founder, I grew tired of fighting the daily chaos of fragmented spreadsheets and single-feature apps. We needed a single source of truth, so we created a unified CEO and Founder Operating System that consolidates your business into one cohesive dashboard. Our mission is to eliminate operational noise and give you the absolute clarity needed to start scaling and growing your vision.";
+  "I started Trenston after personally seeing the problems CEOs and founders face. I sat in on management meetings and saw how much of a leader's week goes into just finding out what is happening: asking for updates, opening spreadsheets, and digging through email and chat to piece the numbers together. The decisions themselves were often quick. Getting to them was the slow part.\n\nI built Trenston to close that gap. It brings the money, sales, team, and open decisions into one place, so the person running the company can see what changed, decide what needs them, and hand off the rest.";
 
 export const HERO_OUTCOME =
   "Open Trenston and see what changed, what needs a decision, and what you can hand off, synthesized from your live company data.";
@@ -180,8 +180,8 @@ export const PUBLIC_INTEGRATIONS = [
     name: "HubSpot",
     category: "Sales",
     description:
-      "Pull HubSpot CRM deals into Trenston Pipeline and Telemetry, built for SMB and mid-market teams.",
-    feeds: "Feeds Pipeline & Telemetry",
+      "Pull HubSpot CRM deals into Trenston Pipeline and Metrics, built for SMB and mid-market teams.",
+    feeds: "Feeds Pipeline & Metrics",
   },
   {
     id: "slack",
@@ -235,7 +235,7 @@ export const FEATURE_CATEGORIES = [
       "Won deals become revenue",
       "Deal ownership & follow-ups",
       "Sales order book & monthly target",
-      "Telemetry",
+      "Metrics",
     ],
   },
   {
@@ -492,7 +492,7 @@ export const FEATURE_MODULES = [
     example: "At your current burn you reach your minimum reserve in about 74 days. Cutting burn by $2,400 a month would move that to about 101 days.",
   },
   {
-    title: "Telemetry",
+    title: "Metrics",
     ceoValue: "Live KPIs: signal over noise.",
     body: "Headcount, open tasks, MRR, and burn in one view. No digging through five dashboards.",
     example: "MRR up 8% MoM. Open tasks down. One team member overloaded.",
@@ -614,7 +614,7 @@ export const HOW_TO_USE_AUDIENCES = [
   {
     title: "If you own or run this company",
     body:
-      "Start with Briefing, then Decisions. Use Financials and Telemetry when you need the numbers, invite people in Team & Access, and turn on only the Departments your company actually uses.",
+      "Start with Briefing, then Decisions. Use Financials and Metrics when you need the numbers, invite people in Team & Access, and turn on only the Departments your company actually uses.",
   },
   {
     title: "If you were invited to a team",
@@ -660,18 +660,18 @@ export const HOW_TO_USE_CONCEPTS = [
       "You ask \"What is stuck in procurement?\" and Trenston answers from open purchase requests and blockers, instead of giving generic advice.",
   },
   {
-    term: "Telemetry",
+    term: "Metrics",
     explanation:
-      "Telemetry is a snapshot of key company numbers and risks in one place: things like headcount, open work, revenue, and cash when you have access. It is for a quick read of the state of the company, not for day-to-day data entry.",
+      "Metrics is a snapshot of key company numbers and risks in one place: things like headcount, open work, revenue, and cash when you have access. It is for a quick read of the state of the company, not for day-to-day data entry.",
     example:
-      "Before a leadership meeting you open Telemetry to confirm headcount, open tasks, and runway without digging through separate spreadsheets.",
+      "Before a leadership meeting you open Metrics to confirm headcount, open tasks, and runway without digging through separate spreadsheets.",
   },
   {
     term: "Financials",
     explanation:
       "Financials is where revenue, expenses, and cash are logged so Trenston can show MRR, burn, and runway elsewhere in Trenston. Your finance team (or anyone granted access) can enter numbers manually, import a CSV, or connect accounting tools. When QuickBooks, Xero, or SAP Business One is connected, synced books are the source of truth and manual entry is for one-offs that sync will not catch.",
     example:
-      "Finance logs this month's expenses and updates cash. Briefing and Telemetry then reflect the new runway without a separate spreadsheet chase.",
+      "Finance logs this month's expenses and updates cash. Briefing and Metrics then reflect the new runway without a separate spreadsheet chase.",
   },
   {
     term: "Reports",
@@ -776,9 +776,9 @@ export const HOW_TO_USE_FAQ = [
       "No. Trenston works with manual entry everywhere an integration is not connected. Connect tools when they help; nothing requires them to get value from Briefing, Decisions, or department queues.",
   },
   {
-    q: "Why can I not see Financials or Telemetry?",
+    q: "Why can I not see Financials or Metrics?",
     a:
-      "Those screens are restricted on purpose. Owners always have them. Finance packs can open Financials, and some packs (such as Executive or Operations) can open Telemetry. Everyone else only sees them if an owner grants that section in Team & Access. If a screen is missing, ask your owner for access rather than assuming Trenston is broken.",
+      "Those screens are restricted on purpose. Owners always have them. Finance packs can open Financials, and some packs (such as Executive or Operations) can open Metrics. Everyone else only sees them if an owner grants that section in Team & Access. If a screen is missing, ask your owner for access rather than assuming Trenston is broken.",
   },
   {
     q: "What is the difference between Ask Trenston and Decisions?",
@@ -798,7 +798,7 @@ export const HOW_TO_USE_MODULES = [
   { nav: "My Day", path: "/app/me", tip: "Your private notes, tasks, and optional team update." },
   { nav: "Decisions", path: "/app/decisions", tip: "Approve, reject, or assign ownership; review what already resolved." },
   { nav: "Ask Trenston", path: "/app/ask", tip: "Ask a question about your live company data." },
-  { nav: "Telemetry", path: "/app/telemetry", tip: "One-screen snapshot of key numbers and risks (access required)." },
+  { nav: "Metrics", path: "/app/metrics", tip: "One-screen snapshot of key numbers and risks (access required)." },
   { nav: "Financials", path: "/app/financials", tip: "Log revenue, expenses, and cash (access required)." },
   { nav: "Pipeline", path: "/app/sales", tip: "Deal stages and open pipeline value." },
   { nav: "Reports", path: "/app/reports", tip: "Written context and shareable CEO Pack." },

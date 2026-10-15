@@ -231,7 +231,9 @@ export default function Landing() {
             <p className="text-sm text-mk-gray">{FOUNDER_ROLE}</p>
           </div>
           <div>
-            <p className={cn("text-2xl leading-snug md:text-3xl", DISPLAY)}>{FOUNDER_NOTE}</p>
+            {FOUNDER_NOTE.split("\n\n").map((para, i) => (
+              <p key={i} className={cn(i > 0 && "mt-5", "text-2xl leading-snug md:text-3xl", DISPLAY)}>{para}</p>
+            ))}
             <MkLink to="/about" className="mt-8 text-mk-navy">Read our story</MkLink>
           </div>
         </Reveal>

@@ -48,7 +48,7 @@ const NAV = [
   { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar", group: "Today" },
   { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials", group: "Money" },
   { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials", group: "Money" },
-  { to: "/app/telemetry", label: "Telemetry", icon: Activity, id: "telemetry", section: "telemetry", group: "Money" },
+  { to: "/app/metrics", label: "Metrics", icon: Activity, id: "telemetry", section: "telemetry", group: "Money" },
   { to: "/app/map", label: "Company map", icon: Network, id: "map", ownerOnly: true, group: "Company" },
   { to: "/app/people", label: "People", icon: Contact, id: "people", group: "Company" },
   { to: "/app/reports", label: "Reports", icon: FileText, id: "reports", group: "Company" },

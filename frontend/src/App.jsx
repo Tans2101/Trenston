@@ -228,7 +228,8 @@ function AppRoutes() {
           <Route path="me" element={<Suspense fallback={<LoadingScreen label="Loading" />}><MyDay /></Suspense>} />
           <Route path="sales" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Pipeline /></Suspense>} />
           <Route path="decisions" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Decisions /></Suspense>} />
-          <Route path="telemetry" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="telemetry"><Telemetry /></SectionGate></Suspense>} />
+          <Route path="metrics" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="telemetry"><Telemetry /></SectionGate></Suspense>} />
+          <Route path="telemetry" element={<Navigate to="/app/metrics" replace />} />
           <Route path="financials" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><Financials /></SectionGate></Suspense>} />
           <Route path="modeling" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><FinancialModeling /></SectionGate></Suspense>} />
           <Route path="tasks" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Tasks /></Suspense>} />

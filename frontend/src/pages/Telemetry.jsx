@@ -127,8 +127,8 @@ export default function Telemetry() {
   if (error && !data) {
     return (
       <ErrorScreen
-        label="Could not load telemetry"
-        message={fetchErrorMessage(error, "Telemetry data is unavailable right now.")}
+        label="Could not load metrics"
+        message={fetchErrorMessage(error, "Metrics are unavailable right now.")}
         onRetry={reload}
       />
     );
@@ -137,7 +137,7 @@ export default function Telemetry() {
   if (loading && !data) {
     return (
       <div>
-        <PageHeader title="Telemetry" subtitle="Live KPIs and growth trends from your real data." />
+        <PageHeader title="Metrics" subtitle="Live KPIs and growth trends from your real data." />
         <SkeletonKPIRow count={3} className="lg:grid-cols-3" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <SkeletonChart />
@@ -150,13 +150,13 @@ export default function Telemetry() {
   if (!data) {
     return (
       <ErrorScreen
-        label="Could not load telemetry"
-        message={fetchErrorMessage(error, "Telemetry data is unavailable right now.")}
+        label="Could not load metrics"
+        message={fetchErrorMessage(error, "Metrics are unavailable right now.")}
         onRetry={reload}
       />
     );
   }
-  if ((data.kpis || []).length === 0) return <div><PageHeader title="Telemetry" subtitle="Live KPIs and growth trends from your real data." /><EmptyState title="No telemetry yet" body="Log financials and add your team. Your KPIs build from real data." action={<div className="flex flex-wrap justify-center gap-2"><Link to="/app/financials" data-testid="telemetry-empty-financials" className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">Log financials</Link><Link to="/app/members" data-testid="telemetry-empty-team" className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">Invite your team</Link></div>} /></div>;
+  if ((data.kpis || []).length === 0) return <div><PageHeader title="Metrics" subtitle="Live KPIs and growth trends from your real data." /><EmptyState title="No metrics yet" body="Log financials and add your team. Your KPIs build from real data." action={<div className="flex flex-wrap justify-center gap-2"><Link to="/app/financials" data-testid="telemetry-empty-financials" className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">Log financials</Link><Link to="/app/members" data-testid="telemetry-empty-team" className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">Invite your team</Link></div>} /></div>;
 
   const asOf = data.data_as_of ? new Date(data.data_as_of).toLocaleString() : null;
   const canWrite = data.can_write;
@@ -212,7 +212,7 @@ export default function Telemetry() {
           monthly_growth_pct: growth,
         },
       });
-      toast.success("Telemetry updated");
+      toast.success("Metrics updated");
       setEditing(false);
       reload();
     } catch (e) {
@@ -225,11 +225,11 @@ export default function Telemetry() {
   return (
     <div>
       <PageHeader
-        title="Telemetry"
+        title="Metrics"
         subtitle="Live KPIs from your integrated sources: financials, pipeline, people, and tasks."
         action={canWrite ? (
           <button type="button" onClick={() => openEdit()} className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10">
-            <PenLine className="w-3.5 h-3.5" /> Edit telemetry
+            <PenLine className="w-3.5 h-3.5" /> Edit metrics
           </button>
         ) : null}
       />
@@ -380,7 +380,7 @@ export default function Telemetry() {
           </div>
           {data.risks_is_sample && (
             <p className="text-xs text-helm-status-warning mb-3 leading-relaxed" data-testid="risks-sample-note">
-              These risk cards are demo sample data. Edit telemetry to replace them with risks you&apos;re actually watching.
+              These risk cards are demo sample data. Edit metrics to replace them with risks you&apos;re actually watching.
             </p>
           )}
           {data.notes && !editing && (
@@ -427,7 +427,7 @@ export default function Telemetry() {
             </div>
           )}
           {!editing && !data.risks?.length && canWrite && (
-            <p className="text-sm text-helm-muted">No risks logged yet. Click Edit telemetry to add what you&apos;re watching.</p>
+            <p className="text-sm text-helm-muted">No risks logged yet. Click Edit metrics to add what you&apos;re watching.</p>
           )}
 
           {!editing && suggestedRisks.length > 0 && (
@@ -504,8 +504,8 @@ export default function Telemetry() {
       {editing && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={() => setEditing(false)} />
-          <GlassCard role="dialog" aria-modal="true" aria-label="Edit telemetry" onKeyDown={(e) => { if (e.key === "Escape") setEditing(false); }} className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="telemetry-edit-form">
-            <h3 className="text-lg text-helm-fg font-light">Edit telemetry</h3>
+          <GlassCard role="dialog" aria-modal="true" aria-label="Edit metrics" onKeyDown={(e) => { if (e.key === "Escape") setEditing(false); }} className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto" data-testid="telemetry-edit-form">
+            <h3 className="text-lg text-helm-fg font-light">Edit metrics</h3>
             <p className="text-xs text-helm-muted mt-1 mb-5 leading-relaxed">
               Set an optional revenue target and track risks scored 1–5 for likelihood and impact.
             </p>

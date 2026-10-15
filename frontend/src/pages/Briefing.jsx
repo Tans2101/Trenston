@@ -490,7 +490,7 @@ export default function Briefing() {
             {whatChanged.map((c, i) => {
               const raw = moduleRoute(c.module);
               // Don't link into a gated section the viewer can't open.
-              const gated = raw === "/app/financials" ? "financials" : raw === "/app/telemetry" ? "telemetry" : null;
+              const gated = raw === "/app/financials" ? "financials" : raw === "/app/metrics" ? "telemetry" : null;
               const to = gated && !(user?.granted_sections || []).includes(gated) ? null : raw;
               const inner = (
                 <>
