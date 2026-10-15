@@ -288,15 +288,17 @@ export default function Briefing({ asHome = false } = {}) {
               Log a financial entry and invite your team so Briefing can show real numbers instead of placeholders.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                data-testid="briefing-setup-financials"
-                onClick={() => navigate("/app/financials#log-mrr")}
-                className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
-              >
-                Add financial entry
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
+              {user?.can_edit_financials !== false && (
+                <button
+                  type="button"
+                  data-testid="briefing-setup-financials"
+                  onClick={() => navigate("/app/financials#log-mrr")}
+                  className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+                >
+                  Add financial entry
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              )}
               {hasTeam ? (
                 <button
                   type="button"

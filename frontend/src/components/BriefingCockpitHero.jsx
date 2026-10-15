@@ -192,15 +192,17 @@ export default function BriefingCockpitHero({
             Revenue, burn, and runway stay empty until you log financials. Invite your team when you are ready to share the cockpit.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              data-testid="briefing-empty-add-financials"
-              onClick={() => navigate("/app/financials#log-mrr")}
-              className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
-            >
-              <Wallet className="w-4 h-4" />
-              Add financial entry
-            </button>
+            {user?.can_edit_financials !== false && (
+              <button
+                type="button"
+                data-testid="briefing-empty-add-financials"
+                onClick={() => navigate("/app/financials#log-mrr")}
+                className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+              >
+                <Wallet className="w-4 h-4" />
+                Add financial entry
+              </button>
+            )}
             <button
               type="button"
               data-testid="briefing-empty-invite-team"

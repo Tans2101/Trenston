@@ -7,14 +7,14 @@ import { PageHeader, EmptyState } from "@/components/kit";
  * old bookmark, shared URL). Says who can open it instead of an endless skeleton
  * or a "Try again" error that can never succeed.
  */
-export default function NoAccess({ title, who, testId = "no-access" }) {
+export default function NoAccess({ title, who, next, testId = "no-access" }) {
   return (
     <div data-testid={testId}>
       <PageHeader title={title} />
       <EmptyState
         icon={Lock}
         title="This page isn't part of your access"
-        body={`${who} If you need it, ask the workspace owner to change your access in Team & Access.`}
+        body={`${who} ${next || "If you need it, ask the workspace owner to change your access in Team & Access."}`}
         action={(
           <Link
             to="/app"

@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792068997.7462418,
-    "seen": 1792069996.0298269,
-    "ast_hash": "36e230729bb40481a46dd9127e7f5e56",
+    "mtime": 1792070242.4703157,
+    "seen": 1792070538.3030367,
+    "ast_hash": "61d96184a5e235a34d1aa649dc855cb5",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1212,9 +1212,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1792068967.2192163,
-    "seen": 1792069996.030087,
-    "ast_hash": "172563f395d45795f2a356097236c7aa",
+    "mtime": 1792070268.4545686,
+    "seen": 1792070538.30323,
+    "ast_hash": "4b7d0b0fe10e927bfe9cd425e764df9b",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1230,9 +1230,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/BriefingCockpitHero.jsx": {
-    "mtime": 1792066998.924134,
-    "seen": 1792067075.6215777,
-    "ast_hash": "c1de244b24c425ec5c88bd46c5b804fc",
+    "mtime": 1792070228.7446094,
+    "seen": 1792070538.303234,
+    "ast_hash": "a2754fa49644fffabc9ba9a19667920a",
     "semantic_hash": ""
   },
   "frontend/src/components/CirDeleteBtn.jsx": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1791958109.8214111,
-    "seen": 1791967087.43429,
-    "ast_hash": "2ea93e0c46919b215405c480438b8f8a",
+    "mtime": 1792070505.3415895,
+    "seen": 1792070538.303427,
+    "ast_hash": "85c461e1c6d41f243130f3b8f4830cf8",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2514,21 +2514,21 @@
     "semantic_hash": "c1365c294a17dcc920cfd3e6d68b0a48"
   },
   "frontend/src/pages/AskHelm.jsx": {
-    "mtime": 1792068967.2211397,
-    "seen": 1792069996.030403,
-    "ast_hash": "1a203d286f354f29034d42e1e5808b99",
+    "mtime": 1792070274.596608,
+    "seen": 1792070538.3034983,
+    "ast_hash": "8faf458cd752e71600f5dfc0564d39e1",
     "semantic_hash": ""
   },
   "frontend/src/pages/Billing.jsx": {
-    "mtime": 1792068967.2211397,
-    "seen": 1792069996.0304065,
-    "ast_hash": "a7bba22501edd7ba8f773135ba08b0be",
+    "mtime": 1792070268.4540818,
+    "seen": 1792070538.3035011,
+    "ast_hash": "aada56935338b21b1e112720cdedc858",
     "semantic_hash": ""
   },
   "frontend/src/pages/Briefing.jsx": {
-    "mtime": 1792066682.726966,
-    "seen": 1792067075.6219366,
-    "ast_hash": "dca197a6cc66da6adc2f774bcc08d2b8",
+    "mtime": 1792070228.7439425,
+    "seen": 1792070538.3035018,
+    "ast_hash": "6e1386bd55d606a756006dec56cde5db",
     "semantic_hash": ""
   },
   "frontend/src/pages/CalendarPage.jsx": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792068485.8102112,
-    "seen": 1792069996.030873,
+    "mtime": 1792070508.2423315,
+    "seen": 1792070538.303966,
     "ast_hash": "016257ad41b65786a3ff0d5d726658c1",
     "semantic_hash": ""
   },
@@ -5580,9 +5580,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/FinancialModeling.jsx": {
-    "mtime": 1791970117.5802321,
-    "seen": 1791970669.665756,
-    "ast_hash": "1bb87825cb10e4bf34d2b3ed7a5d9fa7",
+    "mtime": 1792070215.0331776,
+    "seen": 1792070538.3035116,
+    "ast_hash": "77125885c33def5165a572c68667a271",
     "semantic_hash": ""
   },
   "shared/modeling-parity.json": {
@@ -6282,15 +6282,15 @@
     "semantic_hash": ""
   },
   "backend/tests/test_role_access.py": {
-    "mtime": 1792069604.0285513,
-    "seen": 1792069996.0300221,
-    "ast_hash": "fa57d6b64d711f3b0705086b35ee4aa1",
+    "mtime": 1792070429.6623268,
+    "seen": 1792070538.3031723,
+    "ast_hash": "4d504bf92afae61fd936b27b199e2ece",
     "semantic_hash": ""
   },
   "frontend/src/components/NoAccess.jsx": {
-    "mtime": 1792068194.6789472,
-    "seen": 1792069996.030115,
-    "ast_hash": "f1f23931afdc477a1d0cf8bf99b60df9",
+    "mtime": 1792070268.4535885,
+    "seen": 1792070538.3032546,
+    "ast_hash": "85085f7dde3ac8f5f36effeb6f65a9a3",
     "semantic_hash": ""
   },
   "frontend/src/lib/queryClient.test.js": {

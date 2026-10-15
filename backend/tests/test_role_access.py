@@ -150,3 +150,19 @@ def test_scope_ops_metrics_hides_departments_you_are_not_in():
     assert [c["label"] for c in shown] == ["Procurement spend", "Sales confirmed", "Unsectioned"]
     # Owner and Executives see every card.
     assert len(run(server._scope_ops_metrics(principal("exec"), cards))) == 4
+
+
+def test_view_only_users_change_only_their_own_scenarios():
+    exec_p = principal("exec")
+    own = {"scenario_id": "s1", "created_by": "u1"}
+    theirs = {"scenario_id": "s2", "created_by": "owner_uid"}
+    with patch.object(server, "can_edit_financials", new=AsyncMock(return_value=False)):
+        run(server._require_scenario_owner_or_editor(exec_p, own))
+        try:
+            run(server._require_scenario_owner_or_editor(exec_p, theirs))
+            raised = False
+        except server.HTTPException as exc:
+            raised = exc.status_code == 403
+        assert raised
+    with patch.object(server, "can_edit_financials", new=AsyncMock(return_value=True)):
+        run(server._require_scenario_owner_or_editor(principal("finance"), theirs))

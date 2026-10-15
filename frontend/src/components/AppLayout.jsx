@@ -1038,7 +1038,11 @@ export default function AppLayout() {
       {inDemo && <DemoBanner />}
       {pastDue && (
         <div className="lg:pl-[var(--sidebar-w)] bg-helm-status-warning/12 border-b border-helm-status-warning/35 px-5 py-2.5 text-center text-sm text-helm-fg" data-testid="global-past-due-banner">
-          Payment past due: <button type="button" onClick={() => window.location.href = "/app/billing"} className="underline font-medium text-helm-status-warning">update billing</button> to keep Trenston access.
+          {canBilling ? (
+            <>Payment past due: <button type="button" onClick={() => window.location.href = "/app/billing"} className="underline font-medium text-helm-status-warning">update billing</button> to keep Trenston access.</>
+          ) : (
+            <>Payment is past due. Ask the workspace owner to update billing to keep Trenston access.</>
+          )}
         </div>
       )}
       {/* Desktop nav rail — cir-tabs pill shell */}

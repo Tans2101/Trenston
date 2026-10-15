@@ -103,7 +103,7 @@ export default function Billing() {
   }, [location.state, location.pathname, navigate]);
 
   if (!canBill) {
-    return <NoAccess title="Billing" who="Only the workspace owner can change the plan or payment details." />;
+    return <NoAccess title="Billing" who="Only the workspace owner can change the plan or payment details." next="If you hit a plan limit, ask them to upgrade." />;
   }
   if (loading) {
     return (

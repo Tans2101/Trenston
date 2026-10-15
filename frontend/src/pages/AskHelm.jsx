@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useFetch, useInvalidateFetch } from "@/hooks/useFetch";
 import { useAuth } from "@/context/AuthContext";
+import { canManageBilling } from "@/lib/access";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { API, api, getApiAuthHeaders, apiErrorMessage, apiForbiddenReason } from "@/lib/api";
@@ -241,6 +242,11 @@ export default function AskHelm() {
           setMessages(patchLast({ content: message, isError: true }));
           return;
         }
+        if (!canManageBilling(user)) {
+          // Teammates can't upgrade; tell them who can instead of opening Billing.
+          setMessages(patchLast({ content: `${message} Ask the workspace owner to upgrade.`, isError: true, noRetry: true }));
+          return;
+        }
         setMessages((m) => m.slice(0, -2));
         navigate("/app/billing", { state: { billingNotice: message } });
         return;
@@ -257,7 +263,7 @@ export default function AskHelm() {
           content: detail,
           isError: true,
           noRetry: true,
-          link: { to: "/app/billing", label: "Open Billing to upgrade" },
+          link: canManageBilling(user) ? { to: "/app/billing", label: "Open Billing to upgrade" } : undefined,
         }));
         return;
       }

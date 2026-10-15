@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import { PageHeader, ErrorScreen } from "@/components/kit";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
@@ -875,6 +876,9 @@ function LockedPreview({ access, theme }) {
 /* ------------------------------------------------------------------ page */
 
 function ModelingWorkspace({ theme }) {
+  const { user } = useAuth();
+  // View-only Financials users (Executive) can model, but not change the company reserve.
+  const canEditCompanyReserve = user?.can_edit_financials !== false;
   const baselineQ = useFetch("/modeling/baseline");
   const scenariosQ = useFetch("/modeling/scenarios");
   const baseline = baselineQ.data;
@@ -1109,7 +1113,7 @@ function ModelingWorkspace({ theme }) {
       setInputs={setInputs}
       baseline={baseline}
       symbol={symbol}
-      onSaveReserve={saveReserve}
+      onSaveReserve={canEditCompanyReserve ? saveReserve : null}
       reserveBusy={reserveBusy}
     />
   );

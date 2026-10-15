@@ -3471,8 +3471,10 @@ async def update_member_role(membership_id: str, payload: RoleInput, principal=D
     await db.memberships.update_one({"membership_id": membership_id, "workspace_id": principal["workspace_id"]}, {"$set": upd})
     m2 = {**m, **upd}
     await ensure_person_for_membership(principal["workspace_id"], m2)
-    # Packs change which departments someone sees (Executive, People / HR → HR).
+    # Packs change which departments and figures someone sees (Executive,
+    # People / HR → HR), so drop every cached list, not just the department nav.
     invalidate_departments_cache(principal["workspace_id"])
+    invalidate_workspace_list_cache(principal["workspace_id"])
     return {"ok": True}
 
 
@@ -6711,10 +6713,8 @@ async def documents_library(
     membership = await _membership_for(principal)
     workspace = await get_ws(ws_id)
     can_fin, can_rep = await asyncio.gather(
-        can_section_write(
-            principal, "financials", "finance:write",
-            membership=membership, workspace=workspace,
-        ),
+        # View gate: Executives open bills read-only, so list them too.
+        can_access_financials(principal, membership=membership, workspace=workspace),
         can_section_write(
             principal, "reports", "reports:write",
             membership=membership, workspace=workspace,
@@ -7428,6 +7428,16 @@ def _scenario_out(doc: dict) -> dict:
     }
 
 
+async def _require_scenario_owner_or_editor(principal: dict, scenario: dict) -> None:
+    """Scenarios are shared. View-only Financials users (Executive) may change only
+    the ones they made; people who edit Financials may change any."""
+    if scenario.get("created_by") == principal.get("user_id"):
+        return
+    if await can_edit_financials(principal):
+        return
+    raise HTTPException(status_code=403, detail="You can only change scenarios you created")
+
+
 def _clean_scenario_name(name: str) -> str:
     cleaned = " ".join(str(name or "").split())[: modeling.MAX_LABEL_LEN]
     if not cleaned:
@@ -7524,6 +7534,7 @@ async def update_model_scenario(scenario_id: str, payload: ModelScenarioIn, prin
     existing = await db.model_scenarios.find_one(flt, {"_id": 0})
     if not existing:
         raise HTTPException(status_code=404, detail="Scenario not found")
+    await _require_scenario_owner_or_editor(principal, existing)
     updates = {
         "name": _clean_scenario_name(payload.name),
         "inputs": modeling.sanitize_inputs(payload.inputs.model_dump()),
@@ -7535,6 +7546,12 @@ async def update_model_scenario(scenario_id: str, payload: ModelScenarioIn, prin
 
 @api_router.delete("/modeling/scenarios/{scenario_id}")
 async def delete_model_scenario(scenario_id: str, principal=Depends(require_modeling)):
+    existing = await db.model_scenarios.find_one(
+        {"workspace_id": principal["workspace_id"], "scenario_id": scenario_id}, {"_id": 0},
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    await _require_scenario_owner_or_editor(principal, existing)
     res = await db.model_scenarios.delete_one(
         {"workspace_id": principal["workspace_id"], "scenario_id": scenario_id},
     )
