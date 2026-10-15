@@ -58,7 +58,7 @@ const WHERE_DATA_LIVES = [
   {
     icon: Cloud,
     title: "Vercel",
-    body: "The signed-in cockpit and the marketing site are served from Vercel over HTTPS.",
+    body: "The signed-in app and the marketing site are served from Vercel over HTTPS.",
   },
   {
     icon: Cloud,
@@ -186,7 +186,7 @@ const CONTROLS = [
   },
   {
     icon: UserRoundCheck,
-    title: "Access stays in its lane",
+    title: "Access stays where it belongs",
     body: "Each workspace is isolated. Role-based packs and department access limit people to the company data and actions they are authorized to use.",
   },
   {
@@ -347,7 +347,7 @@ export default function Security() {
           <Reveal>
             <Eyebrow>Why this matters</Eyebrow>
             <h2 className={cn("mt-4 text-4xl leading-[1.05] md:text-5xl", DISPLAY)}>
-              Companies cannot treat a cockpit as optional infrastructure.
+              Companies cannot treat the tool they run on as optional infrastructure.
             </h2>
           </Reveal>
           <Reveal i={1} className="self-end">

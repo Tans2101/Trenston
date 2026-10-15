@@ -7,6 +7,7 @@ import { writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { loadMarketingPlans, plansPlainLines } from "./loadMarketingPlans.mjs";
+import { marketingExport } from "./staticPageText.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = join(__dirname, "..");
@@ -14,37 +15,66 @@ const ORIGIN = "https://www.trenston.com";
 
 export function buildLlmsTxt() {
   const { PLANS, TAGLINE, CATEGORY, AUDIENCE } = loadMarketingPlans();
+  const what = marketingExport("WHAT_TRENSTON_IS") || "";
+  const who = marketingExport("WHO_HELM_IS_FOR") || [];
+  const day = marketingExport("CEO_DAY") || [];
+  const faq = marketingExport("HOME_FAQ") || [];
+  const list = (rows, a, b) => (Array.isArray(rows) ? rows.map((r) => `- ${r[a]}: ${r[b]}`) : []);
   const lines = [
     "# Trenston",
     "",
     `> ${CATEGORY}. ${TAGLINE}`,
     "",
+    "Trenston is web software that puts a company's money, sales, team, tasks, and decisions in one place,",
+    "so the person running the company can see what changed, what needs a decision, and what can be handed off.",
     AUDIENCE,
     "",
-    "Trenston is the operating system for founders and CEOs: one cockpit for money, pipeline, people,",
-    "department work, and decisions. That covers Briefing, Decision Center, Financials,",
-    "Ask Trenston, and department lanes (Production, Procurement, Legal, HR,",
-    "Maintenance, Sales).",
+    what,
     "",
-    "## Canonical pages",
+    "## Who it is for",
     "",
-    `- Home: ${ORIGIN}/`,
-    `- Pricing (authoritative): ${ORIGIN}/pricing`,
-    `- Features: ${ORIGIN}/features`,
-    `- Integrations: ${ORIGIN}/integrations`,
-    `- Security: ${ORIGIN}/security`,
-    `- About: ${ORIGIN}/about`,
-    `- Help: ${ORIGIN}/help`,
+    ...list(who, "title", "body"),
     "",
-    "## Current pricing",
+    "## Main features",
     "",
-    "Source of truth in the product repo: frontend/src/lib/marketingCopy.js (PLANS).",
-    "Do not use older docs (e.g. memory/PRD.md) or guessed figures.",
+    ...list(day, "title", "body"),
+    "- Departments (optional): Sales, Accounting & Finance, Production, Procurement, Legal, HR, and Engineering & Maintenance pages, turned on only when a company uses them.",
+    "",
+    "## Integrations",
+    "",
+    "- Google (Gmail and Calendar), on every plan",
+    "- QuickBooks, Xero, and SAP Business One, from Starter",
+    "- HubSpot and Slack, from Growth",
+    `- Details: ${ORIGIN}/integrations`,
+    "",
+    "## Pricing",
     "",
     ...plansPlainLines(PLANS),
     "",
     "Paid plans (Starter, Growth, Business) include a 7-day free trial.",
     "Billing is via Paddle. Cancel anytime from Billing.",
+    `Authoritative pricing: ${ORIGIN}/pricing`,
+    "",
+    "## Common questions",
+    "",
+    ...list(faq, "q", "a"),
+    "",
+    "## Pages",
+    "",
+    `- Home: ${ORIGIN}/`,
+    `- Features: ${ORIGIN}/features`,
+    `- Pricing: ${ORIGIN}/pricing`,
+    `- How Trenston compares: ${ORIGIN}/compare`,
+    `- Integrations: ${ORIGIN}/integrations`,
+    `- Security: ${ORIGIN}/security`,
+    `- About: ${ORIGIN}/about`,
+    `- Help: ${ORIGIN}/help`,
+    `- Changelog: ${ORIGIN}/changelog`,
+    "",
+    "## Company",
+    "",
+    "- Founded: September 2026, BGC, Taguig, Philippines",
+    "- Contact: contact@trenston.com",
     "",
   ];
   return `${lines.join("\n")}\n`;

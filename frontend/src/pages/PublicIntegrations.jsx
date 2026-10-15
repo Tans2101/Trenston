@@ -57,7 +57,7 @@ export default function PublicIntegrations() {
         ]}
       >
         <div className="flex flex-wrap gap-3">
-          <MkButton variant="light" onClick={enter}>{authed ? "Open your cockpit" : "Get started free"}</MkButton>
+          <MkButton variant="light" onClick={enter}>{authed ? "Open Trenston" : "Get started free"}</MkButton>
           <MkButton variant="outline-light" href={requestHref}>Request an integration</MkButton>
         </div>
       </PageHero>

@@ -262,7 +262,7 @@ export function CtaBand({ title, sub, authed, onEnter, secondary }) {
             {sub && <p className="text-lg leading-relaxed text-mk-gray-dark">{sub}</p>}
             <div className="mt-8 flex flex-wrap gap-3">
               <MkButton variant="light" onClick={onEnter} data-testid="footer-cta-btn">
-                {authed ? "Open your cockpit" : "Get started free"}
+                {authed ? "Open Trenston" : "Get started free"}
               </MkButton>
               {secondary}
             </div>

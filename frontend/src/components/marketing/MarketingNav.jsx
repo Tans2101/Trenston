@@ -78,7 +78,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
               onClick={onEnter}
               className="mk-btn mk-btn-dark hidden sm:inline-flex"
             >
-              <span>{authed ? "Open cockpit" : "Get started"}</span>
+              <span>{authed ? "Open Trenston" : "Get started"}</span>
               <ArrowRight className="mk-arrow h-3.5 w-3.5" aria-hidden />
             </button>
             <button
@@ -122,7 +122,7 @@ export default function MarketingNav({ authed, onEnter, active }) {
               onClick={() => { setOpen(false); onEnter?.(); }}
               className="mk-btn mk-btn-dark w-full"
             >
-              <span>{authed ? "Open cockpit" : "Get started"}</span>
+              <span>{authed ? "Open Trenston" : "Get started"}</span>
             </button>
           </div>
         </nav>

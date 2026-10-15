@@ -109,7 +109,7 @@ export default function Landing() {
               className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4"
             >
               <MkButton variant="dark" onClick={enter} data-testid="hero-cta-btn">
-                {authed ? "Open your cockpit" : "Start free"}
+                {authed ? "Open Trenston" : "Start free"}
               </MkButton>
               <MkLink href="#how" className="text-base text-mk-black">See how it works</MkLink>
             </motion.div>
@@ -170,7 +170,7 @@ export default function Landing() {
       <section className="bg-white px-6 py-24 md:py-28">
         <div className="mx-auto max-w-7xl">
           <SectionHeader
-            eyebrow="The cockpit"
+            eyebrow="The product"
             title="What founders open Trenston for."
             action={<MkLink to="/features" className="text-mk-navy">See all features</MkLink>}
           />
@@ -208,7 +208,7 @@ export default function Landing() {
           </div>
           <div className="mt-14">
             <MkButton variant="light" onClick={enter} data-testid="how-cta-btn">
-              {authed ? "Open your cockpit" : "Start free"}
+              {authed ? "Open Trenston" : "Start free"}
             </MkButton>
           </div>
         </div>

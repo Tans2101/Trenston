@@ -105,12 +105,12 @@ export default function Features() {
     <MkPage authed={authed} onEnter={enter} active="/features">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["Everything", <>in the <Mark dark>cockpit</Mark>.</>]}
-        sub="Briefing, decisions, departments, and the rest of the cockpit, each designed to answer a specific leadership question: what changed, what to decide, what to delegate, and whether it landed."
+        lines={["Everything", <>in <Mark dark>one place</Mark>.</>]}
+        sub="Briefing, decisions, departments, and the rest of Trenston, each designed to answer a specific leadership question: what changed, what to decide, what to delegate, and whether it landed."
         aside={<BriefingTicker />}
       >
         <div className="flex flex-wrap gap-3">
-          <MkButton variant="light" onClick={enter}>{authed ? "Open your cockpit" : "Get started free"}</MkButton>
+          <MkButton variant="light" onClick={enter}>{authed ? "Open Trenston" : "Get started free"}</MkButton>
           <MkButton variant="outline-light" to="/pricing">View pricing</MkButton>
         </div>
       </PageHero>

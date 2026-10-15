@@ -214,7 +214,7 @@ export default function About() {
 
       <CtaBand
         title={TAGLINE}
-        sub="See the cockpit for yourself. Free to start, 7-day free trials on paid plans."
+        sub="See Trenston for yourself. Free to start, 7-day free trials on paid plans."
         authed={authed}
         onEnter={enter}
         secondary={<MkButton variant="outline-light" to="/features">See all features</MkButton>}

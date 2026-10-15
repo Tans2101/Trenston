@@ -59,7 +59,7 @@ export default function PlanCards({ authed, onEnter, ctaTestIdPrefix = "pricing-
                   className="w-full"
                   data-testid={`${ctaTestIdPrefix}-${plan.id}`}
                 >
-                  {authed ? "Open cockpit" : plan.id === "free" ? "Get started free" : "Start free trial"}
+                  {authed ? "Open Trenston" : plan.id === "free" ? "Get started free" : "Start free trial"}
                 </MkButton>
                 <p
                   data-testid={disclosure && renewalTestIdPrefix ? `${renewalTestIdPrefix}-${plan.id}` : undefined}

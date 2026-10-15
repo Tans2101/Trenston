@@ -32,9 +32,9 @@ export const MISSION =
   "Trenston exists so a founder can open one place and see what the business is actually saying today: money, pipeline, people, and the work in motion, without reconstructing that picture from inboxes, spreadsheets, and status chases.";
 
 export const VISION =
-  "The near direction is to deepen that same cockpit across every lane operators already run in Trenston (Briefing, Decisions, Financials, Production, Procurement, Legal, HR, Maintenance, Sales) so opening Trenston shows the company, not another reconstruction project.";
+  "The near direction is to deepen that same view across every area teams already run in Trenston (Briefing, Decisions, Financials, Production, Procurement, Legal, HR, Maintenance, Sales) so opening Trenston shows the company, not another reconstruction project.";
 export const ABOUT_DIFFERENTIATOR =
-  "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the picture is company-wide, not one lane at a time.";
+  "Trenston is grounded in the workspace's live data, not a generic chart library. Ask Trenston answers from actual financials and pipeline; Financials refuses to dress missing cash or runway up as $0; Decision Center keeps the call and its outcome visible instead of letting approvals vanish into chat; department status rolls into the Briefing so the picture is company-wide, not one department at a time.";
 
 export const ABOUT_STORY =
   "Running a company means your financials, your open decisions, your team's day-to-day work, and what is happening in each department all live in different places: a spreadsheet here, a person's head there, a chat thread nobody can find again. You are not choosing between competing dashboards. You do not have a single one that is honest about what needs you right now versus what can wait. Nobody has the whole picture, least of all the person responsible for it. That is the gap Trenston was built to close: pull money, decisions, people, and work into one place that shows what changed and what to decide, instead of making you assemble the picture yourself every time. What got built is an operating system for founders and CEOs: Briefing, Decision Center, Financials and runway, Ask Trenston, and department workflows for Production, Procurement, Legal, HR, Maintenance, and Sales, all synthesized into what needs the owner's attention.";
@@ -42,7 +42,7 @@ export const ABOUT_STORY =
 export const VALUES = [
   {
     title: "Signal over noise",
-    body: "Briefing surfaces what changed across the company; Decision Center ranks what needs a call; department lanes keep operational detail where it belongs. The cockpit exists to help you decide or delegate, not to keep you scrolling through more charts.",
+    body: "Briefing surfaces what changed across the company; Decision Center ranks what needs a call; department pages keep operational detail where it belongs. Trenston exists to help you decide or delegate, not to keep you scrolling through more charts.",
   },
   {
     title: "Quiet control",
@@ -61,11 +61,11 @@ export const WHO_HELM_IS_FOR = [
   },
   {
     title: "Owner-operators and traditional businesses",
-    body: "Manufacturing, services, agencies, family companies. Trenston is a cockpit for running the operation, not a tool only venture-backed startups use.",
+    body: "Manufacturing, services, agencies, family companies. Trenston is built for running the operation, not a tool only venture-backed startups use.",
   },
   {
     title: "CEOs and leadership teams",
-    body: "From a handful of people to a full leadership bench. Finance, sales, ops, and production keep their lanes. You get one synthesized view.",
+    body: "From a handful of people to a full leadership bench. Finance, sales, ops, and production keep their own pages. You get one synthesized view.",
   },
 ];
 
@@ -255,7 +255,7 @@ export const FEATURE_CATEGORIES = [
   {
     id: "people",
     label: "People & operations",
-    intro: "Team access, department lanes, and integrations. Everyone contributes, you stay in control.",
+    intro: "Team access, department pages, and integrations. Everyone contributes, you stay in control.",
     modules: ["Integrations", "Team & Access", "Learn as you go"],
   },
 ];
@@ -406,12 +406,12 @@ export const FEATURE_HIGHLIGHTS = [
   { title: "Ask Trenston", body: "Your executive AI chief-of-staff, grounded in your live company data." },
 ];
 
-/** Department lanes — enable only what the company actually uses. */
+/** Department pages: enable only what the company actually uses. */
 export const DEPARTMENTS_SECTION = {
   label: "Departments",
   title: "Turn on only the departments your company actually needs.",
   intro:
-    "Give each team its own lane (Procurement, Production, Accounting & Finance, Sales, Legal, HR, Engineering & Maintenance) while you see everything from the top. Disable what you do not use.",
+    "Give each team its own page (Procurement, Production, Accounting & Finance, Sales, Legal, HR, Engineering & Maintenance) while you see everything from the top. Disable what you do not use.",
   items: [
     {
       name: "Procurement",
@@ -426,7 +426,7 @@ export const DEPARTMENTS_SECTION = {
     {
       name: "Accounting & Finance",
       icon: "landmark",
-      body: "Your finance team logs revenue and expenses. Trenston turns that into live cash, revenue, and spend across the cockpit.",
+      body: "Your finance team logs revenue and expenses. Trenston turns that into live cash, revenue, and spend across Trenston.",
     },
     {
       name: "Sales",
@@ -518,7 +518,7 @@ export const FEATURE_MODULES = [
   {
     title: "Gmail thread surfacing + AI draft replies",
     ceoValue: "Inbox signal without living in email.",
-    body: "Surfaces important Gmail threads in the cockpit and drafts replies you can send, grounded in company context, not a blank compose box.",
+    body: "Surfaces important Gmail threads in Trenston and drafts replies you can send, grounded in company context, not a blank compose box.",
     example: "A customer thread needs a decision. Trenston drafts the reply; you edit and send.",
   },
   {
@@ -591,13 +591,13 @@ export const FEATURE_MODULES = [
     title: "Integrations",
     ceoValue: "Your team keeps their tools. You get the picture.",
     body: INTEGRATIONS_PUBLIC_BLURB,
-    example: "Finance syncs QuickBooks or SAP Business One. Important Gmail threads surface in Briefing. You see it all in the cockpit.",
+    example: "Finance syncs QuickBooks or SAP Business One. Important Gmail threads surface in Briefing. You see it all in one place.",
     link: { to: "/integrations", label: "See all integrations" },
   },
   {
     title: "Team & Access",
-    ceoValue: "Invite your team with the right lane.",
-    body: "Role-based packs plus per-department access. Turn on only the departments you need. Each team works in its own lane; you see everything from the top.",
+    ceoValue: "Invite your team with the right access.",
+    body: "Role-based packs plus per-department access. Turn on only the departments you need. Each team works in its own department; you see everything from the top.",
     example: "Your plant lead owns Production. Purchasing runs the request queue. You still see the synthesis in the briefing.",
   },
 ];
@@ -619,7 +619,7 @@ export const HOW_TO_USE_AUDIENCES = [
   {
     title: "If you were invited to a team",
     body:
-      "Start with My Day for your own notes and tasks. You will also see the department pages you belong to (for example Procurement or Production). Seeing only your lanes is intentional: access follows the departments and permissions your owner set, not a hidden lockout.",
+      "Start with My Day for your own notes and tasks. You will also see the department pages you belong to (for example Procurement or Production). Seeing only your departments is intentional: access follows the departments and permissions your owner set, not a hidden lockout.",
   },
 ];
 
@@ -648,9 +648,9 @@ export const HOW_TO_USE_CONCEPTS = [
   {
     term: "Departments",
     explanation:
-      "Departments are optional work lanes such as Procurement, Production, Legal, HR, or Maintenance. An owner turns on only what the company uses. Each enabled department gets its own queue so that team can move work without cluttering everyone else's screen.",
+      "Departments are optional work areas such as Procurement, Production, Legal, HR, or Maintenance. An owner turns on only what the company uses. Each enabled department gets its own queue so that team can move work without cluttering everyone else's screen.",
     example:
-      "You enable Procurement and Production. Purchasing lives in Procurement; shop-floor work orders live in Production. People only see the lanes they are on.",
+      "You enable Procurement and Production. Purchasing lives in Procurement; shop-floor work orders live in Production. People only see the departments they are on.",
   },
   {
     term: "Ask Trenston",
@@ -669,7 +669,7 @@ export const HOW_TO_USE_CONCEPTS = [
   {
     term: "Financials",
     explanation:
-      "Financials is where revenue, expenses, and cash are logged so Trenston can show MRR, burn, and runway elsewhere in the cockpit. Your finance team (or anyone granted access) can enter numbers manually, import a CSV, or connect accounting tools. When QuickBooks, Xero, or SAP Business One is connected, synced books are the source of truth and manual entry is for one-offs that sync will not catch.",
+      "Financials is where revenue, expenses, and cash are logged so Trenston can show MRR, burn, and runway elsewhere in Trenston. Your finance team (or anyone granted access) can enter numbers manually, import a CSV, or connect accounting tools. When QuickBooks, Xero, or SAP Business One is connected, synced books are the source of truth and manual entry is for one-offs that sync will not catch.",
     example:
       "Finance logs this month's expenses and updates cash. Briefing and Telemetry then reflect the new runway without a separate spreadsheet chase.",
   },
@@ -710,9 +710,9 @@ export const HOW_TO_USE_STEPS = [
     audience: "everyone",
   },
   {
-    title: "Learn My Day and your department lane",
+    title: "Learn My Day and your department page",
     body:
-      "Open My Day (/app/me) for private notes and your tasks. If you belong to a department, open that lane next and move one real item forward. Invited teammates can stop here for a solid first pass.",
+      "Open My Day (/app/me) for private notes and your tasks. If you belong to a department, open that department next and move one real item forward. Invited teammates can stop here for a solid first pass.",
     audience: "everyone",
   },
   {
@@ -724,7 +724,7 @@ export const HOW_TO_USE_STEPS = [
   {
     title: "Invite a teammate (owners)",
     body:
-      "In Team & Access (/app/members), invite someone who should contribute, pick an access pack, and grant only the sections they need. They will land in My Day and their department lanes rather than seeing every owner screen by default.",
+      "In Team & Access (/app/members), invite someone who should contribute, pick an access pack, and grant only the sections they need. They will land in My Day and their department pages rather than seeing every owner screen by default.",
     audience: "owner",
   },
   {

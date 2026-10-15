@@ -9,6 +9,7 @@
 import { readFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { loadMarketingPlans, formatPlanPrice } from "./loadMarketingPlans.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pagesDir = join(__dirname, "../src/pages");
@@ -53,7 +54,7 @@ function extractExport(src, name, scope = {}) {
 }
 
 /** String constants first, then arrays that may reference those identifiers. */
-function marketingExport(name) {
+export function marketingExport(name) {
   const src = readFileSync(marketingCopyPath, "utf8");
   const scope = copyConstants();
   for (const key of ["INTEGRATIONS_PUBLIC_BLURB", "PUBLIC_INTEGRATIONS_INTRO", "PUBLIC_INTEGRATIONS_ATTRIBUTION"]) {
@@ -133,26 +134,44 @@ function homeSections() {
   const sub = marketingExport("HERO_SUB") || "";
   const what = marketingExport("WHAT_TRENSTON_IS") || "";
   const day = marketingExport("CEO_DAY") || [];
+  const who = marketingExport("WHO_HELM_IS_FOR") || [];
+  const steps = marketingExport("GET_STARTED_STEPS") || [];
+  const quotes = marketingExport("TESTIMONIALS") || [];
   const faq = marketingExport("HOME_FAQ") || [];
   const sections = [];
   if (tagline || hero || sub) {
-    sections.push({
-      heading: "What Trenston is for",
-      parts: [tagline, hero, sub].filter(Boolean),
-    });
+    sections.push({ heading: "What Trenston does", parts: [hero, sub, tagline].filter(Boolean) });
   }
   if (what) sections.push({ heading: "The product", parts: [what] });
+  if (Array.isArray(who) && who.length) {
+    sections.push({ heading: "Who it is for", parts: who.map((r) => `${r.title}: ${r.body}`) });
+  }
   if (Array.isArray(day) && day.length) {
+    sections.push({ heading: "What you get", parts: day.map((r) => `${r.title}: ${r.body}`) });
+  }
+  if (Array.isArray(steps) && steps.length) {
+    sections.push({ heading: "How to start", parts: steps.map((t, i) => `${i + 1}. ${t}`) });
+  }
+  try {
+    const { PLANS } = loadMarketingPlans();
     sections.push({
-      heading: "A day in the cockpit",
-      parts: day.map((r) => `${r.title}: ${r.body}`),
+      heading: "Pricing",
+      parts: [
+        ...PLANS.map((p) => `${p.label}: ${formatPlanPrice(p)}${p.seats ? `, up to ${p.seats} users` : ""}${p.for ? `. ${p.for}.` : "."}`),
+        "Paid plans include a 7-day free trial. Billing runs through Paddle.",
+      ],
+    });
+  } catch {
+    /* pricing page carries the authoritative figures */
+  }
+  if (Array.isArray(quotes) && quotes.length) {
+    sections.push({
+      heading: "What users say",
+      parts: quotes.map((q) => `"${q.quote}" (${[q.name, q.role, q.company].filter(Boolean).join(", ")})`),
     });
   }
   if (Array.isArray(faq) && faq.length) {
-    sections.push({
-      heading: "Common questions",
-      parts: faq.map((r) => `${r.q}: ${r.a}`),
-    });
+    sections.push({ heading: "Common questions", parts: faq.map((r) => `${r.q}: ${r.a}`) });
   }
   return sections;
 }
@@ -303,7 +322,11 @@ const NAV = [
   ["/privacy", "Privacy"],
   ["/terms", "Terms"],
   ["/about", "About"],
+  ["/help", "Help"],
 ];
+
+/** Plain-language H1 for the home page's non-JS version (the visual hero uses the tagline). */
+export const HOME_H1 = "Trenston: one place to see your company's money, sales, team, and decisions";
 
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -311,6 +334,7 @@ const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 export function staticBodyFor(path, page) {
   let h1;
   let sections;
+  let cta = false;
   if (LEGAL[path]) {
     h1 = LEGAL[path].h1;
     sections = legalSections(LEGAL[path].file);
@@ -318,8 +342,9 @@ export function staticBodyFor(path, page) {
     h1 = "Security at Trenston";
     sections = securitySections();
   } else if (path === "/") {
-    h1 = "Trenston";
+    h1 = HOME_H1;
     sections = homeSections();
+    cta = true;
   } else if (path === "/about") {
     h1 = "About Trenston";
     sections = aboutSections();
@@ -349,9 +374,12 @@ export function staticBodyFor(path, page) {
     })
     .join("\n");
   const nav = NAV.map(([href, label]) => `<a href="${href}">${label}</a>`).join(" · ");
+  const ctaLinks = cta
+    ? `\n  <p><a href="/sign-up">Start free</a> · <a href="/pricing">See pricing</a> · <a href="/features">See features</a></p>`
+    : "";
   return `<main id="helm-prerender-page">
   <h1>${esc(h1)}</h1>
-  <p>${esc(page.description || "")}</p>
+  <p>${esc(page.description || "")}</p>${ctaLinks}
 ${body}
   <nav>${nav}</nav>
 </main>`;
