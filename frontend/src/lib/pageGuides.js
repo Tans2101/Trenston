@@ -16,8 +16,8 @@ export const GUIDES = [
   {
     id: "briefing",
     path: /^\/app\/?$/,
-    name: "Briefing",
-    purpose: "Your company at a glance: what changed, what needs a decision, and how the money looks, on one screen.",
+    name: "Home",
+    purpose: "Your company at a glance: what changed, what needs a decision, and how the money looks, with your own work underneath.",
     tips: [
       "Read it top to bottom whenever you open Trenston. It takes about two minutes.",
       "Anything that says \"Add data\" isn't known yet. Trenston never fills in a made-up number.",
@@ -58,8 +58,8 @@ export const GUIDES = [
   },
   {
     id: "myday",
-    path: /^\/app\/me\/?$/,
-    name: "My Day",
+    path: /^\/app(\/me)?\/?$/,
+    name: "Home",
     purpose: "Only your work: what's waiting on you, your tasks, your private notes and your daily update.",
     tips: [
       "Start here, then work down the list.",
@@ -504,8 +504,10 @@ export const QUICK_ADD_GUIDE = {
 
 export const ALL_GUIDES = [...GUIDES, QUICK_ADD_GUIDE];
 
-export function guideForPath(pathname) {
+export function guideForPath(pathname, { leader = true } = {}) {
   const clean = (pathname || "").replace(/\/+$/, "") || "/";
+  // Home (/app) is role-based: leaders get the company briefing tour, everyone else their own day.
+  if (clean === "/app" && !leader) return GUIDES.find((g) => g.id === "myday") || null;
   return GUIDES.find((g) => g.path.test(clean) || g.path.test(`${clean}/`)) || null;
 }
 

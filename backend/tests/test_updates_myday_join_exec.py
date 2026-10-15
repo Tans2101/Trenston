@@ -76,7 +76,7 @@ def exec_ctx(mongo):
 def test_member_default_route_me(member):
     d = member.get(f"{BASE_URL}/api/auth/me").json()
     assert d["pack"] == "member"
-    assert d["default_route"] == "/app/me"
+    assert d["default_route"] == "/app"
     perms = set(d["perms"])
     assert {"updates:write", "tasks:create", "tasks:move", "ask:use", "read"} <= perms
     assert "tasks:assign" not in perms

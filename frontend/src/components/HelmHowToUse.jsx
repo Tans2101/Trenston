@@ -17,7 +17,7 @@ import {
 const STEP_ROUTES = {
   "Open Briefing": { to: "/app", label: "Open Briefing" },
   "Act on one Decision": { to: "/app/decisions", label: "Open Decisions" },
-  "Learn My Day and your department lane": { to: "/app/me", label: "Open My Day" },
+  "Learn Home and your department page": { to: "/app", label: "Open Home" },
   "Connect an integration (owners and admins)": { to: "/app/integrations", label: "Open Integrations" },
   "Invite a teammate (owners)": { to: "/app/members", label: "Open Team & Access" },
   "Generate a CEO Pack (owners and report access)": { to: "/app/reports", label: "Open Reports" },

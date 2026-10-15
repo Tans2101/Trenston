@@ -612,22 +612,22 @@ export const HOW_TO_USE_AUDIENCES = [
   {
     title: "If you were invited to a team",
     body:
-      "Start with My Day for your own notes and tasks. You will also see the department pages you belong to (for example Procurement or Production). Seeing only your departments is intentional: access follows the departments and permissions your owner set, not a hidden lockout.",
+      "Start on Home for your own work, notes and tasks. You will also see the department pages you belong to (for example Procurement or Production). Seeing only your departments is intentional: access follows the departments and permissions your owner set, not a hidden lockout.",
   },
 ];
 
 export const HOW_TO_USE_CONCEPTS = [
   {
-    term: "Briefing",
+    term: "Home",
     explanation:
-      "Briefing is Trenston's homepage for leadership. It pulls together what changed recently, what still needs a call from you, and what you could hand off. Open it when you want the company picture without opening every other tool.",
+      "Home is the first page you see, and it changes by role. Owners and executives get the company briefing (what changed, what needs a call from you, what you could hand off) with their own work underneath. Everyone else gets their own work: tasks from every department, decisions they can act on, private notes, and their team update.",
     example:
-      "You open Briefing and see cash was updated, two deals moved stage, and one approval is waiting. You handle the approval and leave the rest for later.",
+      "An owner opens Home and sees cash was updated, two deals moved stage, and one approval is waiting. A teammate opens Home and sees the three tasks due this week.",
   },
   {
-    term: "My Day",
+    term: "Your work",
     explanation:
-      "My Day is your personal workspace inside Trenston. It holds private sticky notes, your tasks, and an optional team update you can share. Every teammate gets My Day, not only the owner.",
+      "Your work is the personal part of Home. It holds private sticky notes, your tasks, and an optional team update you can share. Every teammate gets it, not only the owner.",
     example:
       "Before a busy afternoon you jot three priorities on private notes, check your open tasks, and post a short team update so others know what you are focused on.",
   },
@@ -703,9 +703,9 @@ export const HOW_TO_USE_STEPS = [
     audience: "everyone",
   },
   {
-    title: "Learn My Day and your department page",
+    title: "Learn Home and your department page",
     body:
-      "Open My Day (/app/me) for private notes and your tasks. If you belong to a department, open that department next and move one real item forward. Invited teammates can stop here for a solid first pass.",
+      "Open Home (/app) for your work, private notes, and tasks. If you belong to a department, open that department next and move one real item forward. Invited teammates can stop here for a solid first pass.",
     audience: "everyone",
   },
   {
@@ -779,16 +779,15 @@ export const HOW_TO_USE_FAQ = [
       "Ask Trenston answers a question you type right now from your live company data (subject to plan message limits: Free 10/month, Starter 100, Growth 200, Business 500). Decisions is the queue of calls that already need approval or judgment. Use Ask Trenston for a specific question; use Decisions when something is waiting on a yes, no, or owner.",
   },
   {
-    q: "Who can see what I write in My Day?",
+    q: "Who can see the notes I write on Home?",
     a:
-      "Private sticky notes on My Day are only visible to you. They are stored per user and are not shown to teammates or the owner. The optional team update on My Day is different: if you post one, it is shared with the team. Tasks you create or are assigned to follow normal task visibility for people who can see that work.",
+      "Private sticky notes on Home are only visible to you. They are stored per user and are not shown to teammates or the owner. The optional team update is different: if you post one, it is shared with the team. Tasks you create or are assigned to follow normal task visibility for people who can see that work.",
   },
 ];
 
 /** Quick-reference paths for people who already know the concepts above. */
 export const HOW_TO_USE_MODULES = [
-  { nav: "Briefing", path: "/app", tip: "Company homepage: what changed, what to decide, what to hand off." },
-  { nav: "My Day", path: "/app/me", tip: "Your private notes, tasks, and optional team update." },
+  { nav: "Home", path: "/app", tip: "Owners and executives: the company briefing plus your own work. Everyone else: your tasks, decisions, notes, and team update." },
   { nav: "Decisions", path: "/app/decisions", tip: "Approve, reject, or assign ownership; review what already resolved." },
   { nav: "Ask Trenston", path: "/app/ask", tip: "Ask a question about your live company data." },
   { nav: "Metrics", path: "/app/metrics", tip: "One-screen snapshot of key numbers and risks (access required)." },

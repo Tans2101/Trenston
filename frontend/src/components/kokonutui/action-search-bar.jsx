@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { rankActions } from "@/lib/searchRank";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_QUICK_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
+const DEFAULT_QUICK_IDS = ["home", "tasks", "calendar", "ask", "reports"];
 
 /**
  * @param {{ id: string, label: string, icon?: React.ReactNode, description?: string, to?: string }[]} actions

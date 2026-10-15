@@ -14,7 +14,7 @@ export default function SectionGate({ section, children, fallback = null }) {
 
   const granted = user.granted_sections || [];
   if (section && !granted.includes(section)) {
-    const dest = fallback || user.default_route || "/app/me";
+    const dest = fallback || user.default_route || "/app";
     return <Navigate to={dest} replace />;
   }
   return children;

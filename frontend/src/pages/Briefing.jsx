@@ -32,7 +32,7 @@ function BriefLabel({ children, className }) {
   );
 }
 
-export default function Briefing() {
+export default function Briefing({ asHome = false } = {}) {
   const { user } = useAuth();
   const tz = useWorkspaceTimezone();
   const canManageIntegrations = hasPerm(user, "integrations:manage");
@@ -627,7 +627,7 @@ export default function Briefing() {
       </div>
 
 
-      {data.team_updates && data.team_updates.length > 0 && (
+      {!asHome && data.team_updates && data.team_updates.length > 0 && (
         <GlassCard className="p-5 mt-4 fade-up" data-testid="briefing-team-updates">
           <div className="flex items-center gap-2 mb-4">
             <Users className="w-4 h-4 text-helm-muted" />

@@ -35,6 +35,9 @@ describe("page guides", () => {
     expect(guideForPath("/app").id).toBe("briefing");
     expect(guideForPath("/app/").id).toBe("briefing");
     expect(guideForPath("/app/me").id).toBe("myday");
+    // Home is role-based: non-leaders get the personal tour on /app.
+    expect(guideForPath("/app", { leader: false }).id).toBe("myday");
+    expect(guideForPath("/app", { leader: true }).id).toBe("briefing");
     expect(guideForPath("/app/financials").id).toBe("financials");
     expect(guideForPath("/app/departments/legal").id).toBe("legal");
     expect(guideForPath("/app/map").id).toBe("map");

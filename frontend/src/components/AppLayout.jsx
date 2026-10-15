@@ -41,8 +41,7 @@ import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
 const SKIP_WELCOME_KEY = "trenston.setup.skipWelcome";
 
 const NAV = [
-  { to: "/app/me", label: "My Day", icon: Sun, id: "myday", end: true, group: "Today" },
-  { to: "/app", label: "Briefing", icon: LayoutDashboard, id: "briefing", end: true, group: "Today" },
+  { to: "/app", label: "Home", icon: LayoutDashboard, id: "home", end: true, group: "Today" },
   { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions", group: "Today" },
   { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks", group: "Today" },
   { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar", group: "Today" },
@@ -71,8 +70,8 @@ function navItemVisible(item, user, { modelingAllowed = false } = {}) {
 
 /** Phone-only bar along the bottom: the four places people go most, plus More. */
 const TABBAR_ORDER = {
-  lead: ["briefing", "myday", "tasks", "decisions"],
-  member: ["myday", "tasks", "decisions", "calendar"],
+  lead: ["home", "tasks", "decisions", "calendar"],
+  member: ["home", "tasks", "decisions", "calendar"],
 };
 
 function MobileTabBar({ onMore, moreOpen }) {
@@ -371,7 +370,7 @@ function NewCompanyDialog({ needsAgeConfirmation, onClose }) {
   );
 }
 
-const QUICK_ACTION_IDS = ["myday", "briefing", "calendar", "ask", "reports"];
+const QUICK_ACTION_IDS = ["home", "tasks", "calendar", "ask", "reports"];
 
 function SidebarPromoCard({ billingEnforced, isPaid, canBilling, onNavigate }) {
   const [dismissed, setDismissed] = useState(() => {

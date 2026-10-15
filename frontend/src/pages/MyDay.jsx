@@ -9,6 +9,7 @@ import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 import { api } from "@/lib/api";
 import GetStarted from "@/components/guide/GetStarted";
 import { useAuth } from "@/context/AuthContext";
+import { isLeader } from "@/lib/access";
 import { formatDay, todayISO } from "@/lib/dates";
 import { dayPartGreeting } from "@/lib/greeting";
 import {
@@ -63,7 +64,7 @@ function SectionSkeleton({ count = 2 }) {
   return <SkeletonCardList count={count} />;
 }
 
-export default function MyDay() {
+export default function MyDay({ embedded = false, hideNeedsCall = false } = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const tz = useWorkspaceTimezone();
@@ -128,7 +129,7 @@ export default function MyDay() {
   if (isMyDayInitialLoading(requiredFeeds)) {
     return (
       <div>
-        <PageHeaderSkeleton />
+        {embedded ? null : <PageHeaderSkeleton />}
         <SkeletonCardList count={2} className="mb-6" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <SkeletonCardList count={3} />
@@ -249,14 +250,21 @@ export default function MyDay() {
 
   return (
     <div>
-      <div className="mb-8 fade-up">
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-3">My Day</p>
-        <h1 className="font-display text-3xl md:text-5xl font-normal tracking-tight text-helm-fg">{greeting}, {first}.</h1>
-        <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">Your private notes, tasks, and optional team update. Start with what matters to you.</p>
-      </div>
+      {embedded ? (
+        <div className="mb-6 mt-10 border-t border-helm-line pt-8 fade-up" data-testid="home-your-work">
+          <h2 className="font-display text-2xl font-normal tracking-tight text-helm-fg">Your day</h2>
+          <p className="text-helm-muted mt-1 text-sm leading-relaxed">What&apos;s assigned to you, your private notes, and your team update.</p>
+        </div>
+      ) : (
+        <div className="mb-8 fade-up">
+          <p className="font-mono text-xs uppercase tracking-[0.25em] text-helm-gold mb-3">Home</p>
+          <h1 className="font-display text-3xl md:text-5xl font-normal tracking-tight text-helm-fg">{greeting}, {first}.</h1>
+          <p className="text-helm-muted mt-3 max-w-2xl text-base leading-relaxed">Your work across Trenston, your notes, and your team update.</p>
+        </div>
+      )}
 
-      {/* Owners and execs get this list on the Briefing; everyone else starts here. */}
-      {user?.default_route && user.default_route !== "/app" ? <GetStarted /> : null}
+      {/* Leaders get this list in the company briefing above; everyone else starts here. */}
+      {!embedded && !isLeader(user) ? <GetStarted /> : null}
 
       {softRefreshError ? (
         <div
@@ -272,7 +280,7 @@ export default function MyDay() {
       ) : null}
 
       {/* Needs your call — never blocks the rest of the page */}
-      {(lDec && !decisionsData) ? (
+      {hideNeedsCall ? null : (lDec && !decisionsData) ? (
         <div className="mb-8 fade-up" data-testid="needs-your-call-loading">
           <SectionLabel>Needs your call</SectionLabel>
           <div className="mt-4"><SectionSkeleton count={2} /></div>

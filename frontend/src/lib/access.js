@@ -15,6 +15,15 @@ export const PACKS = [
 export const ASSIGNABLE_PACKS = PACKS.filter((p) => p.id !== "owner");
 
 export const packMeta = (id) => PACKS.find((p) => p.id === id) || PACKS[PACKS.length - 1];
+/**
+ * Leaders (owner, executive, or anyone whose landing page is the company view)
+ * get the company briefing on Home; everyone else gets their own day.
+ */
+export function isLeader(user) {
+  if (!user) return false;
+  return user.role === "owner" || user.pack === "owner" || user.pack === "exec";
+}
+
 export const hasPerm = (user, perm) => Array.isArray(user?.perms) && user.perms.includes(perm);
 
 /** Who can open Billing / fix past-due — owners always, or anyone with billing:manage. */

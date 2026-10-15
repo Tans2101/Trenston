@@ -59,11 +59,6 @@ function deltaTone(m) {
   return "neutral";
 }
 
-function decisionQueueStatus(count) {
-  if (count === 0) return { body: "Nothing waiting", badge: "Clear", tone: "positive" };
-  if (count <= 2) return { body: `${count} open`, badge: "Good", tone: "positive" };
-  return { body: `${count} open`, badge: "Busy", tone: "warning" };
-}
 
 /**
  * Briefing top viewport: Revenue / Burn / Runway side by side,
@@ -164,10 +159,6 @@ export default function BriefingCockpitHero({
     hasRows: spendRows.length > 0,
   });
 
-  const decisionRows = (decisions || []).slice(0, 5);
-  const openDecisionsTotal = Number.isFinite(decisionsTotal) ? decisionsTotal : (decisions || []).length;
-  const queueStatus = decisionQueueStatus(openDecisionsTotal);
-  const decisionsPriority = decisionRows.length > 0;
 
   if (loading) {
     return (
@@ -372,8 +363,8 @@ export default function BriefingCockpitHero({
         )}
       </div>
 
-      {/* C. Three columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* C. Assistant + spending */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <section className="rounded-xl border border-helm-line bg-helm-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="w-4 h-4 text-helm-gold" />
@@ -444,87 +435,7 @@ export default function BriefingCockpitHero({
           )}
         </section>
 
-        <section
-          data-testid="briefing-decisions-card"
-          className={cn(
-            "rounded-xl border bg-helm-card p-5 shadow-sm",
-            decisionsPriority
-              ? "border-helm-gold/40 border-l-[3px] border-l-helm-gold bg-helm-gold/[0.06]"
-              : "border-helm-line",
-          )}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-helm-fg">Decisions</h3>
-            {canAct !== false && (
-              <button
-                type="button"
-                aria-label="Add decision"
-                title="Log a decision"
-                onClick={() => navigate("/app/decisions", { state: { openAdd: true } })}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-helm-line text-helm-muted hover:bg-helm-fg/[0.04]"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-          <div
-            className={cn(
-              "mb-3 rounded-lg border px-3 py-2.5 flex items-center justify-between",
-              queueStatus.tone === "positive"
-                ? "border-helm-status-positive/35 bg-helm-status-positive/12"
-                : "border-helm-status-warning/35 bg-helm-status-warning/12",
-            )}
-          >
-            <div>
-              <p className="font-mono text-[10px] uppercase tracking-wider text-helm-muted">Decision queue</p>
-              <p className="text-sm text-helm-fg mt-0.5">{queueStatus.body}</p>
-            </div>
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider",
-                queueStatus.tone === "positive"
-                  ? "bg-helm-status-positive/12 text-helm-status-positive"
-                  : "bg-helm-status-warning/12 text-helm-status-warning",
-              )}
-            >
-              {queueStatus.badge}
-            </span>
-          </div>
-          {decisionRows.length > 0 ? (
-            <>
-              <ul className="space-y-2 max-h-40 overflow-y-auto">
-                {decisionRows.map((d, i) => (
-                  <li key={d.id || i}>
-                    <button
-                      type="button"
-                      onClick={() => navigate(decisionHref(d.id))}
-                      className="w-full flex items-start justify-between gap-2 text-sm text-left rounded-md px-1 py-0.5 -mx-1 hover:bg-helm-fg/[0.04] transition-colors"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-helm-fg truncate leading-snug">{d.title || d.label || "Open decision"}</p>
-                        <p className="text-[11px] text-helm-muted mt-0.5">{d.urgency || d.source || "Pending"}</p>
-                      </div>
-                      <span className="shrink-0 rounded-full bg-helm-status-warning/12 px-2 py-0.5 text-[10px] text-helm-status-warning">
-                        Open
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {openDecisionsTotal > decisionRows.length || openDecisionsTotal >= 5 ? (
-                <button
-                  type="button"
-                  onClick={() => navigate("/app/decisions")}
-                  className="mt-3 text-xs text-helm-gold hover:text-helm-gold-hover"
-                >
-                  View all {openDecisionsTotal} decisions
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-sm text-helm-muted text-center py-4">No open decisions right now.</p>
-          )}
-        </section>
+        {/* Open decisions live once on Home, in What to decide (no second list here). */}
       </div>
     </div>
   );

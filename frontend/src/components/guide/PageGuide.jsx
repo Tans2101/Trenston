@@ -4,6 +4,8 @@ import { CircleHelp, Compass, Keyboard, LifeBuoy, RotateCcw, X } from "lucide-re
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { guideForPath } from "@/lib/pageGuides";
+import { useAuth } from "@/context/AuthContext";
+import { isLeader } from "@/lib/access";
 import { TIPS_OFF, useGuides } from "@/components/guide/GuideProvider";
 
 const INTRO_DONE = "intro-done";
@@ -15,8 +17,9 @@ const INTRO_DONE = "intro-done";
  */
 export function PageIntro() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const { isSeen, markSeen, startTour, activeTour, checklistShowing } = useGuides();
-  const guide = guideForPath(pathname);
+  const guide = guideForPath(pathname, { leader: isLeader(user) });
   const hidden = !guide || activeTour || isSeen(guide.id) || isSeen(TIPS_OFF)
     // The Get started list already offers this tour as its first step.
     || (checklistShowing && (guide.id === "briefing" || guide.id === "myday"));
@@ -101,9 +104,10 @@ const PANEL_BTN = "flex w-full items-center gap-3 rounded-lg border border-helm-
 /** Side panel (bottom sheet on phones) explaining the current page. */
 export function PageHelpPanel() {
   const { pathname } = useLocation();
+  const { user } = useAuth();
   const { helpOpen, setHelpOpen, startTour, resetAll } = useGuides();
   const panelRef = useRef(null);
-  const guide = guideForPath(pathname);
+  const guide = guideForPath(pathname, { leader: isLeader(user) });
 
   useEffect(() => {
     if (!helpOpen) return undefined;

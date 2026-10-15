@@ -63,7 +63,7 @@ def test_auth_me_member_pack_and_perms(member):
     assert r.status_code == 200
     d = r.json()
     assert d["pack"] == "member"
-    assert d["default_route"] == "/app/me"
+    assert d["default_route"] == "/app"
     assert d["pack_label"] == "Member"
     perms = set(d["perms"])
     for p in ("finance:write", "people:write", "members:manage", "decisions:act"):

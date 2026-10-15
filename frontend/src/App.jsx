@@ -39,8 +39,7 @@ const Privacy = lazyWithReload(() => import("@/pages/Privacy"));
 const Terms = lazyWithReload(() => import("@/pages/Terms"));
 const Refunds = lazyWithReload(() => import("@/pages/Refunds"));
 const Unsubscribe = lazyWithReload(() => import("@/pages/Unsubscribe"));
-const Briefing = lazyWithReload(() => import("@/pages/Briefing"));
-const MyDay = lazyWithReload(() => import("@/pages/MyDay"));
+const Home = lazyWithReload(() => import("@/pages/Home"));
 const Pipeline = lazyWithReload(() => import("@/pages/Pipeline"));
 const Decisions = lazyWithReload(() => import("@/pages/Decisions"));
 const Telemetry = lazyWithReload(() => import("@/pages/Telemetry"));
@@ -219,13 +218,13 @@ function AppRoutes() {
         <Route
           path="/app"
           element={(
-            <Suspense fallback={<LoadingScreen label="Loading cockpit" />}>
+            <Suspense fallback={<LoadingScreen label="Loading Trenston" />}>
               <AppProtectedGate />
             </Suspense>
           )}
         >
-          <Route index element={<Suspense fallback={<LoadingScreen label="Loading" />}><Briefing /></Suspense>} />
-          <Route path="me" element={<Suspense fallback={<LoadingScreen label="Loading" />}><MyDay /></Suspense>} />
+          <Route index element={<Suspense fallback={<LoadingScreen label="Loading" />}><Home /></Suspense>} />
+          <Route path="me" element={<Navigate to="/app" replace />} />
           <Route path="sales" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Pipeline /></Suspense>} />
           <Route path="decisions" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Decisions /></Suspense>} />
           <Route path="metrics" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="telemetry"><Telemetry /></SectionGate></Suspense>} />

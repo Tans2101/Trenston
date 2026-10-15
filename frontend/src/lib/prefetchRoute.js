@@ -3,8 +3,8 @@
  * into a cold tab does not wait on the network for the JS bundle.
  */
 const prefetchers = {
-  "/app": () => import("@/pages/Briefing"),
-  "/app/me": () => import("@/pages/MyDay"),
+  "/app": () => import("@/pages/Home"),
+  "/app/me": () => import("@/pages/Home"),
   "/app/sales": () => import("@/pages/Pipeline"),
   "/app/decisions": () => import("@/pages/Decisions"),
   "/app/metrics": () => import("@/pages/Telemetry"),

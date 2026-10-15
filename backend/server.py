@@ -404,9 +404,9 @@ PACK_PERMS = {
     },
 }
 # Where each pack lands after login. Operators start on their lane or "My Day".
-PACK_HOME = {"owner": "/app", "exec": "/app", "member": "/app/me",
+PACK_HOME = {"owner": "/app", "exec": "/app", "member": "/app",
              "finance": "/app/financials", "hr": "/app/people",
-             "sales": "/app/sales", "ops": "/app/me"}
+             "sales": "/app/sales", "ops": "/app"}
 PACK_LABEL = {"owner": "Owner", "exec": "Executive", "finance": "Finance",
               "hr": "People/HR", "sales": "Sales", "ops": "Operations", "member": "Member"}
 VALID_PACKS = set(PACK_PERMS.keys())
@@ -5260,18 +5260,18 @@ async def onboarding_checklist(principal=Depends(get_principal)):
             steps.append(step("people", "Add your team roster", people_n > 0, "/app/people", "people",
                               "Names and roles, so work can be assigned."))
             steps.append(step("invite", "Invite a teammate", members_n > 1, "/app/members", "members",
-                              "They get their own My Day with only their work."))
-        steps.append(step("update", "Post your first status update", has_update, "/app/me", "myday",
+                              "They get their own Home with only their work."))
+        steps.append(step("update", "Post your first status update", has_update, "/app", "myday",
                           "Two lines: what you did, what's next."))
     else:
         steps = [
-            step("tour", "Take the 1-minute tour of My Day", "myday" in seen, "/app/me", "myday",
+            step("tour", "Take the 1-minute tour of Home", "myday" in seen, "/app", "myday",
                  "Your work, your notes and your updates in one place."),
-            step("update", "Post your first status update", has_update, "/app/me", "myday",
+            step("update", "Post your first status update", has_update, "/app", "myday",
                  "Two lines: what you did, what's next."),
             step("tasks", "Find your tasks", "tasks" in seen, "/app/tasks", "tasks",
                  "See what's assigned to you and move it along."),
-            step("quickadd", "Add a task from the search bar", has_my_task, "/app/me", "quickadd",
+            step("quickadd", "Add a task from the search bar", has_my_task, "/app", "quickadd",
                  "Press Ctrl+K and type: task send the report friday"),
         ]
     for step in steps:
