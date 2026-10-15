@@ -69,8 +69,6 @@ function CategoryPill({ children }) {
 // Google Workspace capabilities (backend google_oauth.google_capabilities keys).
 const GOOGLE_CAPABILITY_LABELS = [
   ["calendar_write", "Calendar"],
-  ["gmail", "Gmail threads"],
-  ["gmail_compose", "Gmail drafts"],
   ["sheets", "Sheets export"],
   ["drive_file", "Drive import"],
 ];
@@ -553,7 +551,7 @@ export default function Integrations() {
 
       <GlassCard className="p-4 mb-8 fade-up border-helm-line">
         <p className="text-sm text-helm-muted leading-relaxed">
-          <span className="text-helm-fg">Google Calendar &amp; Gmail</span> are personal: each teammate connects
+          <span className="text-helm-fg">Google Calendar &amp; Drive</span> are personal: each teammate connects
           their own Google account and only sees their meetings and threads. Accounting (QuickBooks, Xero, SAP)
           and HubSpot are <span className="text-helm-fg">per company workspace</span>; owners connect those once.
           OAuth apps never share passwords; SAP Business One stores Service Layer credentials encrypted at rest.

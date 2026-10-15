@@ -3,7 +3,7 @@ import { formatDay } from "@/lib/dates";
 import { toast } from "sonner";
 import { toastError } from "@/lib/notify";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowUpRight, Send, UserCheck, Users, Mail, Plug, X, Eraser } from "lucide-react";
+import { ArrowUpRight, Send, UserCheck, Users, Plug, X, Eraser } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useCompanyQuery } from "@/hooks/useCompanyQuery";
 import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
@@ -19,7 +19,6 @@ import { dayPartGreeting } from "@/lib/greeting";
 import BentoGrid from "@/components/kokonutui/bento-grid";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
 import BriefingCockpitHero from "@/components/BriefingCockpitHero";
-import { toastGmailDraftNote } from "@/components/CirNote";
 import { decisionHref, taskHref, signalRoute, moduleRoute } from "@/lib/signalRoute";
 import { confirmAction } from "@/components/ConfirmHost";
 
@@ -49,7 +48,6 @@ export default function Briefing() {
   const [integDismissBusy, setIntegDismissBusy] = useState(false);
   const [sampleBannerDismissed, setSampleBannerDismissed] = useState(false);
   const [clearSampleBusy, setClearSampleBusy] = useState(false);
-  const [gmailDraftBusy, setGmailDraftBusy] = useState(null);
   const navigate = useNavigate();
 
   const canClearSample = hasPerm(user, "workspace:edit");
@@ -628,101 +626,6 @@ export default function Briefing() {
         </GlassCard>
       </div>
 
-
-      {(data.email_threads?.length > 0 || data.gmail_connected || data.gmail_needs_reconnect) && (
-        <GlassCard className="p-5 mb-6 fade-up" data-testid="briefing-email">
-          <div className="flex items-center gap-2 mb-4">
-            <Mail className="w-4 h-4 text-helm-muted" />
-            <BriefLabel>Email</BriefLabel>
-            {data.email_threads?.length > 0 && (
-              <span className="text-xs tabular-nums text-helm-muted ml-auto">{data.email_threads.length}</span>
-            )}
-          </div>
-          {data.gmail_needs_reconnect && (
-            <div className="mb-3 rounded-lg border border-helm-status-warning/35 bg-helm-status-warning/12 p-3">
-              <p className="text-sm text-helm-fg leading-relaxed">
-                Google is connected for Calendar. Reconnect once to enable Gmail in your briefing.
-              </p>
-              <button
-                type="button"
-                data-testid="enable-gmail-btn"
-                onClick={() => navigate("/app/integrations")}
-                className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover"
-              >
-                Enable Gmail →
-              </button>
-            </div>
-          )}
-          {data.email_threads?.length > 0 ? (
-            <div className="space-y-3">
-              {data.email_threads.map((t, i) => (
-                <div
-                  key={t.id || i}
-                  data-testid={`email-thread-${i}`}
-                  className="rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm text-helm-fg leading-snug truncate">{t.subject}</p>
-                      <p className="text-xs text-helm-muted mt-1 truncate">
-                        {t.sender}{t.sender_email ? ` · ${t.sender_email}` : ""}
-                      </p>
-                    </div>
-                    <a
-                      href={t.thread_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-helm-muted hover:text-helm-muted shrink-0"
-                      title="Open in Gmail"
-                    >
-                      <ArrowUpRight className="w-4 h-4" />
-                    </a>
-                  </div>
-                  {t.snippet && (
-                    <p className="text-xs text-helm-muted mt-2 leading-relaxed line-clamp-2">{t.snippet}</p>
-                  )}
-                  {data.gmail_compose && (
-                    <button
-                      type="button"
-                      data-testid={`gmail-draft-${i}`}
-                      disabled={gmailDraftBusy != null}
-                      onClick={async () => {
-                        const draftKey = t.id || i;
-                        if (gmailDraftBusy != null) return;
-                        setGmailDraftBusy(draftKey);
-                        try {
-                          const { data: res } = await api.post("/integrations/google/gmail-draft", {
-                            thread_id: t.id,
-                            to_email: t.sender_email || "",
-                            subject: t.subject || "",
-                            snippet: t.snippet || "",
-                          });
-                          toastGmailDraftNote({
-                            recipient: t.sender || t.sender_email,
-                            url: res?.url,
-                            subject: t.subject,
-                          });
-                        } catch (e) {
-                          toastError(e, "Reconnect Google to create drafts");
-                        } finally {
-                          setGmailDraftBusy(null);
-                        }
-                      }}
-                      className="mt-2 text-xs text-helm-gold hover:text-helm-gold-hover disabled:opacity-50"
-                    >
-                      {gmailDraftBusy === (t.id || i) ? "Creating draft…" : "Draft reply in Gmail"}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : data.gmail_connected ? (
-            <p className="text-sm text-helm-muted leading-relaxed">
-              No important threads in the last two weeks. Starred or Gmail-important mail will show here.
-            </p>
-          ) : null}
-        </GlassCard>
-      )}
 
       {data.team_updates && data.team_updates.length > 0 && (
         <GlassCard className="p-5 mt-4 fade-up" data-testid="briefing-team-updates">

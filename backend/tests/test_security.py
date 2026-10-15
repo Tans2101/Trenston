@@ -95,13 +95,13 @@ def test_production_rejects_invalid_integration_encryption_key(monkeypatch):
     assert "valid Fernet key" in str(exc.value)
 
 
-def test_google_scopes_include_gmail():
+def test_google_scopes_exclude_gmail():
+    """Gmail scopes are restricted (yearly CASA assessment); Trenston must not request them."""
     import server
 
-    assert "https://www.googleapis.com/auth/gmail.readonly" in server.GOOGLE_SCOPES
+    assert not any("gmail" in s for s in server.GOOGLE_SCOPES)
     assert "https://www.googleapis.com/auth/calendar.readonly" in server.GOOGLE_SCOPES
     assert "https://www.googleapis.com/auth/calendar.events" in server.GOOGLE_SCOPES
-    assert "https://www.googleapis.com/auth/gmail.compose" in server.GOOGLE_SCOPES
     assert "https://www.googleapis.com/auth/spreadsheets" in server.GOOGLE_SCOPES
     assert "https://www.googleapis.com/auth/drive.file" in server.GOOGLE_SCOPES
 

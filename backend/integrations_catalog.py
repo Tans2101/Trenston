@@ -13,8 +13,6 @@ import google_oauth
 # One Google grant powers every Google feature; a missing fragment means reconsent.
 GOOGLE_REQUIRED_SCOPE_FRAGMENTS = (
     "calendar.events",
-    "gmail.readonly",
-    "gmail.compose",
     "spreadsheets",
     "drive.file",
 )
@@ -24,13 +22,13 @@ USER_INTEGRATIONS: list[dict[str, Any]] = [
     {
         "id": "google",
         "name": "Google Workspace",
-        "category": "Calendar & Email",
+        "category": "Calendar & Files",
         "provider": "google",
         "kind": "oauth",
         "oauth": True,
         "pro": True,
-        "description": "Connect your Google account once to bring your Calendar, important Gmail threads, Gmail draft replies, Sheets export and Drive bill import into Trenston. Personal to you: teammates never see your Google data.",
-        "value": "Your schedule and important email in your Briefing, with no tab switching.",
+        "description": "Connect your Google account once to bring your Calendar, Sheets export and Drive bill import into Trenston. Personal to you: teammates never see your Google data.",
+        "value": "Your schedule in your Briefing, with no tab switching.",
         "cta_route": "/app",
         "cta_label": "Open briefing",
         "connect_label": "Connect Google",
@@ -134,7 +132,7 @@ def merge_integrations(
 ) -> list[dict]:
     """Build user integration cards with live connection status.
 
-    Google Workspace (Calendar + Gmail + Sheets + Drive) status comes from ``user_google_tokens`` (the calling
+    Google Workspace (Calendar + Sheets + Drive) status comes from ``user_google_tokens`` (the calling
     user's sealed or plaintext blob), not from the workspace document. Company
     ledgers (QuickBooks, Xero, HubSpot, SAP) remain workspace-scoped.
     """

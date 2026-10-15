@@ -88,7 +88,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Automations (2 rules)",
             "AI briefing",
             "Dashboard & decisions",
-            "Google integration (Gmail & Calendar)",
+            "Google integration (Calendar & Drive)",
         ],
     },
     PLAN_STARTER: {

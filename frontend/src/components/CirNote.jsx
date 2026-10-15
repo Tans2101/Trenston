@@ -77,21 +77,3 @@ export function toastCirNote({
   );
 }
 
-/** Gmail AI draft ready — primary action opens the Gmail draft URL. */
-export function toastGmailDraftNote({ recipient, url, subject } = {}) {
-  const who = (recipient || "").trim() || "your contact";
-  const title = `Reply drafted for ${who}`;
-  // Honest product copy: drafts are short and style-matched; Trenston never sends.
-  const description = subject
-    ? `Short draft ready in Gmail · ${subject}`
-    : "Short tone-matched draft ready in Gmail. Trenston did not send it.";
-  return toastCirNote({
-    id: `gmail-draft-${Date.now()}`,
-    title,
-    description,
-    actionLabel: "Open",
-    onAction: () => {
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-    },
-  });
-}

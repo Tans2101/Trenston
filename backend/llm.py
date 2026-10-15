@@ -571,34 +571,6 @@ async def combine_daily_report_digest(items: list[dict]) -> str:
     return _strip_markdown_fences(text or "").strip()
 
 
-GMAIL_DRAFT_DISCLAIMER = "(Drafted in Trenston. Edit this in Gmail before you send.)"
-
-_GMAIL_REPLY_SYSTEM = """You draft short professional email replies for a CEO using Trenston.
-Return ONLY the email body as plain text. No subject line, no markdown fences, no preamble.
-
-Rules:
-- Keep it concise (about 4–8 sentences). Sound like a real operator, not a chatbot.
-- When a snippet/preview is provided, reply to that substance specifically.
-- When no snippet is provided, write a brief general follow-up based only on the subject.
-  Do NOT invent what the other person said, asked, agreed to, or promised.
-- Do not invent facts, commitments, dates, numbers, or meeting details absent from the context.
-- Sign off with "[your name]". Never invent the sender's real name.
-- Do not include email headers (To/Subject/From).
-"""
-
-
-def fallback_gmail_draft_body(*, subject: str = "", snippet: str = "") -> str:
-    """Template used when AI is unavailable — never invents conversation details."""
-    subject = (subject or "").strip()
-    snippet = (snippet or "").strip()
-    parts = ["Hi,", "", GMAIL_DRAFT_DISCLAIMER, ""]
-    if snippet:
-        parts.extend(["On their last note:", snippet, ""])
-    elif subject:
-        parts.extend([f"Following up on: {subject}", ""])
-    return "\n".join(parts).rstrip() + "\n"
-
-
 def _strip_markdown_fences(text: str) -> str:
     cleaned = (text or "").strip()
     if cleaned.startswith("```"):
@@ -607,27 +579,3 @@ def _strip_markdown_fences(text: str) -> str:
     return cleaned
 
 
-async def draft_gmail_reply(*, subject: str = "", to_email: str = "", snippet: str = "") -> str:
-    """AI-written Gmail reply body with Trenston disclaimer. Falls back on any AI failure."""
-    subject = (subject or "").strip()[:200]
-    to_email = (to_email or "").strip()[:200]
-    snippet = (snippet or "").strip()[:500]
-    if not anthropic_configured():
-        return fallback_gmail_draft_body(subject=subject, snippet=snippet)
-    preview = snippet if snippet else "(none: no preview available; do not invent conversation details)"
-    user = (
-        f"Subject: {subject or '(none)'}\n"
-        f"From: {to_email or '(unknown)'}\n"
-        f"Snippet/preview:\n{preview}\n\n"
-        "Draft the reply body now."
-    )
-    try:
-        text = await complete(_GMAIL_REPLY_SYSTEM, user, max_tokens=500)
-    except Exception:
-        return fallback_gmail_draft_body(subject=subject, snippet=snippet)
-    text = _strip_markdown_fences(text or "")
-    if not text:
-        return fallback_gmail_draft_body(subject=subject, snippet=snippet)
-    if GMAIL_DRAFT_DISCLAIMER not in text:
-        text = f"{text.rstrip()}\n\n{GMAIL_DRAFT_DISCLAIMER}"
-    return text.rstrip() + "\n"

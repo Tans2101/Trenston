@@ -77,7 +77,7 @@ export const CEO_DAY = [
 ];
 
 export const PRICING_FAQ = [
-  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), Google (Gmail & Calendar), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more users, and accounting integrations." },
+  { q: "Is there a free plan?", a: "Yes. Free includes 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), Google (Calendar & Drive), and the AI briefing. Paid plans add higher monthly AI document extract and Ask Trenston limits, more users, and accounting integrations." },
   { q: "Is there a free trial?", a: "Yes. Starter, Growth, and Business include a 7-day free trial. Cancel before it ends and you will not be charged." },
   {
     q: "Can my leadership team use Trenston?",
@@ -85,7 +85,7 @@ export const PRICING_FAQ = [
   },
   {
     q: "What integrations are included?",
-    a: "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts.",
+    a: "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts.",
     link: { to: "/integrations", label: "See what each integration does" },
   },
   { q: "Can I cancel anytime?", a: "Yes. Manage billing through Paddle. Cancellation takes effect at the end of the current billing period. No refunds after payment. Use the trial to evaluate." },
@@ -114,14 +114,14 @@ export const HOME_FAQ = [
   },
   {
     q: "Integrations",
-    a: "Google (Gmail & Calendar) is on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack alerts. Manual entry stays available everywhere.",
+    a: "Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack alerts. Manual entry stays available everywhere.",
     link: { to: "/integrations", label: "See what each integration does" },
   },
 ];
 
 /** Real, shipped integrations only — wordmarks for marketing showcase (no aspirational names). */
 export const INTEGRATIONS_SHOWCASE = [
-  { name: "Google", note: "Calendar & Gmail" },
+  { name: "Google", note: "Calendar & Drive" },
   { name: "QuickBooks", note: "Accounting" },
   { name: "Xero", note: "Accounting" },
   { name: "SAP Business One", note: "ERP" },
@@ -143,13 +143,13 @@ export const PUBLIC_INTEGRATIONS_INTRO =
 export const PUBLIC_INTEGRATIONS = [
   {
     id: "google",
-    name: "Google Calendar & Gmail",
-    category: "Calendar & email",
+    name: "Google Calendar & Drive",
+    category: "Calendar & files",
     description:
-      "Each teammate connects their own Google account. Sync your meetings into Trenston Calendar and your briefing, plus Gmail thread surfacing, Sheets export, calendar write, Gmail drafts, and Drive bill import. Teammates never see each other's Google data.",
+      "Each teammate connects their own Google account. Sync your meetings into Trenston Calendar and your briefing, plus calendar write, Sheets export, and Drive bill import. Teammates never see each other's Google data.",
     feeds: "Feeds Calendar & Briefing",
     scope:
-      "Gmail is snippet-level thread surfacing (sender, subject, preview) plus optional draft replies you review and send in Gmail. This is not full inbox or message-body access.",
+      "Trenston does not request any Gmail access. Drive access covers only the files you pick in Trenston.",
   },
   {
     id: "quickbooks",
@@ -220,7 +220,6 @@ export const FEATURE_CATEGORIES = [
       "Ask Trenston",
       "CEO Pack",
       "Daily briefing email",
-      "Gmail thread surfacing + AI draft replies",
       "Quick add (Ctrl+K)",
       "Company map",
     ],
@@ -279,7 +278,7 @@ export const PLANS = [
       "Automations (2 rules)",
       "AI briefing",
       "Dashboard & decisions",
-      "Google integration (Gmail & Calendar)",
+      "Google integration (Calendar & Drive)",
     ],
   },
   {
@@ -516,12 +515,6 @@ export const FEATURE_MODULES = [
     example: "Order book vs monthly target, late purchase orders, yesterday’s output shortfall, and two spares below threshold, without opening the app first.",
   },
   {
-    title: "Gmail thread surfacing + AI draft replies",
-    ceoValue: "Inbox signal without living in email.",
-    body: "Surfaces important Gmail threads in Trenston and drafts replies you can send, grounded in company context, not a blank compose box.",
-    example: "A customer thread needs a decision. Trenston drafts the reply; you edit and send.",
-  },
-  {
     title: "Work order tracking",
     ceoValue: "Production status without a separate system.",
     body: "Work orders move through a fixed flow with daily target-vs-actual logging, overtime cost visibility, and optional yield tracking for businesses that convert raw materials into finished goods.",
@@ -591,7 +584,7 @@ export const FEATURE_MODULES = [
     title: "Integrations",
     ceoValue: "Your team keeps their tools. You get the picture.",
     body: INTEGRATIONS_PUBLIC_BLURB,
-    example: "Finance syncs QuickBooks or SAP Business One. Important Gmail threads surface in Briefing. You see it all in one place.",
+    example: "Finance syncs QuickBooks or SAP Business One. Your meetings show up in Briefing. You see it all in one place.",
     link: { to: "/integrations", label: "See all integrations" },
   },
   {
@@ -753,7 +746,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "Is there a free plan?",
     a:
-      "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Gmail & Calendar). Accounting integrations (QuickBooks, Xero, SAP Business One) start on Starter.",
+      "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Calendar & Drive). Accounting integrations (QuickBooks, Xero, SAP Business One) start on Starter.",
   },
   {
     q: "What are the paid plans and is there a free trial?",
@@ -763,7 +756,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "What integrations are included on each plan?",
     a:
-      "Google (Gmail & Calendar) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps. Manual entry stays available everywhere else.",
+      "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps. Manual entry stays available everywhere else.",
   },
   {
     q: "Can my leadership team use Trenston?",
@@ -816,7 +809,7 @@ export const AI_CONNECT_HELP = {
   readOnly: [
     "It can read your briefing, decisions, tasks, your assigned work and, only if you have Financials access, a financial summary.",
     "It can never create, edit, approve, or delete anything in Trenston.",
-    "It sees exactly what you can see, in one workspace, and nothing from Gmail.",
+    "It sees exactly what you can see, in one workspace, and nothing from your Google account.",
   ],
   claudeSteps: [
     { title: "Open connectors in Claude", body: "In Claude, go to Customize, then Connectors, then Add custom connector." },

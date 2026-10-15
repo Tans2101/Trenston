@@ -4132,11 +4132,10 @@ async def briefing(principal=Depends(get_principal)):
             logger.exception("briefing ops metrics failed for %s", c.get("workspace_id"))
             return []
 
-    fin, acts, ups, (email_threads, gmail_meta), freshness, ops_metrics, can_act = await asyncio.gather(
+    fin, acts, ups, freshness, ops_metrics, can_act = await asyncio.gather(
         _load_fin(),
         _load_acts(),
         _load_updates(),
-        _briefing_gmail_swr(c, principal),
         helm_freshness.resolve_workspace_data_as_of(db, c),
         _load_ops(),
         can_section_write(principal, "decisions", "decisions:act"),
@@ -4174,10 +4173,6 @@ async def briefing(principal=Depends(get_principal)):
     b["what_to_decide_total"] = len(decide_all)
     b["what_to_delegate"] = _briefing_what_to_delegate(c)
     b["insights_generated_at"] = c.get("insights_generated_at")
-    b["email_threads"] = email_threads
-    b["gmail_connected"] = gmail_meta["connected"]
-    b["gmail_needs_reconnect"] = gmail_meta["needs_reconnect"]
-    b["gmail_compose"] = gmail_meta.get("compose", False)
     b["data_as_of"] = freshness.get("data_as_of")
     b["data_freshness_sources"] = freshness.get("sources") or {}
     # Free includes AI briefing — do not strip the stored summary just because
@@ -4194,198 +4189,6 @@ async def briefing(principal=Depends(get_principal)):
         "ai_summary": b.get("ai_summary") if can_ai_briefing else None,
         "can_generate_ai_summary": can_generate,
     }
-
-
-# Gmail briefing: stale-while-revalidate. Key includes user_id so a future
-# per-user Google token change keeps the same cache shape.
-GMAIL_BRIEFING_SOFT_TTL_SECONDS = 45.0
-GMAIL_BRIEFING_HARD_TTL_SECONDS = 1800.0
-_gmail_briefing_cache: dict[str, tuple[list, dict, float]] = {}
-_gmail_briefing_refresh_inflight: set[str] = set()
-_gmail_briefing_refresh_tasks: set[asyncio.Task] = set()
-_gmail_briefing_cold_inflight: dict[str, asyncio.Future] = {}
-# Bumped on invalidate so in-flight soft-refresh cannot rewrite after disconnect.
-_gmail_briefing_cache_generation: dict[str, int] = {}
-
-
-def _gmail_briefing_cache_key(workspace: dict, principal: dict | None) -> str:
-    ws_id = workspace.get("workspace_id") or ""
-    uid = (principal or {}).get("user_id") or "anon"
-    return f"{ws_id}:{uid}"
-
-
-def _gmail_timeout_fallback(*, connected: bool = False) -> tuple[list, dict]:
-    return [], {
-        "connected": connected,
-        "needs_reconnect": False,
-        "compose": False,
-    }
-
-
-def clear_gmail_briefing_cache() -> None:
-    """Tests / process recycle."""
-    _gmail_briefing_cache.clear()
-    _gmail_briefing_refresh_inflight.clear()
-    for fut in list(_gmail_briefing_cold_inflight.values()):
-        if not fut.done():
-            fut.cancel()
-    _gmail_briefing_cold_inflight.clear()
-    _gmail_briefing_cache_generation.clear()
-
-
-def invalidate_gmail_briefing_cache_for_user(workspace_id: str, user_id: str) -> None:
-    """Drop SWR entry for one user (Google connect / disconnect / token rotate)."""
-    if not workspace_id or not user_id:
-        return
-    key = f"{workspace_id}:{user_id}"
-    _gmail_briefing_cache.pop(key, None)
-    _gmail_briefing_cache_generation[key] = _gmail_briefing_cache_generation.get(key, 0) + 1
-    _gmail_briefing_refresh_inflight.discard(key)
-
-
-async def _briefing_gmail_fetch_and_store(
-    workspace: dict, principal: dict | None, cache_key: str,
-    *, generation: int | None = None,
-) -> tuple[list, dict]:
-    """Live Gmail fetch with the existing 3s timeout; updates SWR cache on success."""
-    gen_at_start = (
-        generation
-        if generation is not None
-        else _gmail_briefing_cache_generation.get(cache_key, 0)
-    )
-    connected_hint = False
-    if principal and principal.get("user_id"):
-        connected_hint = await _user_google_tokens_present(
-            workspace.get("workspace_id") or "", principal["user_id"],
-        )
-    try:
-        threads, meta = await asyncio.wait_for(
-            _briefing_email_threads(workspace, principal),
-            timeout=3.0,
-        )
-    except asyncio.TimeoutError:
-        logger.warning("Gmail briefing fetch timed out for %s", workspace.get("workspace_id"))
-        threads, meta = _gmail_timeout_fallback(connected=connected_hint)
-        # Cache briefly so repeated cold loads do not each wait ~3s.
-        if _gmail_briefing_cache_generation.get(cache_key, 0) == gen_at_start:
-            _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
-        return threads, meta
-    if _gmail_briefing_cache_generation.get(cache_key, 0) == gen_at_start:
-        _gmail_briefing_cache[cache_key] = (threads, meta, time.monotonic())
-    return threads, meta
-
-
-def _schedule_gmail_briefing_refresh(
-    workspace: dict, principal: dict | None, cache_key: str,
-) -> None:
-    if cache_key in _gmail_briefing_refresh_inflight:
-        return
-    _gmail_briefing_refresh_inflight.add(cache_key)
-    generation = _gmail_briefing_cache_generation.get(cache_key, 0)
-
-    async def _run() -> None:
-        try:
-            await _briefing_gmail_fetch_and_store(
-                workspace, principal, cache_key, generation=generation,
-            )
-        except Exception:
-            logger.exception("background Gmail briefing refresh failed for %s", cache_key)
-        finally:
-            _gmail_briefing_refresh_inflight.discard(cache_key)
-
-    try:
-        task = asyncio.get_running_loop().create_task(_run())
-        _gmail_briefing_refresh_tasks.add(task)
-        task.add_done_callback(_gmail_briefing_refresh_tasks.discard)
-    except RuntimeError:
-        _gmail_briefing_refresh_inflight.discard(cache_key)
-
-
-async def _briefing_gmail_swr(
-    workspace: dict, principal: dict | None = None,
-) -> tuple[list, dict]:
-    """Serve cached Gmail threads immediately; refresh in the background when soft-stale.
-
-    Cold miss (first load / no cache): wait on the live fetch (same 3s timeout).
-    Concurrent cold misses for the same key share one in-flight future.
-    """
-    cache_key = _gmail_briefing_cache_key(workspace, principal)
-    cached = _gmail_briefing_cache.get(cache_key)
-    now = time.monotonic()
-    if cached is not None:
-        threads, meta, fetched_at = cached
-        age = now - fetched_at
-        if age <= GMAIL_BRIEFING_HARD_TTL_SECONDS:
-            if age >= GMAIL_BRIEFING_SOFT_TTL_SECONDS:
-                _schedule_gmail_briefing_refresh(workspace, principal, cache_key)
-            return threads, meta
-        _gmail_briefing_cache.pop(cache_key, None)
-
-    existing = _gmail_briefing_cold_inflight.get(cache_key)
-    if existing is not None and not existing.done():
-        return await existing
-
-    loop = asyncio.get_running_loop()
-    fut: asyncio.Future = loop.create_future()
-    # setdefault wins the race so concurrent cold misses share one fetch.
-    prev = _gmail_briefing_cold_inflight.setdefault(cache_key, fut)
-    if prev is not fut:
-        return await prev
-    try:
-        result = await _briefing_gmail_fetch_and_store(workspace, principal, cache_key)
-        if not fut.done():
-            fut.set_result(result)
-        return result
-    except Exception as exc:
-        if not fut.done():
-            fut.set_exception(exc)
-        raise
-    finally:
-        if _gmail_briefing_cold_inflight.get(cache_key) is fut:
-            _gmail_briefing_cold_inflight.pop(cache_key, None)
-
-
-async def _briefing_email_threads(workspace: dict, principal: dict | None = None) -> tuple[list, dict]:
-    """Fetch a few relevant Gmail threads for the briefing; never writes email content to Mongo.
-
-    Uses the calling user's own Google tokens (per-user connection). Users who
-    have not connected Google simply get empty threads — never another teammate's
-    mailbox.
-    """
-    meta = {"connected": False, "needs_reconnect": False, "compose": False, "access_denied": False}
-    if not principal or not principal.get("user_id"):
-        return [], meta
-    ws_id = workspace.get("workspace_id") or principal.get("workspace_id") or ""
-    tokens = await _user_google_tokens(ws_id, principal["user_id"])
-    if not tokens:
-        return [], meta
-    if not gcal.has_gmail_scope(tokens):
-        meta["needs_reconnect"] = True
-        return [], meta
-    meta["connected"] = True
-    meta["compose"] = gcal.has_scope(tokens, "gmail.compose")
-    try:
-        threads, refreshed = await gcal.fetch_important_threads(
-            tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, limit=5,
-        )
-        if refreshed is not tokens:
-            await _store_user_google_tokens(ws_id, principal["user_id"], refreshed)
-        return threads, meta
-    except gcal.GoogleTransientError as exc:
-        logger.warning("Gmail temporarily unavailable for %s: %s", ws_id, exc)
-        return [], meta
-    except gcal.GoogleAuthError as exc:
-        logger.warning("Gmail auth failed for %s: %s", ws_id, exc)
-        if "not granted" in str(exc).lower():
-            meta["connected"] = False
-            meta["needs_reconnect"] = True
-        else:
-            await _store_user_google_tokens(ws_id, principal["user_id"], None)
-            meta["connected"] = False
-        return [], meta
-    except Exception:
-        logger.exception("Gmail fetch failed for %s", ws_id)
-        return [], meta
 
 
 INSIGHTS_STALE_HOURS = 24
@@ -14496,8 +14299,6 @@ GOOGLE_SCOPES = [
     "openid", "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/calendar.readonly",
     "https://www.googleapis.com/auth/calendar.events",
-    "https://www.googleapis.com/auth/gmail.readonly",
-    "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.file",
 ]
@@ -14545,7 +14346,7 @@ async def _store_integration_tokens(
     """Encrypt credentials before writing to the workspace document.
 
     Used for company-shared grants (QuickBooks, Xero, HubSpot, SAP). Google
-    Calendar/Gmail tokens are per-user — see ``_store_user_google_tokens``.
+    Google tokens are per-user — see ``_store_user_google_tokens``.
 
     When tokens are saved, stamp who connected them so use of the grant can be
     limited to that person (and workspace owners). Clearing tokens clears the stamp.
@@ -14595,9 +14396,9 @@ async def _user_google_tokens_present(workspace_id: str, user_id: str) -> bool:
 
 
 async def _user_google_tokens(workspace_id: str, user_id: str) -> Optional[dict]:
-    """Decrypt this user's Google Calendar/Gmail tokens. None if not connected.
+    """Decrypt this user's Google tokens. None if not connected.
 
-    Gmail and Calendar share the same per-user OAuth grant on purpose — both
+    Calendar and Drive share the same per-user OAuth grant on purpose — both
     are personal Google data for the calling teammate, not a workspace-wide
     shared mailbox or calendar.
     """
@@ -14616,11 +14417,9 @@ async def _user_google_tokens(workspace_id: str, user_id: str) -> Optional[dict]
 async def _store_user_google_tokens(
     workspace_id: str, user_id: str, tokens: Optional[dict],
 ) -> None:
-    """Upsert or clear this user's Google OAuth tokens (Calendar + Gmail)."""
+    """Upsert or clear this user's Google OAuth tokens (Calendar + Drive)."""
     if not workspace_id or not user_id:
         return
-    # Drop Gmail Briefing SWR so disconnect/reconnect cannot serve stale threads.
-    invalidate_gmail_briefing_cache_for_user(workspace_id, user_id)
     if tokens:
         sealed = cred_crypto.seal_credentials(tokens)
         await db.user_google_tokens.update_one(
@@ -14647,7 +14446,7 @@ async def _require_user_google_tokens(principal: dict) -> dict:
     if not tokens:
         raise HTTPException(
             status_code=400,
-            detail="Connect your Google account on Integrations to use Calendar and Gmail",
+            detail="Connect your Google account on Integrations to use Calendar",
         )
     return tokens
 
@@ -14677,7 +14476,7 @@ def _require_integration_token_use(principal: dict, workspace: dict, field: str)
     if field == "google_tokens":
         raise HTTPException(
             status_code=400,
-            detail="Connect your Google account on Integrations to use Calendar and Gmail",
+            detail="Connect your Google account on Integrations to use Calendar",
         )
     tokens = _integration_tokens(workspace, field)
     if not tokens:
@@ -15904,13 +15703,6 @@ async def google_calendar_events(principal=Depends(get_principal)):
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
-class GmailDraftInput(BaseModel):
-    thread_id: str = ""
-    to_email: str = ""
-    subject: str = ""
-    snippet: str = ""
-
-
 @api_router.get("/integrations/google/picker")
 async def google_picker_config(principal=Depends(get_principal)):
     """Short-lived OAuth token + picker keys for Drive file picker (browser only)."""
@@ -15937,46 +15729,6 @@ async def google_picker_config(principal=Depends(get_principal)):
         "client_id": GOOGLE_CLIENT_ID,
         "access_token": refreshed.get("access_token"),
     }
-
-
-@api_router.post("/integrations/google/gmail-draft")
-async def google_gmail_draft(payload: GmailDraftInput, principal=Depends(get_principal)):
-    tokens = await _require_user_google_tokens(principal)
-    if not gcal.has_scope(tokens, "gmail.compose"):
-        raise HTTPException(status_code=400, detail="Reconnect Google to create Gmail drafts")
-    subject = (payload.subject or "Follow up").strip()[:200]
-    to_email = (payload.to_email or "").strip()[:200]
-    if not to_email:
-        raise HTTPException(status_code=400, detail="No recipient for this draft")
-    snippet = (payload.snippet or "").strip()[:500]
-    # AI drafts a real reply; on Anthropic failure we fall back to the template so
-    # the Gmail draft still opens instead of 500ing the briefing button.
-    try:
-        body = await helm_llm.draft_gmail_reply(
-            subject=subject, to_email=to_email, snippet=snippet,
-        )
-    except Exception:
-        logger.exception("Gmail AI draft failed — using template fallback")
-        body = helm_llm.fallback_gmail_draft_body(subject=subject, snippet=snippet)
-    try:
-        draft_id, url, refreshed = await gcal.create_gmail_draft(
-            tokens, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET,
-            to_email=to_email,
-            subject=subject,
-            body=body,
-            thread_id=(payload.thread_id or "").strip(),
-        )
-        await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], refreshed)
-    except gcal.GmailDraftError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except gcal.GoogleTransientError as exc:
-        raise HTTPException(status_code=503, detail="Google is temporarily unavailable. Try again in a few minutes.") from exc
-    except gcal.GoogleAuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    except Exception as exc:
-        logger.exception("Gmail draft failed")
-        raise HTTPException(status_code=500, detail="Could not create Gmail draft") from exc
-    return {"draft_id": draft_id, "url": url}
 
 
 # ------------------------- Payments -------------------------

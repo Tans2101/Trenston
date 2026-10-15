@@ -75,15 +75,12 @@ export default function Privacy() {
             <p>
               If you connect Google from Integrations, Trenston requests access to{" "}
               <span className="text-mk-black">Google Calendar</span> (read events, and write events when you
-              create or update them in Trenston), <span className="text-mk-black">Gmail</span> (read message
-              metadata and short snippets for the briefing; compose access to create drafts. Trenston does not
-              send mail), <span className="text-mk-black">Google Sheets</span> (create a Financials export
+              create or update them in Trenston), <span className="text-mk-black">Google Sheets</span> (create a Financials export
               spreadsheet you trigger), and <span className="text-mk-black">Google Drive</span> files you
               pick in Trenston (bill import via <span className="font-mono text-xs">drive.file</span>, not full Drive).
-              For Gmail we do not store full email bodies as a mailbox archive, only the metadata needed to
-              render the current briefing. Trenston does not request <span className="font-mono text-xs">gmail.send</span>.
+              Trenston does not request any access to Gmail.
               Each teammate connects their own Google account; Trenston never surfaces another person&apos;s Google
-              Calendar or Gmail to you. Nothing from Google is accessed until you explicitly connect.
+              Calendar or files to you. Nothing from Google is accessed until you explicitly connect.
               Company-shared OAuth grants (QuickBooks, Xero, HubSpot, SAP) may only be used by the teammate who
               connected them, or by a workspace owner.
             </p>
@@ -98,7 +95,7 @@ export default function Privacy() {
                 Google API Services User Data Policy
               </a>
               , including the Limited Use requirements. We use Google user data only to provide and improve the
-              features you trigger in Trenston (Calendar, Briefing email snippets, Gmail drafts, Sheets export, and
+              features you trigger in Trenston (Calendar, Sheets export, and
               Drive file pick). We do not sell Google user data, do not use it for advertising, and do not transfer it
               to third parties except as needed to operate those features or as required by law.
             </p>

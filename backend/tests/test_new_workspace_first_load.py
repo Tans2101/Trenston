@@ -58,10 +58,6 @@ def test_briefing_endpoint_loads_empty_workspace():
         patch.object(server, "db", fake_db),
         patch.object(server, "get_ws", new=AsyncMock(return_value=ws)),
         patch.object(server, "can_access_financials", new=AsyncMock(return_value=False)),
-        patch.object(
-            server, "_briefing_gmail_swr",
-            new=AsyncMock(return_value=([], {"connected": False, "needs_reconnect": False})),
-        ),
         patch.object(server, "_briefing_ops_metrics", new=AsyncMock(return_value=[])),
         patch.object(
             server.helm_freshness, "resolve_workspace_data_as_of",

@@ -88,29 +88,6 @@ async def test_two_users_keep_separate_google_tokens():
 
 
 @pytest.mark.asyncio
-async def test_briefing_email_threads_uses_caller_tokens_only():
-    principal = {"user_id": "u1", "workspace_id": "ws1", "pack": "member", "role": "member"}
-    ws = {"workspace_id": "ws1"}
-    with patch.object(server, "_user_google_tokens", new=AsyncMock(return_value=None)):
-        threads, meta = await server._briefing_email_threads(ws, principal)
-    assert threads == []
-    assert meta["connected"] is False
-
-    tokens = {
-        "access_token": "ya29",
-        "scope": "https://www.googleapis.com/auth/gmail.readonly",
-    }
-    with patch.object(server, "_user_google_tokens", new=AsyncMock(return_value=tokens)), \
-            patch.object(server.gcal, "fetch_important_threads", new=AsyncMock(return_value=(
-                [{"id": "t1"}], tokens,
-            ))), \
-            patch.object(server, "_store_user_google_tokens", new=AsyncMock()):
-        threads, meta = await server._briefing_email_threads(ws, principal)
-    assert threads[0]["id"] == "t1"
-    assert meta["connected"] is True
-
-
-@pytest.mark.asyncio
 async def test_google_calendar_snapshot_no_fallback_without_user_tokens():
     principal = {"user_id": "u1", "workspace_id": "ws1"}
     ws = {"workspace_id": "ws1", "google_tokens": {"access_token": "legacy-workspace"}}
@@ -124,35 +101,3 @@ def test_store_integration_tokens_rejects_google_field():
         asyncio.run(server._store_integration_tokens("ws1", "google_tokens", {"access_token": "x"}))
 
 
-@pytest.mark.asyncio
-async def test_store_user_google_tokens_clears_gmail_briefing_cache():
-    import time
-
-    ws = {"workspace_id": "ws1"}
-    principal = {"user_id": "u1", "workspace_id": "ws1"}
-    key = server._gmail_briefing_cache_key(ws, principal)
-    server._gmail_briefing_cache[key] = (
-        [{"id": "stale"}],
-        {"connected": True, "needs_reconnect": False, "compose": True},
-        time.monotonic(),
-    )
-    coll = MagicMock()
-    coll.delete_one = AsyncMock()
-    coll.update_one = AsyncMock()
-    fake_db = MagicMock()
-    fake_db.user_google_tokens = coll
-    with patch.object(server, "db", fake_db):
-        await server._store_user_google_tokens("ws1", "u1", None)
-    assert key not in server._gmail_briefing_cache
-    coll.delete_one.assert_awaited_once()
-
-    server._gmail_briefing_cache[key] = (
-        [{"id": "old"}],
-        {"connected": False, "needs_reconnect": False, "compose": False},
-        time.monotonic(),
-    )
-    with patch.object(server, "db", fake_db):
-        await server._store_user_google_tokens(
-            "ws1", "u1", {"access_token": "ya29", "scope": "gmail.readonly"},
-        )
-    assert key not in server._gmail_briefing_cache

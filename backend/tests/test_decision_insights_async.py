@@ -52,9 +52,6 @@ async def test_briefing_schedules_insights_without_awaiting_them():
              "runway_months": None, "burn": 0, "burn_known": False, "burn_tone": "neutral",
          })), \
          patch.object(srv, "db") as mock_db, \
-         patch.object(srv, "_briefing_gmail_swr", AsyncMock(return_value=([], {
-             "connected": False, "needs_reconnect": False, "compose": False,
-         }))), \
          patch.object(srv, "workspace_is_pro", return_value=False), \
          patch.object(srv, "_insights_stale", return_value=True), \
          patch.object(srv, "_schedule_insights_refresh", side_effect=fake_schedule):

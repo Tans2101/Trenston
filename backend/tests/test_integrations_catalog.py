@@ -40,7 +40,7 @@ def test_merge_oauth_connected():
     qb = next(i for i in ints if i["id"] == "quickbooks")
     xero = next(i for i in ints if i["id"] == "xero")
     assert gcal["status"] == "connected"
-    assert gcal["capabilities"]["gmail"] is True
+    assert "gmail" not in gcal["capabilities"]
     assert qb["status"] == "connected"
     assert xero["status"] == "connected"
     assert xero["tenant_name"] == "Demo"
@@ -75,12 +75,12 @@ def test_google_needs_reconsent_when_calendar_only():
     assert google["status"] == "connected"
     assert google.get("needs_reconsent") is True
     assert google["connect_label"] == "Reconnect Google"
-    assert google["capabilities"]["gmail"] is False
+    assert "gmail" not in google["capabilities"]
 
 
 FULL_SCOPE = " ".join(
     f"https://www.googleapis.com/auth/{frag}"
-    for frag in ("calendar.events", "gmail.readonly", "gmail.compose", "spreadsheets", "drive.file")
+    for frag in ("calendar.events", "spreadsheets", "drive.file")
 )
 
 
@@ -91,22 +91,9 @@ def test_catalog_has_exactly_one_google_entry():
     assert "gmail" not in ids
     google = next(i for i in cat.USER_INTEGRATIONS if i["id"] == "google")
     assert google["name"] == "Google Workspace"
-    assert google["category"] == "Calendar & Email"
+    assert google["category"] == "Calendar & Files"
     assert google["connect_label"] == "Connect Google"
     assert google["cta_route"] == "/app"
-
-
-def test_google_needs_reconsent_when_gmail_compose_missing():
-    scope = FULL_SCOPE.replace("https://www.googleapis.com/auth/gmail.compose", "")
-    ints = cat.merge_integrations(
-        {"workspace_id": "ws1"}, google_configured=True, qb_configured=True,
-        user_google_tokens={"access_token": "x", "scope": scope},
-    )
-    google = next(i for i in ints if i["id"] == "google")
-    assert google["connected"] is True
-    assert google["needs_reconsent"] is True
-    assert google["connect_label"] == "Reconnect Google"
-    assert google["capabilities"]["gmail_compose"] is False
 
 
 def test_google_full_grant_no_reconsent():
@@ -119,7 +106,8 @@ def test_google_full_grant_no_reconsent():
     assert not google.get("needs_reconsent")
     assert google["connect_label"] == "Connect Google"
     caps = google["capabilities"]
-    assert all(caps[k] for k in ("gmail", "gmail_compose", "calendar_write", "sheets", "drive_file"))
+    assert all(caps[k] for k in ("calendar_write", "sheets", "drive_file"))
+    assert "gmail" not in caps and "gmail_compose" not in caps
 
 
 def test_merge_oauth_connected_when_sealed():

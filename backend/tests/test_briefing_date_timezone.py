@@ -40,9 +40,6 @@ async def test_briefing_date_uses_workspace_local_weekday():
          patch.object(server, "can_access_financials", AsyncMock(return_value=False)), \
          patch.object(server, "workspace_is_pro", return_value=False), \
          patch.object(server, "_insights_stale", return_value=False), \
-         patch.object(server, "_briefing_gmail_swr", AsyncMock(return_value=([], {
-             "connected": False, "needs_reconnect": False, "compose": False,
-         }))), \
          patch.object(server, "_briefing_ops_metrics", AsyncMock(return_value=[])), \
          patch.object(server.helm_freshness, "resolve_workspace_data_as_of", AsyncMock(return_value={
              "data_as_of": None, "sources": {},

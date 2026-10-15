@@ -1,19 +1,13 @@
-"""Google OAuth — token refresh, Calendar, and Gmail helpers.
+"""Google OAuth: token refresh, Calendar, Sheets export, and Drive picker helpers.
 
-Gmail access is read-only metadata + snippets for the daily briefing.
-Do not persist full message bodies; callers should pass through API responses only.
+Trenston does not request Gmail access. Gmail scopes were removed so the app
+stays out of Google's restricted-scope tier (no yearly security assessment).
 """
 from __future__ import annotations
 
-import base64
-import email.utils
-import html
 import logging
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
-from email.policy import SMTP
 from typing import Optional
-from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -29,29 +23,21 @@ logger = logging.getLogger(__name__)
 
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
-GMAIL_PROFILE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/profile"
-GMAIL_MESSAGES_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages"
-GMAIL_DRAFTS_URL = "https://gmail.googleapis.com/gmail/v1/users/me/drafts"
 SHEETS_URL = "https://sheets.googleapis.com/v4/spreadsheets"
 DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files"
-GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
-GMAIL_COMPOSE_SCOPE = "https://www.googleapis.com/auth/gmail.compose"
 CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events"
 SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 
-# Extra scopes beyond the original Calendar + Gmail read grant. Existing
-# workspaces need one reconnect (prompt=consent) before write features work.
+# Scopes the write features need. Existing grants missing any of these
+# need one reconnect (prompt=consent) before those features work.
 WRITE_SCOPE_FRAGMENTS = (
     "calendar.events",
-    "gmail.compose",
     "spreadsheets",
     "drive.file",
 )
 
-# Prefer Gmail's own importance signal; fall back to recent primary inbox.
-_IMPORTANT_QUERY = "(is:important OR is:starred) newer_than:14d -category:promotions -category:social -category:forums"
-_INBOX_FALLBACK_QUERY = "in:inbox newer_than:5d -category:promotions -category:social -category:forums -in:chats"
+
 
 
 class GoogleAuthError(Exception):
@@ -64,11 +50,6 @@ class GoogleTransientError(IntegrationRetryableError):
 
 # Back-compat alias for callers that predate the Transient naming.
 GoogleRetryableError = GoogleTransientError
-
-
-def has_gmail_scope(tokens: Optional[dict]) -> bool:
-    """True when the stored Google token grant includes gmail.readonly."""
-    return has_scope(tokens, "gmail.readonly")
 
 
 def has_scope(tokens: Optional[dict], fragment: str) -> bool:
@@ -86,8 +67,6 @@ def missing_write_scopes(tokens: Optional[dict]) -> list[str]:
 def google_capabilities(tokens: Optional[dict]) -> dict:
     return {
         "connected": bool(tokens),
-        "gmail": has_gmail_scope(tokens),
-        "gmail_compose": has_scope(tokens, "gmail.compose"),
         "calendar_write": has_scope(tokens, "calendar.events"),
         "sheets": has_scope(tokens, "spreadsheets"),
         "drive_file": has_scope(tokens, "drive.file"),
@@ -410,78 +389,6 @@ async def fetch_week_calendar(
     )
 
 
-def _header_map(payload: dict) -> dict[str, str]:
-    headers = ((payload.get("payload") or {}).get("headers")) or []
-    out: dict[str, str] = {}
-    for h in headers:
-        name = (h.get("name") or "").lower()
-        if name and name not in out:
-            out[name] = h.get("value") or ""
-    return out
-
-
-def _parse_from(raw: str) -> tuple[str, str]:
-    """Return (display_name, email) from a From header value."""
-    name, addr = email.utils.parseaddr(raw or "")
-    addr = (addr or "").strip().lower()
-    name = (name or "").strip() or (addr.split("@")[0] if addr else "Unknown")
-    return name, addr
-
-
-def _email_domain(addr: str) -> str:
-    if "@" not in (addr or ""):
-        return ""
-    return addr.rsplit("@", 1)[-1].lower()
-
-
-def _parse_message_date(raw: str) -> Optional[datetime]:
-    if not raw:
-        return None
-    try:
-        dt = email.utils.parsedate_to_datetime(raw)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=timezone.utc)
-        return dt.astimezone(timezone.utc)
-    except (TypeError, ValueError, IndexError):
-        return None
-
-
-def _thread_link(thread_id: str) -> str:
-    tid = quote(thread_id or "", safe="")
-    return f"https://mail.google.com/mail/u/0/#inbox/{tid}"
-
-
-def _map_gmail_message(msg: dict, *, own_domain: str = "") -> Optional[dict]:
-    headers = _header_map(msg)
-    subject = html.unescape((headers.get("subject") or "(no subject)").strip())
-    sender_name, sender_email = _parse_from(headers.get("from") or "")
-    sender_name = html.unescape(sender_name) if sender_name else sender_name
-    if own_domain and sender_email and _email_domain(sender_email) == own_domain:
-        # Skip self-sent / same-domain noise when filtering for external signal
-        labels = set(msg.get("labelIds") or [])
-        if "IMPORTANT" not in labels and "STARRED" not in labels:
-            return None
-
-    when = _parse_message_date(headers.get("date") or "")
-    thread_id = msg.get("threadId") or msg.get("id") or ""
-    if not thread_id:
-        return None
-    # Gmail's snippet field comes back HTML-entity-encoded (e.g. "don&#39;t"
-    # instead of "don't") — decode it so the briefing shows real text.
-    snippet = html.unescape((msg.get("snippet") or "").strip())
-    # Snippets only — never include body payload data
-    return {
-        "id": thread_id,
-        "message_id": msg.get("id") or thread_id,
-        "sender": sender_name,
-        "sender_email": sender_email,
-        "subject": subject,
-        "snippet": snippet[:280],
-        "thread_link": _thread_link(thread_id),
-        "last_message_at": when.isoformat() if when else None,
-    }
-
-
 class _GoogleUnauthorized(GoogleAuthError):
     """A data endpoint returned 401 — caller may force one refresh and retry."""
 
@@ -521,132 +428,6 @@ async def _google_request(
         )
         resp = await _once(tokens.get("access_token") or "")
     return resp, tokens
-
-
-async def _gmail_list_ids(hc: httpx.AsyncClient, access_token: str, query: str, *, max_results: int) -> list[dict]:
-    resp = await hc.get(
-        GMAIL_MESSAGES_URL,
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={"q": query, "maxResults": max_results},
-    )
-    if resp.status_code == 401:
-        raise _GoogleUnauthorized("Google access token rejected. Reconnect Google")
-    if resp.status_code == 403:
-        raise GoogleAuthError("Gmail access not granted. Reconnect Google to enable Gmail")
-    if resp.status_code >= 500:
-        raise GoogleTransientError(f"Gmail temporarily unavailable ({resp.status_code})")
-    if resp.status_code != 200:
-        raise RuntimeError(f"Gmail list failed ({resp.status_code}): {resp.text[:300]}")
-    return list(resp.json().get("messages") or [])
-
-
-async def _gmail_get_message(hc: httpx.AsyncClient, access_token: str, message_id: str) -> dict:
-    resp = await hc.get(
-        f"{GMAIL_MESSAGES_URL}/{message_id}",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "format": "metadata",
-            "metadataHeaders": ["From", "Subject", "Date"],
-            "fields": "id,threadId,snippet,labelIds,payload/headers",
-        },
-    )
-    if resp.status_code == 401:
-        raise _GoogleUnauthorized("Google access token rejected. Reconnect Google")
-    if resp.status_code == 403:
-        raise GoogleAuthError("Gmail access not granted. Reconnect Google to enable Gmail")
-    if resp.status_code >= 500:
-        raise GoogleTransientError(f"Gmail temporarily unavailable ({resp.status_code})")
-    if resp.status_code != 200:
-        raise RuntimeError(f"Gmail message failed ({resp.status_code}): {resp.text[:300]}")
-    return resp.json()
-
-
-async def fetch_important_threads(
-    tokens: dict,
-    client_id: str,
-    client_secret: str,
-    *,
-    since: Optional[datetime] = None,
-    limit: int = 5,
-) -> tuple[list[dict], dict]:
-    """
-    Pull a small set of relevant Gmail threads for the CEO briefing.
-
-    Uses Gmail importance/star signals first, then recent primary inbox with a
-    preference for external senders. Returns metadata + snippets only (no bodies).
-    """
-    if not has_gmail_scope(tokens):
-        raise GoogleAuthError("Gmail access not granted. Reconnect Google to enable Gmail")
-
-    tokens = await refresh_google_token(tokens, client_id, client_secret)
-    access_token = tokens.get("access_token")
-    if not access_token:
-        raise GoogleAuthError("Missing access token")
-
-    limit = max(1, min(int(limit or 5), 8))
-    query = _IMPORTANT_QUERY
-    if since is not None:
-        # Gmail `after:` is epoch seconds (UTC)
-        if since.tzinfo is None:
-            since = since.replace(tzinfo=timezone.utc)
-        query = f"{_IMPORTANT_QUERY} after:{int(since.timestamp())}"
-
-    async def _collect(access_token: str) -> list[dict]:
-        async with httpx.AsyncClient(timeout=45.0) as hc:
-            profile = await hc.get(
-                GMAIL_PROFILE_URL,
-                headers={"Authorization": f"Bearer {access_token}"},
-            )
-            own_email = ""
-            if profile.status_code == 200:
-                own_email = (profile.json().get("emailAddress") or "").strip().lower()
-            own_domain = _email_domain(own_email)
-
-            refs = await _gmail_list_ids(hc, access_token, query, max_results=max(limit * 3, 12))
-            prefer_external = False
-            if len(refs) < limit:
-                prefer_external = True
-                refs = await _gmail_list_ids(
-                    hc, access_token, _INBOX_FALLBACK_QUERY, max_results=max(limit * 4, 16),
-                )
-
-            threads: list[dict] = []
-            seen_threads: set[str] = set()
-            for ref in refs:
-                mid = ref.get("id")
-                if not mid:
-                    continue
-                raw = await _gmail_get_message(hc, access_token, mid)
-                mapped = _map_gmail_message(
-                    raw,
-                    own_domain=own_domain if prefer_external else "",
-                )
-                if not mapped:
-                    continue
-                tid = mapped["id"]
-                if tid in seen_threads:
-                    continue
-                seen_threads.add(tid)
-                threads.append(mapped)
-                if len(threads) >= limit:
-                    break
-
-        return threads
-
-    try:
-        try:
-            threads = await _collect(access_token)
-        except _GoogleUnauthorized:
-            logger.info("Gmail 401 — forcing token refresh and retrying once")
-            tokens = await refresh_google_token(
-                force_token_refresh(tokens), client_id, client_secret, force=True,
-            )
-            threads = await _collect(tokens.get("access_token") or "")
-    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-        raise GoogleTransientError("Gmail temporarily unavailable") from exc
-
-    threads.sort(key=lambda t: t.get("last_message_at") or "", reverse=True)
-    return threads[:limit], tokens
 
 
 async def create_calendar_event(
@@ -806,111 +587,6 @@ async def create_spreadsheet(
     sid = data.get("spreadsheetId") or ""
     url = data.get("spreadsheetUrl") or (f"https://docs.google.com/spreadsheets/d/{sid}" if sid else "")
     return sid, url, tokens
-
-
-class GmailDraftError(ValueError):
-    """Client-facing draft validation error (missing recipient, etc.)."""
-
-
-def _strip_header_injection(value: str) -> str:
-    return (value or "").replace("\r", "").replace("\n", "").strip()
-
-
-async def create_gmail_draft(
-    tokens: dict,
-    client_id: str,
-    client_secret: str,
-    *,
-    to_email: str,
-    subject: str,
-    body: str,
-    thread_id: str = "",
-) -> tuple[str, str, dict]:
-    """Create a Gmail draft (Trenston never sends). Returns (draft_id, open_url, tokens)."""
-    if not has_scope(tokens, "gmail.compose"):
-        raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
-    to_clean = _strip_header_injection(to_email)
-    if not to_clean or to_clean.lower() == "me":
-        raise GmailDraftError("Recipient (To) is required")
-    subj_clean = _strip_header_injection(subject) or "Follow up"
-    # Only prefix Re: when replying to a thread.
-    if thread_id and not subj_clean.lower().startswith("re:"):
-        subj_clean = f"Re: {subj_clean}"
-
-    tokens = await refresh_google_token(tokens, client_id, client_secret)
-
-    in_reply_to = ""
-    references = ""
-    if thread_id:
-        # Latest message in the thread supplies the reply headers.
-        thread_resp, tokens = await _google_request(
-            tokens, client_id, client_secret, "GET",
-            f"https://gmail.googleapis.com/gmail/v1/users/me/threads/{quote(thread_id, safe='')}",
-            label="Gmail thread",
-            params={
-                "format": "metadata",
-                "metadataHeaders": ["Message-ID", "References", "Subject"],
-            },
-        )
-        if thread_resp.status_code == 200:
-            thread_msgs = (thread_resp.json() or {}).get("messages") or []
-            if thread_msgs:
-                headers_list = ((thread_msgs[-1].get("payload") or {}).get("headers")) or []
-                hmap = {
-                    (h.get("name") or "").lower(): _strip_header_injection(h.get("value") or "")
-                    for h in headers_list
-                }
-                in_reply_to = hmap.get("message-id") or ""
-                if in_reply_to:
-                    references = f"{hmap.get('references') or ''} {in_reply_to}".strip()
-
-    msg = EmailMessage(policy=SMTP)
-    msg["To"] = to_clean
-    msg["Subject"] = subj_clean
-    if in_reply_to:
-        msg["In-Reply-To"] = in_reply_to
-    if references:
-        msg["References"] = references
-    msg.set_content(body or "", subtype="plain", charset="utf-8")
-    raw = base64.urlsafe_b64encode(msg.as_bytes()).decode("ascii").rstrip("=")
-    payload: dict = {"message": {"raw": raw}}
-    if thread_id:
-        payload["message"]["threadId"] = thread_id
-
-    async def _post(access: str) -> httpx.Response:
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as hc:
-                return await hc.post(
-                    GMAIL_DRAFTS_URL,
-                    headers={
-                        "Authorization": f"Bearer {access}",
-                        "Content-Type": "application/json",
-                    },
-                    json=payload,
-                )
-        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise GoogleTransientError("Gmail draft temporarily unavailable") from exc
-
-    resp = await _post(tokens.get("access_token") or "")
-    if resp.status_code == 401:
-        logger.info("Gmail draft 401 — forcing token refresh and retrying once")
-        tokens = await refresh_google_token(
-            force_token_refresh(tokens), client_id, client_secret, force=True,
-        )
-        resp = await _post(tokens.get("access_token") or "")
-    if resp.status_code in (401, 403):
-        raise GoogleAuthError("Gmail draft access not granted. Reconnect Google")
-    if resp.status_code >= 500:
-        raise GoogleTransientError(
-            f"Gmail draft temporarily unavailable ({resp.status_code})"
-        )
-    if resp.status_code not in (200, 201):
-        raise RuntimeError(f"Gmail draft failed ({resp.status_code}): {resp.text[:300]}")
-    data = resp.json() or {}
-    draft_id = data.get("id") or ""
-    msg_id = (data.get("message") or {}).get("id") or draft_id
-    open_url = f"https://mail.google.com/mail/u/0/#drafts?compose={msg_id}"
-    return draft_id, open_url, tokens
 
 
 async def download_drive_file(

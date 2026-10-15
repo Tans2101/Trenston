@@ -238,9 +238,6 @@ def _get_briefing(client, ws, *, can_act=True, acts=None):
          patch.object(server.helm_freshness, "resolve_workspace_data_as_of", new=AsyncMock(return_value={
              "data_as_of": None, "sources": {},
          })), \
-         patch.object(server, "_briefing_gmail_swr", new=AsyncMock(return_value=([], {
-             "connected": False, "needs_reconnect": False, "compose": False,
-         }))), \
          patch.object(server.db, "activities", MagicMock()), \
          patch.object(server.db, "updates", MagicMock()), \
          patch.object(server.db, "workspaces", MagicMock()):

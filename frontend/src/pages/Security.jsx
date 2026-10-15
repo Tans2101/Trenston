@@ -105,7 +105,7 @@ const ENCRYPTION = [
 const THIRD_PARTIES = [
   {
     name: "Google",
-    why: "Optional, per-user Calendar and Gmail (plus Sheets export and Drive file pick when you grant those scopes). Tokens are personal to the teammate who connected.",
+    why: "Optional, per-user Calendar (plus Sheets export and Drive file pick). Trenston does not request Gmail access. Tokens are personal to the teammate who connected.",
   },
   {
     name: "QuickBooks / Xero / SAP Business One",
@@ -213,9 +213,8 @@ const CONTROLS = [
 
 const PRACTICES = [
   "Integration access is opt-in and can be disconnected at any time.",
-  "Google Calendar and Gmail are personal: each teammate connects their own Google account and only sees their meetings and threads. Shared company OAuth (QuickBooks, Xero, HubSpot, SAP) can be used only by the teammate who connected them, or by a workspace owner. Legacy unstamped company connections are limited to owners until someone reconnects.",
-  "Google is not read-only. Connecting your Google account grants Calendar read and write, Gmail snippets plus drafts, Sheets export, and Drive files you pick in Trenston. It is not a full mailbox or Drive dump.",
-  "Workspaces that connected Google under the original Calendar + Gmail read grant keep that narrower access until an owner reconnects and accepts the wider consent screen.",
+  "Google Calendar and Drive are personal: each teammate connects their own Google account and only sees their own meetings and files. Shared company OAuth (QuickBooks, Xero, HubSpot, SAP) can be used only by the teammate who connected them, or by a workspace owner. Legacy unstamped company connections are limited to owners until someone reconnects.",
+  "Google is not read-only. Connecting your Google account grants Calendar read and write, Sheets export, and Drive files you pick in Trenston. It does not include Gmail or your full Drive.",
   "Payment card details are handled by Paddle, not stored on Trenston servers.",
   "Authentication is handled by Clerk using secure session controls.",
   "Sensitive credentials and provider token responses are excluded from application logs.",
@@ -250,7 +249,7 @@ const AI_ACCESS = [
   },
   {
     title: "Limits and separation",
-    body: "Each key is limited to 60 requests a minute. API keys and assistant tokens only work on the public read-only API, never on the signed-in app, and Gmail data is never included in what assistants receive.",
+    body: "Each key is limited to 60 requests a minute. API keys and assistant tokens only work on the public read-only API, never on the signed-in app, and personal Google data is never included in what assistants receive.",
   },
   {
     title: "What leaves Trenston",
@@ -269,11 +268,11 @@ const QUESTIONS = [
   },
   {
     q: "Does Trenston store our full email inbox?",
-    a: "No. Trenston reads Gmail metadata and short snippets (sender, subject, preview, thread link) for the briefing. Full message bodies are not stored as a mailbox archive. If compose access is granted, Trenston can create a Gmail draft when you click Draft reply. It does not send mail. You send from Gmail.",
+    a: "No. Trenston does not request any Gmail access, so it cannot read, store, draft, or send your email.",
   },
   {
     q: "What Google access does Trenston request now?",
-    a: "Connecting your Google account requests Calendar read and write (Trenston can create or update events when you ask), Gmail read for briefing snippets plus gmail.compose for drafts only (not gmail.send), Google Sheets to create a Financials export spreadsheet, and drive.file so you can pick a bill in Drive. Google’s consent screen may label compose as managing drafts and sending; Trenston only posts to Gmail’s drafts API. Each teammate connects their own Google account, never a shared workspace mailbox. Reconnect Google to add missing write scopes.",
+    a: "Connecting your Google account requests Calendar read and write (Trenston can create or update events when you ask), Google Sheets to create a Financials export spreadsheet, and drive.file so you can pick a bill in Drive. Each teammate connects their own Google account, never a shared workspace account. Trenston does not request Gmail access. Reconnect Google to add missing write scopes.",
   },
   {
     q: "Who can see uploaded bills and legal files?",

@@ -164,28 +164,6 @@ def test_xero_sync_401_refreshes_persists_and_succeeds():
     assert persisted[2]["tenant_id"] == "t1"
 
 
-def test_gmail_threads_401_refreshes_and_retries():
-    def payload(url):
-        if url.endswith("/profile"):
-            return {"emailAddress": "me@acme.com"}
-        return {"messages": []}
-
-    class GmailFake(_FakeClient):
-        async def get(self, url, **kwargs):
-            # The profile call is best-effort; the list call is the one that 401s.
-            if url.endswith("/profile"):
-                return _Resp(200, payload(url))
-            return await self._data("get", url, **kwargs)
-
-    fake = GmailFake(payload)
-    tokens = _fresh_tokens(scope="https://www.googleapis.com/auth/gmail.readonly")
-    with patch.object(gcal.httpx, "AsyncClient", fake):
-        threads, out = asyncio.run(gcal.fetch_important_threads(tokens, "cid", "csec"))
-    assert threads == []
-    assert out["access_token"] == "fresh"
-    assert [c[0] for c in fake.calls].count("token") == 1
-
-
 @pytest.mark.parametrize("op", ["create", "patch", "delete"])
 def test_calendar_writes_401_refresh_and_retry(op):
     fake = _FakeClient({"id": "g1"})

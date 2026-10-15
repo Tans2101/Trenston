@@ -59,8 +59,9 @@ describe("marketing claim verification log", () => {
       "slack",
     ]);
     const google = PUBLIC_INTEGRATIONS.find((i) => i.id === "google");
-    expect(google.scope).toMatch(/snippet/i);
-    expect(google.scope.toLowerCase()).toMatch(/not full inbox/);
+    // Gmail scopes were removed (restricted tier): copy must say so, never claim inbox access.
+    expect(google.scope).toMatch(/does not request any Gmail access/i);
+    expect(`${google.description} ${google.scope}`).not.toMatch(/gmail thread|gmail draft|inbox/i);
     const slack = PUBLIC_INTEGRATIONS.find((i) => i.id === "slack");
     expect(slack.scope).toMatch(/webhook/i);
     expect(slack.scope.toLowerCase()).toMatch(/no oauth/);
@@ -68,7 +69,7 @@ describe("marketing claim verification log", () => {
     expect(slack.description.toLowerCase()).not.toMatch(/slash command/);
   });
 
-  test("homepage Briefing stays high-level; Gmail drafts live on integrations", () => {
+  test("homepage Briefing stays high-level and makes no Gmail claims", () => {
     const briefing = CEO_DAY.find((s) => s.title === "Briefing");
     expect(briefing.body).toMatch(/what changed/i);
     expect(briefing.body).toMatch(/decision/i);
@@ -76,7 +77,7 @@ describe("marketing claim verification log", () => {
     expect(briefing.body).not.toMatch(/Gmail/i);
     expect(briefing.body).not.toMatch(/draft/i);
     const google = PUBLIC_INTEGRATIONS.find((i) => i.id === "google");
-    expect(google.description).toMatch(/draft/i);
+    expect(google.description).not.toMatch(/gmail/i);
   });
 
   test("Decision Center module copy does not claim automated outcome-landed tracking", () => {
