@@ -147,7 +147,6 @@ export default function Legal() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of Legal. Ask your founder or CEO to add you."
-          onRetry={reload}
         />
       );
     }

@@ -4,6 +4,9 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Check, ArrowLeft, ShieldCheck, ExternalLink, AlertTriangle } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useAuth } from "@/context/AuthContext";
+import { canManageBilling } from "@/lib/access";
+import NoAccess from "@/components/NoAccess";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { confirmAction } from "@/components/ConfirmHost";
 import { api } from "@/lib/api";
@@ -84,7 +87,9 @@ function UsageRing({ label, used, limit, unit, testId }) {
 }
 
 export default function Billing() {
-  const { data, loading, error, reload } = useFetch("/billing/plans");
+  const { user } = useAuth();
+  const canBill = canManageBilling(user);
+  const { data, loading, error, reload } = useFetch(canBill ? "/billing/plans" : null);
   const [busy, setBusy] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -97,6 +102,9 @@ export default function Billing() {
     navigate(location.pathname, { replace: true, state: {} });
   }, [location.state, location.pathname, navigate]);
 
+  if (!canBill) {
+    return <NoAccess title="Billing" who="Only the workspace owner can change the plan or payment details." />;
+  }
   if (loading) {
     return (
       <div className="max-w-5xl mx-auto">

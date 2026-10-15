@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Plus, Trash2, X, Zap } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useAuth } from "@/context/AuthContext";
+import NoAccess from "@/components/NoAccess";
 import { api, apiErrorMessage } from "@/lib/api";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, ConfirmDialog, SkeletonCardList,
@@ -74,7 +76,9 @@ function Switch({ checked, onChange, label, disabled }) {
 }
 
 export default function Automations() {
-  const { data, loading, error, reload } = useFetch("/automations");
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner" || user?.pack === "owner";
+  const { data, loading, error, reload } = useFetch(isOwner ? "/automations" : null);
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
   const [building, setBuilding] = useState(false);
@@ -162,6 +166,9 @@ export default function Automations() {
     || Boolean((catalog?.signals || []).find((s) => s.type === form.signalType)?.financial)
   );
 
+  if (!isOwner) {
+    return <NoAccess title="Automations" who="Only the workspace owner sets up automations, because rules create tasks and read money signals." />;
+  }
   if (loading && !data) {
     return (
       <div data-testid="automations-page">

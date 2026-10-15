@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/kit";
 import { consumeReferralCode, withReferralPayload } from "@/lib/referral";
 import { departmentPath } from "@/lib/departmentRoutes";
-import { canManageBilling } from "@/lib/access";
+import { canManageBilling, isLeader, packMeta } from "@/lib/access";
 import { prefetchRouteHandlers } from "@/lib/prefetchRoute";
 import ProfileDropdown from "@/components/kokonutui/profile-dropdown";
 import ActionSearchBar from "@/components/kokonutui/action-search-bar";
@@ -48,7 +48,7 @@ const NAV = [
   { to: "/app/financials", label: "Financials", icon: Wallet, id: "financials", section: "financials", group: "Money" },
   { to: "/app/modeling", label: "Financial Modeling", icon: LineChartIcon, id: "modeling", section: "financials", group: "Money" },
   { to: "/app/metrics", label: "Metrics", icon: Activity, id: "telemetry", section: "telemetry", group: "Money" },
-  { to: "/app/map", label: "Company map", icon: Network, id: "map", ownerOnly: true, group: "Company" },
+  { to: "/app/map", label: "Company map", icon: Network, id: "map", leaderOnly: true, group: "Company" },
   { to: "/app/people", label: "People", icon: Contact, id: "people", group: "Company" },
   { to: "/app/reports", label: "Reports", icon: FileText, id: "reports", group: "Company" },
   { to: "/app/automations", label: "Automations", icon: Zap, id: "automations", ownerOnly: true, group: "Company" },
@@ -59,6 +59,8 @@ const NAV = [
 function navItemVisible(item, user, { modelingAllowed = false } = {}) {
   // Rules create tasks and read finance signals, so only the workspace owner sees Automations.
   if (item.ownerOnly && user?.role !== "owner" && user?.pack !== "owner") return false;
+  // Company map: owner and Executives (read-only for Executives).
+  if (item.leaderOnly && !isLeader(user)) return false;
   // Pack-only perms (e.g. members:invite) — unchanged shallow check.
   if (item.perm && !(user?.perms || []).includes(item.perm)) return false;
   // Grant-aware sections (e.g. telemetry, financials) — includes pack holders via /auth/me.
@@ -933,7 +935,9 @@ export default function AppLayout() {
   const planLabel = helmPlanLabel(company?.plan, isPro, billingEnforced);
   // The plan already has its own pill next to the account menu, so the menu
   // shows the person's role instead of repeating "Free" / "Active".
-  const profilePlanLabel = (user?.role || user?.pack || "Member").replace(/_/g, " ");
+  // Show the access pack (Executive, Finance, People / HR…), not the raw membership
+  // role — every invited teammate has role "member", so everyone read "MEMBER".
+  const profilePlanLabel = packMeta(user?.pack || (user?.role === "owner" ? "owner" : "member")).label;
   const trialDaysLeft = (() => {
     if (!trialing) return null;
     const end = billing?.trial_ends_at || billing?.current_period_end;

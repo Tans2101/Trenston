@@ -29,7 +29,6 @@ export default function DepartmentPlaceholder() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of this department. Ask your founder or CEO to add you."
-          onRetry={reload}
         />
       );
     }

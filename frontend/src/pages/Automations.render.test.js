@@ -2,6 +2,12 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 const mockFetch = jest.fn();
+let mockUser = { role: "owner", pack: "owner" };
+jest.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: mockUser }) }));
+jest.mock("react-router-dom", () => ({
+  // eslint-disable-next-line react/prop-types
+  Link: ({ to, children, ...rest }) => <a href={to} {...rest}>{children}</a>,
+}));
 jest.mock("@/hooks/useFetch", () => ({
   useFetch: (...args) => mockFetch(...args),
   fetchErrorMessage: (e) => e?.message || "error",
@@ -39,6 +45,17 @@ const payload = {
 const hook = (data, extra = {}) => ({ data, loading: false, error: null, reload: jest.fn(), ...extra });
 
 describe("Automations page", () => {
+  afterEach(() => { mockUser = { role: "owner", pack: "owner" }; });
+
+  it("tells non-owners automations are owner-only instead of loading forever", () => {
+    mockUser = { role: "member", pack: "exec" };
+    mockFetch.mockReturnValue(hook(null));
+    const html = renderToStaticMarkup(<Automations />);
+    expect(html).toContain("no-access");
+    expect(html).toContain("Only the workspace owner sets up automations");
+    expect(mockFetch).toHaveBeenLastCalledWith(null);
+  });
+
   it("renders rules, alerts, templates and activity", () => {
     mockFetch.mockReturnValue(hook(payload));
     const html = renderToStaticMarkup(<Automations />);

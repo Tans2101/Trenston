@@ -191,7 +191,7 @@ export default function People() {
         </GlassCard>
       </div>
 
-      {unassignedCount > 0 && (
+      {unassignedCount > 0 && data.can_assign_departments !== false && (
         <div
           className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-helm-status-warning/40 bg-helm-status-warning/10 px-4 py-3 fade-up"
           data-testid="people-unassigned-callout"

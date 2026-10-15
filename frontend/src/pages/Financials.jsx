@@ -747,7 +747,9 @@ export default function Financials() {
       <PageHeader
         title="Financials"
         subtitle={
-          hasAccountingSync
+          !canWrite
+            ? "View only. The owner and the Finance team keep these figures up to date."
+            : hasAccountingSync
             ? `Synced from ${accountingLabel}. Add entries here only for items that will not appear in your books.`
             : "Log revenue and expenses, or connect your accounting system under Integrations. Trenston turns them into MRR, burn and runway."
         }

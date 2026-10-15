@@ -408,7 +408,7 @@ export default function AskHelm() {
                 : `${timeGreet}, ${firstName}. What's on your plate?`}
             </h2>
             <p className="mt-2 text-sm text-helm-muted">
-              Ask about cash, runway, decisions, deals or your team. Answers only use data you can see in Trenston.
+              {canSeeFinancials ? "Ask about cash, runway, decisions, deals or your team." : "Ask about your work, decisions, deals or your team."} Answers only use data you can see in Trenston.
             </p>
             <div className="mt-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {suggestions.map((s) => (

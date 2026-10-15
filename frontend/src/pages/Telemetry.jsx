@@ -287,7 +287,11 @@ export default function Telemetry() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         <GlassCard className="p-5 fade-up">
           <SectionLabel className="mb-4">{hasTargetLine ? "Revenue vs Target" : "Monthly revenue"}</SectionLabel>
-          {!hasRevenue ? (
+          {data.financials_visible === false ? (
+            <div className="py-10 text-center" data-testid="telemetry-revenue-restricted">
+              <p className="text-sm text-helm-muted">Revenue is shown to people with Financials access.</p>
+            </div>
+          ) : !hasRevenue ? (
             <div className="py-10 text-center">
               <p className="text-sm text-helm-muted">No revenue logged yet.</p>
               <Link to="/app/financials#log-entry" className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">

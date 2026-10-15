@@ -380,7 +380,6 @@ export default function Production() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of Production. Ask your CEO to add you."
-          onRetry={reload}
         />
       );
     }

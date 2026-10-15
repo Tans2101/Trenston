@@ -33,6 +33,58 @@ def is_workspace_ceo(principal: dict) -> bool:
     return principal.get("pack") == "owner" or principal.get("role") == "owner"
 
 
+def is_workspace_exec(principal: dict) -> bool:
+    """Executive pack: reads every department, but lead-only actions still need a lead role."""
+    return principal.get("pack") == "exec"
+
+
+def can_read_all_departments(principal: dict) -> bool:
+    """CEO and Executives see every enabled department without a membership row."""
+    return is_workspace_ceo(principal) or is_workspace_exec(principal)
+
+
+# Access packs that carry a role in one department type, without a membership row.
+# The People / HR pack runs the HR department as its lead.
+PACK_DEPARTMENT_ROLES: dict[str, dict[str, str]] = {
+    "hr": {dept_catalog.TYPE_HR: "lead"},
+}
+_ROLE_RANK = {"member": 1, "lead": 2}
+
+# The signed-in person for this request (set by get_principal). Pack-implied
+# department roles are read from it, so checks cost no extra queries.
+_current_principal: ContextVar[Optional[dict]] = ContextVar("helm_current_principal", default=None)
+
+
+def set_current_principal(principal: Optional[dict]) -> None:
+    _current_principal.set(principal)
+
+
+def pack_department_role(pack: str | None, dept_type: str | None) -> Optional[str]:
+    """Department role an access pack implies for a department type (or None)."""
+    return (PACK_DEPARTMENT_ROLES.get(pack or "") or {}).get(dept_type or "")
+
+
+def _implied_pack_for(user_id: str) -> Optional[str]:
+    """Pack of the signed-in person when it carries a department role, else None."""
+    principal = _current_principal.get()
+    if not principal or principal.get("user_id") != user_id:
+        return None
+    pack = principal.get("pack")
+    return pack if pack in PACK_DEPARTMENT_ROLES else None
+
+
+async def _department_doc(db, department_id: str) -> Optional[dict]:
+    # A department's workspace and type never change, so this memo is safe.
+    cache = _access_cache()
+    key = ("dept_doc", department_id)
+    if key not in cache:
+        cache[key] = await db.departments.find_one(
+            {"department_id": department_id},
+            {"_id": 0, "department_id": 1, "workspace_id": 1, "type": 1},
+        )
+    return cache[key]
+
+
 def display_department_names(names: list[str] | None) -> str:
     """Human-readable department list for roster rows. Empty → Unassigned."""
     cleaned = [n.strip() for n in (names or []) if n and str(n).strip()]
@@ -127,10 +179,27 @@ async def list_enabled_departments(db, workspace_id: str) -> list[dict]:
 
 
 async def get_department_membership(db, department_id: str, user_id: str) -> Optional[dict]:
-    return await db.department_members.find_one(
+    """The user's department role — a real membership row, raised by any pack-implied role."""
+    row = await db.department_members.find_one(
         {"department_id": department_id, "user_id": user_id},
         {"_id": 0},
     )
+    if row and row.get("role") == "lead":
+        return row
+    pack = _implied_pack_for(user_id)
+    if not pack:
+        return row
+    dept = await _department_doc(db, department_id)
+    if not dept or dept.get("workspace_id") != (_current_principal.get() or {}).get("workspace_id"):
+        return row
+    implied = pack_department_role(pack, dept.get("type"))
+    if not implied or _ROLE_RANK.get(implied, 0) <= _ROLE_RANK.get((row or {}).get("role"), 0):
+        return row
+    return {
+        **(row or {"department_id": department_id, "user_id": user_id}),
+        "role": implied,
+        "implied_by_pack": pack,
+    }
 
 
 async def is_department_member(db, user_id: str, department_id: str) -> bool:
@@ -150,8 +219,11 @@ async def can_manage_department_members(db, principal: dict, department_id: str)
 
 
 async def can_access_department(db, principal: dict, department: dict) -> bool:
-    """CEO sees every enabled department; others need a membership row."""
-    if is_workspace_ceo(principal):
+    """CEO and Executives see every enabled department; others need a membership
+    row or a pack that implies one (People / HR → HR)."""
+    if can_read_all_departments(principal):
+        return True
+    if pack_department_role(principal.get("pack"), department.get("type")):
         return True
     return await is_department_member(db, principal["user_id"], department["department_id"])
 
@@ -161,7 +233,7 @@ async def accessible_department_ids(
 ) -> Optional[list[str]]:
     """Department ids of ``dept_type`` the principal may read records from.
 
-    Returns ``None`` for CEO (bypass — see all workspace records of that kind).
+    Returns ``None`` for CEO and Executives (bypass — see all workspace records of that kind).
     Returns a list (possibly empty) for everyone else — empty means no access.
     """
     cache = _access_cache()
@@ -169,7 +241,7 @@ async def accessible_department_ids(
     if cache_key in cache:
         return cache[cache_key]
 
-    if is_workspace_ceo(principal):
+    if can_read_all_departments(principal):
         cache[cache_key] = None
         return None
     rows = await db.departments.find(
@@ -183,6 +255,10 @@ async def accessible_department_ids(
     if not rows:
         cache[cache_key] = []
         return []
+    if pack_department_role(principal.get("pack"), dept_type):
+        result = [r["department_id"] for r in rows]
+        cache[cache_key] = result
+        return result
     my_rows = await db.department_members.find(
         {
             "user_id": principal["user_id"],
@@ -214,7 +290,7 @@ async def accessible_department_ids_by_type(
     uid = principal.get("user_id")
     ws_id = principal.get("workspace_id")
 
-    if is_workspace_ceo(principal):
+    if can_read_all_departments(principal):
         for t in types:
             out[t] = None
             cache[(uid, ws_id, t)] = None
@@ -255,7 +331,10 @@ async def accessible_department_ids_by_type(
         member_ids = {m["department_id"] for m in my_rows if m.get("department_id")}
 
     for t in types:
-        allowed = [did for did in ids_by_type[t] if did in member_ids]
+        if pack_department_role(principal.get("pack"), t):
+            allowed = list(ids_by_type[t])
+        else:
+            allowed = [did for did in ids_by_type[t] if did in member_ids]
         out[t] = allowed
         cache[(uid, ws_id, t)] = allowed
     return out

@@ -244,7 +244,6 @@ export default function HR() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of HR. Ask your founder or CEO to add you."
-          onRetry={reload}
         />
       );
     }

@@ -659,17 +659,19 @@ async def can_section_write(
     return dept in {str(a or "").strip().casefold() for a in allowed}
 
 
-async def can_access_financials(
+# Packs that can SEE every money figure without being able to edit the books.
+# Executives (often a co-founder) read everything; editing stays with finance.
+FINANCIALS_VIEW_PACKS = frozenset({"exec"})
+
+
+async def can_edit_financials(
     principal: dict,
     *,
     membership: Optional[dict] = None,
     workspace: Optional[dict] = None,
 ) -> bool:
-    """Single gate for MRR/runway/burn and related figures across Trenston surfaces.
-
-    Same rule as Financials page write access: pack `finance:write` or a CEO
-    section grant / legacy department grant for `financials`.
-    """
+    """Write gate for the books: pack `finance:write` or a CEO section grant /
+    legacy department grant for `financials`."""
     return await can_section_write(
         principal,
         "financials",
@@ -677,6 +679,23 @@ async def can_access_financials(
         membership=membership,
         workspace=workspace,
     )
+
+
+async def can_access_financials(
+    principal: dict,
+    *,
+    membership: Optional[dict] = None,
+    workspace: Optional[dict] = None,
+) -> bool:
+    """Single VIEW gate for MRR/runway/burn and related figures across Trenston surfaces.
+
+    Everyone who can edit Financials, plus view-only packs (Executive).
+    Writes must use can_edit_financials / require_section("financials", ...).
+    """
+    if principal.get("pack") in FINANCIALS_VIEW_PACKS:
+        return True
+    return await can_edit_financials(principal, membership=membership, workspace=workspace)
+
 
 
 # Phrases that request financial figures Ask Trenston must not answer without access.
@@ -1429,11 +1448,13 @@ async def get_principal(request: Request):
             await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"active_workspace_id": active}})
     if not membership:
         raise HTTPException(status_code=403, detail="No workspace")
-    return {
+    principal = {
         "user_id": user["user_id"], "email": user["email"], "name": user.get("name"),
         "picture": user.get("picture"), "workspace_id": membership["workspace_id"],
         "role": membership["role"], "pack": pack_of(membership),
     }
+    dept_access.set_current_principal(principal)
+    return principal
 
 
 def _is_analytics_admin(principal: dict | None) -> bool:
@@ -1462,6 +1483,13 @@ def require(action: str):
             raise HTTPException(status_code=403, detail="You do not have permission for this action")
         return principal
     return dep
+
+
+async def require_financials_view(principal=Depends(get_principal)):
+    """Read access to money pages and exports (view-only packs included)."""
+    if not await can_access_financials(principal):
+        raise HTTPException(status_code=403, detail="You do not have permission for this action")
+    return principal
 
 
 def workspace_plan_id(ws_or_plan) -> str:
@@ -3092,6 +3120,11 @@ async def _user_session_payload(user: dict) -> dict:
             workspace=ws_for_grants,
         ):
             granted_sections.append(item["id"])
+    can_edit_fin = "financials" in granted_sections
+    # granted_sections means "can open this page". View-only packs (Executive)
+    # see Financials too; can_edit_financials says whether they may change it.
+    if not can_edit_fin and pack in FINANCIALS_VIEW_PACKS:
+        granted_sections.append("financials")
     payload = {
         **base,
         "workspace_id": membership["workspace_id"],
@@ -3100,6 +3133,7 @@ async def _user_session_payload(user: dict) -> dict:
         "pack": pack,
         "perms": sorted(perms_for(pack)),
         "granted_sections": granted_sections,
+        "can_edit_financials": can_edit_fin,
         "default_route": PACK_HOME.get(pack, "/app"),
         "pack_label": PACK_LABEL.get(pack, "Member"),
     }
@@ -3437,6 +3471,8 @@ async def update_member_role(membership_id: str, payload: RoleInput, principal=D
     await db.memberships.update_one({"membership_id": membership_id, "workspace_id": principal["workspace_id"]}, {"$set": upd})
     m2 = {**m, **upd}
     await ensure_person_for_membership(principal["workspace_id"], m2)
+    # Packs change which departments someone sees (Executive, People / HR → HR).
+    invalidate_departments_cache(principal["workspace_id"])
     return {"ok": True}
 
 
@@ -4077,6 +4113,31 @@ async def assemble_ops_briefing_data(workspace_id: str, workspace: dict | None =
     return await ob.assemble_ops_briefing_data(db, workspace_id, workspace=workspace)
 
 
+# Briefing ops card section → department type whose members may see it.
+_OPS_SECTION_DEPT_TYPE = {
+    "procurement": dept_catalog.TYPE_PROCUREMENT,
+    "production": dept_catalog.TYPE_PRODUCTION,
+    "sales": dept_catalog.TYPE_SALES,
+    "maintenance": dept_catalog.TYPE_ENGINEERING_MAINTENANCE,
+}
+
+
+async def _scope_ops_metrics(principal: dict, cards: list[dict]) -> list[dict]:
+    """Keep only department cards the viewer can open (same rule as the department pages)."""
+    if not cards or dept_access.can_read_all_departments(principal):
+        return list(cards or [])
+    access = await dept_access.accessible_department_ids_by_type(
+        db, principal, sorted(set(_OPS_SECTION_DEPT_TYPE.values())),
+    )
+    out = []
+    for card in cards:
+        dtype = _OPS_SECTION_DEPT_TYPE.get(card.get("section") or "")
+        if dtype and not access.get(dtype):
+            continue
+        out.append(card)
+    return out
+
+
 async def _briefing_ops_metrics(workspace_id: str, workspace: dict | None = None) -> list[dict]:
     """Procurement / Production / Sales / Maintenance rollups for Briefing.
 
@@ -4108,6 +4169,12 @@ async def briefing(principal=Depends(get_principal)):
         b["headline"] = "Start by logging your financials and adding your team."
     is_pro = workspace_is_pro(c)
     has_fin_access = await can_access_financials(principal)
+    # The stored NRR card is a revenue figure; it only ships inside `metrics` below.
+    b.pop("nrr", None)
+    if not has_fin_access:
+        # Stored headlines talk about money ("Revenue is ahead of plan", "Start by
+        # logging your financials") — neither fits someone who can't see Financials.
+        b["headline"] = "Here is what changed across the company and what needs a call."
     day = tz_utils.workspace_today_iso(c)
 
     async def _load_fin():
@@ -4144,7 +4211,7 @@ async def briefing(principal=Depends(get_principal)):
     metrics = []
     if has_fin_access and fin is not None:
         metrics = _briefing_finance_metrics(fin)
-        nrr = b.get("nrr")
+        nrr = (c.get("briefing") or {}).get("nrr")
         if nrr:
             metrics.append({
                 "label": "NRR",
@@ -4153,7 +4220,7 @@ async def briefing(principal=Depends(get_principal)):
                 "tone": nrr["tone"],
                 "section": "finance",
             })
-    metrics.extend(ops_metrics or [])
+    metrics.extend(await _scope_ops_metrics(principal, ops_metrics or []))
     b["metrics"] = metrics
     act_items = [_briefing_activity_item(a) for a in acts]
     b["what_changed"] = act_items + list(b.get("what_changed", []))
@@ -4168,6 +4235,7 @@ async def briefing(principal=Depends(get_principal)):
     # Nudge to set a reserve so runway alerts can fire (finance users only).
     b["reserve_prompt"] = bool(
         has_fin_access and fin is not None and fin.get("cash_entered")
+        and await can_edit_financials(principal)
         and fin.get("has_data") and fin.get("min_cash_reserve") is None
     )
     b["what_to_decide_total"] = len(decide_all)
@@ -4181,12 +4249,17 @@ async def briefing(principal=Depends(get_principal)):
     can_generate = (
         can_ai_briefing and "briefing:generate" in perms_for(principal.get("pack") or "member")
     )
+    # The AI note is written once per company. When it was grounded on money
+    # figures (or predates the flag), only Financials viewers may read it.
+    summary_has_money = b.get("ai_summary_includes_financials") is not False
+    show_summary = can_ai_briefing and (has_fin_access or not summary_has_money)
+    b.pop("ai_summary_includes_financials", None)
     # can_act loaded in the gather above — same gate as decision act endpoints.
     return {
         **b,
         "is_pro": is_pro,
         "can_act": bool(can_act),
-        "ai_summary": b.get("ai_summary") if can_ai_briefing else None,
+        "ai_summary": b.get("ai_summary") if show_summary else None,
         "can_generate_ai_summary": can_generate,
     }
 
@@ -4772,8 +4845,12 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     # Always load ledger for synthesis; metrics cards still respect financials access.
     # Calendar + freshness run in the same gather (not after) so generate latency
     # is max(fin, acts, ops, calendar, freshness) instead of sum.
+    async def _load_fin():
+        # Never ground the note on money for someone who can't see Financials.
+        return await compute_financials(c["workspace_id"]) if has_fin_access else None
+
     fin, acts, ops_metrics, cal_snap, freshness = await asyncio.gather(
-        compute_financials(c["workspace_id"]),
+        _load_fin(),
         _load_acts(),
         _load_ops(),
         _google_calendar_snapshot(c, principal=principal),
@@ -4795,13 +4872,19 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
                 "tone": nrr["tone"],
                 "section": "finance",
             })
-    metrics.extend(ops_metrics or [])
+    metrics.extend(await _scope_ops_metrics(principal, ops_metrics or []))
     context = {
         "company": c["name"],
         "metrics": metrics,
         "what_changed": what_changed,
         "decisions": what_to_decide,
-        "financials": financials_for_synthesis(fin),
+        "financials": financials_for_synthesis(fin) if has_fin_access else {
+            "shared": False,
+            "instructions_for_missing_data": (
+                "Financial figures are not shared with this person. Do not mention cash, "
+                "runway, burn, revenue, or any money figure, and do not ask them to add any."
+            ),
+        },
         "calendar": calendar_for_synthesis(
             cal_snap,
             google_connected=bool(cal_snap and cal_snap.get("live")),
@@ -4833,6 +4916,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
         {"$set": {
             "briefing.ai_summary": text,
             "briefing.ai_summary_data_as_of": freshness.get("data_as_of"),
+            "briefing.ai_summary_includes_financials": bool(has_fin_access),
         }},
     )
     return {"ai_summary": text, "data_as_of": freshness.get("data_as_of")}
@@ -5247,7 +5331,7 @@ async def onboarding_checklist(principal=Depends(get_principal)):
     if is_lead:
         steps = [step("tour", "Take the 1-minute tour", "briefing" in seen, "/app", "briefing",
                       "See what the Briefing shows you.")]
-        if await can_access_financials(principal):
+        if await can_edit_financials(principal):
             has_fin = await db.financial_entries.count_documents({"workspace_id": ws}) > 0
             steps.append(step("financials", "Add your cash and one month of numbers", has_fin, "/app/financials",
                               "financials", "Runway and the money alerts start working from this."))
@@ -5255,10 +5339,12 @@ async def onboarding_checklist(principal=Depends(get_principal)):
                           "decisions", "Anything you need to decide, big or small."))
         steps.append(step("quickadd", "Add a task from the search bar", has_my_task, "/app", "quickadd",
                           "Press Ctrl+K and type: task call the bank friday"))
-        if has_team:
+        if has_team and await can_section_write(principal, "people", "people:write"):
             # Solo founders (has_team=False) can never finish these — omit them.
+            # Executives can't edit the roster, so they never see a step they can't finish.
             steps.append(step("people", "Add your team roster", people_n > 0, "/app/people", "people",
                               "Names and roles, so work can be assigned."))
+        if has_team:
             steps.append(step("invite", "Invite a teammate", members_n > 1, "/app/members", "members",
                               "They get their own Home with only their work."))
         steps.append(step("update", "Post your first status update", has_update, "/app", "myday",
@@ -6305,9 +6391,12 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
     now = datetime.now(timezone.utc)
     kpis = []
     sources = []
+    # Metrics is open to Operations and anyone granted it; money figures follow
+    # the Financials view gate like every other surface.
+    fin_ok = await can_access_financials(principal)
     # Always surface finance KPIs with not-entered vs confirmed-zero labels —
     # never hide them or show a confident $0 when data was never entered.
-    kpis += [
+    money_kpis = [
         {
             "label": "MRR",
             "value": format_mrr_display(fin),
@@ -6347,7 +6436,11 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
             "state": fin.get("burn_state"),
         },
     ]
-    if fin["has_data"] or fin.get("cash_entered"):
+    if fin_ok:
+        kpis += money_kpis
+    if not fin_ok:
+        sources.append({"label": "Financials", "detail": "Money figures are shown to people with Financials access", "freshness": "restricted"})
+    elif fin["has_data"] or fin.get("cash_entered"):
         sources.append({"label": "Financials", "detail": "Live from your financial entries", "freshness": "live"})
     else:
         sources.append({"label": "Financials", "detail": "Add revenue, expenses, and cash on Financials", "freshness": "missing"})
@@ -6366,7 +6459,7 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
     tel = c.get("telemetry") or {}
     manual = c.get("telemetry_manual") or {}
     targets = _normalize_telemetry_targets(manual.get("targets"))
-    revenue_trend = _revenue_trend_with_targets(fin.get("revenue_series") or [], targets)
+    revenue_trend = _revenue_trend_with_targets(fin.get("revenue_series") or [], targets) if fin_ok else []
     funnel, funnel_is_sample, risks, risks_is_sample = _resolve_telemetry_funnel_and_risks(
         template=c.get("template"),
         tel=tel,
@@ -6396,7 +6489,7 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         signals = await _workspace_live_signals(
             c["workspace_id"], fin=fin, deals=deals, c=c,
         )
-        if not await can_access_financials(principal):
+        if not fin_ok:
             signals = [x for x in signals if not decision_engine.is_financial_signal(x)]
         suggested_risks = _telemetry_risk_suggestions_from_signals(signals, cap=5)
         resolved_signals = {r.get("source_signal") for r in risks if r.get("source_signal")}
@@ -6423,7 +6516,8 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         "funnel_is_sample": funnel_is_sample,
         "risks_is_sample": risks_is_sample,
         "suggested_risks": suggested_risks,
-        "expense_breakdown": fin["expense_breakdown"],
+        "expense_breakdown": fin["expense_breakdown"] if fin_ok else [],
+        "financials_visible": fin_ok,
         "data_as_of": freshness.get("data_as_of") or now.isoformat(),
         "data_freshness_sources": freshness.get("sources") or {},
         "sources": sources,
@@ -6487,7 +6581,7 @@ async def update_telemetry(payload: TelemetryRiskInput, principal=Depends(requir
 
 
 @api_router.get("/financials")
-async def financials(principal=Depends(require_section("financials", "finance:write"))):
+async def financials(principal=Depends(require_financials_view)):
     dept_ids = await dept_access.accessible_department_ids(
         db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
     )
@@ -6518,7 +6612,7 @@ async def financials(principal=Depends(require_section("financials", "finance:wr
     c = await get_ws(ws_id)
     return {
         **payload,
-        "can_write": await can_access_financials(principal),
+        "can_write": await can_edit_financials(principal),
         "can_manage": "integrations:manage" in perms_for(principal["pack"]),
         "google": gcal.google_capabilities(my_google),
         "accounting": _workspace_accounting_sync(c),
@@ -6893,7 +6987,7 @@ async def extract_financial_document_route(
 async def get_financial_document(
     document_id: str,
     background_tasks: BackgroundTasks,
-    principal=Depends(require_section("financials", "finance:write")),
+    principal=Depends(require_financials_view),
 ):
     doc = await db.documents.find_one(
         {"id": document_id, "workspace_id": principal["workspace_id"]}, {"_id": 0},
@@ -6990,7 +7084,7 @@ async def import_financial_document_from_drive(
 
 
 @api_router.post("/financials/export-sheets")
-async def export_financials_to_sheets(principal=Depends(require_section("financials", "finance:write"))):
+async def export_financials_to_sheets(principal=Depends(require_financials_view)):
     c = await get_ws(principal["workspace_id"])
     tokens = await _require_user_google_tokens(principal)
     if not gcal.has_scope(tokens, "spreadsheets"):
@@ -8845,7 +8939,7 @@ async def _assemble_financial_export_for(principal, period: Optional[str]):
 @api_router.get("/reports/financial-export")
 async def financial_export_preview(
     period: Optional[str] = None,
-    principal=Depends(require_section("financials", "finance:write")),
+    principal=Depends(require_financials_view),
 ):
     """Accountant-view JSON for the on-screen ledger preview (same bundle as PDF/Excel)."""
     bundle, ws = await _assemble_financial_export_for(principal, period)
@@ -8855,7 +8949,7 @@ async def financial_export_preview(
 @api_router.post("/reports/financial-export/pdf")
 async def financial_export_pdf(
     payload: FinancialExportInput,
-    principal=Depends(require_section("financials", "finance:write")),
+    principal=Depends(require_financials_view),
 ):
     import financial_export as fin_exp
 
@@ -8878,7 +8972,7 @@ async def financial_export_pdf(
 @api_router.post("/reports/financial-export/xlsx")
 async def financial_export_xlsx(
     payload: FinancialExportInput,
-    principal=Depends(require_section("financials", "finance:write")),
+    principal=Depends(require_financials_view),
 ):
     import financial_export as fin_exp
 
@@ -9846,12 +9940,15 @@ async def people(principal=Depends(get_principal)):
     for p in roster:
         dept_access.attach_real_departments(p, by_user.get(p.get("user_id") or "") or [])
     data["unassigned_count"] = sum(1 for p in roster if not (p.get("departments") or []))
+    # Only people who can assign departments get the "N people have no department" nudge.
+    data["can_assign_departments"] = "members:manage" in perms_for(principal["pack"])
 
-    # HR employment overlay (read-only) when HR is enabled.
+    # HR employment overlay (read-only) when HR is enabled — leave/departure status
+    # is HR data, so it follows the HR department's own access rule.
     hr_dept = await dept_migrate.get_enabled_department(
         db, principal["workspace_id"], dept_catalog.TYPE_HR,
     )
-    if hr_dept:
+    if hr_dept and await dept_access.can_access_department(db, principal, hr_dept):
         linked_uids = [p.get("user_id") for p in roster if p.get("user_id")]
         hr_by_user: dict = {}
         if linked_uids:
@@ -10078,6 +10175,7 @@ async def list_departments(response: Response, principal=Depends(get_principal))
         ).to_list(100)
         my_by_dept = {m["department_id"]: m for m in my_rows}
         is_ceo = dept_access.is_workspace_ceo(principal)
+        reads_all = dept_access.can_read_all_departments(principal)
 
         out = []
         for entry in dept_catalog.DEPARTMENT_CATALOG:
@@ -10086,6 +10184,9 @@ async def list_departments(response: Response, principal=Depends(get_principal))
             membership = None
             if enabled_doc:
                 membership = my_by_dept.get(enabled_doc["department_id"])
+                implied = dept_access.pack_department_role(principal.get("pack"), dtype)
+                if implied and (membership or {}).get("role") != "lead":
+                    membership = {**(membership or {}), "role": implied}
             out.append({
                 "type": dtype,
                 "name": entry["name"],
@@ -10094,7 +10195,7 @@ async def list_departments(response: Response, principal=Depends(get_principal))
                 "department_id": enabled_doc["department_id"] if enabled_doc else None,
                 "is_member": bool(membership),
                 "member_role": (membership or {}).get("role"),
-                "visible_in_nav": bool(enabled_doc) and (is_ceo or bool(membership)),
+                "visible_in_nav": bool(enabled_doc) and (reads_all or bool(membership)),
             })
         return {
             "departments": out,
@@ -17479,12 +17580,14 @@ async def get_api_principal(request: Request) -> dict:
         await helm_api_keys.touch(db, key)
     except Exception:
         logger.debug("api key last_used_at update skipped", exc_info=True)
-    return {
+    principal = {
         "user_id": user["user_id"], "email": user.get("email"), "name": user.get("name"),
         "picture": user.get("picture"), "workspace_id": membership["workspace_id"],
         "role": membership["role"], "pack": pack_of(membership),
         "via_api_key": key["id"],
     }
+    dept_access.set_current_principal(principal)
+    return principal
 
 
 async def _revoke_api_access(user_id: str, workspace_id: str) -> None:
@@ -17921,10 +18024,16 @@ async def _automation_rule_limit(workspace_id: str) -> int:
     return min(limit, helm_automations.MAX_RULES) if limit else helm_automations.MAX_RULES
 
 
+async def company_map_viewer(principal=Depends(get_principal)):
+    """Owner and Executives: the map joins money, people and open problems in one picture."""
+    if not (dept_access.is_workspace_ceo(principal) or dept_access.is_workspace_exec(principal)):
+        raise HTTPException(status_code=403, detail="Only the owner and executives can open the company map")
+    return principal
+
+
 @api_router.get("/company-map")
-async def company_map(principal=Depends(automation_owner)):
-    """The living company map. Owner-only, like Automations, because it joins money,
-    people and open problems in one picture."""
+async def company_map(principal=Depends(company_map_viewer)):
+    """The living company map. Owner and Executives (read-only view)."""
     ws_id = principal["workspace_id"]
     finance_ok = await can_access_financials(principal)
     c, fin, entries, signals = await _automation_inputs(ws_id, need_signals=True)

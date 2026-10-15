@@ -341,7 +341,6 @@ export default function Procurement() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of Procurement. Ask your founder or CEO to add you."
-          onRetry={reload}
         />
       );
     }

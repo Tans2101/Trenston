@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/index.css";
 import App from "@/App";
 import { ThemeProvider } from "@/context/ThemeContext";
-import { setAppQueryClient } from "@/lib/queryClient";
+import { setAppQueryClient, shouldRetryQuery } from "@/lib/queryClient";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +13,7 @@ const queryClient = new QueryClient({
       // useFetch pages use FETCH_STALE_MS (5s) and write-path invalidation.
       staleTime: 60_000,
       refetchOnWindowFocus: false,
+      retry: shouldRetryQuery,
     },
   },
 });

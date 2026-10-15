@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Network } from "lucide-react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
+import { useAuth } from "@/context/AuthContext";
+import { isLeader } from "@/lib/access";
+import NoAccess from "@/components/NoAccess";
 import {
   PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonCardList,
 } from "@/components/kit";
@@ -113,7 +116,9 @@ function Detail({ node }) {
 }
 
 export default function CompanyMap() {
-  const { data, loading, error, reload } = useFetch("/company-map");
+  const { user } = useAuth();
+  const canOpen = isLeader(user);
+  const { data, loading, error, reload } = useFetch(canOpen ? "/company-map" : null);
   const [selectedId, setSelectedId] = useState(null);
 
   const nodes = useMemo(() => data?.nodes || [], [data?.nodes]);
@@ -123,6 +128,9 @@ export default function CompanyMap() {
   const problems = useMemo(() => nodes.filter((n) => n.kind === "problem"), [nodes]);
   const selected = selectedId ? byId.get(selectedId) : null;
 
+  if (!canOpen) {
+    return <NoAccess title="Company map" who="The company map is for the owner and executives." />;
+  }
   if (loading && !data) {
     return (
       <div data-testid="company-map-page">

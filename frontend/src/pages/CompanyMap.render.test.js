@@ -6,6 +6,8 @@ jest.mock("react-router-dom", () => ({
   // eslint-disable-next-line react/prop-types
   Link: ({ to, children, ...rest }) => <a href={to} {...rest}>{children}</a>,
 }));
+let mockUser = { role: "owner", pack: "owner" };
+jest.mock("@/context/AuthContext", () => ({ useAuth: () => ({ user: mockUser }) }));
 jest.mock("@/hooks/useFetch", () => ({
   useFetch: (...args) => mockFetch(...args),
   fetchErrorMessage: (e) => e?.message || "error",
@@ -37,6 +39,23 @@ const ready = {
 };
 
 describe("CompanyMap page", () => {
+  afterEach(() => { mockUser = { role: "owner", pack: "owner" }; });
+
+  it("opens for executives and shows team members a clear no-access screen", () => {
+    mockUser = { role: "member", pack: "exec" };
+    mockFetch.mockReturnValue(hook(ready));
+    expect(render()).toContain("company-map");
+    expect(mockFetch).toHaveBeenLastCalledWith("/company-map");
+
+    mockUser = { role: "member", pack: "finance" };
+    mockFetch.mockReturnValue(hook(null));
+    const html = render();
+    expect(html).toContain("no-access");
+    expect(html).toContain("for the owner and executives");
+    // No request for a page they can't open (it used to 403 and spin).
+    expect(mockFetch).toHaveBeenLastCalledWith(null);
+  });
+
   it("draws the map from real records and lists what needs you", () => {
     mockFetch.mockReturnValue(hook(ready));
     const html = render();

@@ -38,7 +38,7 @@ def test_free_plan_includes_ai_briefing_feature():
     assert helm_plans.is_paid_plan("free") is False
 
 
-def test_briefing_returns_ai_summary_for_free_workspace(client):
+def _get_briefing(client, briefing_extra: dict, *, fin_access: bool):
     ws = {
         "workspace_id": "ws_brief",
         "name": "Acme",
@@ -46,8 +46,8 @@ def test_briefing_returns_ai_summary_for_free_workspace(client):
         "subscription_status": "none",
         "briefing": {
             "headline": "Hello",
-            "ai_summary": "Cash is fine. Decide on hiring today.",
             "what_changed": [],
+            **briefing_extra,
         },
         "tasks": {"items": []},
         "people": {"people": []},
@@ -55,7 +55,10 @@ def test_briefing_returns_ai_summary_for_free_workspace(client):
     }
     with patch.object(server, "BILLING_ENFORCED", True), \
          patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
-         patch.object(server, "can_access_financials", new=AsyncMock(return_value=False)), \
+         patch.object(server, "can_access_financials", new=AsyncMock(return_value=fin_access)), \
+         patch.object(server, "can_edit_financials", new=AsyncMock(return_value=fin_access)), \
+         patch.object(server, "compute_financials", new=AsyncMock(return_value={})), \
+         patch.object(server, "_briefing_finance_metrics", return_value=[]), \
          patch.object(server, "_insights_stale", return_value=False), \
          patch.object(server.helm_freshness, "resolve_workspace_data_as_of", new=AsyncMock(return_value={
              "data_as_of": "2026-09-18T10:00:00+00:00", "sources": {},
@@ -68,7 +71,36 @@ def test_briefing_returns_ai_summary_for_free_workspace(client):
         server.db.workspaces.update_one = AsyncMock(return_value=None)
         r = client.get("/api/briefing")
     assert r.status_code == 200, r.text
-    body = r.json()
+    return r.json()
+
+
+def test_briefing_returns_ai_summary_for_free_workspace(client):
+    # A note written without money figures is safe for anyone on any plan.
+    body = _get_briefing(client, {
+        "ai_summary": "Decide on hiring today.",
+        "ai_summary_includes_financials": False,
+    }, fin_access=False)
     assert body["is_pro"] is False
-    assert body["ai_summary"] == "Cash is fine. Decide on hiring today."
+    assert body["ai_summary"] == "Decide on hiring today."
     assert body["can_generate_ai_summary"] is True
+
+
+def test_money_note_hidden_from_people_without_financials_access(client):
+    # The note is written once per company; when it was grounded on cash/runway
+    # (or predates the flag) only Financials viewers may read it.
+    for extra in (
+        {"ai_summary": "Runway is 6 months.", "ai_summary_includes_financials": True},
+        {"ai_summary": "Runway is 6 months."},  # legacy note, no flag
+    ):
+        assert _get_briefing(client, extra, fin_access=False)["ai_summary"] is None
+        assert _get_briefing(client, extra, fin_access=True)["ai_summary"] == "Runway is 6 months."
+
+
+def test_stored_nrr_and_money_headline_never_leak(client):
+    body = _get_briefing(client, {
+        "headline": "Revenue is ahead of plan.",
+        "nrr": {"value": "118%", "delta": 2.0, "tone": "positive"},
+    }, fin_access=False)
+    assert "nrr" not in body
+    assert "Revenue" not in body["headline"]
+    assert all(m.get("label") != "NRR" for m in body["metrics"])

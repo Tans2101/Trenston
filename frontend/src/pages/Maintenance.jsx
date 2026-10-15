@@ -227,7 +227,6 @@ export default function Maintenance() {
         <ErrorScreen
           label="Access denied"
           message="You are not a member of Engineering & Maintenance. Ask your founder or CEO to add you."
-          onRetry={reload}
         />
       );
     }
