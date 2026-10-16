@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { ArrowUpRight, Instagram } from "lucide-react";
 import FounderCredit from "@/components/marketing/FounderCredit";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
@@ -23,8 +24,9 @@ const FOOTER_LINKS = {
   Company: [
     { to: "/about", label: "About" },
     { href: PUBLIC_CONTACT_MAILTO, label: "Contact", testId: "footer-contact-cta" },
-    { to: "/login", label: "Sign in" },
-    { to: "/sign-up", label: "Create account" },
+    { to: "/login", label: "Sign in", guestOnly: true },
+    { to: "/sign-up", label: "Create account", guestOnly: true },
+    { to: "/app", label: "Open Trenston", memberOnly: true },
   ],
   Support: [
     { to: "/help", label: "Help" },
@@ -55,6 +57,7 @@ function FooterLink({ item }) {
 /** Four-column black footer with a plain legal bar — BlackRock-style. */
 export default function MarketingFooter() {
   const year = new Date().getFullYear();
+  const { authed } = useMarketingAuth();
 
   return (
     <footer className="bg-mk-black text-white">
@@ -79,7 +82,7 @@ export default function MarketingFooter() {
             <nav key={group} aria-label={`${group} links`}>
               <p className="text-sm font-semibold text-white">{group}</p>
               <ul className="mt-5 flex flex-col gap-1.5 sm:gap-3">
-                {links.map((item) => (
+                {links.filter((item) => (authed ? !item.guestOnly : !item.memberOnly)).map((item) => (
                   <li key={item.label}>
                     <FooterLink item={item} />
                   </li>
