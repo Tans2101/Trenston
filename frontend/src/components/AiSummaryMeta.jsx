@@ -27,8 +27,33 @@ export default function AiSummaryMeta({
   detailHref = "/app/reports",
   detailLabel = "source data",
   className,
+  quiet = false,
+  stale = false,
+  canRefresh = false,
 }) {
   const asOfLabel = formatAsOf(asOf);
+  if (quiet) {
+    // One calm line (Home): same facts, sentence case, no shouting caps.
+    return (
+      <p className={cn("text-xs text-helm-muted", className)} data-testid="ai-summary-meta">
+        AI summary
+        {asOfLabel ? <> · as of {asOfLabel}</> : null}
+        {stale ? (
+          <span className="text-helm-status-warning" data-testid="ai-summary-stale">
+            {" · "}over a day old{canRefresh ? ", refresh for current numbers" : ""}
+          </span>
+        ) : null}
+        {detailHref ? (
+          <>
+            {" · "}
+            <Link to={detailHref} className="text-helm-gold/80 hover:text-helm-gold">
+              check key figures in {detailLabel}
+            </Link>
+          </>
+        ) : null}
+      </p>
+    );
+  }
   return (
     <p
       className={cn("text-[11px] font-mono uppercase tracking-wider text-helm-muted", className)}

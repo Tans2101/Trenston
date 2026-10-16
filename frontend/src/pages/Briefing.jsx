@@ -21,12 +21,16 @@ import AiSummaryMeta from "@/components/AiSummaryMeta";
 import BriefingCockpitHero from "@/components/BriefingCockpitHero";
 import { decisionHref, taskHref, signalRoute, moduleRoute } from "@/lib/signalRoute";
 import { confirmAction } from "@/components/ConfirmHost";
+import { splitSummary, isOlderThan, isEmptyChange } from "@/lib/briefingText";
 
 const toneDot = { positive: "bg-helm-status-positive", negative: "bg-helm-status-negative", neutral: "bg-helm-muted" };
+const urgencyDot = { high: "bg-helm-status-negative", medium: "bg-helm-status-warning", low: "bg-helm-muted" };
+// Decision notes longer than this get a Show more toggle (two lines show first).
+const DECISION_PREVIEW_CHARS = 120;
 
 function BriefLabel({ children, className }) {
   return (
-    <h2 className={cn("text-sm font-medium tracking-tight text-helm-fg", className)}>
+    <h2 className={cn("text-[15px] font-semibold tracking-tight text-helm-fg", className)}>
       {children}
     </h2>
   );
@@ -48,6 +52,9 @@ export default function Briefing({ asHome = false } = {}) {
   const [integDismissBusy, setIntegDismissBusy] = useState(false);
   const [sampleBannerDismissed, setSampleBannerDismissed] = useState(false);
   const [clearSampleBusy, setClearSampleBusy] = useState(false);
+  // Long text stays one click away instead of crowding the first read.
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [openDecisions, setOpenDecisions] = useState(() => new Set());
   const navigate = useNavigate();
 
   const canClearSample = hasPerm(user, "workspace:edit");
@@ -238,7 +245,8 @@ export default function Briefing({ asHome = false } = {}) {
     && !sampleBannerDismissed,
   );
   const metrics = data.metrics || [];
-  const whatChanged = data.what_changed || [];
+  // Rows that report nothing (a view that found 0 items) are not changes.
+  const whatChanged = (data.what_changed || []).filter((c) => !isEmptyChange(c));
   const whatToDecide = data.what_to_decide || [];
   const whatToDelegate = data.what_to_delegate || [];
   // Server total when present (the list may be capped); otherwise the list length.
@@ -254,6 +262,13 @@ export default function Briefing({ asHome = false } = {}) {
   // "Ready when you are" only while Financials has no real entries.
   const showSetupPrompt = financeEmpty;
   const showHeadline = !setupHeadline && !showSetupPrompt;
+  const summaryAsOf = data.ai_summary_data_as_of || data.data_as_of;
+  const summaryParts = splitSummary(data.ai_summary);
+  const toggleDecision = (id) => setOpenDecisions((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   return (
     <div className="max-w-6xl">
@@ -431,10 +446,10 @@ export default function Briefing({ asHome = false } = {}) {
       )}
 
       <section
-        className="mb-6 fade-up rounded-xl border border-helm-line border-l-4 border-l-helm-gold bg-helm-card p-4 md:p-5 shadow-sm"
+        className="mb-6 fade-up rounded-xl border border-helm-line border-l-4 border-l-helm-gold bg-helm-card p-5 md:p-6 shadow-sm"
         data-testid="briefing-ai-summary"
       >
-        <div className="flex items-center justify-between gap-3 mb-3">
+        <div className="flex items-center justify-between gap-3 mb-1">
           <BriefLabel>Today&apos;s summary</BriefLabel>
           {data.ai_summary && canGenerateAi && (
             <button
@@ -451,12 +466,30 @@ export default function Briefing({ asHome = false } = {}) {
         {data.ai_summary ? (
           <>
             <AiSummaryMeta
-              asOf={data.ai_summary_data_as_of || data.data_as_of}
+              quiet
+              asOf={summaryAsOf}
+              stale={isOlderThan(summaryAsOf, 24)}
+              canRefresh={canGenerateAi}
               detailHref="/app/decisions"
               detailLabel="Decisions"
-              className="mb-3"
+              className="mb-4"
             />
-            <p className="text-helm-fg leading-relaxed text-[15px] max-w-3xl">{data.ai_summary}</p>
+            {/* Two sentences first; the full note is one click away, never cut. */}
+            <p className="text-helm-fg text-base leading-relaxed max-w-[65ch]" data-testid="briefing-ai-summary-text">
+              {summaryParts.preview}
+              {summaryOpen && summaryParts.rest ? <> {summaryParts.rest}</> : null}
+            </p>
+            {summaryParts.rest ? (
+              <button
+                type="button"
+                onClick={() => setSummaryOpen((v) => !v)}
+                aria-expanded={summaryOpen}
+                data-testid="briefing-ai-summary-toggle"
+                className="mt-2 text-xs text-helm-gold/90 hover:text-helm-gold"
+              >
+                {summaryOpen ? "Show less" : "Show more"}
+              </button>
+            ) : null}
           </>
         ) : canGenerateAi ? (
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-6">
@@ -480,81 +513,127 @@ export default function Briefing({ asHome = false } = {}) {
         )}
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 items-start">
         <GlassCard className="p-5 fade-up" data-testid="briefing-what-changed">
-          <BriefLabel className="mb-4">What changed</BriefLabel>
-          <div className="space-y-4">
-            {whatChanged.length === 0 && (
-              <p className="text-sm text-helm-muted leading-relaxed">Nothing new logged yet.</p>
-            )}
-            {whatChanged.map((c, i) => {
-              const raw = moduleRoute(c.module);
-              // Don't link into a gated section the viewer can't open.
-              const gated = raw === "/app/financials" ? "financials" : raw === "/app/metrics" ? "telemetry" : null;
-              const to = gated && !(user?.granted_sections || []).includes(gated) ? null : raw;
-              const inner = (
-                <>
-                  <span className={cn("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone] || toneDot.neutral)} />
-                  <div className="min-w-0 flex-1">
-                    <p className={cn("text-sm text-helm-fg leading-snug", to && "group-hover:text-helm-gold")}>{c.title}</p>
-                    <p className="text-xs text-helm-muted mt-1 leading-relaxed">{c.detail}</p>
-                  </div>
-                  {to && <ArrowUpRight className="w-3.5 h-3.5 text-helm-muted shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />}
-                </>
-              );
-              return to ? (
-                <Link key={i} to={to} className="flex gap-3 group rounded-md -mx-1 px-1 hover:bg-helm-fg/[0.03] transition-colors" data-testid={`changed-${i}`}>
-                  {inner}
-                </Link>
-              ) : (
-                <div key={i} className="flex gap-3" data-testid={`changed-${i}`}>
-                  {inner}
-                </div>
-              );
-            })}
-          </div>
+          <BriefLabel className="mb-2">What changed</BriefLabel>
+          {whatChanged.length === 0 ? (
+            <p className="text-sm text-helm-muted">Nothing new logged yet.</p>
+          ) : (
+            <ul className="divide-y divide-helm-line/70">
+              {whatChanged.map((c, i) => {
+                const raw = moduleRoute(c.module);
+                // Don't link into a gated section the viewer can't open.
+                const gated = raw === "/app/financials" ? "financials" : raw === "/app/metrics" ? "telemetry" : null;
+                const to = gated && !(user?.granted_sections || []).includes(gated) ? null : raw;
+                // Activity rows carry actor + ago; older or seeded rows only have detail.
+                const isActivity = Boolean(c.ago);
+                const inner = (
+                  <>
+                    <span className={cn("mt-[7px] w-1.5 h-1.5 rounded-full shrink-0", toneDot[c.tone] || toneDot.neutral)} />
+                    <div className="min-w-0 flex-1">
+                      <p className={cn("text-sm text-helm-fg leading-snug", to && "group-hover:text-helm-gold")}>{c.title}</p>
+                      {isActivity ? (
+                        hasTeam && c.actor ? <p className="text-xs text-helm-muted mt-0.5">{c.actor}</p> : null
+                      ) : c.detail ? (
+                        <p className="text-xs text-helm-muted mt-0.5 leading-relaxed">{c.detail}</p>
+                      ) : null}
+                    </div>
+                    {isActivity && (
+                      <span className="shrink-0 whitespace-nowrap pt-0.5 text-xs tabular-nums text-helm-muted/80">{c.ago}</span>
+                    )}
+                  </>
+                );
+                return (
+                  <li key={i}>
+                    {to ? (
+                      <Link to={to} className="flex gap-3 py-2.5 group rounded-md -mx-1 px-1 hover:bg-helm-fg/[0.03] transition-colors" data-testid={`changed-${i}`}>
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div className="flex gap-3 py-2.5" data-testid={`changed-${i}`}>
+                        {inner}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </GlassCard>
 
-        <GlassCard className="p-5 fade-up" data-testid="briefing-what-to-decide">
-          <div className="flex items-center justify-between mb-4">
+        {/* The one card that needs action gets the gold edge. */}
+        <GlassCard
+          glow={whatToDecideTotal > 0}
+          className={cn("p-5 fade-up", whatToDecideTotal > 0 && "bg-helm-gold/[0.03]")}
+          data-testid="briefing-what-to-decide"
+        >
+          <div className="flex items-center justify-between mb-3">
             <BriefLabel>What to decide</BriefLabel>
-            <span className="text-xs tabular-nums text-helm-muted">{whatToDecideTotal}</span>
+            <span
+              className={cn(
+                "text-xs tabular-nums rounded-full px-2 py-0.5",
+                whatToDecideTotal > 0 ? "bg-helm-gold/15 text-helm-gold" : "text-helm-muted",
+              )}
+            >
+              {whatToDecideTotal}
+            </span>
           </div>
           <div className="space-y-3">
             {whatToDecide.length === 0 && (
-              <p className="text-sm text-helm-muted leading-relaxed">No open decisions. Log one when something needs a call.</p>
+              <p className="text-sm text-helm-muted">No open decisions. Log one when something needs a call.</p>
             )}
-            {whatToDecide.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => navigate(decisionHref(d.id))}
-                data-testid={`decide-${d.id}`}
-                className="w-full text-left rounded-lg border border-helm-line bg-helm-fg/[0.02] p-3 transition-colors hover:border-helm-fg/15 hover:bg-helm-fg/[0.04] group"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm text-helm-fg leading-snug">{d.title}</p>
-                  <ArrowUpRight className="w-4 h-4 text-helm-muted group-hover:text-helm-muted shrink-0" />
-                </div>
-                <p className="text-xs text-helm-muted mt-1 leading-relaxed">{d.detail}</p>
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <span
-                    className={cn(
-                      "inline-block text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded",
-                      d.urgency === "high" ? "text-helm-status-negative bg-helm-status-negative/12" : "text-helm-fg bg-helm-status-warning/12"
+            {whatToDecide.map((d) => {
+              const open = openDecisions.has(d.id);
+              const long = String(d.detail || "").length > DECISION_PREVIEW_CHARS;
+              const suggested = d.source === "ai_suggested";
+              return (
+                <div key={d.id} className="rounded-lg border border-helm-line bg-helm-card p-3.5" data-testid={`decide-${d.id}`}>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={cn("w-2 h-2 rounded-full shrink-0", urgencyDot[d.urgency] || urgencyDot.low)} />
+                    <span className="text-helm-fg/90">{d.urgency ? `${d.urgency.charAt(0).toUpperCase()}${d.urgency.slice(1)} priority` : "Priority not set"}</span>
+                    {suggested && (
+                      <span className="text-helm-muted">
+                        {" · "}
+                        {d.confidence_unavailable || d.confidence == null
+                          ? "Suggested, confidence unavailable"
+                          : `Suggested · ${d.confidence}% confidence`}
+                      </span>
                     )}
-                  >
-                    {d.urgency} priority
-                  </span>
-                  {d.source === "ai_suggested" && (
-                    <span className="inline-block text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded text-helm-muted bg-helm-fg/[0.04]">
-                      {d.confidence_unavailable || d.confidence == null
-                        ? "Suggested (confidence unavailable)"
-                        : `Suggested · ${d.confidence}%`}
-                    </span>
-                  )}
+                  </div>
+                  <p className="mt-2 text-sm font-medium text-helm-fg leading-snug">{d.title}</p>
+                  {d.detail ? (
+                    <p
+                      className={cn("mt-1 text-xs text-helm-muted leading-relaxed", !open && long && "line-clamp-2")}
+                      data-testid={`decide-detail-${d.id}`}
+                    >
+                      {d.detail}
+                    </p>
+                  ) : null}
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    {long ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleDecision(d.id)}
+                        aria-expanded={open}
+                        data-testid={`decide-more-${d.id}`}
+                        className="text-xs text-helm-muted hover:text-helm-fg"
+                      >
+                        {open ? "Show less" : "Show more"}
+                      </button>
+                    ) : <span />}
+                    <button
+                      type="button"
+                      onClick={() => navigate(decisionHref(d.id))}
+                      data-testid={`decide-open-${d.id}`}
+                      className="inline-flex items-center gap-1 rounded-md bg-helm-gold text-helm-navy text-xs font-medium px-3 py-1.5 hover:bg-helm-gold-hover transition-colors"
+                    >
+                      Review
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-              </button>
-            ))}
+              );
+            })}
             {whatToDecideTotal > whatToDecide.length && (
               <button
                 type="button"
@@ -568,22 +647,20 @@ export default function Briefing({ asHome = false } = {}) {
         </GlassCard>
 
         <GlassCard className="p-5 fade-up" data-testid={hasTeam ? "briefing-handoff-column" : "briefing-later-column"}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <BriefLabel>{hasTeam ? "What to hand off" : "Flag for later"}</BriefLabel>
             <button
               type="button"
               onClick={() => navigate("/app/tasks")}
-              className="text-[11px] font-mono uppercase tracking-wider text-helm-muted hover:text-helm-gold"
+              className="text-xs text-helm-muted hover:text-helm-gold"
             >
-              Open Tasks
+              Open tasks
             </button>
           </div>
           <div className="space-y-3">
             {whatToDelegate.length === 0 && (
-              <p className="text-sm text-helm-muted leading-relaxed">
-                {hasTeam
-                  ? "No handoffs suggested. Overdue work will show up here."
-                  : "Nothing flagged. Overdue work will show up here when you have time."}
+              <p className="text-sm text-helm-muted">
+                {hasTeam ? "No handoffs suggested. Overdue work lands here." : "Nothing flagged. Overdue work lands here."}
               </p>
             )}
             {whatToDelegate.map((d, i) => (

@@ -3,6 +3,11 @@
   "entries": [
     {
       "date": "2026-10-16",
+      "title": "A calmer, easier to scan Home page",
+      "description": "Home now puts the most important things first. The AI summary shows its first two sentences with a Show more link, and the full note is still one click away. What changed lists one line per change with the time on the right, and skips rows that say nothing changed, like a page view with 0 items. What to decide stands out with a priority marker, a clear Review button and long details you can expand. If the AI summary is over a day old, Home tells you so and points you to refresh it. The cash reserve alert no longer suggests a cut in burn that would only add a few days, and points you to raising cash or revenue instead."
+    },
+    {
+      "date": "2026-10-16",
       "title": "Runway you can trust mid-month, and a check for money counted twice",
       "description": "Runway now uses your last three full months of revenue and expenses. Before, the month in progress was included, so in the middle of a month runway could look longer than it really is. The Financials page, the Model page, the cash reserve alert and the AI now all work from the same numbers, and Financials tells you which months runway is based on. If a month hasn't finished and it's all the history you have, runway is marked as an early estimate. Trenston also warns you when something you typed by hand looks like the same money your accounting system already synced, such as Rent added manually and the rent bill from QuickBooks, Xero or SAP Business One. If your accounting system is connected, your next sync re-reads your records once so every entry follows the latest rules."
     },

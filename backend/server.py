@@ -1915,11 +1915,14 @@ _LEDGER_METRICS_SOFT_CAP = 100_000
 
 
 async def _load_ledger_entries_for_metrics(entry_filt: dict) -> tuple[list, bool]:
-    """Load ledger rows for gold metrics. Returns (entries, truncated)."""
-    count = await db.financial_entries.count_documents(entry_filt)
-    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(_LEDGER_METRICS_SOFT_CAP)
-    truncated = count > len(entries)
-    return entries, truncated
+    """Load ledger rows for gold metrics. Returns (entries, truncated).
+
+    One query: ask for one row past the cap. Getting it back means there are
+    more rows than we will compute on (no separate count_documents round trip).
+    """
+    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(_LEDGER_METRICS_SOFT_CAP + 1)
+    truncated = len(entries) > _LEDGER_METRICS_SOFT_CAP
+    return entries[:_LEDGER_METRICS_SOFT_CAP], truncated
 
 
 def _financials_cache_key(workspace_id: str, department_ids: Optional[list] = None) -> str:
@@ -4266,7 +4269,7 @@ async def briefing(principal=Depends(get_principal)):
 
     async def _load_acts():
         return await db.activities.find(
-            _activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
+            _briefing_activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
         ).sort("created_at", -1).to_list(5)
 
     async def _load_updates():
@@ -4386,6 +4389,15 @@ def _activity_filter(workspace_id: str, *, financials_visible: bool) -> dict:
     return flt
 
 
+def _briefing_activity_filter(workspace_id: str, *, financials_visible: bool) -> dict:
+    """Activity feed for Home's What changed: same scope as the activity log, minus
+    views that found nothing (e.g. "Viewed document library · 0 items"). Those
+    stay in the audit log; they just are not a change worth reading on Home."""
+    flt = _activity_filter(workspace_id, financials_visible=financials_visible)
+    flt["$nor"] = [{"action": {"$regex": r"\.view$"}, "patch.count": 0}]
+    return flt
+
+
 def _redact_activity_money(summary: str) -> str:
     """Strip currency amounts from activity summaries for unauthorized viewers."""
     if not summary:
@@ -4407,9 +4419,15 @@ def _activity_summary_for_viewer(activity: dict, *, money_visible: bool) -> str:
 
 def _briefing_activity_item(a: dict, *, money_visible: bool = True) -> dict:
     """One activity row → Briefing 'what changed' item (module + related_id for deep links)."""
+    actor = a.get("actor_name") or "Someone"
+    ago = _rel_time(a.get("created_at") or "")
     item = {
         "title": _activity_summary_for_viewer(a, money_visible=money_visible),
-        "detail": f"{a.get('actor_name') or 'Someone'} · {_rel_time(a.get('created_at') or '')}",
+        "detail": f"{actor} · {ago}",
+        # Split fields so Home can show the time on the right and the name only
+        # when there is a team (detail stays for older clients).
+        "actor": actor,
+        "ago": ago,
         "tone": "neutral",
         "module": a.get("module"),
     }
@@ -4961,7 +4979,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
 
     async def _load_acts():
         return await db.activities.find(
-            _activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
+            _briefing_activity_filter(c["workspace_id"], financials_visible=has_fin_access), {"_id": 0},
         ).sort("created_at", -1).to_list(5)
 
     async def _load_ops():
@@ -5025,6 +5043,8 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     system = (
         "You are a clear, practical chief of staff writing a short daily note for a founder. "
         "Write 3–4 sentences in plain English. Sound like a thoughtful human, not an AI analysis. "
+        "Keep every sentence short: one idea each, under 25 words. The first sentence is the single "
+        "most important fact today, under 20 words, because Home shows it first. "
         "Lead with what matters most today, name the one decision that needs a call if there is one, "
         "and end with a concrete next step. No lists, no bold, no confidence language. "
         "Write plainly. Avoid em dashes. Prefer periods, commas, or plain connecting words instead, "
@@ -16960,6 +16980,8 @@ _WORKSPACE_COLLECTIONS = (
     "sales_order_book", "sales_targets",
     "document_usage_periods", "seat_usage",
     "automation_rules", "automation_events", "anomaly_alerts",
+    # CSV import fingerprints (duplicate-import guard). Also expire after 30 days.
+    "csv_import_receipts",
 )
 
 # Credentials for the public API and AI-assistant connectors. Removed with the

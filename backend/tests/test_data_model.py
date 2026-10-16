@@ -267,3 +267,24 @@ def test_synced_rows_are_stamped_with_mapping_version():
     assert n["synced_count"] == 1
     assert inserted[0]["mapping_version"] == amap.MAPPING_VERSION
     assert inserted[0]["source"] == "quickbooks_sync"
+
+
+# ------------------------------------------------------ Home: what changed
+
+def test_briefing_feed_hides_views_that_found_nothing():
+    flt = server._briefing_activity_filter("ws1", financials_visible=True)
+    assert flt["workspace_id"] == "ws1"
+    assert flt["$nor"] == [{"action": {"$regex": r"\.view$"}, "patch.count": 0}]
+    # Finance scoping from the activity log still applies.
+    hidden = server._briefing_activity_filter("ws1", financials_visible=False)
+    assert "module" in hidden and "$nor" in hidden
+
+
+def test_briefing_activity_item_splits_actor_and_time():
+    item = server._briefing_activity_item({
+        "summary": "Logged expense · Claude monthly $22 (2026-10)", "actor_name": "Tansher Dhawan",
+        "created_at": "2026-10-15T00:00:00+00:00", "module": "financials",
+    })
+    assert item["actor"] == "Tansher Dhawan"
+    assert item["ago"]
+    assert item["detail"] == f"Tansher Dhawan · {item['ago']}"

@@ -427,3 +427,17 @@ def test_retention_email_bullets_exclude_financial_items():
 
 def test_accepting_a_financial_suggestion_marks_the_decision():
     assert de.is_financial_signal(FIN_SUG) is True
+
+
+def test_forecast_tiny_cut_says_raise_cash_instead():
+    # $30 a month burn, $100 cash, $50 reserve: a 10% cut ($3) buys only a few days.
+    sig = rf.detect_cash_runway_forecast(
+        fin_with([30, 30, 30], cash=100.0, reserve=50.0), today=TODAY,
+    )
+    assert sig is not None
+    gain = sig["forecast"]["projected_days_after_cut"] - sig["days_until_reserve"]
+    assert 0 <= gain < rf.RESERVE_CUT_MIN_GAIN_DAYS
+    change = sig["what_would_change"]
+    assert "would only add about" in change
+    assert "Raising cash or revenue will matter more" in change
+    assert "$3 a month" in change

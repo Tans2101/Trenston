@@ -55,6 +55,13 @@ class FinStore:
         return MagicMock(matched_count=0)
 
 
+def _db(store):
+    # Ledger writes look up the workspace home currency.
+    db = MagicMock(financial_entries=store)
+    db.workspaces.find_one = AsyncMock(return_value={"financial_settings": {"currency": "usd"}})
+    return db
+
+
 @pytest.mark.asyncio
 async def test_delivered_priced_request_creates_expense():
     store = FinStore()
@@ -66,7 +73,7 @@ async def test_delivered_priced_request_creates_expense():
         "status": "delivered",
         "actual_delivery_date": "2026-09-15",
     }
-    with patch.object(server, "db", MagicMock(financial_entries=store)), \
+    with patch.object(server, "db", _db(store)), \
          patch.object(server.dept_migrate, "finance_department_id", AsyncMock(return_value="dept_fin")), \
          patch.object(server, "invalidate_financials_cache"):
         entry, created = await server._ensure_procurement_expense_entry(req, PRINCIPAL)
@@ -83,7 +90,7 @@ async def test_delivered_priced_request_creates_expense():
 @pytest.mark.asyncio
 async def test_skips_when_not_delivered_or_unpriced():
     store = FinStore()
-    with patch.object(server, "db", MagicMock(financial_entries=store)), \
+    with patch.object(server, "db", _db(store)), \
          patch.object(server.dept_migrate, "finance_department_id", AsyncMock(return_value="dept_fin")), \
          patch.object(server, "invalidate_financials_cache"):
         e1, c1 = await server._ensure_procurement_expense_entry(
@@ -108,7 +115,7 @@ async def test_idempotent_then_updates_cost():
         "status": "delivered",
         "actual_delivery_date": "2026-09-01",
     }
-    with patch.object(server, "db", MagicMock(financial_entries=store)), \
+    with patch.object(server, "db", _db(store)), \
          patch.object(server.dept_migrate, "finance_department_id", AsyncMock(return_value="dept_fin")), \
          patch.object(server, "invalidate_financials_cache"):
         first, created1 = await server._ensure_procurement_expense_entry(req, PRINCIPAL)

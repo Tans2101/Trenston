@@ -30,9 +30,10 @@ def test_targets_default_off_and_clamp_pct():
 def test_revenue_trend_omits_target_when_disabled():
     series = [{"month": "Jan", "revenue": 100}, {"month": "Feb", "revenue": 110}]
     out = _revenue_trend_with_targets(series, {"enabled": False, "monthly_growth_pct": 3})
+    # `revenue` is the real field (total revenue); `mrr` stays as an alias for old clients.
     assert out == [
-        {"month": "Jan", "mrr": 100},
-        {"month": "Feb", "mrr": 110},
+        {"month": "Jan", "revenue": 100, "mrr": 100},
+        {"month": "Feb", "revenue": 110, "mrr": 110},
     ]
     assert all("target" not in p for p in out)
 

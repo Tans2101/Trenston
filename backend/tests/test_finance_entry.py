@@ -95,6 +95,7 @@ def test_add_fin_entry_maps_duplicate_key_to_409():
     from pymongo.errors import DuplicateKeyError
 
     mock_db = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"financial_settings": {"currency": "usd"}})
     mock_db.financial_entries.insert_one = AsyncMock(side_effect=DuplicateKeyError("E11000"))
     payload = server.FinEntryInput(
         type="expense",

@@ -26,6 +26,10 @@ RESERVE_ALERT_HORIZON_DAYS = 180
 RESERVE_HIGH_SEVERITY_DAYS = 60
 # "Cutting burn by X" suggestion: X is this share of average monthly burn.
 RESERVE_CUT_SUGGESTION_PCT = 0.10
+# A cut is only offered as the fix when it buys at least a week. Below that
+# (very short runway, or a few dollars a month) the honest advice is to raise
+# cash or revenue, so we say so and still show what the cut would buy.
+RESERVE_CUT_MIN_GAIN_DAYS = 7
 DAYS_PER_MONTH = 30.44
 FORECAST_MAX_MONTHS = 36
 # Burn acceleration: burn rose in each of the last two complete months and by
@@ -195,7 +199,14 @@ def detect_cash_runway_forecast(fin: dict, *, today: Optional[date] = None) -> O
             cut = avg_burn * RESERVE_CUT_SUGGESTION_PCT
             m2 = months_until_below(cash, reserve, avg_burn - cut, slope)
             days_after_cut = int(round(m2 * DAYS_PER_MONTH)) if m2 is not None else None
-        if cut and days_after_cut is not None:
+        if cut and days_after_cut is not None and days_after_cut - days < RESERVE_CUT_MIN_GAIN_DAYS:
+            gain = max(days_after_cut - days, 0)
+            change = (
+                f"Cutting burn by {RESERVE_CUT_SUGGESTION_PCT:.0%} ({fmt_money_plain(cut, currency)} a month) "
+                f"would only add about {gain} day{'s' if gain != 1 else ''}. Raising cash or revenue "
+                "will matter more, or lower the reserve in Financials if it no longer fits."
+            )
+        elif cut and days_after_cut is not None:
             change = (
                 f"Cutting burn by {fmt_money_plain(cut, currency)} a month would move that to about "
                 f"{days_after_cut} days ({(today + timedelta(days=days_after_cut)).isoformat()})."

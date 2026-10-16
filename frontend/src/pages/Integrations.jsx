@@ -483,7 +483,7 @@ export default function Integrations() {
       const unit = provider === "hubspot" ? "deal" : "transaction";
       const countMsg = `Synced ${res.synced_count} ${unit}${res.synced_count === 1 ? "" : "s"} from ${label}`;
       if (res.complete === false) {
-        toast.warning(`${countMsg}. Sync incomplete — run again to continue.`, { duration: 12000 });
+        toast.warning(`${countMsg}. Sync incomplete. Run it again to continue.`, { duration: 12000 });
       } else if (Array.isArray(res.warnings) && res.warnings.length > 0) {
         toast.warning(`${countMsg}. ${res.warnings[0]}`, { duration: 10000 });
       } else {
