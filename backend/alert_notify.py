@@ -72,8 +72,15 @@ def _slack_escape(s: Any) -> str:
     )
 
 
-def build_slack_text(workspace_name: str, alerts: list, app_url: str, *, redacted_financial: int = 0) -> str:
-    """Slack message. Financial alerts are passed as a count only, never with figures."""
+def build_slack_text(
+    workspace_name: str,
+    alerts: list,
+    app_url: str,
+    *,
+    redacted_financial: int = 0,
+    redacted_deal_money: int = 0,
+) -> str:
+    """Slack message. Financial and deal-$ alerts are counts only, never with figures."""
     lines = [f"*Trenston high-severity alert: {_slack_escape(workspace_name)}*"]
     for a in alerts:
         title = a.get("title") or (a.get("signal") or {}).get("summary") or "Alert"
@@ -84,6 +91,12 @@ def build_slack_text(workspace_name: str, alerts: list, app_url: str, *, redacte
         lines.append(
             f"• {n} financial alert{'s' if n != 1 else ''} (cash, burn or revenue). "
             "Details are only shown in Trenston to people with Financials access."
+        )
+    if redacted_deal_money:
+        n = int(redacted_deal_money)
+        lines.append(
+            f"• {n} deal alert{'s' if n != 1 else ''} (pipeline value). "
+            "Details are only shown in Trenston to people with Financials or Sales access."
         )
     link = (app_url or "").rstrip("/") + "/app/decisions"
     lines.append(f"Open: {link}")

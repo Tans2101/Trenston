@@ -83,6 +83,19 @@ FINANCIAL_SIGNAL_TYPES = frozenset({
     "pipeline_coverage",
 })
 
+# Signals that embed pipeline deal dollar amounts (not company Financials KPIs).
+# Visible only with Financials OR Sales department access (can_see_deal_money).
+DEAL_MONEY_SIGNAL_TYPES = frozenset({
+    "stalled_deal",
+})
+
+
+def _signal_type_of(item: dict | None) -> str | None:
+    if not item:
+        return None
+    sig = item.get("signal") if isinstance(item.get("signal"), dict) else None
+    return item.get("signal_type") or (sig or {}).get("type") or item.get("type")
+
 
 def is_financial_signal(item: dict | None) -> bool:
     """True for a signal, suggestion card or accepted decision built from a financial signal."""
@@ -90,9 +103,14 @@ def is_financial_signal(item: dict | None) -> bool:
         return False
     if item.get("financial") is True:
         return True
-    sig = item.get("signal") if isinstance(item.get("signal"), dict) else None
-    t = item.get("signal_type") or (sig or {}).get("type") or item.get("type")
-    return t in FINANCIAL_SIGNAL_TYPES
+    return _signal_type_of(item) in FINANCIAL_SIGNAL_TYPES
+
+
+def is_deal_money_signal(item: dict | None) -> bool:
+    """True when the item embeds pipeline deal $ (e.g. stalled_deal value/detail)."""
+    if not item:
+        return False
+    return _signal_type_of(item) in DEAL_MONEY_SIGNAL_TYPES
 DELEGATE_SIGNAL_TYPES = frozenset({
     "overdue_task",
     "recurring_blocker",

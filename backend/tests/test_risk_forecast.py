@@ -261,6 +261,11 @@ def test_new_types_are_decision_types_and_financial_classification():
     assert de.is_financial_signal({"financial": True})
     assert not de.is_financial_signal({"type": "team_output_trend"})
     assert not de.is_financial_signal({"signal": {"type": "overdue_task"}})
+    assert de.is_deal_money_signal({"type": "stalled_deal"})
+    assert de.is_deal_money_signal({"signal": {"type": "stalled_deal"}})
+    assert de.is_deal_money_signal({"signal_type": "stalled_deal"})
+    assert not de.is_deal_money_signal({"type": "cash_runway_forecast"})
+    assert not de.is_financial_signal({"type": "stalled_deal"})
 
 
 def test_notify_key_stable_across_days():
@@ -285,35 +290,74 @@ FIN_SUG = {"id": "s1", "status": "suggested", "title": "Cash reserve in 40 days"
 TEAM_SUG = {"id": "s2", "status": "suggested", "title": "Tasks completed dropped", "signal_type": "team_output_trend",
             "signal": {"type": "team_output_trend", "severity": "high", "notify_key": "team_output_trend:high"},
             "severity": "high", "impact": "High"}
+STALLED_SUG = {
+    "id": "s3", "status": "suggested", "title": "Deal stalled: BigCo",
+    "signal_type": "stalled_deal",
+    "signal": {
+        "type": "stalled_deal", "severity": "high", "notify_key": "stalled_deal:deal1",
+        "detail": "BigCo has been in stage 'negotiation' for 30 days ($50,000). Last activity 2026-09-01.",
+        "value": 50000,
+    },
+    "description": "BigCo has been in stage 'negotiation' for 30 days ($50,000).",
+    "severity": "high", "impact": "High",
+}
 FIN_DECISION = {"id": "d1", "status": "pending", "title": "Burn is up", "financial": True}
 PLAIN_DECISION = {"id": "d2", "status": "pending", "title": "Hire a PM"}
-WS = {"workspace_id": "ws1", "name": "Acme", "decisions": [FIN_DECISION, PLAIN_DECISION],
-      "decision_suggestions": [FIN_SUG, TEAM_SUG]}
+STALLED_DECISION = {
+    "id": "d3", "status": "pending", "title": "Follow up BigCo",
+    "signal_type": "stalled_deal",
+    "signal": {"type": "stalled_deal", "value": 50000, "detail": "Worth $50,000"},
+    "description": "Deal worth $50,000 has stalled",
+}
+WS = {"workspace_id": "ws1", "name": "Acme", "decisions": [FIN_DECISION, PLAIN_DECISION, STALLED_DECISION],
+      "decision_suggestions": [FIN_SUG, TEAM_SUG, STALLED_SUG]}
 PRINCIPAL = {"user_id": "u2", "workspace_id": "ws1", "pack": "member", "role": "member", "name": "M"}
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("has_fin,expect_ids", [(False, {"d2", "s2"}), (True, {"d1", "d2", "s1", "s2"})])
-async def test_decisions_endpoint_hides_financial_items(has_fin, expect_ids):
+@pytest.mark.parametrize(
+    "has_fin,deal_money,expect_ids",
+    [
+        (False, False, {"d2", "s2"}),
+        (False, True, {"d2", "d3", "s2", "s3"}),
+        (True, True, {"d1", "d2", "d3", "s1", "s2", "s3"}),
+    ],
+)
+async def test_decisions_endpoint_hides_financial_items(has_fin, deal_money, expect_ids):
     with patch.object(server, "get_ws", new=AsyncMock(return_value=dict(WS))), \
             patch.object(server, "can_access_financials", new=AsyncMock(return_value=has_fin)), \
+            patch.object(server, "can_see_deal_money", new=AsyncMock(return_value=deal_money)), \
             patch.object(server, "can_section_write", new=AsyncMock(return_value=False)):
         out = await server.decisions(PRINCIPAL)
     ids = {d["id"] for d in out["decisions"]} | {s["id"] for s in out["suggestions"]}
     assert ids == expect_ids
+    blob = str(out)
+    if not deal_money:
+        assert "$50,000" not in blob and "50000" not in blob
 
 
 def test_briefing_decide_column_hides_financial_items():
-    hidden = server._briefing_what_to_decide_all(WS, include_financial=False)
-    shown = server._briefing_what_to_decide_all(WS, include_financial=True)
+    hidden = server._briefing_what_to_decide_all(WS, include_financial=False, include_deal_money=False)
+    shown = server._briefing_what_to_decide_all(WS, include_financial=True, include_deal_money=True)
+    sales_only = server._briefing_what_to_decide_all(WS, include_financial=False, include_deal_money=True)
     assert {i["id"] for i in hidden} == {"d2", "s2"}
-    assert {i["id"] for i in shown} == {"d1", "d2", "s1", "s2"}
+    assert {i["id"] for i in shown} == {"d1", "d2", "d3", "s1", "s2", "s3"}
+    assert {i["id"] for i in sales_only} == {"d2", "d3", "s2", "s3"}
+    assert "$50,000" not in str(hidden)
 
 
 def test_slack_text_redacts_financial_alerts():
     text = an.build_slack_text("Acme", [TEAM_SUG], "https://app", redacted_financial=1)
     assert "Cash reserve" not in text
     assert "1 financial alert" in text and "Financials access" in text
+
+
+def test_slack_text_redacts_deal_money_alerts():
+    text = an.build_slack_text(
+        "Acme", [TEAM_SUG], "https://app", redacted_financial=0, redacted_deal_money=1,
+    )
+    assert "$50,000" not in text and "BigCo" not in text
+    assert "1 deal alert" in text and "Sales access" in text
 
 
 @pytest.mark.asyncio
@@ -333,11 +377,45 @@ async def test_alert_email_sends_financial_alerts_only_to_finance_recipients():
             patch.object(server, "_slack_webhook_plaintext", return_value=None), \
             patch.object(server, "db") as mock_db:
         mock_db.workspaces.update_one = AsyncMock()
-        await server._notify_high_severity_alerts("ws1", [FIN_SUG, TEAM_SUG], ws)
+        await server._notify_high_severity_alerts("ws1", [FIN_SUG, TEAM_SUG, STALLED_SUG], ws)
     by_to = {to: html for to, html in sent}
     assert "Cash reserve in 40 days" in by_to[("owner@x.com",)]
     assert "Cash reserve in 40 days" not in by_to[("exec@x.com",)]
     assert "Tasks completed dropped" in by_to[("exec@x.com",)]
+    # Deal-$ alerts stay out of the non-Financials batch (and Slack other_alerts).
+    assert "Deal stalled: BigCo" in by_to[("owner@x.com",)]
+    assert "Deal stalled: BigCo" not in by_to[("exec@x.com",)]
+    assert "$50,000" not in by_to[("exec@x.com",)]
+
+
+@pytest.mark.asyncio
+async def test_slack_notify_redacts_stalled_deal_money():
+    slack_bodies = []
+
+    async def fake_slack(webhook, text, workspace_id=""):
+        slack_bodies.append(text)
+        return {"ok": True}
+
+    async def recipients(_wid, financial=False):
+        return ["owner@x.com"] if financial else ["owner@x.com"]
+
+    ws = {
+        "workspace_id": "ws1", "name": "Acme", "notified_signal_ids": [],
+        "slack_webhook_status": "ok",
+    }
+    with patch.object(server, "send_resend_email", new=AsyncMock(return_value={"sent": False})), \
+            patch.object(server, "_alert_recipient_emails", new=recipients), \
+            patch.object(server, "_slack_webhook_plaintext", return_value="https://hooks.slack.test/x"), \
+            patch.object(server, "post_slack_webhook", new=fake_slack), \
+            patch.object(server, "db") as mock_db:
+        mock_db.workspaces.update_one = AsyncMock()
+        await server._notify_high_severity_alerts("ws1", [STALLED_SUG, TEAM_SUG], ws)
+    assert slack_bodies
+    text = slack_bodies[0]
+    assert "$50,000" not in text
+    assert "Deal stalled" not in text
+    assert "1 deal alert" in text
+    assert "Tasks completed dropped" in text
 
 
 def test_retention_email_bullets_exclude_financial_items():

@@ -367,6 +367,9 @@ def test_cleanup_deletes_old_uncommitted_documents():
     assert result["deleted_ids"] == ["doc_orphan_old"]
     assert stored == []
     delete_mock.assert_called_once_with("ws_doc_test/orphan.pdf")
+    mock_coll.delete_one.assert_awaited_once_with(
+        {"id": "doc_orphan_old", "workspace_id": "ws_doc_test"},
+    )
 
 
 def test_cleanup_skips_committed_documents():

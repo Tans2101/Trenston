@@ -307,7 +307,9 @@ async def run_department_drafts(db, *, now: datetime | None = None) -> dict:
             if not items:
                 stats["skipped_empty"] += 1
                 if existing and existing.get("status") == STATUS_DRAFT:
-                    await db.department_report_drafts.delete_one({"id": existing["id"]})
+                    await db.department_report_drafts.delete_one(
+                        {"id": existing["id"], "workspace_id": wid},
+                    )
                 continue
             doc = build_draft_doc(
                 workspace_id=wid,
@@ -320,7 +322,7 @@ async def run_department_drafts(db, *, now: datetime | None = None) -> dict:
             )
             if existing:
                 await db.department_report_drafts.update_one(
-                    {"id": existing["id"]},
+                    {"id": existing["id"], "workspace_id": wid},
                     {"$set": {k: v for k, v in doc.items() if k != "id"}},
                 )
             else:

@@ -39,7 +39,12 @@ async def cleanup_orphaned_documents(db, *, now: datetime | None = None) -> dict
             except Exception:
                 logger.exception("orphan cleanup: failed to delete R2 object %s", storage_key)
                 continue
-        result = await db.documents.delete_one({"id": doc["id"]})
+        delete_filt: dict = {"id": doc["id"]}
+        # Prefer tenant-scoped delete when the orphan doc carries workspace_id.
+        wid = doc.get("workspace_id")
+        if wid:
+            delete_filt["workspace_id"] = wid
+        result = await db.documents.delete_one(delete_filt)
         if result.deleted_count:
             deleted_ids.append(doc["id"])
 

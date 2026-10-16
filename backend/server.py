@@ -1176,7 +1176,17 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
     # Financial alerts (cash, burn, revenue, targets) only reach people with
     # Financials access; everyone else on the alert list gets the rest.
     fin_alerts = [a for a in fresh if decision_engine.is_financial_signal(a)]
-    other_alerts = [a for a in fresh if not decision_engine.is_financial_signal(a)]
+    # Deal-$ signals (stalled_deal) must not ride in other_alerts: Slack channels
+    # and non-Financials email recipients may lack Sales/Financials access.
+    deal_money_alerts = [
+        a for a in fresh
+        if decision_engine.is_deal_money_signal(a) and not decision_engine.is_financial_signal(a)
+    ]
+    other_alerts = [
+        a for a in fresh
+        if not decision_engine.is_financial_signal(a)
+        and not decision_engine.is_deal_money_signal(a)
+    ]
     fin_recipients = set(await _alert_recipient_emails(workspace_id, financial=True))
     all_recipients = await _alert_recipient_emails(workspace_id)
     email_result = {"sent": False}
@@ -1195,9 +1205,15 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
         )
         if res.get("sent"):
             email_result = res
-    # A Slack channel may include people without Financials access: financial
-    # alerts go there as a pointer with no figures.
-    slack_text = an.build_slack_text(ws_name, other_alerts, app_url, redacted_financial=len(fin_alerts))
+    # A Slack channel may include people without Financials or Sales access:
+    # financial and deal-$ alerts go there as a pointer with no figures.
+    slack_text = an.build_slack_text(
+        ws_name,
+        other_alerts,
+        app_url,
+        redacted_financial=len(fin_alerts),
+        redacted_deal_money=len(deal_money_alerts),
+    )
     slack_result = {"ok": False, "reason": "not_configured"}
     webhook = _slack_webhook_plaintext(c)
     if webhook and (c.get("slack_webhook_status") or "") != "broken":
@@ -4297,7 +4313,9 @@ async def briefing(principal=Depends(get_principal)):
     b["team_updates"] = [{"user_name": u.get("user_name"), "text": u.get("text"),
                           "blocker": u.get("blocker", False),
                           "ago": _rel_time(u.get("updated_at", ""))} for u in ups]
-    decide_all = _briefing_what_to_decide_all(c, include_financial=has_fin_access)
+    decide_all = _briefing_what_to_decide_all(
+        c, include_financial=has_fin_access, include_deal_money=money_visible,
+    )
     b["what_to_decide"] = decide_all[:5]
     # Nudge to set a reserve so runway alerts can fire (finance users only).
     b["reserve_prompt"] = bool(
@@ -4419,22 +4437,31 @@ def _briefing_link_fields(src: dict) -> dict:
     return out
 
 
-def _briefing_what_to_decide(c: dict, *, include_financial: bool = True) -> list:
+def _briefing_what_to_decide(
+    c: dict, *, include_financial: bool = True, include_deal_money: bool = True,
+) -> list:
     """Pending decisions + AI suggestions for the Briefing column (top 5)."""
-    return _briefing_what_to_decide_all(c, include_financial=include_financial)[:5]
+    return _briefing_what_to_decide_all(
+        c, include_financial=include_financial, include_deal_money=include_deal_money,
+    )[:5]
 
 
-def _briefing_what_to_decide_all(c: dict, *, include_financial: bool = True) -> list:
+def _briefing_what_to_decide_all(
+    c: dict, *, include_financial: bool = True, include_deal_money: bool = True,
+) -> list:
     """Every pending decision + AI suggestion, sorted — callers slice.
 
     include_financial=False drops cards built from financial signals for users
-    without Financials access.
+    without Financials access. include_deal_money=False drops deal-$ signals
+    (stalled_deal) for users without Financials or Sales visibility.
     """
     items = []
     for d in c.get("decisions") or []:
         if d.get("status") != "pending":
             continue
         if not include_financial and decision_engine.is_financial_signal(d):
+            continue
+        if not include_deal_money and decision_engine.is_deal_money_signal(d):
             continue
         items.append({
             **_briefing_link_fields(d),
@@ -4452,6 +4479,8 @@ def _briefing_what_to_decide_all(c: dict, *, include_financial: bool = True) -> 
         if s.get("status") != "suggested":
             continue
         if not include_financial and decision_engine.is_financial_signal(s):
+            continue
+        if not include_deal_money and decision_engine.is_deal_money_signal(s):
             continue
         items.append({
             **_briefing_link_fields(s),
@@ -4960,7 +4989,9 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     money_visible = await can_see_deal_money(principal)
     act_items = [_briefing_activity_item(a, money_visible=money_visible) for a in acts]
     what_changed = act_items + list(b.get("what_changed") or [])
-    what_to_decide = _briefing_what_to_decide(c, include_financial=has_fin_access)
+    what_to_decide = _briefing_what_to_decide(
+        c, include_financial=has_fin_access, include_deal_money=money_visible,
+    )
     metrics = []
     if has_fin_access:
         metrics = _briefing_finance_metrics(fin)
@@ -5082,6 +5113,9 @@ async def decisions(principal=Depends(get_principal)):
     if not await can_access_financials(principal):
         decisions_list = [d for d in decisions_list if not decision_engine.is_financial_signal(d)]
         suggestions = [s for s in suggestions if not decision_engine.is_financial_signal(s)]
+    if not await can_see_deal_money(principal):
+        decisions_list = [d for d in decisions_list if not decision_engine.is_deal_money_signal(d)]
+        suggestions = [s for s in suggestions if not decision_engine.is_deal_money_signal(s)]
     decisions_list.sort(key=_decision_list_sort_key)
     suggestions.sort(key=_decision_list_sort_key)
     return {
@@ -5193,11 +5227,14 @@ async def generate_decision_suggestions(principal=Depends(require_section("decis
     result = await _generate_insights(principal["workspace_id"], raise_on_rate_limit=True)
     c = await get_ws(principal["workspace_id"])
     fin_ok = await can_access_financials(principal)
+    deal_money_ok = await can_see_deal_money(principal)
     return {
         **result,
         "suggestions": [
             s for s in (c.get("decision_suggestions") or [])
-            if s.get("status") == "suggested" and (fin_ok or not decision_engine.is_financial_signal(s))
+            if s.get("status") == "suggested"
+            and (fin_ok or not decision_engine.is_financial_signal(s))
+            and (deal_money_ok or not decision_engine.is_deal_money_signal(s))
         ],
         "delegate_suggestions": [s for s in (c.get("delegate_suggestions") or []) if s.get("status") == "suggested"],
     }
@@ -8134,10 +8171,15 @@ async def post_update(payload: UpdateInput, principal=Depends(require_pro_perm("
     summary = f'Update from {name}: "{text[:90]}"' + (" (blocked)" if payload.blocker else "")
     existing = await db.updates.find_one({"workspace_id": principal["workspace_id"], "user_id": principal["user_id"], "day": day}, {"_id": 0})
     if existing:
-        await db.updates.update_one({"update_id": existing["update_id"]},
-                                    {"$set": {"text": text, "blocker": payload.blocker, "updated_at": now}})
+        await db.updates.update_one(
+            {"update_id": existing["update_id"], "workspace_id": principal["workspace_id"]},
+            {"$set": {"text": text, "blocker": payload.blocker, "updated_at": now}},
+        )
         if existing.get("activity_id"):
-            await db.activities.update_one({"activity_id": existing["activity_id"]}, {"$set": {"summary": summary, "created_at": now}})
+            await db.activities.update_one(
+                {"activity_id": existing["activity_id"], "workspace_id": principal["workspace_id"]},
+                {"$set": {"summary": summary, "created_at": now}},
+            )
         invalidate_workspace_list_cache(principal["workspace_id"], "reports")
         return {"ok": True, "edited": True}
     act = await log_activity(principal, "updates", "daily.update", summary, {"blocker": payload.blocker})
@@ -11448,7 +11490,9 @@ async def delete_production_daily_log(log_id: str, principal=Depends(get_princip
     )
     if not _can_update_production_order(principal, membership, order):
         raise HTTPException(status_code=403, detail="You are not assigned to this work order")
-    await db.production_daily_logs.delete_one({"id": log_id})
+    await db.production_daily_logs.delete_one(
+        {"id": log_id, "workspace_id": principal["workspace_id"]},
+    )
     invalidate_workspace_list_cache(principal["workspace_id"], "production")
     return {"ok": True}
 
@@ -18646,6 +18690,8 @@ async def search_workspace(q: str = Query("", max_length=200), principal=Depends
     decisions_items = list(c.get("decisions") or [])
     if not await can_access_financials(principal):
         decisions_items = [d for d in decisions_items if not decision_engine.is_financial_signal(d)]
+    if not await can_see_deal_money(principal):
+        decisions_items = [d for d in decisions_items if not decision_engine.is_deal_money_signal(d)]
 
     deals: list = []
     try:
@@ -19037,7 +19083,13 @@ async def _run_sales_finance_migration() -> None:
 
 
 async def _backfill_financial_entry_names() -> None:
-    """Set name = category on legacy ledger rows that have no item name. Idempotent."""
+    """Set name = category on legacy ledger rows that have no item name. Idempotent.
+
+    Intentional cross-workspace scan: startup/system migration only (not a
+    request path). Scans all financial_entries missing `name` and updates by
+    Mongo `_id`. Do not add workspace_id here — legacy rows must all be healed
+    once per deploy regardless of tenant.
+    """
     try:
         cursor = db.financial_entries.find(
             {"$or": [{"name": {"$exists": False}}, {"name": None}, {"name": ""}]},
@@ -19059,6 +19111,10 @@ async def _scrub_null_financial_external_ids() -> None:
 
     Legacy rows sometimes stored qb_txn_id/source_deal_id: null; Mongo sparse
     unique indexes still index null, so a second null insert 500s.
+
+    Intentional cross-workspace scan: startup/system migration only (not a
+    request path). Updates by field null across all tenants; workspace scoping
+    would leave nulls in unscanned workspaces and keep sparse-index collisions.
     """
     try:
         qb = await db.financial_entries.update_many(
