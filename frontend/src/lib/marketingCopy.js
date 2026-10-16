@@ -851,7 +851,6 @@ export const TESTIMONIALS = [
     name: "Vivaan Singh",
     role: "Co-Founder & CTO",
     company: "slidepractice.com",
-    companyUrl: "https://slidepractice.com/",
     linkedinUrl: "https://www.linkedin.com/in/vivaansinghcto/",
     logo: "/slidepractice-logo.png",
   },

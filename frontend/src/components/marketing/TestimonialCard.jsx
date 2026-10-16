@@ -38,6 +38,9 @@ export default function TestimonialCard({ item, className }) {
                   <img src={item.logo} alt="Slide Practice" width="140" height="21" className="h-[21px] w-auto" loading="lazy" />
                 </a>
               )}
+              {item.logo && !item.companyUrl && (
+                <img src={item.logo} alt="Slide Practice" width="140" height="21" className="h-[21px] w-auto" loading="lazy" />
+              )}
               {item.linkedinUrl && (
                 <a
                   href={item.linkedinUrl}
