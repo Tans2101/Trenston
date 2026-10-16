@@ -210,12 +210,14 @@ def _xero_money(doc: dict, amount: float) -> dict:
         rate = float(doc.get("CurrencyRate") or 0)
     except (TypeError, ValueError):
         rate = 0.0
-    fx_home_per_doc = (1.0 / rate) if rate > 0 else 1.0
+    # Xero CurrencyRate is doc-per-base; invert for home-per-doc. Missing → None
+    # (never invent 1.0 for foreign docs — quarantine via money_fields).
+    fx_home_per_doc = (1.0 / rate) if rate > 0 else None
     sub_total = doc.get("SubTotal")
     return amap.money_fields(
         amount,
         currency=doc.get("CurrencyCode"),
-        fx_rate=fx_home_per_doc,
+        fx_rate=fx_home_per_doc if fx_home_per_doc is not None else None,
         tax_amount=doc.get("TotalTax") or 0,
         amount_net=abs(float(sub_total)) if sub_total not in (None, "") else None,
     )
@@ -451,7 +453,8 @@ def if_modified_since_header(since: str) -> str:
 
 
 XERO_PAGE_SIZE = 100  # Xero returns at most 100 invoices per page
-XERO_MAX_PAGES = 100
+# Raised from 100 so mid-size ledgers finish; complete=False if the cap is hit.
+XERO_MAX_PAGES = 500
 
 
 async def _throttle_xero() -> None:

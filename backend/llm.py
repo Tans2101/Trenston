@@ -270,15 +270,26 @@ def extraction_configured() -> bool:
         return anthropic_configured()
 
 
+_EXTRACT_PROCESSORS = (
+    "Google Document AI (Invoice Parser) when configured; "
+    "Anthropic Claude only when Document AI is unavailable or low-confidence. "
+    "Full document bytes are sent to the chosen processor for extraction; "
+    "only structured fields (amount, vendor, date) are stored in Trenston."
+)
+
+
 async def extract_financial_document(
     file_bytes: bytes,
     content_type: str,
     *,
     use_document_ai: bool = True,
 ) -> dict:
-    """Document AI first (GCP credits), Claude for low-confidence or missing parser.
+    """Document AI first (entities only when confident); Claude as fallback.
 
+    Prefer Document AI for high *and* medium confidence so invoice bytes leave
+    Trenston to Anthropic only when Document AI is unavailable or low-confidence.
     use_document_ai=False skips the GCP Invoice Parser (daily spend caps / kill switch).
+    Stored payloads are already entity-only via ``_validate_extracted_financial``.
     """
     docai_result = None
     if use_document_ai:
@@ -288,22 +299,36 @@ async def extract_financial_document(
         except Exception:
             docai_result = None
 
-    if docai_result and not docai_result.get("error") and docai_result.get("confidence") == "high":
-        return _validate_extracted_financial(docai_result)
+    if (
+        docai_result
+        and not docai_result.get("error")
+        and docai_result.get("confidence") in ("high", "medium")
+    ):
+        out = _validate_extracted_financial(docai_result)
+        out["processors"] = _EXTRACT_PROCESSORS
+        return out
 
     if anthropic_configured():
         try:
             claude = await extract_with_claude(file_bytes, content_type)
             if claude.get("error") and docai_result and not docai_result.get("error"):
-                return _validate_extracted_financial(docai_result)
+                out = _validate_extracted_financial(docai_result)
+                out["processors"] = _EXTRACT_PROCESSORS
+                return out
+            claude["processors"] = _EXTRACT_PROCESSORS
             return claude
         except Exception:
             if docai_result and not docai_result.get("error"):
-                return _validate_extracted_financial(docai_result)
+                out = _validate_extracted_financial(docai_result)
+                out["processors"] = _EXTRACT_PROCESSORS
+                return out
             raise
 
     if docai_result:
-        return docai_result if docai_result.get("error") else _validate_extracted_financial(docai_result)
+        out = docai_result if docai_result.get("error") else _validate_extracted_financial(docai_result)
+        if isinstance(out, dict):
+            out["processors"] = _EXTRACT_PROCESSORS
+        return out
     raise RuntimeError("No extraction engine configured")
 
 

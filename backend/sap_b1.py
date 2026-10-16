@@ -9,6 +9,7 @@ Credentials are per-workspace (Service Layer URL, CompanyDB, username, password)
 """
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import logging
 import socket
@@ -23,7 +24,8 @@ from integration_errors import IntegrationRetryableError
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 100
-MAX_PAGES = 200  # 20k docs — if hit, return complete=False so last_synced_at is not advanced
+MAX_PAGES = 500  # 50k docs — if hit, return complete=False so last_synced_at is not advanced
+SAP_MAX_RETRIES_429 = 3
 
 # Block server-side requests to these ranges (SSRF). Checked via ipaddress —
 # never string-prefix matching on hostnames.
@@ -237,14 +239,23 @@ def _sap_money(doc: dict) -> tuple[float, bool, dict]:
     rate = _num(doc.get("DocRate")) if foreign else 1.0
     if foreign and not rate and amount:
         rate = abs(local_total) / amount
-    money = amap.money_fields(
-        amount,
-        currency=doc.get("DocCurrency"),
-        fx_rate=rate or 1.0,
-        tax_amount=doc_vat,
-        amount_home=abs(local_total),
-        amount_net_home=max(abs(local_total) - local_vat, 0.0),
-    )
+    # Foreign docs without DocRate/local totals → quarantine (no invented 1.0).
+    if foreign and not rate and not local_total:
+        money = amap.money_fields(
+            amount,
+            currency=doc.get("DocCurrency"),
+            fx_rate=None,
+            tax_amount=doc_vat,
+        )
+    else:
+        money = amap.money_fields(
+            amount,
+            currency=doc.get("DocCurrency"),
+            fx_rate=rate or (1.0 if not foreign else None),
+            tax_amount=doc_vat,
+            amount_home=abs(local_total) if local_total else None,
+            amount_net_home=(max(abs(local_total) - local_vat, 0.0) if local_total else None),
+        )
     return amount, negative, money
 
 
@@ -451,14 +462,30 @@ async def _fetch_collection_page(
         f"?$select={select}&$filter={filt}"
         f"&$orderby=DocDate asc&$top={PAGE_SIZE}&$skip={skip}"
     )
-    try:
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
-            return await hc.get(
-                url,
-                headers=_session_headers(creds["session_id"], creds.get("route_id")),
-            )
-    except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-        raise SapB1TransientError("SAP connection temporarily unavailable") from exc
+    last_exc: Optional[Exception] = None
+    for attempt in range(SAP_MAX_RETRIES_429 + 1):
+        try:
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
+                resp = await hc.get(
+                    url,
+                    headers=_session_headers(creds["session_id"], creds.get("route_id")),
+                )
+        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+            raise SapB1TransientError("SAP connection temporarily unavailable") from exc
+        if resp.status_code != 429:
+            return resp
+        retry_after = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+        try:
+            delay = float(retry_after) if retry_after else (2 ** attempt)
+        except ValueError:
+            delay = float(2 ** attempt)
+        delay = min(max(delay, 1.0), 60.0)
+        logger.warning("SAP B1 429 — sleeping %.1fs (attempt %s)", delay, attempt + 1)
+        last_exc = SapB1TransientError("SAP rate limited")
+        if attempt >= SAP_MAX_RETRIES_429:
+            break
+        await asyncio.sleep(delay)
+    raise last_exc or SapB1TransientError("SAP rate limited")
 
 
 async def _fetch_collection(

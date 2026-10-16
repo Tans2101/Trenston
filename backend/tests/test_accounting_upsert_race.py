@@ -2,30 +2,37 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from pymongo.errors import DuplicateKeyError
+from pymongo.errors import BulkWriteError
 
 import server
 
 
 @pytest.mark.asyncio
 async def test_upsert_accounting_sync_handles_duplicate_key():
-    insert = AsyncMock(side_effect=DuplicateKeyError("E11000"))
     update = AsyncMock()
     delete_many = AsyncMock()
-    find = MagicMock()
-    find.to_list = AsyncMock(return_value=[])  # no pre-existing rows
 
     class Cursor:
         def to_list(self, _n):
-            return find.to_list(_n)
+            return AsyncMock(return_value=[])()
+
+    async def _empty_list(_n):
+        return []
+
+    cursor = MagicMock()
+    cursor.to_list = _empty_list
 
     mock_db = MagicMock()
-    mock_db.financial_entries.find = MagicMock(return_value=Cursor())
-    mock_db.financial_entries.insert_one = insert
+    mock_db.financial_entries.find = MagicMock(return_value=cursor)
     mock_db.financial_entries.update_one = update
     mock_db.financial_entries.delete_many = delete_many
     mock_db.financial_entries.delete_one = AsyncMock()
     mock_db.workspaces.find_one = AsyncMock(return_value={"financial_settings": {"currency": "usd"}})
+
+    async def _bulk_fail(ops, ordered=False):
+        raise BulkWriteError({"writeErrors": [{"index": 0, "code": 11000, "errmsg": "E11000"}]})
+
+    mock_db.financial_entries.bulk_write = AsyncMock(side_effect=_bulk_fail)
 
     txns = [{
         "qb_txn_id": "qb_purchase_1",
@@ -48,11 +55,12 @@ async def test_upsert_accounting_sync_handles_duplicate_key():
             txns=txns,
             source="quickbooks_sync",
         )
-    assert n == 1
-    insert.assert_awaited_once()
-    update.assert_awaited_once()
-    # Safety net: also deletes dated legacy ids that rewrite to this stable id.
+    assert n["synced_count"] == 1
+    mock_db.financial_entries.bulk_write.assert_awaited_once()
+    # Fallback path after BulkWriteError duplicate key.
+    assert update.await_count >= 1
     assert delete_many.await_count >= 1
     filt, payload = update.await_args.args
-    assert filt == {"workspace_id": "ws1", "qb_txn_id": "qb_purchase_1"}
+    assert filt["workspace_id"] == "ws1"
+    assert filt["qb_txn_id"] == "qb_purchase_1"
     assert payload["$set"]["amount"] == 10.0

@@ -1,6 +1,7 @@
 """QuickBooks Online — token refresh and transaction sync."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timedelta, timezone
@@ -427,7 +428,10 @@ def _since_too_old_for_cdc(since: Optional[str]) -> bool:
 
 
 QB_PAGE_SIZE = 1000
-QB_MAX_PAGES = 100
+# Raised from 100 so mid-size ledgers finish; still returns complete=False if hit
+# so callers never advance the watermark on a truncated pull.
+QB_MAX_PAGES = 500
+QB_MAX_RETRIES_429 = 3
 
 
 async def _query_qb_once(
@@ -454,15 +458,30 @@ async def _query_qb_once(
             q = f"SELECT * FROM {entity} STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
 
         url = f"{_api_base()}/v3/company/{realm_id}/query"
-        try:
-            async with httpx.AsyncClient(timeout=45.0) as hc:
-                resp = await hc.get(
-                    url,
-                    params={"query": q, "minorversion": str(QB_MINOR_VERSION)},
-                    headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
-                )
-        except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
-            raise QuickBooksTransientError("QuickBooks query temporarily unavailable") from exc
+        resp = None
+        for attempt in range(QB_MAX_RETRIES_429 + 1):
+            try:
+                async with httpx.AsyncClient(timeout=45.0) as hc:
+                    resp = await hc.get(
+                        url,
+                        params={"query": q, "minorversion": str(QB_MINOR_VERSION)},
+                        headers={"Authorization": f"Bearer {access_token}", "Accept": "application/json"},
+                    )
+            except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
+                raise QuickBooksTransientError("QuickBooks query temporarily unavailable") from exc
+            if resp.status_code != 429:
+                break
+            retry_after = resp.headers.get("Retry-After") or resp.headers.get("retry-after")
+            try:
+                delay = float(retry_after) if retry_after else (2 ** attempt)
+            except ValueError:
+                delay = float(2 ** attempt)
+            delay = min(max(delay, 1.0), 60.0)
+            logger.warning("QuickBooks 429 — sleeping %.1fs (attempt %s)", delay, attempt + 1)
+            if attempt >= QB_MAX_RETRIES_429:
+                raise QuickBooksTransientError("QuickBooks rate limited")
+            await asyncio.sleep(delay)
+        assert resp is not None
         if resp.status_code == 401:
             return [], False, 401
         if resp.status_code >= 500:

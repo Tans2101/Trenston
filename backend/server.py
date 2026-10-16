@@ -698,6 +698,16 @@ async def can_access_financials(
     return await can_edit_financials(principal, membership=membership, workspace=workspace)
 
 
+async def can_see_deal_money(principal: dict) -> bool:
+    """Deal $ in activity / telemetry: Financials OR Sales department visibility."""
+    if await can_access_financials(principal):
+        return True
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_SALES,
+    )
+    return bool(dept_ids)
+
+
 
 # Phrases that request financial figures Ask Trenston must not answer without access.
 _FINANCE_ASK_RE = re.compile(
@@ -1883,6 +1893,17 @@ async def _enforce_document_rate_limit(principal, action: str, limit: int, messa
 
 # ------------------------- Financials (computed from entries) -------------------------
 _FINANCIALS_CACHE_TTL_SECONDS = 30.0
+# Soft cap for metric computation. Above this we set ledger_truncated and refuse
+# a "complete" runway rather than silently ignoring overflow rows.
+_LEDGER_METRICS_SOFT_CAP = 100_000
+
+
+async def _load_ledger_entries_for_metrics(entry_filt: dict) -> tuple[list, bool]:
+    """Load ledger rows for gold metrics. Returns (entries, truncated)."""
+    count = await db.financial_entries.count_documents(entry_filt)
+    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(_LEDGER_METRICS_SOFT_CAP)
+    truncated = count > len(entries)
+    return entries, truncated
 
 
 def _financials_cache_key(workspace_id: str, department_ids: Optional[list] = None) -> str:
@@ -2010,7 +2031,8 @@ async def compute_financials(
         entry_filt = dept_access.apply_department_filter(
             {"workspace_id": workspace_id}, department_ids,
         )
-        entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(5000)
+        entries, ledger_truncated = await _load_ledger_entries_for_metrics(entry_filt)
+        fx_missing_count = sum(1 for e in entries if e.get("fx_missing"))
         # Drop invalid months; future-dated sync rows stay in DB but are excluded
         # from current burn/MRR/runway (they cannot redefine the horizon).
         valid = [e for e in entries if fin_recur.is_valid_month(str(e.get("month") or ""))]
@@ -2062,17 +2084,23 @@ async def compute_financials(
         runway_no_burn = bool(
             cash_entered and burn_known and metric_defs.is_cash_growing(cash_val, avg_net_burn)
         )
-        runway = metric_defs.runway_months(cash_val if cash_entered else None, avg_net_burn)
+        # Fail closed on truncated ledger — refuse a complete runway figure.
+        runway = None if ledger_truncated else metric_defs.runway_months(
+            cash_val if cash_entered else None, avg_net_burn,
+        )
+        if ledger_truncated:
+            runway_no_burn = False
         burn_val = (exp_by[latest] - rev_by[latest]) if latest else 0
         total_exp = sum(exp_cat.values())
         expense_breakdown = ([{"name": k, "value": round(v / total_exp * 100)} for k, v in sorted(exp_cat.items(), key=lambda x: -x[1])] if total_exp else [])
         gm = settings.get("gross_margin")
         scenarios = []
-        if cash_entered and avg_burn > 0:
+        if cash_entered and avg_burn > 0 and not ledger_truncated:
+            cash_for_scenario = max(float(cash_val or 0), 0.0)
             scenarios = [
                 {"name": "Base", "runway": runway, "desc": "Current net burn held."},
-                {"name": "Efficient", "runway": round(cash_val / (avg_burn * 0.8), 1), "desc": "Trim burn 20%."},
-                {"name": "Aggressive Hire", "runway": round(cash_val / (avg_burn * 1.4), 1), "desc": "Scale spend 40%."},
+                {"name": "Efficient", "runway": round(cash_for_scenario / (avg_burn * 0.8), 1), "desc": "Trim burn 20%."},
+                {"name": "Aggressive Hire", "runway": round(cash_for_scenario / (avg_burn * 1.4), 1), "desc": "Scale spend 40%."},
             ]
         mrr_delta = 0
         rec_months = sorted(rec_by.keys())
@@ -2082,10 +2110,17 @@ async def compute_financials(
             if prev_r > 0:
                 mrr_delta = round((curr_r - prev_r) / prev_r * 100, 1)
         mrr_value = round(float(mrr_val or 0)) if mrr_known else None
+        arr_value = round(float(mrr_val or 0) * 12, 2) if mrr_known else None
         burn_value = round(float(burn_val or 0)) if burn_known else None
+        sync_incomplete = bool(
+            (ws or {}).get("qb_sync_incomplete")
+            or (ws or {}).get("xero_sync_incomplete")
+            or (ws or {}).get("sap_b1_sync_incomplete")
+        )
         result = {
             "mrr": fmt_money(mrr_val, currency) if mrr_known else "—",
             "arr": fmt_money(mrr_val * 12, currency) if mrr_known else "—",
+            "arr_value": arr_value,
             "runway_months": runway,
             "runway_no_burn": runway_no_burn,
             "burn": fmt_money(burn_val, currency) if burn_known else "—",
@@ -2110,12 +2145,18 @@ async def compute_financials(
             "mrr_state": _figure_state(mrr_known, mrr_value),
             "burn_state": _figure_state(burn_known, burn_value),
             "cash_state": _figure_state(cash_entered, cash_val),
-            "runway_state": _runway_state(runway_months=runway, runway_no_burn=runway_no_burn),
+            "runway_state": (
+                FIGURE_NOT_ENTERED if ledger_truncated
+                else _runway_state(runway_months=runway, runway_no_burn=runway_no_burn)
+            ),
             # What the runway is based on, so every surface can say it.
             "avg_burn_value": round(avg_net_burn) if avg_net_burn is not None else None,
             "burn_window": basis["months"],
             "burn_window_includes_current": basis["includes_current_month"],
-            "runway_basis": metric_defs.runway_basis_text(basis),
+            "runway_basis": (
+                "Ledger is too large to compute a complete runway — contact support."
+                if ledger_truncated else metric_defs.runway_basis_text(basis)
+            ),
             "months": months,
             "latest_month": latest,
             "horizon_month": horizon,
@@ -2125,6 +2166,9 @@ async def compute_financials(
             "current_month": current_month,
             "min_cash_reserve": _finite_or_none(settings.get("min_cash_reserve")),
             "scheduled_count": len(scheduled),
+            "ledger_truncated": ledger_truncated,
+            "fx_missing_count": fx_missing_count,
+            "sync_incomplete": sync_incomplete,
             "scheduled_entries": [
                 {
                     "id": e.get("id"),
@@ -3810,7 +3854,7 @@ async def update_company(payload: CompanySetupInput, principal=Depends(require("
     if not updates:
         raise HTTPException(status_code=400, detail="No changes provided")
     await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": updates})
-    if "financial_settings.currency" in updates:
+    if "financial_settings.currency" in updates or "timezone" in updates:
         invalidate_financials_cache(principal["workspace_id"])
     return {"ok": True}
 
@@ -4244,7 +4288,8 @@ async def briefing(principal=Depends(get_principal)):
             })
     metrics.extend(await _scope_ops_metrics(principal, ops_metrics or []))
     b["metrics"] = metrics
-    act_items = [_briefing_activity_item(a) for a in acts]
+    money_visible = await can_see_deal_money(principal)
+    act_items = [_briefing_activity_item(a, money_visible=money_visible) for a in acts]
     b["what_changed"] = act_items + list(b.get("what_changed", []))
     # Workspace-local weekday (not UTC) — default TZ is Asia/Manila, so UTC
     # would show yesterday's name for much of the morning.
@@ -4305,8 +4350,15 @@ def _insights_stale(c: dict) -> bool:
 
 # Activity rows from the Financials module carry amounts in their summary
 # ("Logged revenue · Client A $300"), so they follow the same gate as the
-# Financials page itself.
+# Financials page itself. Sales deal summaries may also embed money — those
+# are redacted on read unless the viewer has Financials or Sales access.
 FINANCE_ACTIVITY_MODULES = ("financials",)
+_MONEY_IN_SUMMARY_RE = re.compile(
+    r"(?:[$€£¥₱]|USD|EUR|GBP|PHP|SGD|AUD|CAD|JPY)\s*[\d,]+(?:\.\d+)?|"
+    r"[\d,]+(?:\.\d+)?\s*(?:USD|EUR|GBP|PHP|SGD|AUD|CAD|JPY)|"
+    r"·\s*[\d,]+(?:\.\d+)?\b",
+    re.IGNORECASE,
+)
 
 
 def _activity_filter(workspace_id: str, *, financials_visible: bool) -> dict:
@@ -4316,10 +4368,29 @@ def _activity_filter(workspace_id: str, *, financials_visible: bool) -> dict:
     return flt
 
 
-def _briefing_activity_item(a: dict) -> dict:
+def _redact_activity_money(summary: str) -> str:
+    """Strip currency amounts from activity summaries for unauthorized viewers."""
+    if not summary:
+        return summary
+    return _MONEY_IN_SUMMARY_RE.sub("[amount hidden]", summary)
+
+
+def _activity_summary_for_viewer(activity: dict, *, money_visible: bool) -> str:
+    summary = activity.get("summary") or ""
+    if money_visible:
+        return summary
+    if activity.get("module") in FINANCE_ACTIVITY_MODULES:
+        return _redact_activity_money(summary)
+    # Sales (and other) rows that embed $ in the summary.
+    if _MONEY_IN_SUMMARY_RE.search(summary):
+        return _redact_activity_money(summary)
+    return summary
+
+
+def _briefing_activity_item(a: dict, *, money_visible: bool = True) -> dict:
     """One activity row → Briefing 'what changed' item (module + related_id for deep links)."""
     item = {
-        "title": a.get("summary") or "",
+        "title": _activity_summary_for_viewer(a, money_visible=money_visible),
         "detail": f"{a.get('actor_name') or 'Someone'} · {_rel_time(a.get('created_at') or '')}",
         "tone": "neutral",
         "module": a.get("module"),
@@ -4786,8 +4857,15 @@ async def list_activities(
     base = _activity_filter(ws, financials_visible=await can_access_financials(principal))
     filt = apply_before_filter(base, "created_at", before, id_field="activity_id")
     acts = await db.activities.find(filt, {"_id": 0}).sort([("created_at", -1), ("activity_id", -1)]).limit(page_limit).to_list(page_limit)
+    money_visible = await can_see_deal_money(principal)
     for a in acts:
         a["ago"] = _rel_time(a["created_at"])
+        a["summary"] = _activity_summary_for_viewer(a, money_visible=money_visible)
+        if not money_visible and isinstance(a.get("patch"), dict) and "value" in a["patch"]:
+            patch = dict(a["patch"])
+            patch.pop("value", None)
+            patch.pop("amount", None)
+            a["patch"] = patch
     cursor = next_cursor(acts, "created_at", page_limit, id_field="activity_id")
     return {"items": acts, "activities": acts, "next_cursor": cursor}
 
@@ -4879,7 +4957,8 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
         helm_freshness.resolve_workspace_data_as_of(db, c),
     )
     # Same live feed builders as GET /briefing — do not ground on seed alone.
-    act_items = [_briefing_activity_item(a) for a in acts]
+    money_visible = await can_see_deal_money(principal)
+    act_items = [_briefing_activity_item(a, money_visible=money_visible) for a in acts]
     what_changed = act_items + list(b.get("what_changed") or [])
     what_to_decide = _briefing_what_to_decide(c, include_financial=has_fin_access)
     metrics = []
@@ -5744,12 +5823,14 @@ async def _sync_deal_revenue_amount(deal: dict, principal: dict) -> Optional[dic
         return existing
     amount = max(round(float(deal.get("value") or 0), 2), 0.0)
     if float(existing.get("amount") or 0) != amount:
+        home_currency = await _workspace_currency(ws)
+        money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
         await db.financial_entries.update_one(
             {"id": existing["id"], "workspace_id": ws},
-            {"$set": {"amount": amount}},
+            {"$set": {"amount": amount, **money}},
         )
         invalidate_financials_cache(ws)
-        return {**existing, "amount": amount}
+        return {**existing, "amount": amount, **money}
     return existing
 
 
@@ -5770,6 +5851,8 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
     amount = round(float(deal.get("value") or 0), 2)
     if amount < 0:
         amount = 0.0
+    home_currency = await _workspace_currency(ws)
+    money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
     if existing:
         # Keep booked revenue in sync with the won deal's value (mirrors the
         # procurement expense sync). Only touch rows this helper created.
@@ -5777,10 +5860,10 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
                 and float(existing.get("amount") or 0) != amount):
             await db.financial_entries.update_one(
                 {"id": existing["id"], "workspace_id": ws},
-                {"$set": {"amount": amount}},
+                {"$set": {"amount": amount, **money}},
             )
             invalidate_financials_cache(ws)
-            return {**existing, "amount": amount}, False
+            return {**existing, "amount": amount, **money}, False
         return existing, False
 
     try:
@@ -5797,6 +5880,7 @@ async def _ensure_deal_won_revenue_entry(deal: dict, principal: dict) -> tuple[O
         "category": "Sales",
         "name": entry_name,
         "amount": amount,
+        **money,
         "month": month,
         "recurring": False,
         "note": f"Auto-created from won deal {deal_id}",
@@ -5895,7 +5979,12 @@ async def _ensure_procurement_expense_entry(req: dict, principal: dict) -> tuple
     if vendor:
         note = f"{note} · {vendor}"
 
+    home_currency = await _workspace_currency(ws)
+    money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
     if existing:
+        # Never overwrite a row the founder marked user_edited (mirrors deal guards).
+        if existing.get("user_edited"):
+            return existing, False
         # Keep burn in sync when cost/item changes after delivery.
         changed = (
             float(existing.get("amount") or 0) != amount
@@ -5909,6 +5998,7 @@ async def _ensure_procurement_expense_entry(req: dict, principal: dict) -> tuple
             {"id": existing["id"], "workspace_id": ws},
             {"$set": {
                 "amount": amount,
+                **money,
                 "name": entry_name,
                 "month": month,
                 "note": note,
@@ -5917,7 +6007,7 @@ async def _ensure_procurement_expense_entry(req: dict, principal: dict) -> tuple
             }},
         )
         invalidate_financials_cache(ws)
-        return {**existing, "amount": amount, "name": entry_name, "month": month, "note": note}, False
+        return {**existing, "amount": amount, "name": entry_name, "month": month, "note": note, **money}, False
 
     entry = {
         "id": f"fe_{uuid.uuid4().hex[:10]}",
@@ -5927,6 +6017,7 @@ async def _ensure_procurement_expense_entry(req: dict, principal: dict) -> tuple
         "category": "Procurement",
         "name": entry_name,
         "amount": amount,
+        **money,
         "month": month,
         "recurring": False,
         "note": note,
@@ -6064,7 +6155,13 @@ async def create_deal(payload: DealInput, principal=Depends(require_section("sal
     if stage == "won":
         # Logged straight in as Won — book the revenue like a stage change would.
         financial_entry = await _book_won_deal_revenue(deal, principal, currency)
-    return {"ok": True, "deal": enriched, "financial_entry": financial_entry}
+    out = {"ok": True, "deal": enriched, "financial_entry": None}
+    # Only return ledger row details to Financials viewers (Sales packs may lack it).
+    if financial_entry and await can_access_financials(principal):
+        out["financial_entry"] = financial_entry
+    elif financial_entry:
+        out["booked"] = True
+    return out
 
 
 @api_router.patch("/deals/{deal_id}")
@@ -6126,20 +6223,28 @@ async def update_deal(deal_id: str, payload: DealInput, principal=Depends(requir
             summary = f"Lost {upd['name']}"
         else:
             summary = f"{upd['name']} moved to {STAGE_LABEL[stage]}"
-        await log_activity(principal, "sales", "deal.stage", summary, {"stage": stage})
+        await log_activity(
+            principal, "sales", "deal.stage", summary,
+            {"stage": stage, "value": upd["value"]} if stage == "won" else {"stage": stage},
+        )
     elif stage == "won" and round(float(d.get("value") or 0), 2) != upd["value"]:
         # Still won, value edited — keep an existing auto-booked row in sync.
         # Never insert here: won deals from before auto-booking (or whose row the
         # founder deleted, e.g. because accounting already has it) must not
         # silently gain revenue from a value edit.
         await _sync_deal_revenue_amount(updated, principal)
-    return {
+    out = {
         "ok": True,
         "deal": enriched,
-        "financial_entry": financial_entry,
+        "financial_entry": None,
         "production_prompt": production_prompt,
         "production_prefill": production_prefill,
     }
+    if financial_entry and await can_access_financials(principal):
+        out["financial_entry"] = financial_entry
+    elif financial_entry:
+        out["booked"] = True
+    return out
 
 
 @api_router.delete("/deals/{deal_id}")
@@ -6194,13 +6299,18 @@ def _normalize_telemetry_targets(raw) -> dict:
 
 
 def _revenue_trend_with_targets(revenue_series: list, targets: dict) -> list:
-    """Build revenue_trend points; include target only when targets.enabled."""
+    """Build revenue_trend points; include target only when targets.enabled.
+
+    Field is ``revenue`` (total month revenue, not recurring MRR). ``mrr`` is
+    kept as a deprecated alias for older clients.
+    """
     series = list(revenue_series or [])
     enabled = bool((targets or {}).get("enabled"))
     pct = float((targets or {}).get("monthly_growth_pct") or 0)
     out = []
     for i, row in enumerate(series):
-        point = {"month": row.get("month"), "mrr": row.get("revenue")}
+        rev = row.get("revenue")
+        point = {"month": row.get("month"), "revenue": rev, "mrr": rev}
         if enabled:
             try:
                 actual = float(row.get("revenue") or 0)
@@ -6272,7 +6382,7 @@ async def _workspace_live_signals(
     # Prefer entries already loaded by compute_financials (or a prior caller).
     entries = fin.pop("entries", None) if isinstance(fin, dict) else None
     if entries is None:
-        entries = await db.financial_entries.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(5000)
+        entries, _truncated = await _load_ledger_entries_for_metrics({"workspace_id": workspace_id})
     expense_by_month = decision_engine.expense_totals_by_month_category(entries)
     if deals is None:
         deals = await db.deals.find({"workspace_id": workspace_id}, {"_id": 0}).to_list(500)
@@ -6471,13 +6581,33 @@ async def telemetry(principal=Depends(require_section("telemetry", "telemetry:wr
         {"label": "Open Tasks", "value": str(open_tasks), "delta": 0, "tone": "neutral", "spark": []},
     ]
     sources.append({"label": "People & Tasks", "detail": "Headcount and open tasks from workspace data", "freshness": "live"})
-    deals = await db.deals.find({"workspace_id": c["workspace_id"]}, {"_id": 0}).to_list(500)
-    metrics = _deal_metrics(deals) if deals else None
+    sales_dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_SALES,
+    )
+    deal_money_ok = fin_ok or bool(sales_dept_ids)
+    deals = []
+    metrics = None
+    if deal_money_ok:
+        deal_filt = dept_access.apply_department_filter(
+            {"workspace_id": c["workspace_id"]}, sales_dept_ids if sales_dept_ids else None,
+        )
+        # When only Financials (no Sales dept membership), still allow company-wide
+        # pipeline for finance viewers; Sales members stay dept-scoped.
+        if not sales_dept_ids and fin_ok:
+            deal_filt = {"workspace_id": c["workspace_id"]}
+        deals = await db.deals.find(deal_filt, {"_id": 0}).to_list(500)
+        metrics = _deal_metrics(deals) if deals else None
     currency = fin.get("currency") or "usd"
-    if metrics:
+    if metrics and deal_money_ok:
         kpis.append({"label": "Pipeline", "value": fmt_money(metrics["open_value"], currency),
                      "delta": 0, "tone": "neutral", "spark": []})
         sources.append({"label": "Pipeline", "detail": "Live from deals in your CRM board", "freshness": "live"})
+    elif not deal_money_ok:
+        sources.append({
+            "label": "Pipeline",
+            "detail": "Pipeline dollars are shown to people with Sales or Financials access",
+            "freshness": "restricted",
+        })
     tel = c.get("telemetry") or {}
     manual = c.get("telemetry_manual") or {}
     targets = _normalize_telemetry_targets(manual.get("targets"))
@@ -7214,6 +7344,9 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
     except Exception:
         logger.exception("finance department enroll failed for %s", principal.get("user_id"))
     category = (payload.category or "").strip() or "Other"
+    amount = round(payload.amount, 2)
+    home_currency = await _workspace_currency(principal["workspace_id"])
+    money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
     entry = {
         "id": f"fe_{uuid.uuid4().hex[:10]}",
         "workspace_id": principal["workspace_id"],
@@ -7221,7 +7354,8 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
         "type": payload.type,
         "category": category,
         "name": entry_name,
-        "amount": round(payload.amount, 2),
+        "amount": amount,
+        **money,
         "month": payload.month.strip(),
         "recurring": payload.recurring,
         "note": (payload.note or "").strip(),
@@ -7277,14 +7411,19 @@ async def edit_fin_entry(entry_id: str, payload: FinEntryInput, principal=Depend
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     category = (payload.category or "").strip() or "Other"
+    amount = round(payload.amount, 2)
+    home_currency = await _workspace_currency(principal["workspace_id"])
+    # Recompute home/net/fx from the edited amount so totals never keep a stale
+    # amount_net_home from a prior sync. Manual edits are treated as home currency.
+    money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
     res = await db.financial_entries.update_one(
         {"id": entry_id, "workspace_id": principal["workspace_id"]},
         {"$set": {"type": payload.type, "category": category, "name": entry_name,
-                  "amount": round(payload.amount, 2), "month": payload.month.strip(),
+                  "amount": amount, **money, "month": payload.month.strip(),
                   "recurring": payload.recurring, "recurrence": _fin_entry_recurrence(payload),
                   "note": (payload.note or "").strip(),
-                  # Auto-booked rows (e.g. from a won deal) become the user's
-                  # once edited, so deal changes no longer overwrite or delete them.
+                  # Auto-booked / synced rows become the user's once edited, so
+                  # deal/procurement/accounting sync no longer overwrite them.
                   "user_edited": True}})
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -7582,6 +7721,31 @@ async def delete_model_scenario(scenario_id: str, principal=Depends(require_mode
 
 class CsvImportConfirmInput(BaseModel):
     entries: list
+    # Optional client session id; content hash always used as replay guard.
+    import_id: Optional[str] = None
+
+
+def _csv_import_fingerprint(entries: list) -> str:
+    """Stable hash of normalized rows so confirm is idempotent on retry/double-click."""
+    import hashlib
+    import json
+
+    norm = []
+    for raw in entries or []:
+        if not isinstance(raw, dict):
+            continue
+        norm.append({
+            "type": (raw.get("type") or "").strip().lower(),
+            "amount": raw.get("amount"),
+            "month": (raw.get("month") or "").strip(),
+            "category": (raw.get("category") or "Other").strip() or "Other",
+            "name": (raw.get("name") or "").strip(),
+            "recurring": bool(raw.get("recurring")),
+            "note": (raw.get("note") or "").strip(),
+        })
+    norm.sort(key=lambda r: (r["month"], r["type"], r["name"], str(r["amount"])))
+    blob = json.dumps(norm, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
 @api_router.post("/financials/import-csv")
@@ -7624,14 +7788,36 @@ async def import_financials_csv_confirm(
     payload: CsvImportConfirmInput,
     principal=Depends(require_section("financials", "finance:write")),
 ):
-    """Bulk-insert previously previewed valid rows with source=csv_import."""
+    """Bulk-insert previously previewed valid rows with source=csv_import.
+
+    Idempotent via content fingerprint (and optional import_id): a replay of the
+    same rows returns the prior result instead of doubling the ledger.
+    """
+    from pymongo.errors import DuplicateKeyError
+
     if not payload.entries:
         raise HTTPException(status_code=400, detail="No entries to import")
     if len(payload.entries) > 5000:
         raise HTTPException(status_code=400, detail="Too many rows (max 5000)")
+    ws_id = principal["workspace_id"]
+    fingerprint = _csv_import_fingerprint(payload.entries)
+    import_id = (payload.import_id or "").strip() or None
+    prior = await db.csv_import_receipts.find_one(
+        {"workspace_id": ws_id, "fingerprint": fingerprint},
+        {"_id": 0},
+    )
+    if prior:
+        return {
+            "ok": True,
+            "committed": True,
+            "imported_count": int(prior.get("imported_count") or 0),
+            "entries": prior.get("entry_ids") or [],
+            "replayed": True,
+        }
     now = datetime.now(timezone.utc).isoformat()
-    ws_now_local = await _workspace_now(principal["workspace_id"])
-    finance_dept_id = await dept_migrate.finance_department_id(db, principal["workspace_id"])
+    ws_now_local = await _workspace_now(ws_id)
+    finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
+    home_currency = await _workspace_currency(ws_id)
     docs = []
     for raw in payload.entries:
         if not isinstance(raw, dict):
@@ -7649,25 +7835,52 @@ async def import_financials_csv_confirm(
         if not re.fullmatch(r"\d{4}-\d{2}", month) or not _valid_fin_month(month, now=ws_now_local):
             continue
         category = (raw.get("category") or "Other").strip() or "Other"
+        money = amap.money_fields(amount, currency=home_currency, home_currency=home_currency)
         docs.append({
             "id": f"fe_{uuid.uuid4().hex[:10]}",
-            "workspace_id": principal["workspace_id"],
+            "workspace_id": ws_id,
             "department_id": finance_dept_id,
             "type": entry_type,
             "category": category,
             "name": normalize_entry_name(raw.get("name"), category),
             "amount": amount,
+            **money,
             "month": month,
             "recurring": bool(raw.get("recurring")),
             "note": (raw.get("note") or "").strip(),
             "source": "csv_import",
             "created_by": principal["user_id"],
             "created_at": now,
+            "csv_import_fingerprint": fingerprint,
         })
     if not docs:
         raise HTTPException(status_code=400, detail="No valid entries to import")
+    receipt = {
+        "id": f"csvimp_{uuid.uuid4().hex[:12]}",
+        "workspace_id": ws_id,
+        "fingerprint": fingerprint,
+        "import_id": import_id,
+        "imported_count": len(docs),
+        "entry_ids": [{"id": d["id"]} for d in docs],
+        "created_by": principal["user_id"],
+        "created_at": now,
+    }
+    try:
+        await db.csv_import_receipts.insert_one(dict(receipt))
+    except DuplicateKeyError:
+        prior = await db.csv_import_receipts.find_one(
+            {"workspace_id": ws_id, "fingerprint": fingerprint},
+            {"_id": 0},
+        )
+        return {
+            "ok": True,
+            "committed": True,
+            "imported_count": int((prior or {}).get("imported_count") or 0),
+            "entries": (prior or {}).get("entry_ids") or [],
+            "replayed": True,
+        }
     await db.financial_entries.insert_many(docs)
-    invalidate_financials_cache(principal["workspace_id"])
+    invalidate_financials_cache(ws_id)
     for d in docs:
         d.pop("_id", None)
     await log_activity(
@@ -8183,10 +8396,13 @@ def _plain_weekly_change(curr, prev, *, money: bool = False, unit: str = "", cur
 
 
 def _report_metric_snapshot(fin, items, ups, headcount) -> dict:
+    arr_raw = fin.get("arr_value")
+    if arr_raw is None and fin.get("mrr_value") is not None:
+        arr_raw = float(fin.get("mrr_value") or 0) * 12
     return {
         "taken_at": datetime.now(timezone.utc).isoformat(),
         "mrr": None if fin.get("mrr_value") is None else int(fin.get("mrr_value") or 0),
-        "arr": None if fin.get("mrr_value") is None else int(fin.get("mrr_value") or 0) * 12,
+        "arr": None if arr_raw is None else round(float(arr_raw)),
         "runway_months": fin.get("runway_months"),
         "burn": None if fin.get("burn_value") is None else int(fin.get("burn_value") or 0),
         "headcount": int(headcount or 0),
@@ -11780,11 +11996,15 @@ async def patch_procurement_request(
             request_id, principal.get("workspace_id"),
         )
     invalidate_workspace_list_cache(principal["workspace_id"], "procurement", "production", "me_work", "calendar")
-    return {
+    out = {
         "ok": True,
         "request": await _enrich_procurement_request(updated),
-        "financial_entry": financial_entry,
     }
+    if financial_entry and await can_access_financials(principal):
+        out["financial_entry"] = financial_entry
+    elif financial_entry:
+        out["booked"] = True
+    return out
 
 
 @api_router.delete("/procurement/requests/{request_id}")
@@ -15138,9 +15358,24 @@ async def _complete_oauth_callback(
     return RedirectResponse(f"{integrations_path}?connected={provider}")
 
 
+class IntegrationDisconnectInput(BaseModel):
+    # When true, also delete synced financial_entries from this provider (not
+    # manual/CSV/deal/procurement rows). Default keeps the silver ledger copy.
+    purge_synced: bool = False
+
+
 @api_router.post("/integrations/{provider}/disconnect")
-async def integration_disconnect(provider: str, principal=Depends(get_principal)):
-    """Disconnect. Google clears only the calling user's tokens; others need integrations:manage."""
+async def integration_disconnect(
+    provider: str,
+    payload: Optional[IntegrationDisconnectInput] = None,
+    principal=Depends(get_principal),
+):
+    """Disconnect. Google clears only the calling user's tokens; others need integrations:manage.
+
+    Accounting providers keep synced ledger rows by default (silver copy). Pass
+    purge_synced=true to also remove provider-sourced financial_entries.
+    """
+    body = payload or IntegrationDisconnectInput()
     if provider == "google":
         old = await _user_google_tokens(principal["workspace_id"], principal["user_id"])
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
@@ -15160,16 +15395,32 @@ async def integration_disconnect(provider: str, principal=Depends(get_principal)
         raise HTTPException(status_code=404, detail="Unknown provider")
     unset = None
     if provider == "quickbooks":
-        unset = {"qb_last_synced_at": ""}
+        unset = {"qb_last_synced_at": "", "qb_sync_incomplete": ""}
     elif provider == "xero":
-        unset = {"xero_last_synced_at": ""}
+        unset = {"xero_last_synced_at": "", "xero_sync_incomplete": ""}
     elif provider == "hubspot":
         unset = {"hubspot_last_synced_at": ""}
     elif provider == "sap_b1":
-        unset = {"sap_b1_last_synced_at": ""}
+        unset = {"sap_b1_last_synced_at": "", "sap_b1_sync_incomplete": ""}
     old_ws = await get_ws(principal["workspace_id"])
     old = _integration_tokens(old_ws, field)
     await _store_integration_tokens(principal["workspace_id"], field, None, extra_unset=unset)
+    purged = 0
+    if body.purge_synced and provider in ("quickbooks", "xero", "sap_b1"):
+        source_prefixes = {
+            "quickbooks": ("quickbooks_sync", "quickbooks_auto_sync"),
+            "xero": ("xero_sync", "xero_auto_sync"),
+            "sap_b1": ("sap_b1_sync", "sap_b1_auto_sync"),
+        }[provider]
+        res = await db.financial_entries.delete_many({
+            "workspace_id": principal["workspace_id"],
+            "qb_txn_id": {"$type": "string"},
+            "source": {"$in": list(source_prefixes)},
+            "user_edited": {"$ne": True},
+        })
+        purged = int(getattr(res, "deleted_count", 0) or 0)
+        if purged:
+            invalidate_financials_cache(principal["workspace_id"])
     if old:
         # Best effort, never blocks the disconnect: revoke the grant at the provider
         # (Intuit requires this) and end any open SAP session.
@@ -15181,8 +15432,12 @@ async def integration_disconnect(provider: str, principal=Depends(get_principal)
             asyncio.create_task(integration_revoke.revoke_hubspot(old))
         elif provider == "sap_b1":
             asyncio.create_task(sap_b1_sync.logout(old))
-    await log_activity(principal, "integrations", f"{provider}.disconnect", f"Disconnected {provider}")
-    return {"ok": True}
+    await log_activity(
+        principal, "integrations", f"{provider}.disconnect",
+        f"Disconnected {provider}" + (f" · removed {purged} synced ledger row(s)" if purged else ""),
+        {"purge_synced": body.purge_synced, "purged": purged},
+    )
+    return {"ok": True, "purged_synced": purged}
 
 
 class XeroTenantInput(BaseModel):
@@ -15251,14 +15506,37 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
     since = _sync_since(c, "sap_b1_last_synced_at", "sap_b1_mapping_version")
     txns, complete, live, deleted = await sap_b1_sync.fetch_sap_transactions(live, since)
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
-    synced_count = await _upsert_accounting_sync_entries(
+    upsert = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at, "sap_b1_mapping_version": amap.MAPPING_VERSION}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {
+                "$set": {
+                    "sap_b1_last_synced_at": last_synced_at,
+                    "sap_b1_mapping_version": amap.MAPPING_VERSION,
+                    "sap_b1_sync_incomplete": False,
+                },
+            },
+        )
+    else:
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {"$set": {"sap_b1_sync_incomplete": True}},
+        )
+        upsert.setdefault("warnings", []).append(
+            "Sync incomplete — ledger is larger than one pull. Run Sync again to continue."
+        )
+    return {
+        "synced_count": upsert["synced_count"],
+        "last_synced_at": last_synced_at,
+        "complete": complete,
+        "warnings": upsert.get("warnings") or [],
+        "fx_missing_count": upsert.get("fx_missing_count") or 0,
+    }
 
 
 @api_router.post("/integrations/sap_b1/sync")
@@ -15362,9 +15640,18 @@ async def _upsert_accounting_sync_entries(
     txns: list,
     source: str,
     deleted_ids: Optional[list[str]] = None,
-) -> int:
-    """Shared QuickBooks/Xero upsert into financial_entries (identical downstream shape)."""
+) -> dict:
+    """Shared QuickBooks/Xero/SAP upsert into financial_entries.
+
+    Returns {"synced_count", "skipped_user_edited", "fx_missing_count", "warnings"}.
+    """
+    from pymongo import UpdateOne, InsertOne
+    from pymongo.errors import BulkWriteError, DuplicateKeyError
+
     synced_count = 0
+    skipped_user_edited = 0
+    fx_missing_count = 0
+    warnings: list[str] = []
     now_iso = datetime.now(timezone.utc).isoformat()
     finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
 
@@ -15375,7 +15662,7 @@ async def _upsert_accounting_sync_entries(
     if txn_ids:
         existing_rows = await db.financial_entries.find(
             {"workspace_id": ws_id, "qb_txn_id": {"$in": txn_ids}},
-            {"_id": 0, "id": 1, "qb_txn_id": 1},
+            {"_id": 0, "id": 1, "qb_txn_id": 1, "user_edited": 1},
         ).to_list(len(txn_ids))
         existing_by_id = {e["qb_txn_id"]: e for e in existing_rows if e.get("qb_txn_id")}
 
@@ -15389,8 +15676,11 @@ async def _upsert_accounting_sync_entries(
     # so a deploy without the one-shot migration cannot double-count.
     from scripts.migrate_qb_txn_ids import legacy_dated_patterns_for_stable
 
+    # One-shot legacy cleanup (patterns × entities) before the batch write — avoids
+    # N regex delete_many calls inside the per-txn loop.
+    legacy_filters = []
+    prepared: list[tuple[str, Optional[str], dict, dict]] = []
     for txn in txns:
-        # Internal raw-type hints become the public source_entity, then are dropped.
         source_entity = (
             txn.get("source_entity")
             or txn.get("_qb_raw_type")
@@ -15403,21 +15693,34 @@ async def _upsert_accounting_sync_entries(
         txn.pop("_sap_raw_type", None)
         qb_txn_id = txn.pop("qb_txn_id")
         for pat in legacy_dated_patterns_for_stable(qb_txn_id):
-            await db.financial_entries.delete_many(
-                {"workspace_id": ws_id, "qb_txn_id": {"$regex": pat}},
-            )
+            # Scope by source_entity when known so qb_invoice_N and qb_purchase_N
+            # sharing a numeric Id do not delete each other's legacy dated rows.
+            filt: dict = {"workspace_id": ws_id, "qb_txn_id": {"$regex": pat}}
+            if source_entity:
+                filt["$or"] = [
+                    {"source_entity": source_entity},
+                    {"source_entity": {"$exists": False}},
+                    {"source_entity": None},
+                ]
+            legacy_filters.append(filt)
         existing = existing_by_id.get(qb_txn_id)
+        if existing and existing.get("user_edited"):
+            skipped_user_edited += 1
+            continue
         currency = (txn.get("currency") or home_currency or "").lower() or home_currency
         amount = txn["amount"]
         money = amap.money_fields(
             amount,
             currency=currency,
+            home_currency=home_currency,
             fx_rate=txn.get("fx_rate"),
             tax_amount=txn.get("tax_amount") or 0,
             amount_net=txn.get("amount_net"),
             amount_home=txn.get("amount_home"),
             amount_net_home=txn.get("amount_net_home"),
         )
+        if money.get("fx_missing"):
+            fx_missing_count += 1
         fields = {
             "type": txn["type"],
             "category": txn["category"],
@@ -15430,15 +15733,27 @@ async def _upsert_accounting_sync_entries(
             "note": txn.get("note", ""),
             "recurring": txn.get("recurring", False),
             "source": source,
-            # Lineage: which mapper version produced this row (see accounting_map).
             "mapping_version": amap.MAPPING_VERSION,
             "updated_at": now_iso,
         }
+        prepared.append((qb_txn_id, source_entity, fields, existing or {}))
+
+    # Dedupe identical legacy regex filters.
+    seen_legacy = set()
+    for filt in legacy_filters:
+        key = (filt.get("qb_txn_id", {}).get("$regex"), filt.get("source_entity"), str(filt.get("$or")))
+        if key in seen_legacy:
+            continue
+        seen_legacy.add(key)
+        await db.financial_entries.delete_many(filt)
+
+    ops = []
+    for qb_txn_id, _source_entity, fields, existing in prepared:
         if existing:
-            await db.financial_entries.update_one(
-                {"workspace_id": ws_id, "qb_txn_id": qb_txn_id},
+            ops.append(UpdateOne(
+                {"workspace_id": ws_id, "qb_txn_id": qb_txn_id, "user_edited": {"$ne": True}},
                 {"$set": fields},
-            )
+            ))
         else:
             entry = {
                 "id": f"fe_{uuid.uuid4().hex[:10]}",
@@ -15449,21 +15764,46 @@ async def _upsert_accounting_sync_entries(
                 "created_at": now_iso,
                 **fields,
             }
-            try:
-                await db.financial_entries.insert_one(entry)
-            except Exception as exc:
-                # Concurrent sync of the same qb_txn_id — fall back to update.
-                from pymongo.errors import DuplicateKeyError
-                if not isinstance(exc, DuplicateKeyError):
-                    raise
-                await db.financial_entries.update_one(
-                    {"workspace_id": ws_id, "qb_txn_id": qb_txn_id},
-                    {"$set": fields},
-                )
+            ops.append(InsertOne(entry))
         synced_count += 1
-    if synced_count:
+
+    if ops:
+        try:
+            await db.financial_entries.bulk_write(ops, ordered=False)
+        except BulkWriteError as exc:
+            # Concurrent insert of the same qb_txn_id — fall back to per-id update.
+            for err in (exc.details or {}).get("writeErrors") or []:
+                if err.get("code") != 11000:
+                    raise
+            for qb_txn_id, _se, fields, _ex in prepared:
+                try:
+                    await db.financial_entries.update_one(
+                        {"workspace_id": ws_id, "qb_txn_id": qb_txn_id, "user_edited": {"$ne": True}},
+                        {"$set": fields},
+                        upsert=True,
+                    )
+                except DuplicateKeyError:
+                    await db.financial_entries.update_one(
+                        {"workspace_id": ws_id, "qb_txn_id": qb_txn_id, "user_edited": {"$ne": True}},
+                        {"$set": fields},
+                    )
         invalidate_financials_cache(ws_id)
-    return synced_count
+
+    if fx_missing_count:
+        warnings.append(
+            f"{fx_missing_count} transaction(s) missing FX rates were quarantined "
+            "and excluded from totals. Re-sync after rates are available, or set them in your accounting system."
+        )
+    if skipped_user_edited:
+        warnings.append(
+            f"{skipped_user_edited} edited row(s) were left unchanged (your corrections are preserved)."
+        )
+    return {
+        "synced_count": synced_count,
+        "skipped_user_edited": skipped_user_edited,
+        "fx_missing_count": fx_missing_count,
+        "warnings": warnings,
+    }
 
 
 # Incremental syncs ask providers for records changed since the last watermark.
@@ -15517,14 +15857,37 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     since = _sync_since(c, "qb_last_synced_at", "qb_mapping_version")
     txns, complete, tokens, deleted = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
-    synced_count = await _upsert_accounting_sync_entries(
+    upsert = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at, "qb_mapping_version": amap.MAPPING_VERSION}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {
+                "$set": {
+                    "qb_last_synced_at": last_synced_at,
+                    "qb_mapping_version": amap.MAPPING_VERSION,
+                    "qb_sync_incomplete": False,
+                },
+            },
+        )
+    else:
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {"$set": {"qb_sync_incomplete": True}},
+        )
+        upsert.setdefault("warnings", []).append(
+            "Sync incomplete — ledger is larger than one pull. Run Sync again to continue."
+        )
+    return {
+        "synced_count": upsert["synced_count"],
+        "last_synced_at": last_synced_at,
+        "complete": complete,
+        "warnings": upsert.get("warnings") or [],
+        "fx_missing_count": upsert.get("fx_missing_count") or 0,
+    }
 
 
 async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str = "xero_sync") -> dict:
@@ -15543,14 +15906,37 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     since = _sync_since(c, "xero_last_synced_at", "xero_mapping_version")
     txns, complete, tokens, deleted = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
-    synced_count = await _upsert_accounting_sync_entries(
+    upsert = await _upsert_accounting_sync_entries(
         ws_id=ws_id, principal=principal, txns=txns, source=source, deleted_ids=deleted,
     )
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at, "xero_mapping_version": amap.MAPPING_VERSION}})
-    return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {
+                "$set": {
+                    "xero_last_synced_at": last_synced_at,
+                    "xero_mapping_version": amap.MAPPING_VERSION,
+                    "xero_sync_incomplete": False,
+                },
+            },
+        )
+    else:
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {"$set": {"xero_sync_incomplete": True}},
+        )
+        upsert.setdefault("warnings", []).append(
+            "Sync incomplete — ledger is larger than one pull. Run Sync again to continue."
+        )
+    return {
+        "synced_count": upsert["synced_count"],
+        "last_synced_at": last_synced_at,
+        "complete": complete,
+        "warnings": upsert.get("warnings") or [],
+        "fx_missing_count": upsert.get("fx_missing_count") or 0,
+    }
 
 
 @api_router.post("/integrations/quickbooks/sync")
@@ -15619,6 +16005,8 @@ async def xero_sync_endpoint(principal=Depends(require_integration_provider("xer
 
 async def run_accounting_auto_sync() -> dict:
     """Cron: sync every workspace with a live QuickBooks or Xero connection."""
+    # Project only fields needed for sync routing — avoid loading every sealed
+    # token blob for tenants that will be skipped, and keep decrypt scoped.
     cursor = db.workspaces.find(
         {
             "$or": [
@@ -15627,7 +16015,22 @@ async def run_accounting_auto_sync() -> dict:
                 {"sap_b1_credentials": {"$exists": True, "$ne": None}},
             ],
         },
-        {"_id": 0},
+        {
+            "_id": 0,
+            "workspace_id": 1,
+            "quickbooks_tokens": 1,
+            "xero_tokens": 1,
+            "sap_b1_credentials": 1,
+            "qb_last_synced_at": 1,
+            "xero_last_synced_at": 1,
+            "sap_b1_last_synced_at": 1,
+            "qb_mapping_version": 1,
+            "xero_mapping_version": 1,
+            "sap_b1_mapping_version": 1,
+            "quickbooks_tokens_connected_by": 1,
+            "xero_tokens_connected_by": 1,
+            "sap_b1_credentials_connected_by": 1,
+        },
     )
     workspaces = await cursor.to_list(2000)
     stats = {
@@ -18353,6 +18756,8 @@ async def _ensure_indexes():
         (db.financial_entries, [("workspace_id", 1)], {}),
         (db.financial_entries, [("workspace_id", 1), ("department_id", 1)], {}),
         (db.financial_entries, [("workspace_id", 1), ("department_id", 1), ("month", -1)], {}),
+        (db.financial_entries, [("workspace_id", 1), ("month", -1)], {}),
+        (db.financial_entries, [("workspace_id", 1), ("updated_at", -1)], {}),
         # Partial unique indexes: sparse unique still indexes explicit null, which
         # collides on a second manual row that stored qb_txn_id/source_deal_id: null.
         (db.financial_entries, [("workspace_id", 1), ("qb_txn_id", 1)], {
@@ -18370,6 +18775,11 @@ async def _ensure_indexes():
             "name": "ws_source_procurement_request_id_partial",
             "partialFilterExpression": {"source_procurement_request_id": {"$type": "string"}},
         }),
+        (db.csv_import_receipts, [("workspace_id", 1), ("fingerprint", 1)], {
+            "unique": True,
+            "name": "ws_csv_import_fingerprint",
+        }),
+        (db.csv_import_receipts, [("created_at", 1)], {"expireAfterSeconds": 60 * 60 * 24 * 30}),
         (db.documents, [("workspace_id", 1)], {}),
         (db.documents, [("workspace_id", 1), ("uploaded_at", -1)], {}),
         (db.documents, [("id", 1)], {"unique": True}),

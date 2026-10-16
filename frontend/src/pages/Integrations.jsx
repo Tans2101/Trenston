@@ -444,17 +444,29 @@ export default function Integrations() {
     const name = (data?.integrations || []).find((x) => x.provider === provider)?.name || "this integration";
     // One click used to cut the connection straight away; ask first, since
     // reconnecting means going through the provider's sign-in again.
+    const isAccounting = provider === "quickbooks" || provider === "xero" || provider === "sap_b1";
     if (!(await confirmAction({
       title: `Disconnect ${name}?`,
-      description: "Trenston stops syncing from it. Data already synced stays. You can reconnect any time.",
+      description: isAccounting
+        ? "Trenston stops syncing from it. Synced ledger rows stay unless you choose to remove them. You can reconnect any time."
+        : "Trenston stops syncing from it. Data already synced stays. You can reconnect any time.",
       confirmLabel: "Disconnect",
       destructive: true,
     }))) return;
+    let purgeSynced = false;
+    if (isAccounting) {
+      purgeSynced = await confirmAction({
+        title: "Also remove synced ledger rows?",
+        description: "Removes transactions imported from this provider (not rows you typed or marked as edited). Choose Cancel to keep the ledger copy.",
+        confirmLabel: "Remove synced rows",
+        destructive: true,
+      });
+    }
     setDisconnectingProvider(provider);
     try {
-      await api.post(`/integrations/${provider}/disconnect`);
+      await api.post(`/integrations/${provider}/disconnect`, isAccounting ? { purge_synced: !!purgeSynced } : {});
       reload();
-      toast.success(`${name} disconnected`);
+      toast.success(purgeSynced ? `${name} disconnected · synced ledger rows removed` : `${name} disconnected`);
     } catch (e) {
       toast.error(e?.response?.data?.detail || `Could not disconnect ${name}. Please try again.`);
     } finally {
@@ -469,7 +481,14 @@ export default function Integrations() {
       const { data: res } = await api.post(`/integrations/${provider}/sync`, {}, { timeout: 120000 });
       const label = provider === "xero" ? "Xero" : provider === "hubspot" ? "HubSpot" : provider === "sap_b1" ? "SAP Business One" : "QuickBooks";
       const unit = provider === "hubspot" ? "deal" : "transaction";
-      toast.success(`Synced ${res.synced_count} ${unit}${res.synced_count === 1 ? "" : "s"} from ${label}`);
+      const countMsg = `Synced ${res.synced_count} ${unit}${res.synced_count === 1 ? "" : "s"} from ${label}`;
+      if (res.complete === false) {
+        toast.warning(`${countMsg}. Sync incomplete — run again to continue.`, { duration: 12000 });
+      } else if (Array.isArray(res.warnings) && res.warnings.length > 0) {
+        toast.warning(`${countMsg}. ${res.warnings[0]}`, { duration: 10000 });
+      } else {
+        toast.success(countMsg);
+      }
       reload();
     } catch (e) {
       toast.error(e?.response?.data?.detail || `${provider} sync failed`);

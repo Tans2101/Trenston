@@ -73,10 +73,14 @@ def is_possibly_stale(
     dept_type: str | None = None,
     now: Optional[datetime] = None,
 ) -> bool:
-    """True when the record's last known update is older than the threshold."""
+    """True when the record's last known update is older than the threshold.
+
+    Missing timestamps are treated as possibly stale (unknown freshness) so
+    never-updated rows do not look fresh.
+    """
     ts = item_timestamp(row)
     if not ts:
-        return False
+        return True
     now = now or datetime.now(timezone.utc)
     age = now - ts
     return age >= timedelta(days=stale_after_days(dept_type))

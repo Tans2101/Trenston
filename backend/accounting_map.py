@@ -5,6 +5,9 @@ See backend/scripts/migrate_qb_txn_ids.py for rewriting legacy dated ids.
 
 Downstream totals prefer amount_net (net of tax) converted via amount_home.
 Entries without currency default to the workspace home currency.
+
+Cross-currency rows without a valid FX rate are quarantined (fx_missing=True)
+and excluded from totals — never invent rate 1.0 for foreign amounts.
 """
 from __future__ import annotations
 
@@ -16,7 +19,7 @@ from typing import Any, Optional
 # currency, month): the next sync for each workspace then re-pulls everything
 # from the provider once and rewrites every row with the new logic. The
 # provider is the raw ("bronze") copy; Trenston does not store raw payloads.
-MAPPING_VERSION = "2026-10-16.1"
+MAPPING_VERSION = "2026-10-16.2"
 
 # Single fallback for uncategorized line items across all accounting sources.
 DEFAULT_UNCATEGORIZED = "Other"
@@ -40,17 +43,6 @@ def normalize_mapped_amount(raw: Any) -> tuple[float, bool]:
     return amount, signed < 0
 
 
-def apply_exchange_rate(amount: float, exchange_rate: Any) -> float:
-    """Convert amount to home currency. Missing/invalid rate → assume 1.0."""
-    try:
-        rate = float(exchange_rate) if exchange_rate not in (None, "") else 1.0
-    except (TypeError, ValueError):
-        rate = 1.0
-    if rate <= 0:
-        rate = 1.0
-    return round(float(amount) * rate, 2)
-
-
 def _float_or(value: Any, default: Optional[float]) -> Optional[float]:
     try:
         if value is None or value == "":
@@ -60,42 +52,102 @@ def _float_or(value: Any, default: Optional[float]) -> Optional[float]:
         return default
 
 
-def fx_rate_home_per_foreign(rate: Any) -> float:
-    """Normalize a home-units-per-foreign-unit rate; missing/invalid -> 1.0."""
-    val = _float_or(rate, 1.0)
-    return val if val and val > 0 else 1.0
+def fx_rate_home_per_foreign(rate: Any) -> Optional[float]:
+    """Normalize a home-units-per-foreign-unit rate; missing/invalid → None."""
+    val = _float_or(rate, None)
+    if val is None or val <= 0:
+        return None
+    return val
+
+
+def apply_exchange_rate(
+    amount: float,
+    exchange_rate: Any,
+    *,
+    currency: Any = None,
+    home_currency: Any = None,
+) -> tuple[Optional[float], bool]:
+    """Convert amount to home currency.
+
+    Returns (converted_amount_or_None, fx_missing).
+    Same-currency / unknown-currency without a home contrast → rate 1.0.
+    Cross-currency with missing/invalid rate → (None, True); never invent 1.0.
+    """
+    code = str(currency or "").strip().lower() or None
+    home = str(home_currency or "").strip().lower() or None
+    rate = fx_rate_home_per_foreign(exchange_rate)
+    cross = bool(code and home and code != home)
+    if cross and rate is None:
+        return None, True
+    use_rate = rate if rate is not None else 1.0
+    return round(float(amount) * use_rate, 2), False
 
 
 def money_fields(
     amount: float,
     *,
     currency: Any = None,
-    fx_rate: Any = 1.0,
+    home_currency: Any = None,
+    fx_rate: Any = None,
     tax_amount: Any = 0.0,
     amount_net: Any = None,
     amount_home: Any = None,
     amount_net_home: Any = None,
 ) -> dict[str, Any]:
-    """Shared money contract for every accounting row.
+    """Shared money contract for every accounting / manual row.
 
     - currency: lowercase ISO code (None when the source does not say)
+    - home_currency: workspace home ISO code (used to detect cross-currency)
     - fx_rate: home-currency units per one document-currency unit (1.0 = home)
     - amount_home: amount * fx_rate unless the source supplies it
     - tax_amount: absolute tax on the document
     - amount_net: amount excluding tax (>= 0) unless the source supplies it
     - amount_net_home: amount_net * fx_rate unless the source supplies it
+    - fx_missing: True when document currency ≠ home and no valid rate
+      (home amounts omitted; totals must exclude the row)
     All magnitudes are non-negative; polarity lives in ``is_credit``.
     """
     amt = abs(_float_or(amount, 0.0) or 0.0)
-    rate = fx_rate_home_per_foreign(fx_rate)
+    code = str(currency or "").strip().lower() or None
+    home_code = str(home_currency or "").strip().lower() or None
+    parsed_rate = fx_rate_home_per_foreign(fx_rate)
     tax = abs(_float_or(tax_amount, 0.0) or 0.0)
     net = _float_or(amount_net, None)
     net = abs(net) if net is not None else max(amt - tax, 0.0)
-    home = _float_or(amount_home, None)
-    home = abs(home) if home is not None else amt * rate
-    net_home = _float_or(amount_net_home, None)
-    net_home = abs(net_home) if net_home is not None else net * rate
-    code = str(currency or "").strip().lower() or None
+    supplied_home = _float_or(amount_home, None)
+    supplied_net_home = _float_or(amount_net_home, None)
+
+    cross = bool(code and home_code and code != home_code)
+    fx_missing = bool(
+        cross and parsed_rate is None and supplied_home is None and supplied_net_home is None
+    )
+    if fx_missing:
+        return {
+            "currency": code,
+            "fx_rate": None,
+            "amount_home": None,
+            "amount_net": round(net, 2),
+            "amount_net_home": None,
+            "tax_amount": round(tax, 2),
+            "fx_missing": True,
+        }
+
+    # Document currency known but home not yet — leave rate/home unset so the
+    # sync upsert (which knows home) can quarantine or convert. Never invent 1.0.
+    if code and not home_code and parsed_rate is None and supplied_home is None and supplied_net_home is None:
+        return {
+            "currency": code,
+            "fx_rate": None,
+            "amount_home": None,
+            "amount_net": round(net, 2),
+            "amount_net_home": None,
+            "tax_amount": round(tax, 2),
+            "fx_missing": False,
+        }
+
+    rate = parsed_rate if parsed_rate is not None else 1.0
+    home = abs(supplied_home) if supplied_home is not None else amt * rate
+    net_home = abs(supplied_net_home) if supplied_net_home is not None else net * rate
     return {
         "currency": code,
         "fx_rate": round(rate, 8),
@@ -103,6 +155,7 @@ def money_fields(
         "amount_net": round(net, 2),
         "amount_net_home": round(net_home, 2),
         "tax_amount": round(tax, 2),
+        "fx_missing": False,
     }
 
 
@@ -119,8 +172,11 @@ def entry_amount_for_totals(entry: dict[str, Any]) -> float:
     Priority: amount_net_home (current sync contract); for rows synced before it
     existed, amount_net scaled into home currency when both net + home exist, else
     amount_home, else amount_net; legacy/manual rows fall back to amount.
+    Quarantined cross-currency rows (fx_missing) contribute 0.
     Polarity is applied separately via ``entry_signed_amount``.
     """
+    if entry.get("fx_missing"):
+        return 0.0
     net_home = _float_or(entry.get("amount_net_home"), None)
     if net_home is not None:
         return round(abs(net_home), 2)
@@ -151,6 +207,8 @@ def entry_signed_amount(entry: dict[str, Any], amount: Optional[float] = None) -
     Legacy QB rows may still hold a negative ``amount`` without ``is_credit``.
     Those keep negative polarity (using net/home magnitude when available).
     """
+    if entry.get("fx_missing"):
+        return 0.0
     raw = _raw_amount(entry)
     is_credit = bool(entry.get("is_credit") or entry.get("is_refund"))
 

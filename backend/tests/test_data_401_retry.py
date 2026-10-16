@@ -117,7 +117,7 @@ def test_quickbooks_sync_401_refreshes_persists_and_succeeds():
         patch.object(qb.httpx, "AsyncClient", fake),
         patch.object(server, "db", fake_db),
         patch.object(server, "_integration_tokens", return_value=_fresh_tokens(realmId="realm")),
-        patch.object(server, "_upsert_accounting_sync_entries", new=AsyncMock(return_value=0)),
+        patch.object(server, "_upsert_accounting_sync_entries", new=AsyncMock(return_value={"synced_count": 0, "warnings": []})),
         patch.object(server, "_store_integration_tokens", new_callable=AsyncMock) as store,
     ):
         result = asyncio.run(server._run_quickbooks_sync_for_workspace(ws, _principal()))
@@ -152,7 +152,7 @@ def test_xero_sync_401_refreshes_persists_and_succeeds():
         patch.object(xr.httpx, "AsyncClient", fake),
         patch.object(server, "db", fake_db),
         patch.object(server, "_integration_tokens", return_value=_fresh_tokens(tenant_id="t1")),
-        patch.object(server, "_upsert_accounting_sync_entries", new=AsyncMock(return_value=0)),
+        patch.object(server, "_upsert_accounting_sync_entries", new=AsyncMock(return_value={"synced_count": 0, "warnings": []})),
         patch.object(server, "_store_integration_tokens", new_callable=AsyncMock) as store,
     ):
         result = asyncio.run(server._run_xero_sync_for_workspace(ws, _principal()))

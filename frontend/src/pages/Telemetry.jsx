@@ -165,7 +165,7 @@ export default function Telemetry() {
   const hasTargetLine = revenueTrend.some((r) => r.target != null && r.target !== undefined);
   // Backend `mrr` key here is total monthly revenue (recurring + one-off). Months
   // that only carry expenses come back as 0 — a flat zero line is not real revenue.
-  const hasRevenue = revenueTrend.some((r) => Number(r.mrr) > 0);
+  const hasRevenue = revenueTrend.some((r) => Number(r.revenue ?? r.mrr) > 0);
   const funnelStages = toFunnelStages(data.funnel);
   const activityTotal = data.activity_heatmap?.total ?? 0;
   const heatmapColumns = toHeatmapColumns(data.activity_heatmap?.columns || []);
@@ -314,7 +314,7 @@ export default function Telemetry() {
                 {hasTargetLine && (
                   <Area type="monotone" dataKey="target" name="Target" stroke={SLATE} strokeDasharray="4 4" fill="none" strokeWidth={1.5} />
                 )}
-                <Area type="monotone" dataKey="mrr" name="Revenue" stroke={GOLD} strokeWidth={2} fill="url(#mrr)" />
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke={GOLD} strokeWidth={2} fill="url(#mrr)" />
               </AreaChart>
             </ResponsiveContainer>
           )}

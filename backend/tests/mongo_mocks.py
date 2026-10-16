@@ -159,6 +159,45 @@ class FakeCollection:
     async def insert_one(self, doc):
         self.docs.append(dict(doc))
 
+    async def bulk_write(self, ops, ordered=True):
+        """Minimal InsertOne / UpdateOne support for accounting upsert tests."""
+        from pymongo.errors import BulkWriteError, DuplicateKeyError
+
+        write_errors = []
+        for i, op in enumerate(ops or []):
+            name = type(op).__name__
+            try:
+                if name == "InsertOne":
+                    doc = dict(getattr(op, "_doc", None) or {})
+                    qid = doc.get("qb_txn_id")
+                    ws = doc.get("workspace_id")
+                    if qid and any(
+                        d.get("workspace_id") == ws and d.get("qb_txn_id") == qid for d in self.docs
+                    ):
+                        raise DuplicateKeyError("E11000 duplicate key")
+                    self.docs.append(doc)
+                elif name == "UpdateOne":
+                    filt = getattr(op, "_filter", None) or {}
+                    update = getattr(op, "_doc", None) or {}
+                    matched = False
+                    for d in self.docs:
+                        if match_filter(d, filt):
+                            for k, v in (update.get("$set") or {}).items():
+                                d[k] = v
+                            matched = True
+                            break
+                    if not matched:
+                        pass
+                else:
+                    raise NotImplementedError(name)
+            except DuplicateKeyError as exc:
+                write_errors.append({"index": i, "code": 11000, "errmsg": str(exc)})
+                if ordered:
+                    raise BulkWriteError({"writeErrors": write_errors}) from exc
+        if write_errors:
+            raise BulkWriteError({"writeErrors": write_errors})
+        return MagicMock()
+
     def find(self, flt=None, projection=None):
         rows = [dict(d) for d in self.docs if match_filter(d, flt or {})]
         return _FakeCursor(rows)

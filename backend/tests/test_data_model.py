@@ -88,6 +88,7 @@ def _fin(entries, cash=60000):
         "financial_settings": {"cash": cash, "cash_entered": True, "currency": "usd"},
     })
     db.financial_entries.find = MagicMock(return_value=_cursor(entries))
+    db.financial_entries.count_documents = AsyncMock(return_value=len(entries))
     with patch.object(server, "db", db), \
             patch.object(server.tz_utils, "workspace_now", lambda ws=None: MID_OCT):
         return asyncio.run(server.compute_financials("ws_dm", bypass_cache=True))
@@ -185,9 +186,9 @@ def test_recurring_hand_entry_vs_monthly_synced_bills():
     ]
     found = automations.detect_cross_source_duplicates(entries, "2026-10", "")
     assert len(found) == 1
-    assert found[0]["severity"] == "high"
+    assert found[0]["severity"] == "medium"
     assert found[0]["entry_ids"] == ["m1", "s1", "s2", "s3"]
-    assert "Xero" in found[0]["detail"] and "recurring row" in found[0]["detail"]
+    assert "Xero" in found[0]["detail"] and "Review" in found[0]["detail"]
 
 
 def test_no_flag_without_a_sync_or_for_small_or_different_amounts():
@@ -254,9 +255,15 @@ def test_synced_rows_are_stamped_with_mapping_version():
            "name": "Office rent", "amount": 2500.0, "month": "2026-09"}
     with patch.object(server, "db", db), \
             patch.object(server.dept_migrate, "finance_department_id", AsyncMock(return_value="dept_fin")):
+        db.financial_entries.bulk_write = AsyncMock(side_effect=lambda ops, ordered=False: (
+            inserted.extend(
+                (getattr(op, "_doc", None) or {})
+                for op in ops if type(op).__name__ == "InsertOne"
+            )
+        ))
         n = asyncio.run(server._upsert_accounting_sync_entries(
             ws_id="ws_dm", principal={"user_id": "u1"}, txns=[txn], source="quickbooks_sync",
         ))
-    assert n == 1
+    assert n["synced_count"] == 1
     assert inserted[0]["mapping_version"] == amap.MAPPING_VERSION
     assert inserted[0]["source"] == "quickbooks_sync"

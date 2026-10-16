@@ -15,6 +15,9 @@ def test_is_possibly_stale_respects_threshold():
     stale_row = {"updated_at": (now - timedelta(days=20)).isoformat()}
     assert fresh.is_possibly_stale(fresh_row, dept_type=dept_catalog.TYPE_PRODUCTION, now=now) is False
     assert fresh.is_possibly_stale(stale_row, dept_type=dept_catalog.TYPE_PRODUCTION, now=now) is True
+    # Missing timestamps are unknown → possibly stale (not treated as fresh).
+    assert fresh.is_possibly_stale({}, dept_type=dept_catalog.TYPE_PRODUCTION, now=now) is True
+    assert fresh.is_possibly_stale(None, dept_type=dept_catalog.TYPE_PRODUCTION, now=now) is True
 
 
 def test_annotate_possibly_stale():

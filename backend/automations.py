@@ -420,12 +420,14 @@ def _valid_month(value: Any) -> bool:
 
 
 def _plain_entries(entries: list[dict]) -> list[dict]:
-    """Ledger rows a person typed or imported (not recurring, not system-booked)."""
+    """Ledger rows a person typed or imported (not recurring, not system-booked, not synced)."""
     out = []
     for e in entries or []:
         if not e.get("id") or not _valid_month(e.get("month")):
             continue
         if e.get("recurring") or e.get("source_deal_id") or e.get("source_procurement_request_id"):
+            continue
+        if _is_synced(e):
             continue
         if e.get("type") not in ("revenue", "expense"):
             continue
@@ -462,7 +464,7 @@ def detect_duplicates(entries: list[dict], symbol: str = "") -> list[dict]:
             "title": f"{len(rows)} identical {etype} entries: {label}",
             "detail": (
                 f"{len(rows)} {etype} entries named \"{label}\" for {_money(amount, symbol)} each in {month}. "
-                "If it was entered twice, delete one so your numbers stay right."
+                "Review whether one was entered twice before changing anything."
             ),
             "entry_ids": ids,
             "month": month,
@@ -495,14 +497,28 @@ def _amounts_match(a: float, b: float) -> bool:
     return abs(a - b) <= max(1.0, 0.005 * max(a, b))
 
 
+def _names_overlap(a: dict, b: dict) -> bool:
+    """Require fuzzy name/vendor overlap so unrelated same-amount rows don't match."""
+    na, nb = _norm_name(a), _norm_name(b)
+    if not na or not nb:
+        return False
+    if na == nb or na in nb or nb in na:
+        return True
+    ta, tb = set(na.split()), set(nb.split())
+    # Drop tiny tokens so "a" / "the" don't create false overlap.
+    ta = {t for t in ta if len(t) > 2}
+    tb = {t for t in tb if len(t) > 2}
+    if not ta or not tb:
+        return False
+    return len(ta & tb) / min(len(ta), len(tb)) >= 0.5
+
+
 def detect_cross_source_duplicates(entries: list[dict], current_month: str, symbol: str = "") -> list[dict]:
     """Flag rows that look like the same money counted from two sources.
 
-    Names usually differ ("Rent" typed by hand vs "Office rent - Bill" from
-    QuickBooks), so detect_duplicates misses these. Match on type, month and
-    amount instead, only when an accounting sync is connected, only for
-    material amounts, and only over recent months. Recurring typed rows are
-    compared month by month against what was synced.
+    Match on type, month, amount, and fuzzy name/vendor overlap — only when an
+    accounting sync is connected, only for material amounts, and only over
+    recent months. Copy asks for review; never instructs delete without overlap.
     """
     if not _valid_month(current_month):
         return []
@@ -557,6 +573,8 @@ def detect_cross_source_duplicates(entries: list[dict], current_month: str, symb
                 sid = str(s["id"])
                 if sid in used:
                     continue
+                if not _names_overlap(t, s):
+                    continue
                 if _amounts_match(monthly, amap.entry_amount_for_totals(s)):
                     matches.append(s)
                     used.add(sid)
@@ -568,21 +586,19 @@ def detect_cross_source_duplicates(entries: list[dict], current_month: str, symb
         months_hit = sorted({m["month"] for m in matches})
         span = months_hit[0] if len(months_hit) == 1 else f"{months_hit[0]} to {months_hit[-1]}"
         synced_name = matches[0].get("name") or matches[0].get("category") or "a synced row"
-        if t.get("recurring"):
-            fix = (
-                f"If {src} already records this, end or delete the recurring row you added "
-                "so it is not counted twice."
-            )
-        else:
-            fix = "If they are the same payment, delete the one you added so it is not counted twice."
+        fix = (
+            f"Review both rows — if {src} already has this payment, consider ending "
+            "the Trenston copy so it is not counted twice. Do not delete a synced row."
+        )
         found.append({
             "key": f"xsrc:{t['id']}",
             "kind": "cross_source_duplicate",
-            "severity": "high" if len(matches) >= 3 else "medium",
+            # Review-level: amount+name overlap is suggestive, not proof.
+            "severity": "medium",
             "title": f"{label} may be counted twice",
             "detail": (
-                f"\"{label}\" ({_money(monthly, symbol)}, added in Trenston) matches \"{synced_name}\" "
-                f"synced from {src} for the same amount in {span}. {fix}"
+                f"\"{label}\" ({_money(monthly, symbol)}, added in Trenston) looks similar to "
+                f"\"{synced_name}\" synced from {src} for about the same amount in {span}. {fix}"
             ),
             "entry_ids": [str(t["id"])] + [str(m["id"]) for m in matches[:CROSS_SOURCE_MAX_SYNCED_SHOWN]],
             "month": months_hit[-1],
@@ -638,15 +654,27 @@ def detect_outlier_expenses(entries: list[dict], current_month: str, symbol: str
     return found
 
 
-def detect_revenue_change(ledger_months: list[dict], current_month: str) -> list[dict]:
-    """Compare the last full month with the average of up to 3 months before it."""
+def detect_revenue_change(
+    ledger_months: list[dict],
+    current_month: str,
+    *,
+    suppress: bool = False,
+) -> list[dict]:
+    """Compare the last full month with the average of up to 6 months before it.
+
+    Suppress when the ledger may be incomplete (truncated load or incomplete sync)
+    so seasonal/partial months don't generate false alarms.
+    """
+    if suppress:
+        return []
     rows = sorted(
         (m for m in ledger_months or [] if _valid_month(m.get("month")) and m["month"] < current_month),
         key=lambda m: m["month"],
     )
     if len(rows) < 3:
         return []
-    last, prior = rows[-1], rows[-4:-1]
+    last = rows[-1]
+    prior = rows[-7:-1]  # up to 6 completed months before last
     prior_rev = [float(m.get("revenue") or 0) for m in prior]
     if sum(1 for r in prior_rev if r > 0) < 2:
         return []
@@ -655,6 +683,7 @@ def detect_revenue_change(ledger_months: list[dict], current_month: str) -> list
         return []
     last_rev = float(last.get("revenue") or 0)
     month = last["month"]
+    prior_n = len(prior_rev)
     if last_rev <= 0:
         return [{
             "key": f"revenue_stopped:{month}",
@@ -662,7 +691,8 @@ def detect_revenue_change(ledger_months: list[dict], current_month: str) -> list
             "severity": "high",
             "title": f"No revenue recorded in {month}",
             "detail": (
-                f"You averaged {avg:,.0f} a month before, and nothing was recorded for {month}. "
+                f"You averaged {avg:,.0f} a month over the {prior_n} months before, "
+                f"and nothing was recorded for {month}. "
                 "If sales happened, add them; if not, this needs attention."
             ),
             "entry_ids": [],
@@ -677,8 +707,8 @@ def detect_revenue_change(ledger_months: list[dict], current_month: str) -> list
         "severity": "high" if drop >= 0.5 else "medium",
         "title": f"Revenue down {drop * 100:.0f}% in {month}",
         "detail": (
-            f"{last_rev:,.0f} in {month} versus an average of {avg:,.0f} over the 3 months before. "
-            "Check for missing entries, then look at what changed."
+            f"{last_rev:,.0f} in {month} versus an average of {avg:,.0f} over the "
+            f"{prior_n} months before. Check for missing entries, then look at what changed."
         ),
         "entry_ids": [],
         "month": month,
@@ -689,11 +719,18 @@ def detect_anomalies(entries: list[dict], fin: dict, current_month: str) -> list
     if not entries or not _valid_month(current_month):
         return []
     symbol = (fin or {}).get("currency_symbol") or ""
+    suppress_rev = bool(
+        (fin or {}).get("ledger_truncated")
+        or (fin or {}).get("sync_incomplete")
+        or (fin or {}).get("fx_missing_count")
+    )
     found = (
         detect_duplicates(entries, symbol)
         + detect_cross_source_duplicates(entries, current_month, symbol)
         + detect_outlier_expenses(entries, current_month, symbol)
-        + detect_revenue_change((fin or {}).get("ledger_months") or [], current_month)
+        + detect_revenue_change(
+            (fin or {}).get("ledger_months") or [], current_month, suppress=suppress_rev,
+        )
     )
     found.sort(key=lambda a: (-SEVERITY_RANK.get(a["severity"], 1), a["key"]))
     return found

@@ -186,6 +186,15 @@ async def migrate_workspace_sales_finance(db, workspace_id: str) -> dict[str, An
         {"$set": {"department_id": finance_id}},
     )
     summary["finance_entries_backfilled"] = int(getattr(fin_res, "modified_count", 0) or 0)
+    if summary["finance_entries_backfilled"]:
+        try:
+            # Drop financials TTL so dept-scoped KPIs don't serve a stale window.
+            import simple_cache
+            simple_cache.invalidate(f"financials:{workspace_id}")
+            simple_cache.invalidate_prefix(f"financials:{workspace_id}:")
+            simple_cache.invalidate_prefix(f"list:financials_page:{workspace_id}:")
+        except Exception:
+            logger.exception("financials cache invalidate after dept backfill failed for %s", workspace_id)
 
     logger.info(
         "sales/finance department migration workspace=%s sales_created=%s finance_created=%s "

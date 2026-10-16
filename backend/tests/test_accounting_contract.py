@@ -23,7 +23,7 @@ import xero as xr  # noqa: E402
 from scripts.migrate_accounting_txn_ids import plan_rewrites  # noqa: E402
 from tests.mongo_mocks import FakeCollection  # noqa: E402
 
-CONTRACT = {"currency", "fx_rate", "amount_home", "amount_net", "amount_net_home", "tax_amount"}
+CONTRACT = {"currency", "fx_rate", "amount_home", "amount_net", "amount_net_home", "tax_amount", "fx_missing"}
 
 
 def test_money_fields_defaults_and_rounding():
@@ -35,10 +35,15 @@ def test_money_fields_defaults_and_rounding():
         "amount_net": 100.0,
         "amount_net_home": round(100 * 56.123, 2),
         "tax_amount": 10.0,
+        "fx_missing": False,
     }
     home = amap.money_fields(50, currency=None, fx_rate=None)
     assert home["fx_rate"] == 1.0 and home["amount_home"] == 50 and home["currency"] is None
     assert amap.money_fields(5, tax_amount=9)["amount_net"] == 0  # never negative
+    # Cross-currency without rate must quarantine — never invent 1.0.
+    missing = amap.money_fields(100, currency="usd", home_currency="php", fx_rate=None)
+    assert missing["fx_missing"] is True and missing["amount_net_home"] is None
+    assert amap.entry_amount_for_totals(missing) == 0
 
 
 def test_every_mapper_emits_contract_and_stable_ids():
@@ -78,7 +83,7 @@ def test_upsert_sets_contract_fields_and_source_entity():
         n = asyncio.run(server._upsert_accounting_sync_entries(
             ws_id="ws1", principal={"user_id": "u1"}, txns=[txn], source="quickbooks_sync",
         ))
-    assert n == 1
+    assert n["synced_count"] == 1
     doc = fin.docs[0]
     assert doc["qb_txn_id"] == "qb_bill_5"
     assert doc["source_entity"] == "bill"
