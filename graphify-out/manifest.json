@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792129955.4829803,
-    "seen": 1792130352.2989836,
-    "ast_hash": "96239b58c0ad9f3a922da8f951fc7fde",
+    "mtime": 1792147082.812931,
+    "seen": 1792147172.3225355,
+    "ast_hash": "e7219cbb4d1116079729c936a952c219",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1860,9 +1860,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingFooter.jsx": {
-    "mtime": 1791864525.9104075,
-    "seen": 1792130352.2993913,
-    "ast_hash": "c4a481451f8aab099f4c06be9400e7c4",
+    "mtime": 1792133319.3022847,
+    "seen": 1792147172.3228748,
+    "ast_hash": "ca49524348bb13c36ec7d9321b0872ab",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/MarketingLogo.jsx": {
@@ -2238,9 +2238,9 @@
     "semantic_hash": ""
   },
   "frontend/src/hooks/useMarketingAuth.js": {
-    "mtime": 1791947703.9051015,
-    "seen": 1792130352.2995028,
-    "ast_hash": "a924d134b8b8a3e5f6fa7496028da9d3",
+    "mtime": 1792134050.529385,
+    "seen": 1792147172.322933,
+    "ast_hash": "f0a6a8dec57e901d49ea62f27d177f24",
     "semantic_hash": ""
   },
   "frontend/src/lib/access.js": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1792130522.5422897,
-    "seen": 1792130540.6355095,
-    "ast_hash": "102901fe9073d547536a6fe9440630ee",
+    "mtime": 1792145465.5907989,
+    "seen": 1792147172.3229527,
+    "ast_hash": "1a01050569c880d35b125a88228ea740",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1792066748.2479181,
-    "seen": 1792130352.299601,
-    "ast_hash": "0fa9a8e53a60eabb229247139028d8c5",
+    "mtime": 1792138165.2409346,
+    "seen": 1792147172.322988,
+    "ast_hash": "3b30b9c7c2e5f380287257a83cae1ab5",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -2568,9 +2568,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Financials.jsx": {
-    "mtime": 1792123011.8704445,
-    "seen": 1792130352.2996671,
-    "ast_hash": "cdc0084c4551b8e3f7faf5bb557697c4",
+    "mtime": 1792145287.2358973,
+    "seen": 1792147172.3230333,
+    "ast_hash": "31c5e261612af52e8fa24e09df33ad9d",
     "semantic_hash": ""
   },
   "frontend/src/pages/HR.jsx": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792130301.0869725,
-    "seen": 1792130352.3005242,
+    "mtime": 1792147096.7087877,
+    "seen": 1792147172.3234193,
     "ast_hash": "016257ad41b65786a3ff0d5d726658c1",
     "semantic_hash": ""
   },
@@ -6060,9 +6060,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/TestimonialCard.jsx": {
-    "mtime": 1791906589.2596333,
-    "seen": 1792130352.2993982,
-    "ast_hash": "0d45a36f1fc0bb102cd4e88b4021c30c",
+    "mtime": 1792138165.239989,
+    "seen": 1792147172.3228815,
+    "ast_hash": "c7ab11ec4d58a053b9f01dd1491f88a9",
     "semantic_hash": ""
   },
   "frontend/public/slidepractice-logo.png": {
@@ -6327,6 +6327,36 @@
     "mtime": 1790515659.5381951,
     "seen": 1792130352.3004415,
     "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": ""
+  },
+  "backend/money_insights.py": {
+    "mtime": 1792145229.922992,
+    "seen": 1792147172.322475,
+    "ast_hash": "418b08cf0acf8347dd812c29da6b3dfe",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_money_insights.py": {
+    "mtime": 1792147082.8147101,
+    "seen": 1792147172.3226445,
+    "ast_hash": "c2279d2031ecb53f0e5a8047e0ba5b5b",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/MoneyInsights.jsx": {
+    "mtime": 1792147091.3924148,
+    "seen": 1792147172.3227532,
+    "ast_hash": "afc82cc7041e1dcacc7cf01b4ca05988",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/MoneyInsights.test.js": {
+    "mtime": 1792145296.3924904,
+    "seen": 1792147172.3227544,
+    "ast_hash": "a919523f472584b6ca608547638378be",
+    "semantic_hash": ""
+  },
+  "frontend/src/hooks/useMarketingAuth.test.js": {
+    "mtime": 1792134050.5321372,
+    "seen": 1792147172.322934,
+    "ast_hash": "35270d43ac633f007551223ba2e061a0",
     "semantic_hash": ""
   }
 }

@@ -3,6 +3,11 @@
   "entries": [
     {
       "date": "2026-10-16",
+      "title": "A money summary on Financials",
+      "description": "Financials now has a Money summary with three short sections: What's making money, What's losing money and Why this matters. It looks at your last finished month, compares it with the month before, and explains it in plain English. The numbers come straight from your ledger, so the summary always matches the rest of the page. If a month has no revenue or expenses logged, it tells you what to add instead of showing zero. Press Write summary to create it and Refresh to update it. If nothing has changed since the last one, Refresh keeps the saved summary. If AI summaries are unavailable, you'll see a short under maintenance message."
+    },
+    {
+      "date": "2026-10-16",
       "title": "A calmer, easier to scan Home page",
       "description": "Home now puts the most important things first. The AI summary shows its first two sentences with a Show more link, and the full note is still one click away. What changed lists one line per change with the time on the right, and skips rows that say nothing changed, like a page view with 0 items. What to decide stands out with a priority marker, a clear Review button and long details you can expand. If the AI summary is over a day old, Home tells you so and points you to refresh it. The cash reserve alert no longer suggests a cut in burn that would only add a few days, and points you to raising cash or revenue instead."
     },

@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
+import MoneyInsights from "@/components/MoneyInsights";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
@@ -1103,6 +1104,8 @@ export default function Financials() {
               </div>
             </GlassCard>
           )}
+
+          <MoneyInsights />
 
           {/* Trends */}
           <section className="mb-10 fade-up" aria-label="Trends">

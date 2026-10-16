@@ -6829,6 +6829,128 @@ async def financials(principal=Depends(require_financials_view)):
     }
 
 
+# ---- Financials: "What's making money / losing money / why it matters" (Haiku) ----
+_MONEY_INSIGHTS_PER_HOUR = 10
+_MONEY_INSIGHTS_MAINTENANCE = {
+    "reason": "maintenance",
+    "message": "AI summaries are under maintenance. Please try again later.",
+}
+
+
+async def require_money_insights(principal=Depends(require_pro_perm("briefing:generate"))):
+    if not await can_access_financials(principal):
+        raise HTTPException(status_code=403, detail="You do not have permission for this action")
+    return principal
+
+
+def _money_insights_scope(dept_ids) -> str:
+    """Saved summaries are per department scope, so someone limited to some
+    departments never sees a summary built from the whole ledger (or the reverse)."""
+    if dept_ids is None:
+        return "all"
+    import hashlib
+    joined = ",".join(sorted(str(d) for d in dept_ids))
+    return "d_" + hashlib.sha256(joined.encode()).hexdigest()[:16]
+
+
+@api_router.get("/financials/insights")
+async def get_money_insights(principal=Depends(require_financials_view)):
+    c = await get_ws(principal["workspace_id"])
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+    )
+    scope = _money_insights_scope(dept_ids)
+    stored = dict(((c.get("financial_insights") or {}).get(scope)) or {})
+    stored.pop("context_hash", None)
+    return {
+        "insight": stored or None,
+        "allowed": workspace_allows(c, helm_plans.FEATURE_AI_BRIEFING)
+        and "briefing:generate" in perms_for(principal.get("pack") or "member"),
+    }
+
+
+@api_router.post("/financials/insights")
+async def generate_money_insights(principal=Depends(require_money_insights)):
+    import anthropic
+    import finance_recurrence as fin_recur
+    import money_insights as mi
+
+    ws_id = principal["workspace_id"]
+    c = await get_ws(ws_id)
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+    )
+    fin = await compute_financials(ws_id, department_ids=dept_ids, return_entries=True)
+    entries = list(fin.pop("entries", None) or [])
+    ws_now = await _workspace_now(ws_id)
+    entries, _scheduled = fin_recur.partition_ledger_entries(entries, ws_now)
+    facts = mi.build_facts(
+        entries,
+        current_month=fin_recur.current_month(ws_now),
+        horizon=fin_recur.resolve_expense_horizon(entries, ws_now),
+        currency=fin.get("currency") or "usd",
+    )
+    runway = financials_for_synthesis(fin)
+    context = {
+        "facts": mi._strip_values(facts),
+        "runway": {
+            "cash_entered": runway.get("cash_entered"),
+            "runway_months": runway.get("runway_months"),
+            "runway_basis": runway.get("runway_basis"),
+            "runway_no_burn": runway.get("runway_no_burn"),
+        },
+    }
+    chash = mi.context_hash(context)
+    scope = _money_insights_scope(dept_ids)
+    stored = (c.get("financial_insights") or {}).get(scope) or {}
+    if stored.get("context_hash") == chash and stored.get("sections"):
+        out = {k: v for k, v in stored.items() if k != "context_hash"}
+        return {"insight": {**out, "cached": True}}
+
+    sections = None
+    used_ai = False
+    if facts["has_data"]:
+        if not helm_llm.anthropic_configured():
+            raise HTTPException(status_code=503, detail=_MONEY_INSIGHTS_MAINTENANCE)
+        if not await doc_rate_limit.acquire_event_slot(
+            db, ws_id, "money_insights", _MONEY_INSIGHTS_PER_HOUR,
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail="You have refreshed this a lot. Try again in a little while.",
+            )
+        blob = json.dumps(context, separators=(",", ":"), default=str)
+        try:
+            raw = await helm_llm.complete(
+                mi.SYSTEM_PROMPT,
+                f"Company money facts:\n{blob}\n\nWrite the three notes as JSON.",
+                max_tokens=700,
+                model=helm_llm.ANTHROPIC_MODEL_FAST,
+            )
+        except (anthropic.APIError, RuntimeError):
+            # Out of credits, bad key, rate limit, outage, timeout: never show the
+            # real reason to a customer. Log it for us and show "under maintenance".
+            logger.exception("money insights AI call failed for %s", ws_id)
+            raise HTTPException(status_code=503, detail=_MONEY_INSIGHTS_MAINTENANCE)
+        sections = mi.parse_sections(raw, blob)
+        used_ai = sections is not None
+    if sections is None:
+        sections = mi.template_sections(facts, runway)
+
+    insight = {
+        "sections": sections,
+        "period": facts["period"],
+        "period_label": facts["period_label"],
+        "month_so_far": facts["month_so_far"],
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "ai": used_ai,
+        "context_hash": chash,
+    }
+    await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {f"financial_insights.{scope}": dict(insight)}})
+    insight.pop("context_hash", None)
+    return {"insight": {**insight, "cached": False}}
+
+
 class FinEntryInput(BaseModel):
     type: str
     category: str
