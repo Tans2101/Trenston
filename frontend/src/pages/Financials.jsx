@@ -647,9 +647,9 @@ export default function Financials() {
 
   const openEntryForm = () => { setForm(emptyForm(tz, revCategory)); setShowForm(true); };
 
-  // Average net burn over the last three ledger months, matching the server's runway basis.
-  const recentBurn = burnSeries.slice(-3).map((b) => Math.max(Number(b.burn) || 0, 0));
-  const avgBurn = recentBurn.length ? recentBurn.reduce((s, v) => s + v, 0) / recentBurn.length : null;
+  // The server owns the runway basis (backend/metric_definitions.py); never re-derive it here.
+  const avgBurn = data.avg_burn_value != null && Number(data.avg_burn_value) > 0 ? Number(data.avg_burn_value) : null;
+  const runwayBasis = data.runway_basis || "";
   const latestLabel = monthLabel(data.latest_month);
   const latestTotals = (data.ledger_months || []).slice(-1)[0] || null;
   const burnValue = data.burn_value != null ? Number(data.burn_value) : null;
@@ -968,11 +968,11 @@ export default function Financials() {
                 {runwayMonths != null && <RunwayMeter months={runwayMonths} tone={status?.tone} />}
                 <p className="mt-3 text-xs leading-relaxed text-helm-muted">
                   {data.runway_no_burn
-                    ? "Revenue covers expenses over the last 3 months."
+                    ? `Revenue covers expenses.${runwayBasis ? ` ${runwayBasis}` : ""}`
                     : cashZero && runwayMonths != null
                       ? "Shows 0 because cash in bank is set to zero."
                       : runwayMonths != null && avgBurn
-                      ? `Cash divided by ${fmt(avgBurn, sym)} a month, the average net burn over the last 3 months.`
+                      ? `Cash divided by ${fmt(avgBurn, sym)} a month. ${runwayBasis || "Average net burn over the last 3 completed months."}`
                       : cashMissing
                         ? "Needs cash in bank and at least one month of entries."
                         : "Appears once expenses outpace revenue."}

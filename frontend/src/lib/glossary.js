@@ -1,7 +1,7 @@
 /** Plain-word meanings for the money and sales terms used across Trenston. */
 export const GLOSSARY = {
   cash: "What's in your business bank accounts today. You type it in; Trenston never guesses it.",
-  runway: "How many months your cash lasts if you keep spending like the last few months. Cash divided by your average monthly net burn.",
+  runway: "How many months your cash lasts if you keep spending like the last 3 full months. Cash divided by your average monthly net burn. The month in progress doesn't count until it ends.",
   burn: "How much more you spend than you earn in a month. If you earn more than you spend, it shows as net income instead.",
   net_income: "You earned more than you spent this month. Nice.",
   revenue: "All the money that came in from sales in the month.",

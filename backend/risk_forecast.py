@@ -17,6 +17,7 @@ import math
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
+import metric_definitions as metric_defs
 from money_fmt import fmt_money_plain
 
 # Cash runway forecast: warn when cash is projected to cross the founder's
@@ -166,7 +167,8 @@ def detect_cash_runway_forecast(fin: dict, *, today: Optional[date] = None) -> O
     today = today or datetime.now(timezone.utc).date()
     currency = fin.get("currency") or "usd"
     burns = [r["expenses"] - r["revenue"] for r in rows]
-    recent = burns[-3:]
+    # Same window as the headline runway (metric_definitions.BURN_WINDOW_MONTHS).
+    recent = burns[-metric_defs.BURN_WINDOW_MONTHS:]
     avg_burn = sum(recent) / len(recent)
     trend_points = burns[-6:]
     slope = linear_slope(trend_points)

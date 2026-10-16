@@ -50,6 +50,7 @@ import automations as helm_automations
 import company_map as helm_company_map
 import record_search as helm_record_search
 import modeling
+import metric_definitions as metric_defs
 import money_fmt
 from money_fmt import fmt_money, normalize_currency, currency_symbol, CURRENCY_SYMBOLS, entered_cash_amount
 from pagination import clamp_limit, apply_before_filter, next_cursor
@@ -2043,12 +2044,25 @@ async def compute_financials(
         mrr_val = float(rec_by[latest]) if latest and mrr_known else 0.0
         cash_val = entered_cash_amount(settings)
         cash_entered = cash_val is not None
-        net = [max(exp_by[m] - rev_by[m], 0) for m in months[-3:]]
-        avg_burn = sum(net) / len(net) if net else 0
+        current_month = ws_now.strftime("%Y-%m")
+        # Raw per-month totals (unrounded): the "gold" monthly table every
+        # metric below is derived from. Last 12 months that have ledger data.
+        ledger_months = [
+            {"month": m, "revenue": float(rev_by[m]), "expenses": float(exp_by[m])}
+            for m in months[-12:]
+        ]
+        # Runway follows metric_definitions: average signed net burn over the
+        # last 3 completed months (same basis as the Model page and the reserve
+        # forecast). The half-finished current month no longer skews it.
+        basis = metric_defs.burn_basis(ledger_months, current_month)
+        avg_net_burn = basis["net_burn"]
+        avg_burn = max(avg_net_burn or 0.0, 0.0)
         burn_known = has_ledger
         # Distinct from missing data: entered ledger + cash with non-positive burn = profitable/breakeven
-        runway_no_burn = bool(cash_entered and burn_known and avg_burn <= 0)
-        runway = round(cash_val / avg_burn, 1) if cash_entered and avg_burn > 0 else None
+        runway_no_burn = bool(
+            cash_entered and burn_known and metric_defs.is_cash_growing(cash_val, avg_net_burn)
+        )
+        runway = metric_defs.runway_months(cash_val if cash_entered else None, avg_net_burn)
         burn_val = (exp_by[latest] - rev_by[latest]) if latest else 0
         total_exp = sum(exp_cat.values())
         expense_breakdown = ([{"name": k, "value": round(v / total_exp * 100)} for k, v in sorted(exp_cat.items(), key=lambda x: -x[1])] if total_exp else [])
@@ -2097,16 +2111,18 @@ async def compute_financials(
             "burn_state": _figure_state(burn_known, burn_value),
             "cash_state": _figure_state(cash_entered, cash_val),
             "runway_state": _runway_state(runway_months=runway, runway_no_burn=runway_no_burn),
+            # What the runway is based on, so every surface can say it.
+            "avg_burn_value": round(avg_net_burn) if avg_net_burn is not None else None,
+            "burn_window": basis["months"],
+            "burn_window_includes_current": basis["includes_current_month"],
+            "runway_basis": metric_defs.runway_basis_text(basis),
             "months": months,
             "latest_month": latest,
             "horizon_month": horizon,
             # Raw per-month totals (unrounded) for the modeling baseline and
             # trend detectors. Last 12 months that have ledger data.
-            "ledger_months": [
-                {"month": m, "revenue": float(rev_by[m]), "expenses": float(exp_by[m])}
-                for m in months[-12:]
-            ],
-            "current_month": ws_now.strftime("%Y-%m"),
+            "ledger_months": ledger_months,
+            "current_month": current_month,
             "min_cash_reserve": _finite_or_none(settings.get("min_cash_reserve")),
             "scheduled_count": len(scheduled),
             "scheduled_entries": [
@@ -2232,6 +2248,9 @@ def financials_for_synthesis(fin: dict) -> dict:
         "burn_known": burn_known,
         "runway_months": runway,
         "runway_no_burn": runway_no_burn,
+        # Which months the runway is averaged over (metric_definitions), so the
+        # AI can say "based on Jul to Sep" instead of guessing the basis.
+        "runway_basis": fin.get("runway_basis") or None,
         "currency": fin.get("currency") or "usd",
         "unknown_fields": unknown,
         "instructions_for_missing_data": (
@@ -2244,7 +2263,8 @@ def financials_for_synthesis(fin: dict) -> dict:
             "net burn is zero or negative with cash entered — say cash is growing / no "
             "burn, not that runway is missing. If mrr_known is false, recurring revenue was never "
             "logged (expense-only or one-time sales are not confirmed $0 MRR). If burn_known is false, "
-            "say burn is not in Trenston yet."
+            "say burn is not in Trenston yet. When you quote runway, use runway_basis for which "
+            "months it is averaged over; never compute your own runway from other figures."
         ),
     }
 
@@ -15228,7 +15248,7 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
         raise HTTPException(status_code=401, detail="SAP Business One session expired. Reconnect in Integrations.") from exc
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     watermark = _sync_watermark()
-    since = c.get("sap_b1_last_synced_at")
+    since = _sync_since(c, "sap_b1_last_synced_at", "sap_b1_mapping_version")
     txns, complete, live, deleted = await sap_b1_sync.fetch_sap_transactions(live, since)
     await _store_integration_tokens(ws_id, "sap_b1_credentials", live)
     synced_count = await _upsert_accounting_sync_entries(
@@ -15237,7 +15257,7 @@ async def _run_sap_b1_sync_for_workspace(c: dict, principal: dict, *, source: st
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at}})
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"sap_b1_last_synced_at": last_synced_at, "sap_b1_mapping_version": amap.MAPPING_VERSION}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 
@@ -15410,6 +15430,8 @@ async def _upsert_accounting_sync_entries(
             "note": txn.get("note", ""),
             "recurring": txn.get("recurring", False),
             "source": source,
+            # Lineage: which mapper version produced this row (see accounting_map).
+            "mapping_version": amap.MAPPING_VERSION,
             "updated_at": now_iso,
         }
         if existing:
@@ -15455,6 +15477,18 @@ def _sync_watermark() -> str:
     return (datetime.now(timezone.utc) - SYNC_WATERMARK_OVERLAP).isoformat()
 
 
+def _sync_since(c: dict, watermark_field: str, version_field: str) -> Optional[str]:
+    """Incremental watermark, or None for a full re-pull.
+
+    A full re-pull happens when the workspace's rows were mapped by an older
+    accounting_map.MAPPING_VERSION, so a mapper fix reaches every old row
+    instead of only rows edited after the deploy.
+    """
+    if c.get(version_field) != amap.MAPPING_VERSION:
+        return None
+    return c.get(watermark_field)
+
+
 def _system_accounting_principal(workspace: dict, token_field: str) -> dict:
     """Actor for cron syncs — prefer the teammate who connected the grant."""
     by_field = _INTEGRATION_CONNECTED_BY.get(token_field)
@@ -15480,7 +15514,7 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     tokens = await qb_sync.refresh_qb_token(tokens)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     watermark = _sync_watermark()
-    since = c.get("qb_last_synced_at")
+    since = _sync_since(c, "qb_last_synced_at", "qb_mapping_version")
     txns, complete, tokens, deleted = await qb_sync.fetch_qb_transactions(tokens, realm_id, since)
     await _store_integration_tokens(ws_id, "quickbooks_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
@@ -15489,7 +15523,7 @@ async def _run_quickbooks_sync_for_workspace(c: dict, principal: dict, *, source
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at}})
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"qb_last_synced_at": last_synced_at, "qb_mapping_version": amap.MAPPING_VERSION}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 
@@ -15506,7 +15540,7 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     tokens = await xero_sync.refresh_xero_token(tokens)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     watermark = _sync_watermark()
-    since = c.get("xero_last_synced_at")
+    since = _sync_since(c, "xero_last_synced_at", "xero_mapping_version")
     txns, complete, tokens, deleted = await xero_sync.fetch_xero_transactions(tokens, tenant_id, since)
     await _store_integration_tokens(ws_id, "xero_tokens", tokens)
     synced_count = await _upsert_accounting_sync_entries(
@@ -15515,7 +15549,7 @@ async def _run_xero_sync_for_workspace(c: dict, principal: dict, *, source: str 
     last_synced_at = None
     if complete:
         last_synced_at = watermark
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at}})
+        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"xero_last_synced_at": last_synced_at, "xero_mapping_version": amap.MAPPING_VERSION}})
     return {"synced_count": synced_count, "last_synced_at": last_synced_at, "complete": complete}
 
 

@@ -42,10 +42,10 @@
     "semantic_hash": ""
   },
   "backend/accounting_map.py": {
-    "mtime": 1790515659.5391483,
-    "seen": 1791795297.086968,
-    "ast_hash": "7e8b406ff3bb367e4b2f2783de6e623e",
-    "semantic_hash": "7e8b406ff3bb367e4b2f2783de6e623e"
+    "mtime": 1792123073.5728898,
+    "seen": 1792123412.2465463,
+    "ast_hash": "1add5bcd99c4a7296117a5c2969ad529",
+    "semantic_hash": ""
   },
   "backend/alert_notify.py": {
     "mtime": 1791863282.3390949,
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792070242.4703157,
-    "seen": 1792070538.3030367,
-    "ast_hash": "61d96184a5e235a34d1aa649dc855cb5",
+    "mtime": 1792123349.942437,
+    "seen": 1792123412.2466772,
+    "ast_hash": "da05bcc79f62cc1b232d3f2d875d384f",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -2568,9 +2568,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Financials.jsx": {
-    "mtime": 1792068967.2211397,
-    "seen": 1792069996.0304193,
-    "ast_hash": "92b1edf47e1308f7b2eda910ac08b7f4",
+    "mtime": 1792123011.8704445,
+    "seen": 1792123412.247322,
+    "ast_hash": "cdc0084c4551b8e3f7faf5bb557697c4",
     "semantic_hash": ""
   },
   "frontend/src/pages/HR.jsx": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792070508.2423315,
-    "seen": 1792070538.303966,
+    "mtime": 1792123318.9024377,
+    "seen": 1792123412.2479563,
     "ast_hash": "016257ad41b65786a3ff0d5d726658c1",
     "semantic_hash": ""
   },
@@ -5514,9 +5514,9 @@
     "semantic_hash": ""
   },
   "backend/risk_forecast.py": {
-    "mtime": 1790677050.1722355,
-    "seen": 1791795297.0870836,
-    "ast_hash": "a9c104bca8a737b893eed13e9c6533e4",
+    "mtime": 1792123002.1189954,
+    "seen": 1792123412.2466445,
+    "ast_hash": "dceb106753b88516bc2560356177e3c9",
     "semantic_hash": ""
   },
   "backend/scripts/gen_modeling_parity.py": {
@@ -5910,9 +5910,9 @@
     "semantic_hash": ""
   },
   "backend/automations.py": {
-    "mtime": 1791860249.6871145,
-    "seen": 1791860708.5282564,
-    "ast_hash": "fff7df6b6bbaf8135ea4462e9eb80a79",
+    "mtime": 1792123047.2427995,
+    "seen": 1792123412.2465572,
+    "ast_hash": "4982b166150d344c7238df82c4edce17",
     "semantic_hash": ""
   },
   "backend/tests/test_automations.py": {
@@ -6054,9 +6054,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/glossary.js": {
-    "mtime": 1791862087.9782422,
-    "seen": 1791862552.333447,
-    "ast_hash": "006fb6abf29290005c6e78efb1ea57f2",
+    "mtime": 1792123015.0784445,
+    "seen": 1792123412.247256,
+    "ast_hash": "4dca84d241babfe97d31164b880189b5",
     "semantic_hash": ""
   },
   "frontend/src/lib/pageGuides.js": {
@@ -6297,6 +6297,24 @@
     "mtime": 1792068153.1341915,
     "seen": 1792069996.0303824,
     "ast_hash": "f4898f7f793b91296c8bf5f44aa3ef6a",
+    "semantic_hash": ""
+  },
+  "backend/metric_definitions.py": {
+    "mtime": 1792122978.3024454,
+    "seen": 1792123412.2466047,
+    "ast_hash": "3597fa529c880faaf8ff6ffde28fb56e",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_data_model.py": {
+    "mtime": 1792123121.190442,
+    "seen": 1792123412.2467508,
+    "ast_hash": "53d26997417fba541f74e97f8f4575e3",
+    "semantic_hash": ""
+  },
+  "docs/DATA_MODEL.md": {
+    "mtime": 1792123361.7904367,
+    "seen": 1792123412.2479389,
+    "ast_hash": "832fd0be4c35abc7fe1720dc8064f71b",
     "semantic_hash": ""
   }
 }

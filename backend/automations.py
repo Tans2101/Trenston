@@ -10,6 +10,7 @@ never fires twice in 30 days, and one rule can only fire a handful of times per
 run so turning a rule on cannot flood a team with tasks.
 
 Anomaly alerts are statistical checks on the finance ledger (duplicate entries,
+the same money typed by hand and synced from accounting,
 one-off expenses far above the usual, revenue dropping or stopping). They land
 in ``anomaly_alerts`` once per finding.
 """
@@ -78,6 +79,7 @@ METRIC_TRIGGERS: dict[str, dict[str, Any]] = {
 
 ANOMALY_KINDS = {
     "duplicate_entry": "Possible duplicate entry",
+    "cross_source_duplicate": "Possibly counted twice",
     "outlier_expense": "Unusually large expense",
     "revenue_drop": "Revenue dropped",
     "revenue_stopped": "Revenue stopped",
@@ -468,6 +470,126 @@ def detect_duplicates(entries: list[dict], symbol: str = "") -> list[dict]:
     return found
 
 
+# Cross-source double counting: a row typed in Trenston (or booked from a deal
+# or purchase request) that matches a row synced from the accounting system.
+CROSS_SOURCE_LOOKBACK_MONTHS = 6
+CROSS_SOURCE_MAX_SYNCED_SHOWN = 6
+_SYNC_SOURCE_LABELS = (("quickbooks", "QuickBooks"), ("xero", "Xero"), ("sap", "SAP Business One"))
+
+
+def _is_synced(entry: dict) -> bool:
+    """Rows written by the accounting sync carry the provider's transaction id."""
+    return bool(entry.get("qb_txn_id"))
+
+
+def _sync_label(entry: dict) -> str:
+    src = str(entry.get("source") or "").lower()
+    for prefix, label in _SYNC_SOURCE_LABELS:
+        if src.startswith(prefix):
+            return label
+    return "your accounting system"
+
+
+def _amounts_match(a: float, b: float) -> bool:
+    # Typed amounts are often rounded; allow 0.5% (or 1 unit) of slack.
+    return abs(a - b) <= max(1.0, 0.005 * max(a, b))
+
+
+def detect_cross_source_duplicates(entries: list[dict], current_month: str, symbol: str = "") -> list[dict]:
+    """Flag rows that look like the same money counted from two sources.
+
+    Names usually differ ("Rent" typed by hand vs "Office rent - Bill" from
+    QuickBooks), so detect_duplicates misses these. Match on type, month and
+    amount instead, only when an accounting sync is connected, only for
+    material amounts, and only over recent months. Recurring typed rows are
+    compared month by month against what was synced.
+    """
+    if not _valid_month(current_month):
+        return []
+    import finance_recurrence as fin_recur
+
+    first_month = fin_recur.month_add(current_month, -(CROSS_SOURCE_LOOKBACK_MONTHS - 1))
+    synced = [
+        e for e in entries or []
+        if _is_synced(e) and not e.get("recurring") and e.get("id")
+        and e.get("type") in ("revenue", "expense") and _valid_month(e.get("month"))
+        and first_month <= e["month"] <= current_month and not e.get("is_credit")
+    ]
+    if not synced:
+        return []
+
+    month_totals: dict[tuple, float] = defaultdict(float)
+    synced_by_key: dict[tuple, list[dict]] = defaultdict(list)
+    for e in synced:
+        amount = amap.entry_amount_for_totals(e)
+        if amount <= 0:
+            continue
+        month_totals[(e["type"], e["month"])] += amount
+        synced_by_key[(e["type"], e["month"])].append(e)
+
+    typed = [
+        e for e in entries or []
+        if not _is_synced(e) and e.get("id") and not e.get("is_credit")
+        and e.get("type") in ("revenue", "expense") and _valid_month(e.get("month"))
+    ]
+    found = []
+    used: set[str] = set()
+    for t in sorted(typed, key=lambda r: (r["month"], str(r["id"]))):
+        if t.get("recurring"):
+            monthly = (
+                fin_recur.expense_monthly_amount(t) if t["type"] == "expense"
+                else fin_recur.revenue_monthly_amount(t)
+            )
+            start = max(t["month"], first_month)
+            months = fin_recur.months_inclusive(start, current_month) if start <= current_month else []
+        else:
+            monthly = amap.entry_amount_for_totals(t)
+            months = [t["month"]] if first_month <= t["month"] <= current_month else []
+        if monthly <= 0 or not months:
+            continue
+        matches = []
+        for month in months:
+            total = month_totals.get((t["type"], month), 0.0) + monthly
+            # Small repeats are normal; only flag what moves the month.
+            if total <= 0 or monthly < 0.02 * total:
+                continue
+            for s in synced_by_key.get((t["type"], month), []):
+                sid = str(s["id"])
+                if sid in used:
+                    continue
+                if _amounts_match(monthly, amap.entry_amount_for_totals(s)):
+                    matches.append(s)
+                    used.add(sid)
+                    break
+        if not matches:
+            continue
+        label = t.get("name") or t.get("category") or t["type"]
+        src = _sync_label(matches[0])
+        months_hit = sorted({m["month"] for m in matches})
+        span = months_hit[0] if len(months_hit) == 1 else f"{months_hit[0]} to {months_hit[-1]}"
+        synced_name = matches[0].get("name") or matches[0].get("category") or "a synced row"
+        if t.get("recurring"):
+            fix = (
+                f"If {src} already records this, end or delete the recurring row you added "
+                "so it is not counted twice."
+            )
+        else:
+            fix = "If they are the same payment, delete the one you added so it is not counted twice."
+        found.append({
+            "key": f"xsrc:{t['id']}",
+            "kind": "cross_source_duplicate",
+            "severity": "high" if len(matches) >= 3 else "medium",
+            "title": f"{label} may be counted twice",
+            "detail": (
+                f"\"{label}\" ({_money(monthly, symbol)}, added in Trenston) matches \"{synced_name}\" "
+                f"synced from {src} for the same amount in {span}. {fix}"
+            ),
+            "entry_ids": [str(t["id"])] + [str(m["id"]) for m in matches[:CROSS_SOURCE_MAX_SYNCED_SHOWN]],
+            "month": months_hit[-1],
+        })
+    return found
+
+
 def detect_outlier_expenses(entries: list[dict], current_month: str, symbol: str = "") -> list[dict]:
     plain = [e for e in _plain_entries(entries) if e["type"] == "expense"]
     recent = {current_month, _prev_month(current_month)}
@@ -569,6 +691,7 @@ def detect_anomalies(entries: list[dict], fin: dict, current_month: str) -> list
     symbol = (fin or {}).get("currency_symbol") or ""
     found = (
         detect_duplicates(entries, symbol)
+        + detect_cross_source_duplicates(entries, current_month, symbol)
         + detect_outlier_expenses(entries, current_month, symbol)
         + detect_revenue_change((fin or {}).get("ledger_months") or [], current_month)
     )

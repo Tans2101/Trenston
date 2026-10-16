@@ -10,6 +10,14 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+# Version of the provider-record -> ledger-row mapping (QuickBooks, Xero, SAP B1).
+# Every synced row is stamped with it (financial_entries.mapping_version). Bump
+# it whenever a mapper changes how a record becomes a row (category, sign, tax,
+# currency, month): the next sync for each workspace then re-pulls everything
+# from the provider once and rewrites every row with the new logic. The
+# provider is the raw ("bronze") copy; Trenston does not store raw payloads.
+MAPPING_VERSION = "2026-10-16.1"
+
 # Single fallback for uncategorized line items across all accounting sources.
 DEFAULT_UNCATEGORIZED = "Other"
 
