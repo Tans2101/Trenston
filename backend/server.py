@@ -29,6 +29,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 import llm as helm_llm
+import ai_audit
 import document_cleanup
 import rate_limit as doc_rate_limit
 import site_events
@@ -5071,6 +5072,10 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
             "briefing.ai_summary_includes_financials": bool(has_fin_access),
         }},
     )
+    await ai_audit.record(
+        db, c["workspace_id"], kind="briefing_note", text=text, inputs=context,
+        model=helm_llm.ANTHROPIC_MODEL, actor_user_id=principal.get("user_id"),
+    )
     return {"ai_summary": text, "data_as_of": freshness.get("data_as_of")}
 
 
@@ -6947,6 +6952,11 @@ async def generate_money_insights(principal=Depends(require_money_insights)):
         "context_hash": chash,
     }
     await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {f"financial_insights.{scope}": dict(insight)}})
+    await ai_audit.record(
+        db, ws_id, kind="money_summary", text=sections, inputs=context,
+        model=helm_llm.ANTHROPIC_MODEL_FAST if used_ai else "template",
+        actor_user_id=principal.get("user_id"),
+    )
     insight.pop("context_hash", None)
     return {"insight": {**insight, "cached": False}}
 
@@ -17087,6 +17097,7 @@ _WORKSPACE_COLLECTIONS = (
     "chat_messages", "private_notes", "paddle_intents", "payment_transactions",
     "document_rate_events", "insights_rate_events", "ask_helm_rate_events",
     "document_ai_usage",
+    "ai_output_log",
     "oauth_states",
     "product_events",
     "production_work_orders",
@@ -18933,6 +18944,8 @@ async def _ensure_indexes():
         (db.user_sessions, [("session_token", 1)], {"unique": True}),
         (db.user_sessions, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.user_sessions, [("user_id", 1)], {}),
+        # Hash-chained AI output history: one record per (workspace, seq).
+        (db.ai_output_log, [("workspace_id", 1), ("seq", 1)], {"unique": True}),
         # Do not create unique indexes on `_id` — MongoDB rejects `unique: true`
         # on the implicit `_id` index (Flex/Atlas). Idempotency still uses `_id`
         # as the document key for paddle_events / clerk_events / paddle_intents.

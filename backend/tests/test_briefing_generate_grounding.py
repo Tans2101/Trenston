@@ -70,12 +70,20 @@ async def test_generate_briefing_uses_live_what_changed_and_real_metrics():
          patch.object(server.helm_freshness, "resolve_workspace_data_as_of", AsyncMock(return_value={
              "data_as_of": "2026-09-23T09:00:00+00:00", "sources": {},
          })), \
+         patch.object(server.ai_audit, "record", AsyncMock()) as audit, \
          patch.object(server, "db") as mock_db:
         mock_db.activities.find.return_value = empty_cursor
         mock_db.workspaces.update_one = AsyncMock()
         result = await server.generate_briefing(principal)
 
     assert result["ai_summary"].startswith("Cash is fine")
+    # Every generated note is appended to the hash-chained AI history.
+    audit.assert_awaited_once()
+    _db, ws_id = audit.await_args.args
+    assert ws_id == "ws_gen"
+    assert audit.await_args.kwargs["kind"] == "briefing_note"
+    assert audit.await_args.kwargs["text"] == result["ai_summary"]
+    assert audit.await_args.kwargs["actor_user_id"] == "u1"
     ctx = captured["context"]
     assert ctx["what_changed"][0]["title"] == "Logged today from Production"
     assert any(c["title"] == "Seed only" for c in ctx["what_changed"])

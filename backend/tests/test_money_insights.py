@@ -224,3 +224,27 @@ def test_summaries_are_kept_per_department_scope(monkeypatch):
     assert out["insight"] is None  # the full-ledger summary is not shown to a limited user
     assert server._money_insights_scope(["b", "a"]) == server._money_insights_scope(["a", "b"])
     assert server._money_insights_scope(None) == "all"
+
+
+def test_every_new_summary_is_added_to_the_ai_history(monkeypatch):
+    seen = []
+
+    async def ok(*_a, **_k):
+        return json.dumps({
+            "making_money": "Subscriptions brought in $6,000.",
+            "losing_money": "Payroll costs $4,000.",
+            "why_it_matters": "You made a profit.",
+        })
+
+    async def fake_record(_db, ws_id, **kw):
+        seen.append((ws_id, kw))
+
+    _wire(monkeypatch, ok)
+    monkeypatch.setattr(server.ai_audit, "record", fake_record)
+    _run()
+    _run()  # unchanged data: saved summary reused, nothing new to record
+    assert len(seen) == 1
+    ws_id, kw = seen[0]
+    assert ws_id == "w" and kw["kind"] == "money_summary"
+    assert kw["model"] == server.helm_llm.ANTHROPIC_MODEL_FAST
+    assert kw["text"]["making_money"].startswith("Subscriptions")

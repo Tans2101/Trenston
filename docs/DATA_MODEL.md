@@ -62,3 +62,14 @@ tax, currency, month), bump `accounting_map.MAPPING_VERSION`. On its next
 sync, each workspace sees that its stored `<provider>_mapping_version`
 differs, re-pulls everything from the provider once, and rewrites every row
 with the new logic. Upserts are idempotent, so the re-pull is safe.
+
+## AI output history (`ai_output_log`)
+
+Every AI briefing note and Money summary is appended to `ai_output_log`, one
+chain per workspace (`backend/ai_audit.py`). Records are insert-only. Each holds
+the text, `input_hash` (SHA-256 fingerprint of the exact data the AI was given),
+the model, who asked, the time, `prev_hash` and its own `hash`. Editing or
+deleting an old record breaks the chain; `ai_audit.verify_chain` reports the
+first broken `seq`. A unique index on `(workspace_id, seq)` keeps concurrent
+writers from forking the chain. Workspace deletion removes the log with the rest
+of the workspace. External timestamping of the chain tip is a later step.
