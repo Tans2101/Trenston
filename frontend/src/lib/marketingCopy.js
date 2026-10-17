@@ -85,7 +85,7 @@ export const PRICING_FAQ = [
   },
   {
     q: "What integrations are included?",
-    a: "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts.",
+    a: "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and Slack webhook alerts. Growth and Business also add SAP Business One and HubSpot.",
     link: { to: "/integrations", label: "See what each integration does" },
   },
   { q: "Can I cancel anytime?", a: "Yes. Manage billing through Paddle. Cancellation takes effect at the end of the current billing period. No refunds after payment. Use the trial to evaluate." },
@@ -114,7 +114,7 @@ export const HOME_FAQ = [
   },
   {
     q: "Integrations",
-    a: "Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack alerts. Manual entry stays available everywhere.",
+    a: "Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and Slack alerts. Growth and Business also add SAP Business One and HubSpot. Manual entry stays available everywhere.",
     link: { to: "/integrations", label: "See what each integration does" },
   },
 ];
@@ -746,7 +746,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "Is there a free plan?",
     a:
-      "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Calendar & Drive). Accounting integrations (QuickBooks, Xero, SAP Business One) start on Starter.",
+      "Yes. Free is $0 and includes up to 3 Trenston users, 5 AI document extracts to try it (then upgrade), Ask Trenston (10 messages/month), AI briefing, Dashboard & decisions, and Google (Calendar & Drive). Integrations (QuickBooks, Xero, Slack) start on Starter.",
   },
   {
     q: "What are the paid plans and is there a free trial?",
@@ -756,7 +756,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "What integrations are included on each plan?",
     a:
-      "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and SAP Business One. Growth and Business also add HubSpot and Slack webhook alerts. Connect only what helps. Manual entry stays available everywhere else.",
+      "Google (Calendar & Drive) is available on every plan, including Free. Starter adds QuickBooks, Xero, and Slack webhook alerts. Growth and Business also add SAP Business One and HubSpot. Connect only what helps. Manual entry stays available everywhere else.",
   },
   {
     q: "Can my leadership team use Trenston?",

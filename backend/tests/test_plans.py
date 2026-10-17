@@ -70,11 +70,13 @@ def test_plan_allows_provider_matrix():
     assert plans.plan_allows_provider("free", "quickbooks", billing_enforced=True) is False
     assert plans.plan_allows_provider("starter", "quickbooks", billing_enforced=True) is True
     assert plans.plan_allows_provider("starter", "xero", billing_enforced=True) is True
-    assert plans.plan_allows_provider("starter", "sap_b1", billing_enforced=True) is True
+    assert plans.plan_allows_provider("starter", "sap_b1", billing_enforced=True) is False
     assert plans.plan_allows_provider("starter", "hubspot", billing_enforced=True) is False
-    assert plans.plan_allows_provider("starter", "slack", billing_enforced=True) is False
+    assert plans.plan_allows_provider("starter", "slack", billing_enforced=True) is True
     assert plans.plan_allows_provider("growth", "hubspot", billing_enforced=True) is True
     assert plans.plan_allows_provider("growth", "slack", billing_enforced=True) is True
+    assert plans.plan_allows_provider("growth", "sap_b1", billing_enforced=True) is True
+    assert plans.plan_allows_provider("business", "sap_b1", billing_enforced=True) is True
     assert plans.plan_allows_provider("business", "hubspot", billing_enforced=True) is True
     assert plans.plan_allows_provider("free", "hubspot", billing_enforced=False) is True
 
@@ -145,11 +147,12 @@ def test_public_plan_list_shape():
     growth = next(r for r in rows if r["id"] == "growth")
     assert starter["seats"] == 7
     assert growth["seats"] == 20
-    assert starter["integration_providers"] == ["quickbooks", "xero", "sap_b1"]
+    assert starter["integration_providers"] == ["quickbooks", "xero", "slack"]
     assert "hubspot" in growth["integration_providers"]
+    assert "sap_b1" in growth["integration_providers"]
     assert any("Up to 7 Trenston users" in line for line in starter["includes"])
     assert any("Up to 20 Trenston users" in line for line in growth["includes"])
-    assert any("QuickBooks" in line and "Xero" in line and "SAP" in line for line in starter["includes"])
+    assert any("QuickBooks" in line and "Xero" in line and "Slack" in line for line in starter["includes"])
     assert any("HubSpot" in line for line in starter["includes"]) is False
     assert any("CEO Pack" in line for line in starter["includes"])
     assert any("HubSpot" in line for line in growth["includes"])

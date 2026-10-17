@@ -48,12 +48,12 @@ PROVIDER_GOOGLE = "google"
 STARTER_INTEGRATION_PROVIDERS = (
     PROVIDER_QUICKBOOKS,
     PROVIDER_XERO,
-    PROVIDER_SAP_B1,
+    PROVIDER_SLACK,
 )
 GROWTH_INTEGRATION_PROVIDERS = (
     *STARTER_INTEGRATION_PROVIDERS,
+    PROVIDER_SAP_B1,
     PROVIDER_HUBSPOT,
-    PROVIDER_SLACK,
 )
 
 PLANS: dict[str, dict[str, Any]] = {
@@ -119,7 +119,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "AI document extracts (65/month)",
             "Ask Trenston (100 messages/month)",
             "Automations (5 rules)",
-            "Integrations: Google, QuickBooks, Xero, SAP Business One",
+            "Integrations: Google, QuickBooks, Xero, Slack",
             "CEO Pack (shareable leadership summary)",
             "7-day free trial",
         ],
@@ -153,7 +153,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Ask Trenston (200 messages/month)",
             "Automations (15 rules)",
             "Everything in Starter",
-            "Integrations: HubSpot, Slack",
+            "Integrations: SAP Business One, HubSpot",
             "Financial Modeling: runway scenarios with hires and funding",
             "Read-only API and MCP connector for AI assistants",
             "Deeper reporting across a bigger team",
