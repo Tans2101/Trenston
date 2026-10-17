@@ -18933,9 +18933,9 @@ async def _ensure_indexes():
         (db.user_sessions, [("session_token", 1)], {"unique": True}),
         (db.user_sessions, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.user_sessions, [("user_id", 1)], {}),
-        (db.paddle_events, [("_id", 1)], {"unique": True}),
-        (db.clerk_events, [("_id", 1)], {"unique": True}),
-        (db.paddle_intents, [("_id", 1)], {"unique": True}),
+        # Do not create unique indexes on `_id` — MongoDB rejects `unique: true`
+        # on the implicit `_id` index (Flex/Atlas). Idempotency still uses `_id`
+        # as the document key for paddle_events / clerk_events / paddle_intents.
         # 7d TTL — paid webhooks can arrive after the old 1h window; missing-intent
         # path still provisions from custom_data, but keeping the intent helps binding checks.
         (db.paddle_intents, [("created_at", 1)], {"expireAfterSeconds": 604800}),
