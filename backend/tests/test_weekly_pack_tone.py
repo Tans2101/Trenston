@@ -4,7 +4,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import server
+import os
+os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
+os.environ.setdefault("DB_NAME", "test_weekly_pack_tone")
+
+import server  # noqa: E402
 
 
 # Rigid templates the old prompt (and common AI packs) forced every week.
@@ -164,3 +168,9 @@ async def test_weekly_pack_system_prompt_requires_natural_tone():
     assert "350 words" in system
     assert "monetization signal" in system
     assert_natural_pack_style(result["content"])
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoint rate-limits paid AI calls through Mongo; this test mocks db.
+    monkeypatch.setattr(server.doc_rate_limit, "acquire_event_slot", AsyncMock(return_value=True))
