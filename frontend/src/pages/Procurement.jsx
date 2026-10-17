@@ -904,6 +904,10 @@ export default function Procurement() {
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Quantity</span>
               <input
                 data-testid="procurement-edit-qty"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
                 disabled={!canEditContent || busy}
                 value={draft.quantity}
                 onChange={(e) => setDraft((d) => ({ ...d, quantity: e.target.value }))}
@@ -925,6 +929,10 @@ export default function Procurement() {
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Cost</span>
               <input
                 data-testid="procurement-edit-cost"
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
                 disabled={!canEditContent || busy}
                 value={draft.cost}
                 onChange={(e) => setDraft((d) => ({ ...d, cost: e.target.value }))}
@@ -1171,6 +1179,10 @@ export default function Procurement() {
                 <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Quantity</span>
                 <input
                   data-testid="procurement-new-qty"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
                   value={form.quantity}
                   onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
                   className="w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg"
@@ -1180,6 +1192,10 @@ export default function Procurement() {
                 <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Cost</span>
                 <input
                   data-testid="procurement-new-cost"
+                  type="number"
+                  min="0"
+                  step="any"
+                  inputMode="decimal"
                   value={form.cost}
                   onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
                   placeholder="Optional"

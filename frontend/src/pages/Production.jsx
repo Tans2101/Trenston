@@ -1018,6 +1018,9 @@ export default function Production() {
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Order qty planned</span>
               <input
                 data-testid="wo-qty-planned"
+                type="number"
+                min="0"
+                step="any"
                 disabled={busy}
                 value={draft.quantity_planned}
                 onChange={(e) => setDraft((d) => ({ ...d, quantity_planned: e.target.value }))}
@@ -1040,6 +1043,9 @@ export default function Production() {
               <span className="text-[10px] font-mono uppercase tracking-wide text-helm-muted">Qty produced (on complete)</span>
               <input
                 data-testid="wo-qty-produced"
+                type="number"
+                min="0"
+                step="any"
                 disabled={busy || draft.status !== "completed"}
                 value={draft.quantity_produced}
                 onChange={(e) => setDraft((d) => ({ ...d, quantity_produced: e.target.value }))}
