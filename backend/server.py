@@ -18931,7 +18931,9 @@ async def run_workspace_automations(workspace_id: str, *, anomalies: bool = True
     """Evaluate one workspace's enabled rules and (optionally) scan for anomalies."""
     rules = await db.automation_rules.find(
         {"workspace_id": workspace_id, "enabled": True}, {"_id": 0},
-    ).to_list(helm_automations.MAX_RULES)
+    ).sort("created_at", 1).to_list(helm_automations.MAX_RULES)
+    # After a downgrade, run only as many rules as the plan includes (oldest first).
+    rules = rules[: await _automation_rule_limit(workspace_id)]
     if not rules and not anomalies:
         return {"rules": 0, "fired": 0, "tasks": 0, "errors": 0, "anomalies": {"new": 0, "resolved": 0}}
     c, fin, entries, signals = await _automation_inputs(workspace_id, need_signals=bool(rules))
