@@ -29,6 +29,19 @@ def normalize_recurrence(
     return value if value in VALID_RECURRENCE else "monthly"
 
 
+def _line_key(entry: dict[str, Any]) -> str:
+    """Which commitment a recurring row belongs to: its name (falling back to its category).
+
+    A later recurring row replaces an earlier one only when they are the same line
+    (same name, category and cadence), so a price change replaces the old rate while
+    two different subscriptions in one category both keep counting.
+    """
+    name = " ".join(str(entry.get("name") or "").split()).casefold()
+    if name:
+        return name
+    return (str(entry.get("category") or "Other").strip() or "Other").casefold()
+
+
 def is_valid_month(month: str) -> bool:
     """True when month is a real YYYY-MM calendar month (01–12)."""
     s = (month or "").strip()
@@ -161,7 +174,7 @@ def iter_expense_month_amounts(
     """Yield (YYYY-MM, amount) for one expense entry.
 
     For recurring rows, `series_end` (inclusive) caps the projection — used when
-    a later commitment of the same category/cadence supersedes this rate.
+    a later commitment of the same name, category and cadence supersedes this rate.
     Without series_end, expands through horizon_end (single-commitment case).
     Credits/refunds yield negative amounts.
     """
@@ -202,7 +215,7 @@ def expand_entries_by_month(
     """Aggregate amounts by month for one entry type with non-overlapping recurring rates.
 
     - One-time rows: count only in their own month.
-    - Recurring rows grouped by (category, cadence): sorted by start month; each
+    - Recurring rows grouped by (category, cadence, name): sorted by start month; each
       covers until the month before the next start (or through horizon).
     - Credits/refunds (`is_credit`) subtract from the month total.
     """
@@ -230,13 +243,13 @@ def expand_entries_by_month(
             by_month[e["month"]] += _signed(e, amap.entry_amount_for_totals(e))
 
     # Group recurring commitments
-    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for e in recurring:
         cat = (e.get("category") or "Other").strip() or "Other"
         cadence = normalize_recurrence(True, e.get("recurrence"), want) or "monthly"
-        groups[(cat, cadence)].append(e)
+        groups[(cat, cadence, _line_key(e))].append(e)
 
-    for (_cat, _cadence), group in groups.items():
+    for (_cat, _cadence, _line), group in groups.items():
         group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
         for i, e in enumerate(group):
             start = e["month"]
@@ -288,13 +301,13 @@ def expand_expense_category_totals(
             import accounting_map as amap
             out[e["month"]][cat] += _signed(e, amap.entry_amount_for_totals(e))
 
-    groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for e in recurring:
         cat = (e.get("category") or "Other").strip() or "Other"
         cadence = normalize_recurrence(True, e.get("recurrence"), "expense") or "monthly"
-        groups[(cat, cadence)].append(e)
+        groups[(cat, cadence, _line_key(e))].append(e)
 
-    for (cat, _cadence), group in groups.items():
+    for (cat, _cadence, _line), group in groups.items():
         group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
         for i, e in enumerate(group):
             start = e["month"]
@@ -363,13 +376,13 @@ def line_items_for_period(
         })
 
     for entry_type, recurring in recurring_by_type.items():
-        groups: dict[tuple[str, str], list[dict]] = defaultdict(list)
+        groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
         for e in recurring:
             cat = (e.get("category") or "Other").strip() or "Other"
             cadence = normalize_recurrence(True, e.get("recurrence"), entry_type) or "monthly"
-            groups[(cat, cadence)].append(e)
+            groups[(cat, cadence, _line_key(e))].append(e)
 
-        for (cat, _cadence), group in groups.items():
+        for (cat, _cadence, _line), group in groups.items():
             group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
             for i, e in enumerate(group):
                 start = e["month"]
@@ -405,7 +418,7 @@ def month_breakdown(
     `counted` is exactly line_items_for_period (so it always adds up to the
     Financials chart for that month). `not_counted` lists recurring rows that
     started on or before `period` but are replaced there by a later recurring row
-    in the same category and cadence, so a missing subscription is explained
+    with the same name, category and cadence (a price change), so a missing line is explained
     instead of silently absent.
     """
     from collections import defaultdict
@@ -421,7 +434,7 @@ def month_breakdown(
 
     not_counted: list[dict[str, Any]] = []
     if is_valid_month(period) and is_valid_month(horizon_end) and period <= horizon_end:
-        groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+        groups: dict[tuple[str, str, str, str], list[dict]] = defaultdict(list)
         for e in entries or []:
             entry_type = (e.get("type") or "").strip().lower()
             start = (e.get("month") or "").strip()
@@ -429,8 +442,8 @@ def month_breakdown(
                 continue
             cat = (e.get("category") or "Other").strip() or "Other"
             cadence = normalize_recurrence(True, e.get("recurrence"), entry_type) or "monthly"
-            groups[(entry_type, cat, cadence)].append(e)
-        for (entry_type, cat, cadence), group in groups.items():
+            groups[(entry_type, cat, cadence, _line_key(e))].append(e)
+        for (entry_type, cat, cadence, _line), group in groups.items():
             group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
             started = [e for e in group if e["month"] <= period]
             if len(started) < 2:

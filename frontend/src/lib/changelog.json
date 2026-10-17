@@ -4,7 +4,7 @@
     {
       "date": "2026-10-17",
       "title": "Click a month to see every line",
-      "description": "On Financials, click a month on the charts, or pick one from the month buttons under Revenue vs expenses, to see exactly what was counted that month. A recurring expense such as a monthly subscription now shows up in each month it applies to, with when it started. If a recurring entry stops counting because a newer one in the same category replaced it, the month view says so."
+      "description": "On Financials, click a month on the charts, or pick one from the month buttons under Revenue vs expenses, to see exactly what was counted that month. A recurring expense such as a monthly subscription now shows up in each month it applies to, with when it started. If a recurring entry stops counting because a newer one in the same category replaced it, the month view says so. Two different recurring subscriptions in the same category (for example Cursor Pro and Claude, both under Software) now both count every month. Before, the newer one replaced the older one. A newer entry with the same name still replaces the old one, so a price change counts once."
     },
     {
       "date": "2026-10-16",

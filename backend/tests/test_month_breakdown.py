@@ -44,15 +44,34 @@ def test_annual_plan_is_shown_as_a_twelfth_with_its_cadence():
     assert row["amount"] == 10 and row["cadence"] == "annual"
 
 
-def test_a_later_recurring_row_in_the_same_category_is_explained_not_hidden():
+def test_two_different_subscriptions_in_one_category_both_count():
     claude = _e("c2", "Claude Max", "2026-09", 100, recurring=True, recurrence="monthly")
     aug = fr.month_breakdown([CURSOR, claude], "2026-08", "2026-10")
-    assert [r["name"] for r in aug["counted"]] == ["Cursor Pro"] and aug["not_counted"] == []
-    sep = fr.month_breakdown([CURSOR, claude], "2026-09", "2026-10")
-    assert [r["name"] for r in sep["counted"]] == ["Claude Max"]
+    assert [r["name"] for r in aug["counted"]] == ["Cursor Pro"]
+    for month in ("2026-09", "2026-10"):
+        out = fr.month_breakdown([CURSOR, claude], month, "2026-10")
+        assert sorted(r["name"] for r in out["counted"]) == ["Claude Max", "Cursor Pro"]
+        assert out["expense_total"] == 120 and out["not_counted"] == []
+    exp = fr.expand_entries_by_month([CURSOR, claude], entry_type="expense", horizon_end="2026-10")
+    assert exp["2026-08"] == 20 and exp["2026-09"] == 120 and exp["2026-10"] == 120
+    cats = fr.expand_expense_category_totals([CURSOR, claude], "2026-10")
+    assert cats["2026-10"]["Software"] == 120
+
+
+def test_a_price_change_with_the_same_name_replaces_the_old_rate():
+    raised = _e("c2", "cursor  pro", "2026-09", 40, recurring=True, recurrence="monthly")
+    aug = fr.month_breakdown([CURSOR, raised], "2026-08", "2026-10")
+    assert aug["expense_total"] == 20
+    sep = fr.month_breakdown([CURSOR, raised], "2026-09", "2026-10")
+    assert [r["amount"] for r in sep["counted"]] == [40] and sep["expense_total"] == 40
     gone = sep["not_counted"]
-    assert len(gone) == 1 and gone[0]["name"] == "Cursor Pro"
-    assert gone[0]["replaced_by_name"] == "Claude Max" and gone[0]["replaced_from"] == "2026-09"
+    assert len(gone) == 1 and gone[0]["id"] == "c1" and gone[0]["replaced_from"] == "2026-09"
+
+
+def test_unnamed_rows_in_one_category_still_replace_each_other():
+    a = _e("u1", "", "2026-07", 10, recurring=True)
+    b = _e("u2", None, "2026-09", 30, recurring=True)
+    assert fr.month_breakdown([a, b], "2026-10", "2026-10")["expense_total"] == 30
 
 
 def test_different_categories_do_not_replace_each_other():

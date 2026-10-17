@@ -130,7 +130,7 @@ export default function MonthDetail({ month, sym, onClose, onMonthChange }) {
                   <div className="rounded-md border border-helm-line p-3" data-testid="month-detail-not-counted">
                     <SectionLabel>Not counted this month</SectionLabel>
                     <p className="mt-1 text-xs leading-relaxed text-helm-muted">
-                      Trenston keeps one recurring amount per category. A later recurring entry in the same category replaces the earlier one.
+                      A later recurring entry with the same name and category counts as a new price and replaces the earlier one.
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       {data.not_counted.map((r) => (
