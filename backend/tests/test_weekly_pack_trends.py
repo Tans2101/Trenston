@@ -249,3 +249,11 @@ class TestReportSnapshotsHTTP:
             {"workspace_id": ws_id}, {"report_previous_snapshot": 1},
         )["report_previous_snapshot"]
         assert previous["taken_at"] == old["taken_at"]
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoints rate-limit paid AI calls through Mongo; these tests mock db.
+    from unittest.mock import AsyncMock as _AM
+    import server as _server
+    monkeypatch.setattr(_server.doc_rate_limit, "acquire_event_slot", _AM(return_value=True))

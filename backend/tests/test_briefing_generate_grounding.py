@@ -95,3 +95,10 @@ async def test_generate_briefing_uses_live_what_changed_and_real_metrics():
     assert "Runway" in labels
     assert "Today's output" in labels
     assert "NRR" in labels
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoints rate-limit paid AI calls through Mongo; these tests mock db.
+    from unittest.mock import AsyncMock as _AM
+    monkeypatch.setattr(server.doc_rate_limit, "acquire_event_slot", _AM(return_value=True))

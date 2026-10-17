@@ -174,3 +174,10 @@ async def test_weekly_pack_system_prompt_has_no_board():
     assert "structure follows" in captured["system"].lower() or "structure follow" in captured["system"].lower()
     assert "em dash" in captured["system"].lower() or "em dashes" in captured["system"].lower()
     assert "exact markdown structure" not in captured["system"].lower()
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoints rate-limit paid AI calls through Mongo; these tests mock db.
+    from unittest.mock import AsyncMock as _AM
+    monkeypatch.setattr(server.doc_rate_limit, "acquire_event_slot", _AM(return_value=True))

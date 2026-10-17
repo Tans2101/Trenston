@@ -257,3 +257,16 @@ def test_export_rejects_bad_period():
     finally:
         server.app.dependency_overrides.clear()
     assert r.status_code == 400
+
+
+def test_xlsx_never_writes_user_text_as_formula():
+    evil = [{**ENTRIES[0], "name": '=HYPERLINK("http://evil","x")', "category": "=1+1"}] + list(ENTRIES[1:])
+    bundle = fin_exp.assemble_financial_export(evil, SETTINGS, "2026-09", now=NOW)
+    raw = fin_exp.render_financial_xlsx(bundle, workspace_name="Acme")
+    from openpyxl import load_workbook
+
+    wb = load_workbook(BytesIO(raw))
+    for ws in wb.worksheets:
+        for row in ws.iter_rows():
+            for cell in row:
+                assert cell.data_type != "f", (ws.title, cell.coordinate, cell.value)

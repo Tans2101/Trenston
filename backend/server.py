@@ -5063,6 +5063,11 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     c = await get_ws(principal["workspace_id"])
     if not helm_llm.anthropic_configured():
         raise HTTPException(status_code=503, detail="AI is not configured (ANTHROPIC_API_KEY)")
+    # Each refresh is a paid AI call; cap it so a stuck button or script can't run up cost.
+    if not await doc_rate_limit.acquire_event_slot(
+        db, principal["workspace_id"], "briefing_generate", _BRIEFING_GENERATE_PER_HOUR,
+    ):
+        raise HTTPException(status_code=429, detail="You have refreshed the briefing a lot. Try again in a little while.")
     b = c["briefing"]
     has_fin_access = await can_access_financials(principal)
 
@@ -6958,6 +6963,8 @@ async def financials_month(month: str, principal=Depends(require_financials_view
 
 # ---- Financials: "What's making money / losing money / why it matters" (Haiku) ----
 _MONEY_INSIGHTS_PER_HOUR = 10
+_BRIEFING_GENERATE_PER_HOUR = 20
+_WEEKLY_PACK_PER_HOUR = 10
 _MONEY_INSIGHTS_MAINTENANCE = {
     "reason": "maintenance",
     "message": "AI summaries are under maintenance. Please try again later.",
@@ -9493,6 +9500,10 @@ async def _generate_weekly_pack_content(workspace_id: str) -> dict:
 
 @api_router.post("/reports/weekly-pack")
 async def weekly_pack(principal=Depends(require_pro_perm("reports:pack"))):
+    if not await doc_rate_limit.acquire_event_slot(
+        db, principal["workspace_id"], "weekly_pack", _WEEKLY_PACK_PER_HOUR,
+    ):
+        raise HTTPException(status_code=429, detail="You have written a lot of CEO Packs this hour. Try again in a little while.")
     result = await _generate_weekly_pack_content(principal["workspace_id"])
     saved = {
         "content": result["content"],

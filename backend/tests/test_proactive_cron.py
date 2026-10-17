@@ -482,3 +482,10 @@ def test_run_daily_briefing_reverts_claim_on_send_failure():
 def test_daily_briefing_date_key_format():
     key = server._daily_briefing_date_key(datetime(2026, 9, 19, 3, 0, tzinfo=timezone.utc))
     assert key == "2026-09-19"
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoints rate-limit paid AI calls through Mongo; these tests mock db.
+    from unittest.mock import AsyncMock as _AM
+    monkeypatch.setattr(server.doc_rate_limit, "acquire_event_slot", _AM(return_value=True))

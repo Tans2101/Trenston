@@ -475,6 +475,13 @@ def render_financial_xlsx(bundle: dict[str, Any], *, workspace_name: str) -> byt
     autosize(li, 4)
     li.freeze_panes = "A6"
 
+    # Names and categories are typed by users. This workbook writes no formulas,
+    # so any cell openpyxl read as a formula ("=...") is user text: keep it text.
+    for sheet in wb.worksheets:
+        for row_cells in sheet.iter_rows():
+            for cell in row_cells:
+                if cell.data_type == "f":
+                    cell.data_type = "s"
     buf = BytesIO()
     wb.save(buf)
     return buf.getvalue()

@@ -90,3 +90,10 @@ async def test_generate_briefing_awaits_calendar_concurrently_with_fin():
     # Serial would be ~0.10s+; concurrent target under ~0.09s wall for the I/O phase
     # (plus LLM mock). Allow headroom for CI noise.
     assert elapsed < 0.20
+
+
+@pytest.fixture(autouse=True)
+def _no_ai_rate_limit(monkeypatch):
+    # The endpoints rate-limit paid AI calls through Mongo; these tests mock db.
+    from unittest.mock import AsyncMock as _AM
+    monkeypatch.setattr(server.doc_rate_limit, "acquire_event_slot", _AM(return_value=True))
