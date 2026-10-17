@@ -894,7 +894,9 @@ export default function AppLayout() {
   // when focus is inside, so forward the key to the top-most one otherwise.
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
+      // Skip our own forwarded event: it bubbles back to document, and without
+      // this guard it re-dispatches forever (stack overflow on every Escape).
+      if (e.key !== "Escape" || e.defaultPrevented || !e.isTrusted) return;
       const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
       const top = dialogs[dialogs.length - 1];
       if (!top || top.contains(document.activeElement)) return;

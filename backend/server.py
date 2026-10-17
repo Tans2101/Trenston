@@ -16736,6 +16736,59 @@ async def billing_status(principal=Depends(get_principal)):
     return await get_billing_status(principal["workspace_id"], principal["pack"])
 
 
+async def _paddle_request(method: str, path: str, body: Optional[dict] = None) -> dict:
+    """Call the Paddle API. Raises HTTPException(503) when Paddle refuses or is unreachable."""
+    if not PADDLE_API_KEY:
+        raise HTTPException(status_code=503, detail="Billing is not configured. Contact support to change your plan.")
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.request(
+                method, f"{PADDLE_API_BASE}{path}",
+                headers={"Authorization": f"Bearer {PADDLE_API_KEY}", "Content-Type": "application/json"},
+                json=body,
+            )
+    except Exception as exc:
+        logger.exception("Paddle %s %s errored", method, path)
+        raise HTTPException(status_code=503, detail="Could not reach billing. Try again shortly.") from exc
+    if r.status_code not in (200, 201):
+        logger.error("Paddle %s %s failed: %s %s", method, path, r.status_code, r.text[:300])
+        raise HTTPException(status_code=503, detail="Billing could not change your plan. Try again shortly.")
+    try:
+        return (r.json() or {}).get("data") or {}
+    except Exception:
+        return {}
+
+
+async def _paddle_schedule_downgrade(sub_id: str, target: str, *, undo_from: Optional[str] = None) -> Optional[str]:
+    """Mirror a plan change in Paddle at the end of the paid period.
+
+    Free: schedule a cancel at the next billing date. Lower paid plan: swap the
+    price without billing now, so the next renewal charges the new price.
+    `undo_from` (the previously scheduled plan) restores `target`, the current
+    plan: it clears a scheduled cancel or swaps the price back.
+    Returns the period end Paddle reports, when it gives one.
+    """
+    target = helm_plans.normalize_plan(target)
+    if undo_from == helm_plans.PLAN_FREE:
+        # Clear the scheduled cancel, then fall through to restore the price
+        # (an earlier paid downgrade may have swapped it).
+        await _paddle_request("PATCH", f"/subscriptions/{sub_id}", {"scheduled_change": None})
+    if undo_from is None and target == helm_plans.PLAN_FREE:
+        data = await _paddle_request(
+            "POST", f"/subscriptions/{sub_id}/cancel", {"effective_from": "next_billing_period"},
+        )
+        return ((data.get("scheduled_change") or {}).get("effective_at")
+                or (data.get("current_billing_period") or {}).get("ends_at"))
+    price_id = helm_plans.paddle_price_id_for(target)
+    if not price_id:
+        raise HTTPException(status_code=503, detail="This plan is not available right now. Contact support.")
+    data = await _paddle_request("PATCH", f"/subscriptions/{sub_id}", {
+        "items": [{"price_id": price_id, "quantity": 1}],
+        "proration_billing_mode": "do_not_bill",
+    })
+    return (data.get("current_billing_period") or {}).get("ends_at")
+
+
 class SchedulePlanInput(BaseModel):
     plan: str
 
@@ -16747,6 +16800,12 @@ async def schedule_plan_change(payload: SchedulePlanInput, principal=Depends(req
     current = workspace_plan_id(c)
     target = helm_plans.normalize_plan(payload.plan)
     if target == current:
+        sub_id = (c.get("paddle_subscription_id") or "").strip()
+        if sub_id and c.get("pending_plan"):
+            # Undo the scheduled change in Paddle too.
+            await _paddle_schedule_downgrade(
+                sub_id, current, undo_from=helm_plans.normalize_plan(c.get("pending_plan")),
+            )
         await db.workspaces.update_one(
             {"workspace_id": principal["workspace_id"]},
             {"$unset": {"pending_plan": "", "pending_plan_effective_at": ""}},
@@ -16760,6 +16819,13 @@ async def schedule_plan_change(payload: SchedulePlanInput, principal=Depends(req
         )
     period = plan_usage.current_usage_period(c)
     effective_at = period["end"].isoformat()
+    # The paid subscription lives in Paddle. Change it there first, or the
+    # customer keeps being charged the old price after "downgrading".
+    sub_id = (c.get("paddle_subscription_id") or "").strip()
+    if sub_id:
+        paddle_end = await _paddle_schedule_downgrade(sub_id, target)
+        if paddle_end:
+            effective_at = paddle_end
     await db.workspaces.update_one(
         {"workspace_id": principal["workspace_id"]},
         {"$set": {"pending_plan": target, "pending_plan_effective_at": effective_at}},
@@ -16836,6 +16902,14 @@ async def paddle_config(request: Request, principal=Depends(require("billing:man
             status_code=400,
             detail=f"Checkout for {helm_plans.plan_def(target)['label']} is not configured yet. Set the Paddle price ID env var",
         )
+    ws_doc = await get_ws(principal["workspace_id"])
+    sub_id = (ws_doc.get("paddle_subscription_id") or "").strip()
+    sub_status = ws_doc.get("subscription_status")
+    if sub_id and sub_status in ("active", "trialing", "past_due"):
+        # Already subscribed: change the existing subscription. A new checkout
+        # would start a second subscription (and a second free trial) while
+        # the old one kept charging.
+        return await _paddle_change_existing_plan(principal, ws_doc, sub_id, target, price_id)
     nonce = uuid.uuid4().hex
     await db.paddle_intents.insert_one({
         "_id": nonce,
@@ -16858,6 +16932,39 @@ async def paddle_config(request: Request, principal=Depends(require("billing:man
         "email": principal.get("email"),
         "paddle_customer_id": (await get_ws(principal["workspace_id"])).get("paddle_customer_id") or "",
     }
+
+
+async def _paddle_change_existing_plan(principal: dict, ws_doc: dict, sub_id: str, target: str, price_id: str) -> dict:
+    current = workspace_plan_id(ws_doc)
+    if not helm_plans.is_upgrade(current, target):
+        raise HTTPException(
+            status_code=400,
+            detail="You're already on this plan or a higher one. Use Downgrade to move to a smaller plan.",
+        )
+    if ws_doc.get("subscription_status") == "past_due":
+        raise HTTPException(
+            status_code=400,
+            detail="Your last payment didn't go through. Update your payment method under Manage billing, then upgrade.",
+        )
+    if ws_doc.get("pending_plan") == helm_plans.PLAN_FREE:
+        # A scheduled cancel blocks item changes; clear it first.
+        await _paddle_request("PATCH", f"/subscriptions/{sub_id}", {"scheduled_change": None})
+    trialing = ws_doc.get("subscription_status") == "trialing"
+    await _paddle_request("PATCH", f"/subscriptions/{sub_id}", {
+        "items": [{"price_id": price_id, "quantity": 1}],
+        # Charge the difference now; during a trial nothing is billed yet.
+        "proration_billing_mode": "do_not_bill" if trialing else "prorated_immediately",
+    })
+    await db.workspaces.update_one(
+        {"workspace_id": principal["workspace_id"]},
+        {"$set": {"plan": target}, "$unset": {"pending_plan": "", "pending_plan_effective_at": ""}},
+    )
+    invalidate_plan_cache(principal["workspace_id"])
+    await log_activity(
+        principal, "billing", "plan.upgrade",
+        f"Upgraded to {helm_plans.plan_def(target)['label']}",
+    )
+    return {"upgraded": True, "plan": target}
 
 
 def _paddle_trial_fields(data: dict, status: str, existing: dict | None = None) -> dict:
@@ -16995,6 +17102,18 @@ async def _paddle_provision(event, status: str = "active"):
         # Portal upgrades/downgrades send subscription.updated without checkout nonce —
         # map the live Paddle price onto Helm plan entitlements.
         mapped_plan = helm_plans.plan_for_paddle_price(event_price_id)
+        if mapped_plan and prev:
+            # A downgrade scheduled from Billing swaps the Paddle price right
+            # away but the customer already paid for this period: keep the
+            # current plan until pending_plan_effective_at (get_ws applies it).
+            pending_doc = await db.workspaces.find_one(
+                {"paddle_subscription_id": sub_id},
+                {"_id": 0, "pending_plan": 1, "pending_plan_effective_at": 1},
+            ) or {}
+            eff = plan_usage.parse_dt(pending_doc.get("pending_plan_effective_at"))
+            if (pending_doc.get("pending_plan") == mapped_plan and eff
+                    and datetime.now(timezone.utc) < eff):
+                mapped_plan = None
         if mapped_plan:
             recovery["plan"] = mapped_plan
         recovery.update(_paddle_trial_fields(data, status))

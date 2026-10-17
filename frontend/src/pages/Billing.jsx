@@ -164,9 +164,24 @@ export default function Billing() {
       toast.error(`${tier.label} checkout isn’t available yet. Try again soon, or email contact@trenston.com.`);
       return;
     }
+    const alreadyPaying = currentPlan !== "free" && Boolean(data?.subscription_status) &&
+      ["active", "trialing"].includes(data.subscription_status);
+    if (alreadyPaying && !(await confirmAction({
+      title: `Upgrade to ${tier?.label || planId}?`,
+      description: data.subscription_status === "trialing"
+        ? "Your plan changes now. Your first charge after the trial will be at the new price."
+        : "Your plan changes now and you're charged the prorated difference for the rest of this billing period.",
+      confirmLabel: "Upgrade",
+    }))) return;
     setBusy(planId);
     try {
       const { data: cfg } = await api.post("/billing/paddle/config", { plan: planId });
+      if (cfg?.upgraded) {
+        // Existing subscription was changed in place; no new checkout.
+        toast.success(`Upgraded to ${tier?.label || planId}`);
+        window.location.reload();
+        return;
+      }
       const Paddle = await initPaddle(
         cfg.client_token,
         cfg.environment,
