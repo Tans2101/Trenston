@@ -31,6 +31,7 @@ class Collection:
         self.find = lambda *_args, **_kwargs: Cursor(self.rows)
         self.delete_many = AsyncMock()
         self.delete_one = AsyncMock()
+        self.find_one = AsyncMock(return_value=None)
 
 
 class FakeDB:

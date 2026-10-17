@@ -5019,9 +5019,10 @@ async def export_activities(
         raise HTTPException(status_code=400, detail="start and end must be YYYY-MM-DD")
     if end_d < start_d:
         raise HTTPException(status_code=400, detail="end must be on or after start")
-    start_iso = datetime(start_d.year, start_d.month, start_d.day, tzinfo=timezone.utc).isoformat()
-    end_exclusive = datetime(end_d.year, end_d.month, end_d.day, tzinfo=timezone.utc) + timedelta(days=1)
-    end_iso = end_exclusive.isoformat()
+    # Days are the workspace's local days, matching what the user sees in the app.
+    ws_doc = await db.workspaces.find_one({"workspace_id": principal["workspace_id"]}, {"_id": 0, "timezone": 1})
+    start_iso, _ = tz_utils.day_bounds_utc(ws_doc, start_d)
+    _, end_iso = tz_utils.day_bounds_utc(ws_doc, end_d)
     acts = await db.activities.find(
         {
             "workspace_id": principal["workspace_id"],
@@ -5034,14 +5035,19 @@ async def export_activities(
     import io as io_mod
     buf = io_mod.StringIO()
     writer = csv_mod.writer(buf)
+    def _safe_cell(v) -> str:
+        # Stop spreadsheet apps from running user-typed text as a formula.
+        s = str(v or "")
+        return "'" + s if s[:1] in ("=", "+", "-", "@", "\t", "\r") else s
+
     writer.writerow(["timestamp", "actor_name", "area", "action", "message"])
     for a in acts:
         writer.writerow([
             a.get("created_at") or "",
-            a.get("actor_name") or "",
-            a.get("module") or "",
-            a.get("action") or "",
-            a.get("summary") or "",
+            _safe_cell(a.get("actor_name")),
+            _safe_cell(a.get("module")),
+            _safe_cell(a.get("action")),
+            _safe_cell(a.get("summary")),
         ])
     data = buf.getvalue()
     filename = f"trenston-activity-{start_d.isoformat()}-to-{end_d.isoformat()}.csv"
@@ -7679,6 +7685,11 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
         await db.financial_entries.insert_one(entry)
     except DuplicateKeyError as exc:
         logger.exception("financial entry insert duplicate key for %s", principal["workspace_id"])
+        if source_document_id:
+            await db.documents.update_one(
+                {"id": source_document_id, "workspace_id": principal["workspace_id"], "status": "committing"},
+                {"$set": {"status": "extracted"}},
+            )
         raise HTTPException(
             status_code=409,
             detail="Could not save this entry: a matching ledger row already exists. Refresh and try again.",
@@ -7763,9 +7774,13 @@ async def update_fin_settings(payload: FinSettingsInput, principal=Depends(requi
     if payload.gross_margin is not None and not math.isfinite(payload.gross_margin):
         raise HTTPException(status_code=400, detail="gross_margin must be a finite number")
     currency = normalize_currency(payload.currency) if payload.currency is not None else None
-    sets: dict = {
-        "financial_settings.gross_margin": payload.gross_margin,
-    }
+    if payload.gross_margin is not None and not -100 <= payload.gross_margin <= 100:
+        raise HTTPException(status_code=400, detail="gross_margin is a percentage between -100 and 100")
+    sets: dict = {}
+    # Only touch gross margin when the caller sent it (null clears it), so
+    # a cash-only update can't silently wipe it.
+    if "gross_margin" in payload.model_fields_set:
+        sets["financial_settings.gross_margin"] = payload.gross_margin
     if payload.cash is not None:
         sets["financial_settings.cash"] = round(payload.cash, 2)
         sets["financial_settings.cash_entered"] = True
@@ -17651,7 +17666,52 @@ async def delete_account(user=Depends(get_user)):
     return {"ok": True, "clerk_deleted": clerk_deleted}
 
 
+async def _cancel_paddle_subscription(sub_id: str) -> None:
+    """Cancel a Paddle subscription immediately so a deleted workspace is not billed.
+
+    Raises HTTPException(503) when Paddle cannot confirm the cancellation, so
+    the delete can be retried instead of orphaning a paying subscription.
+    """
+    if not sub_id:
+        return
+    if not PADDLE_API_KEY:
+        logger.warning("workspace deletion: no PADDLE_API_KEY, cannot cancel %s", sub_id)
+        return
+    headers = {"Authorization": f"Bearer {PADDLE_API_KEY}", "Content-Type": "application/json"}
+    fail = HTTPException(
+        status_code=503,
+        detail=("We couldn't cancel the subscription, so deletion was not completed. "
+                "Try again shortly, or cancel the plan under Billing first."),
+    )
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"{PADDLE_API_BASE}/subscriptions/{sub_id}/cancel",
+                headers=headers, json={"effective_from": "immediately"},
+            )
+            if r.status_code in (200, 201):
+                return
+            # Already cancelled / gone counts as success.
+            g = await client.get(f"{PADDLE_API_BASE}/subscriptions/{sub_id}", headers=headers)
+            if g.status_code == 404:
+                return
+            if g.status_code == 200:
+                status = ((g.json() or {}).get("data") or {}).get("status")
+                if status == "canceled":
+                    return
+            logger.error("Paddle cancel %s failed: %s %s", sub_id, r.status_code, r.text[:300])
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Paddle cancel %s errored", sub_id)
+        raise fail from exc
+    raise fail
+
+
 async def _delete_workspace_data(ws_id: str):
+    ws_doc = await db.workspaces.find_one(
+        {"workspace_id": ws_id}, {"_id": 0, "paddle_subscription_id": 1}) or {}
+    await _cancel_paddle_subscription((ws_doc.get("paddle_subscription_id") or "").strip())
     # Delete private objects before their Mongo references. If object storage is
     # unavailable, fail visibly so the owner can retry instead of silently
     # leaving inaccessible customer files behind.

@@ -50,6 +50,15 @@ export default function AccountSettings() {
     setTimezoneDraft(company?.timezone || DEFAULT_TIMEZONE);
   }, [company?.timezone]);
 
+  // The workspace timezone arrives after first render; re-base the default
+  // export range on it unless the user already picked dates.
+  const actEdited = useRef(false);
+  useEffect(() => {
+    if (!workspaceTz || actEdited.current) return;
+    setActStart(addDaysISO(todayISO(workspaceTz), -30));
+    setActEnd(todayISO(workspaceTz));
+  }, [workspaceTz]);
+
   useEffect(() => {
     setDisplayName((user?.name || "").trim());
   }, [user?.name]);
@@ -669,11 +678,11 @@ export default function AccountSettings() {
           </p>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <label className="text-xs text-helm-muted">Start
-              <input data-testid="activity-export-start" type="date" value={actStart} onChange={(e) => setActStart(e.target.value)}
+              <input data-testid="activity-export-start" type="date" value={actStart} onChange={(e) => { actEdited.current = true; setActStart(e.target.value); }}
                 className="mt-1 w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg" />
             </label>
             <label className="text-xs text-helm-muted">End
-              <input data-testid="activity-export-end" type="date" value={actEnd} onChange={(e) => setActEnd(e.target.value)}
+              <input data-testid="activity-export-end" type="date" value={actEnd} onChange={(e) => { actEdited.current = true; setActEnd(e.target.value); }}
                 className="mt-1 w-full rounded-md border border-helm-line bg-helm-fg/[0.03] px-3 py-2 text-sm text-helm-fg" />
             </label>
           </div>

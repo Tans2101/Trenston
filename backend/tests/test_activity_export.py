@@ -27,6 +27,7 @@ def owner_client():
     server.app.dependency_overrides[server.get_principal] = principal
     mock_db = MagicMock()
     mock_db.activities = MagicMock()
+    mock_db.workspaces.find_one = AsyncMock(return_value={"timezone": "UTC"})
 
     class Cursor:
         def __init__(self, rows):
@@ -66,7 +67,7 @@ def member_client():
             "workspace_id": "ws1", "pack": "member", "role": "member",
         }
     server.app.dependency_overrides[server.get_principal] = principal
-    with patch.object(server, "db", MagicMock()):
+    with patch.object(server, "db", MagicMock(workspaces=MagicMock(find_one=AsyncMock(return_value=None)))):
         yield TestClient(server.app)
     server.app.dependency_overrides.clear()
 
