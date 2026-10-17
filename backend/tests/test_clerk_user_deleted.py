@@ -79,10 +79,26 @@ def test_verify_clerk_webhook_rejects_stale_timestamp():
 class _FakeUsers:
     def __init__(self, docs):
         self.docs = {d["user_id"]: dict(d) for d in docs}
+        self.inserted = []
+
+    def _match(self, doc, query) -> bool:
+        for k, v in query.items():
+            if isinstance(v, dict) and "$type" in v:
+                if v["$type"] == "string" and not isinstance(doc.get(k), str):
+                    return False
+                continue
+            if isinstance(v, dict) and "$regex" in v:
+                import re as _re
+                if not _re.search(v["$regex"], str(doc.get(k) or ""), flags=_re.I if "i" in (v.get("$options") or "") else 0):
+                    return False
+                continue
+            if doc.get(k) != v:
+                return False
+        return True
 
     async def find_one(self, query, projection=None):
         for doc in self.docs.values():
-            if all(doc.get(k) == v for k, v in query.items() if not str(k).startswith("$")):
+            if self._match(doc, query):
                 return {k: v for k, v in doc.items() if k != "_id"}
         return None
 
@@ -97,6 +113,20 @@ class _FakeUsers:
             for key in update["$unset"]:
                 self.docs[uid].pop(key, None)
         return MagicMock(modified_count=1)
+
+    async def insert_one(self, doc):
+        from pymongo.errors import DuplicateKeyError
+
+        email = doc.get("email")
+        clerk_id = doc.get("clerk_id")
+        for existing in self.docs.values():
+            if email and existing.get("email") == email:
+                raise DuplicateKeyError("E11000 duplicate key error collection: users index: email_1")
+            if clerk_id and existing.get("clerk_id") == clerk_id:
+                raise DuplicateKeyError("E11000 duplicate key error collection: users index: clerk_id_1")
+        self.docs[doc["user_id"]] = dict(doc)
+        self.inserted.append(doc)
+        return MagicMock(inserted_id=doc["user_id"])
 
 
 class _FakeSessions:
@@ -137,6 +167,51 @@ def test_revoke_local_user_for_clerk_delete():
     assert users.docs["u1"]["clerk_deleted_id"] == "user_abc"
     assert sessions.deleted == [{"user_id": "u1"}]
     assert memberships.updates
+
+
+def test_upsert_clerk_user_reclaims_soft_deleted_email():
+    """Shared sign-up path: tombstone still holding email must not block create."""
+    users = _FakeUsers([{
+        "user_id": "u_old",
+        "email": "founder@example.com",
+        "clerk_deleted_id": "user_old",
+        "deleted_at": "2026-01-01T00:00:00+00:00",
+    }])
+
+    with patch.object(server, "db", MagicMock(users=users)), \
+         patch.object(server, "_bootstrap", AsyncMock()):
+        user = asyncio.run(server._upsert_clerk_user(
+            email="founder@example.com",
+            name="Founder",
+            picture=None,
+            clerk_id="user_new",
+        ))
+
+    assert user["email"] == "founder@example.com"
+    assert user["clerk_id"] == "user_new"
+    assert users.docs["u_old"]["email"].startswith("deleted+u_old")
+    assert users.inserted and users.inserted[0]["clerk_id"] == "user_new"
+
+
+def test_upsert_clerk_user_duplicate_active_email_returns_409():
+    users = _FakeUsers([{
+        "user_id": "u_live",
+        "email": "taken@example.com",
+        "clerk_id": "user_other",
+    }])
+
+    with patch.object(server, "db", MagicMock(users=users)), \
+         patch.object(server, "_bootstrap", AsyncMock()), \
+         patch.object(server, "_find_user_by_identity", AsyncMock(side_effect=[None, None, None])):
+        with pytest.raises(HTTPException) as exc:
+            asyncio.run(server._upsert_clerk_user(
+                email="taken@example.com",
+                name="X",
+                picture=None,
+                clerk_id="user_new",
+            ))
+    assert exc.value.status_code == 409
+    assert "could not be created" in exc.value.detail.lower()
 
 
 def test_user_from_clerk_jwt_rejects_deleted_account():

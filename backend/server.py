@@ -2836,7 +2836,47 @@ async def _find_user_by_identity(
     return None
 
 
+async def _free_soft_deleted_email_holders(email: str) -> int:
+    """Release unique email index slots held by soft-deleted rows.
+
+    Soft-delete normally rewrites email to deleted+{uid}@invalid.local. Older rows
+    (or partial revokes) can still occupy the live address; _find_user_by_identity
+    ignores deleted_at, so insert then hits E11000 and sign-up dies for both
+    email/password and Google (shared Clerk → Trenston upsert path).
+    """
+    email = _normalize_email(email)
+    if not email:
+        return 0
+    from pymongo.errors import DuplicateKeyError  # local import — matches other call sites
+
+    freed = 0
+    # Normalized emails are lowercase; loop in case multiple tombstones collide.
+    for _ in range(10):
+        row = await db.users.find_one(
+            {"email": email, "deleted_at": {"$type": "string"}},
+            {"_id": 0, "user_id": 1, "deleted_at": 1},
+        )
+        if not row or not row.get("user_id"):
+            break
+        uid = row["user_id"]
+        placeholder = f"deleted+{uid}@invalid.local"
+        try:
+            await db.users.update_one(
+                {"user_id": uid, "deleted_at": {"$type": "string"}},
+                {"$set": {"email": placeholder}},
+            )
+        except DuplicateKeyError:
+            await db.users.update_one(
+                {"user_id": uid},
+                {"$set": {"email": f"deleted+{uid}+{uuid.uuid4().hex[:8]}@invalid.local"}},
+            )
+        freed += 1
+    return freed
+
+
 async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Optional[str], clerk_id: str):
+    from pymongo.errors import DuplicateKeyError
+
     email = _normalize_email(email)
     if not email or not clerk_id:
         raise HTTPException(status_code=400, detail="Clerk account email is required")
@@ -2854,11 +2894,46 @@ async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Option
         }
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
     else:
+        await _free_soft_deleted_email_holders(email)
         user_id = f"user_{uuid.uuid4().hex[:12]}"
-        await db.users.insert_one({
+        doc = {
             "user_id": user_id, "email": email, "name": name, "picture": picture,
             "clerk_id": clerk_id, "appearance": "light", "created_at": now,
-        })
+        }
+        try:
+            await db.users.insert_one(doc)
+        except DuplicateKeyError:
+            # Race with another exchange, or active row still holding email/clerk_id.
+            existing = await _find_user_by_identity(email, clerk_id=clerk_id)
+            if existing:
+                user_id = existing["user_id"]
+                await db.users.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "email": email,
+                        "clerk_id": clerk_id,
+                        "name": name or existing.get("name"),
+                        "picture": picture or existing.get("picture"),
+                    }},
+                )
+            else:
+                # Free again (case / timing) and retry once.
+                await _free_soft_deleted_email_holders(email)
+                try:
+                    await db.users.insert_one(doc)
+                except DuplicateKeyError as exc:
+                    logger.exception(
+                        "clerk upsert duplicate after reclaim email=%s clerk_id=%s",
+                        email,
+                        clerk_id,
+                    )
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            "Your account could not be created: that email is already linked "
+                            "to another Trenston user. Sign in instead, or contact support."
+                        ),
+                    ) from exc
     user = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     await _bootstrap(user)
     return user
@@ -2957,6 +3032,7 @@ async def auth_config():
             clerk_paths = {}
         sync = clerk_auth.clerk_sync_status()
         portal = sync.get("account_portal") if isinstance(sync, dict) else None
+        password_opt = sync.get("password_optional") if isinstance(sync, dict) else None
         clerk_sync = {
             "reason": sync.get("reason") if isinstance(sync, dict) else None,
             "synced": bool(sync.get("synced")) if isinstance(sync, dict) else False,
@@ -2967,6 +3043,12 @@ async def auth_config():
             "account_portal_status": portal.get("account_portal_status") if isinstance(portal, dict) else None,
             "account_portal_error": portal.get("account_portal_error") if isinstance(portal, dict) else None,
             "display_config_error": portal.get("display_config_error") if isinstance(portal, dict) else None,
+            # Boot sync tries to turn password Required OFF (needed for Google OAuth).
+            "password_optional_ok": bool(password_opt.get("ok")) if isinstance(password_opt, dict) else None,
+            "password_optional_reason": password_opt.get("reason") if isinstance(password_opt, dict) else None,
+            "password_optional_dashboard_fix": (
+                password_opt.get("dashboard_fix") if isinstance(password_opt, dict) else None
+            ),
         }
     return {
         "demo_login": ALLOW_DEMO_LOGIN,
