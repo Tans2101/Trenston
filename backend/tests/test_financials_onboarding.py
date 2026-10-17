@@ -4,6 +4,9 @@ Runs against the public REACT_APP_BACKEND_URL. Uses three pre-seeded sessions:
   OWNER:  test_session_kalun_123 (has sample data applied)
   MEMBER: test_session_user2 (member of owner's workspace)
   FRESH:  test_session_new (empty, onboarding_done=false)
+
+Integration: requires a seeded preview backend + live Mongo.
+Set RUN_INTEGRATION=1 to run.
 """
 import os
 import time
@@ -11,6 +14,14 @@ import uuid
 import pytest
 import requests
 from pymongo import MongoClient
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.environ.get("RUN_INTEGRATION") != "1",
+        reason="integration: seeded preview + live Mongo; set RUN_INTEGRATION=1",
+    ),
+]
 
 BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://exec-cockpit.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
@@ -30,6 +41,9 @@ def H(token):
 @pytest.fixture(scope="session", autouse=True)
 def ensure_fresh_user():
     """Reset the FRESH user + session so onboarding is empty at start-of-suite."""
+    if os.environ.get("RUN_INTEGRATION") != "1":
+        yield
+        return
     client = MongoClient(MONGO_URL)
     db = client[DB_NAME]
     from datetime import datetime, timezone, timedelta

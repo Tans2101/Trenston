@@ -118,7 +118,13 @@ def test_executive_views_financials_but_cannot_edit_them():
 
 
 def test_financial_reads_use_view_gate_and_writes_use_edit_gate():
-    routes = {(r.path, tuple(sorted(r.methods))): r for r in server.app.routes if hasattr(r, "methods")}
+    # api_router is included under FastAPI's _IncludedRouter; walk api_router.routes
+    # directly so path/method keys match (app.routes no longer flattens API routes).
+    routes = {
+        (r.path, tuple(sorted(r.methods))): r
+        for r in server.api_router.routes
+        if hasattr(r, "methods")
+    }
 
     def deps(path, method):
         route = routes[(path, (method,))]

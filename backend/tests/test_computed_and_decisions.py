@@ -21,10 +21,13 @@ BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "").rstrip("/")
 OWNER_TOKEN = "test_session_kalun_123"
 MEMBER_TOKEN = "test_session_user2"
 
-pytestmark = pytest.mark.skipif(
-    not BASE_URL,
-    reason="REACT_APP_BACKEND_URL not set (live API suite)",
-)
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.environ.get("RUN_INTEGRATION") != "1" or not BASE_URL,
+        reason="integration: set RUN_INTEGRATION=1 and REACT_APP_BACKEND_URL",
+    ),
+]
 
 
 def _sess(token):

@@ -23,7 +23,13 @@ OWNER_USER_ID = "test-user-kalun"
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "test_database")
 
-pytestmark = pytest.mark.skipif(not BASE_URL, reason="REACT_APP_BACKEND_URL not set")
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.environ.get("RUN_INTEGRATION") != "1" or not BASE_URL,
+        reason="integration: set RUN_INTEGRATION=1 and REACT_APP_BACKEND_URL",
+    ),
+]
 
 
 def _sess(token):

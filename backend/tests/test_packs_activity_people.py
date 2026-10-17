@@ -1,5 +1,8 @@
 """Iteration 4 tests: Access Packs (Phase 0), Activity/Briefing loop (Phase 1),
 People CRUD + headcount sync (Phase 3), and regression on existing endpoints under the new pack model.
+
+Integration: requires a seeded preview backend + live Mongo (pre-seeded sessions).
+Set RUN_INTEGRATION=1 to run.
 """
 import os
 import uuid
@@ -9,6 +12,14 @@ import pymongo
 from datetime import datetime, timezone
 
 from conftest import set_workspace_plan
+
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        os.environ.get("RUN_INTEGRATION") != "1",
+        reason="integration: seeded preview + live Mongo; set RUN_INTEGRATION=1",
+    ),
+]
 
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "https://exec-cockpit.preview.emergentagent.com").rstrip("/")
 OWNER_TOKEN = "test_session_kalun_123"

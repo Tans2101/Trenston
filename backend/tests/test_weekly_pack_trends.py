@@ -200,6 +200,11 @@ async def test_weekly_pack_llm_user_prompt_contains_manual_report():
     assert "## What happened" not in captured["system"] or "Never default" in captured["system"] or "always-on" in captured["system"].lower()
 
 
+@pytest.mark.integration
+@pytest.mark.skipif(
+    os.environ.get("RUN_INTEGRATION") != "1" or not BASE_URL,
+    reason="integration: set RUN_INTEGRATION=1 and REACT_APP_BACKEND_URL",
+)
 class TestReportSnapshotsHTTP:
     def test_first_run_stores_snapshot_and_shows_first_week(self, owner, mongo, ws_id):
         mongo.workspaces.update_one(
