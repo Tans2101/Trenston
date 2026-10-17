@@ -32,7 +32,7 @@ def test_map_invoice_missing_amount():
 def test_capabilities_and_missing_write_scopes():
     tokens = {"scope": "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/gmail.readonly"}
     caps = gcal.google_capabilities(tokens)
-    assert caps["gmail"] is True
+    assert "gmail" not in caps  # Gmail access was removed from the product
     assert caps["sheets"] is False
     assert caps["drive_file"] is False
     assert caps["calendar_write"] is False
@@ -53,7 +53,7 @@ def test_catalog_reconnect_when_write_scopes_missing():
     google = next(i for i in ints if i["id"] == "google")
     assert google["connected"] is True
     assert google.get("needs_reconsent") is True
-    assert google["capabilities"]["gmail"] is True
+    assert "gmail" not in google["capabilities"]
 
 
 def test_spreadsheet_body_has_two_sheets():

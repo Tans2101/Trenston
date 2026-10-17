@@ -146,6 +146,9 @@ class DocStore:
 
 @pytest.fixture
 def work_api():
+    import simple_cache
+    simple_cache.clear()  # no cached department lists from other tests
+    server.dept_access.clear_access_ids_cache()
     departments = DocStore([PROD, LEGAL, PROC, SALES])
     # Member is ONLY in Production — not Legal / Procurement / Sales.
     members = DocStore([

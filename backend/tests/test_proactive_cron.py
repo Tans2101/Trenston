@@ -244,14 +244,19 @@ async def test_weekly_pack_endpoint_uses_shared_helper():
             "data_as_of": None,
             "data_freshness_sources": {},
         }),
-    ) as helper:
+    ) as helper, patch.object(
+        server, "db", MagicMock(workspaces=MagicMock(update_one=AsyncMock())),
+    ) as fake_db:
         result = await server.weekly_pack(principal=principal)
+    assert result.pop("created_at")  # stamped when the pack is saved
     assert result == {
         "content": "shared body",
         "data_as_of": None,
         "data_freshness_sources": {},
     }
     helper.assert_awaited_once_with("ws_1")
+    # The pack is persisted so Reports can show the last one.
+    fake_db.workspaces.update_one.assert_awaited_once()
 
 
 def test_iso_week_key_format():
