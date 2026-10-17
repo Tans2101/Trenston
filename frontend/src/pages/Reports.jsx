@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { FileText, Plus, PenLine, X, Copy, Download, Check, ArrowRight } from "lucide-react";
+import { FileText, Plus, PenLine, X, Copy, Download, Check, ArrowRight, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage, blobErrorDetail } from "@/hooks/useFetch";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
@@ -22,14 +22,51 @@ const AUTO_REPORT_SOURCES = {
   auto_exec: { to: "/app/tasks", label: "View tasks" },
 };
 
-const emptyReport = () => ({ title: "", type: "General", period: "", summary: "", metrics: [{ label: "", value: "" }, { label: "", value: "" }, { label: "", value: "" }] });
+export const REPORT_TYPES = ["General", "Sales", "Finance", "Operations", "Team", "Production", "Procurement", "Marketing"];
+export const MAX_REPORT_METRICS = 6;
+const blankMetric = () => ({ label: "", value: "" });
+const emptyReport = () => ({ title: "", type: "General", period: "", summary: "", metrics: [blankMetric(), blankMetric(), blankMetric()] });
+
+/** Form rows for a report's numbers: what it has (up to the max), padded to at least 3. */
+export function formMetrics(metrics) {
+  const rows = (metrics || [])
+    .map((m) => ({ label: m?.label || "", value: m?.value?.toString?.() ?? String(m?.value ?? "") }))
+    .slice(0, MAX_REPORT_METRICS);
+  while (rows.length < 3) rows.push(blankMetric());
+  return rows;
+}
+
+/** "Oct 17, 3:05 PM" for when a CEO Pack was written. */
+export function writtenAt(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function Section({ id, title, description, action, children, testId }) {
+  return (
+    <section id={id} className="mb-10 scroll-mt-20 fade-up" data-testid={testId}>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-lg font-medium tracking-tight text-helm-fg">{title}</h2>
+          {description && <p className="mt-1 max-w-2xl text-sm leading-relaxed text-helm-muted">{description}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function Reports() {
   const { user } = useAuth();
   const { data, loading, error, reload } = useFetch("/reports");
   const [pack, setPack] = useState("");
   const [packAsOf, setPackAsOf] = useState(null);
+  const [packWrittenAt, setPackWrittenAt] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [packBusy, setPackBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef(null);
@@ -41,6 +78,7 @@ export default function Reports() {
   const [finExporting, setFinExporting] = useState(null);
   const [finPreview, setFinPreview] = useState(null);
   const [finPreviewLoading, setFinPreviewLoading] = useState(false);
+  const [showFinPreview, setShowFinPreview] = useState(false);
   useSoftRefreshToast(error, data, "Could not refresh reports. Showing the last loaded data.");
 
   useEffect(() => () => {
@@ -52,12 +90,17 @@ export default function Reports() {
     const months = data.financial_months || [];
     const next = data.financial_latest_month || months[months.length - 1] || new Date().toISOString().slice(0, 7);
     setFinPeriod((prev) => prev || next);
+    // Show the last CEO Pack someone wrote, so it survives a reload.
+    if (data.last_pack?.content) {
+      setPack((prev) => prev || data.last_pack.content);
+      setPackAsOf((prev) => prev || data.last_pack.data_as_of || null);
+      setPackWrittenAt((prev) => prev || data.last_pack.created_at || null);
+    }
   }, [data]);
 
   useEffect(() => {
     const canExport = Boolean(data?.can_export_financials);
-    if (!canExport || !finPeriod) {
-      setFinPreview(null);
+    if (!canExport || !finPeriod || !showFinPreview) {
       return undefined;
     }
     let cancelled = false;
@@ -73,12 +116,12 @@ export default function Reports() {
       }
     })();
     return () => { cancelled = true; };
-  }, [data?.can_export_financials, finPeriod]);
+  }, [data?.can_export_financials, finPeriod, showFinPreview]);
 
   if (loading) {
     return (
       <div>
-        <PageHeader title="Reports" subtitle="Understand the week, add context, and create an update you can share." />
+        <PageHeader title="Reports" subtitle="See how the week went, write updates, and export your numbers." />
         <SkeletonKPIRow count={3} className="lg:grid-cols-3" />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <SkeletonChart />
@@ -116,9 +159,9 @@ export default function Reports() {
     setForm({
       title: r.title || "",
       type: r.type || "General",
-      period: r.period || "",
+      period: r.period === "Manual" ? "" : (r.period || ""),
       summary: r.summary || "",
-      metrics: (r.metrics?.length ? r.metrics : emptyReport().metrics).slice(0, 3),
+      metrics: formMetrics(r.metrics),
     });
     setShowForm(true);
   };
@@ -130,7 +173,7 @@ export default function Reports() {
       type: d.type || "General",
       period: d.period || "",
       summary: d.summary || "",
-      metrics: (d.metrics?.length ? d.metrics : emptyReport().metrics).concat(emptyReport().metrics).slice(0, 3),
+      metrics: formMetrics(d.metrics),
     });
     setShowForm(true);
   };
@@ -145,7 +188,7 @@ export default function Reports() {
   };
 
   const submit = async () => {
-    if (!form.title.trim()) { toast.error("Title is required"); return; }
+    if (!form.title.trim()) { toast.error("Add a title"); return; }
     setBusy(true);
     const payload = {
       ...form,
@@ -154,7 +197,7 @@ export default function Reports() {
     try {
       if (editing) await api.patch(`/reports/${editing}`, payload);
       else await api.post("/reports", publishingDraftId ? { ...payload, from_draft_id: publishingDraftId } : payload);
-      toast.success(editing ? "Report updated" : publishingDraftId ? "Report published" : "Report added");
+      toast.success(editing ? "Report updated" : publishingDraftId ? "Report published" : "Report saved");
       setShowForm(false);
       setPublishingDraftId(null);
       reload();
@@ -169,16 +212,17 @@ export default function Reports() {
   };
 
   const generatePack = async () => {
-    setBusy(true);
+    setPackBusy(true);
     try {
-      const { data: res } = await api.post("/reports/weekly-pack");
+      const { data: res } = await api.post("/reports/weekly-pack", {}, { timeout: 90000 });
       setPack(res.content);
       setPackAsOf(res.data_as_of || null);
-      toast.success("Weekly update draft ready");
+      setPackWrittenAt(res.created_at || new Date().toISOString());
+      toast.success("CEO Pack ready");
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not generate CEO Pack");
+      toast.error(e?.response?.data?.detail || "Could not write the CEO Pack");
     } finally {
-      setBusy(false);
+      setPackBusy(false);
     }
   };
 
@@ -187,7 +231,7 @@ export default function Reports() {
     try {
       await navigator.clipboard.writeText(pack);
       setCopied(true);
-      toast.success("Weekly pack copied");
+      toast.success("CEO Pack copied");
       if (copyTimer.current) clearTimeout(copyTimer.current);
       copyTimer.current = setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -195,30 +239,31 @@ export default function Reports() {
     }
   };
 
+  const saveBlob = (res, mime, fallbackName) => {
+    const blob = new Blob([res.data], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const disposition = res.headers["content-disposition"] || "";
+    const match = disposition.match(/filename="([^"]+)"/);
+    a.download = match?.[1] || fallbackName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoking right after click() can cancel the download in Safari/Firefox.
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
+
   const downloadFinancialExport = async (kind) => {
     if (!finPeriod) return;
     setFinExporting(kind);
     try {
-      const res = await api.post(
-        `/reports/financial-export/${kind}`,
-        { period: finPeriod },
-        { responseType: "blob" },
+      const res = await api.post(`/reports/financial-export/${kind}`, { period: finPeriod }, { responseType: "blob" });
+      saveBlob(
+        res,
+        kind === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        `Trenston-Financial-Export.${kind}`,
       );
-      const mime = kind === "pdf"
-        ? "application/pdf"
-        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      const blob = new Blob([res.data], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const disposition = res.headers["content-disposition"] || "";
-      const match = disposition.match(/filename="([^"]+)"/);
-      a.download = match?.[1] || `Trenston-Financial-Export.${kind}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Revoking right after click() can cancel the download in Safari/Firefox.
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast.success(kind === "pdf" ? "PDF downloaded" : "Excel downloaded");
     } catch (e) {
       toast.error(await blobErrorDetail(e, "Could not download export"));
@@ -232,18 +277,7 @@ export default function Reports() {
     setExporting(true);
     try {
       const res = await api.post("/reports/weekly-pack/export-pdf", { content: pack }, { responseType: "blob" });
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      const disposition = res.headers["content-disposition"] || "";
-      const match = disposition.match(/filename="([^"]+)"/);
-      a.download = match?.[1] || "Trenston-Weekly-Pack.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Revoking right after click() can cancel the download in Safari/Firefox.
-      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      saveBlob(res, "application/pdf", "Trenston-Weekly-Pack.pdf");
       toast.success("PDF downloaded");
     } catch (e) {
       toast.error(await blobErrorDetail(e, "Could not download PDF"));
@@ -255,9 +289,6 @@ export default function Reports() {
   const openFromTrend = (r) => {
     setEditing(null);
     setPublishingDraftId(null);
-    const metrics = (r.metrics || [])
-      .map((m) => ({ label: m.label || "", value: m.value?.toString?.() ?? String(m.value ?? "") }))
-      .filter((m) => m.label.trim() && m.value.toString().trim());
     const changeNotes = (r.metrics || [])
       .filter((m) => m.change && m.change !== "Current total" && m.change !== "No comparison yet")
       .map((m) => `${m.label}: ${m.change}`)
@@ -267,7 +298,7 @@ export default function Reports() {
       type: "General",
       period: r.period || "",
       summary: changeNotes || r.summary || "",
-      metrics: metrics.concat(emptyReport().metrics).slice(0, 3),
+      metrics: formMetrics(r.metrics),
     });
     setShowForm(true);
   };
@@ -277,132 +308,127 @@ export default function Reports() {
     setPublishingDraftId(null);
   };
 
-  const action = canWrite ? (
-    <button data-testid="add-report-btn" onClick={openAdd}
+  const setMetric = (i, key, value) => setForm((f) => {
+    const metrics = [...f.metrics];
+    metrics[i] = { ...metrics[i], [key]: value };
+    return { ...f, metrics };
+  });
+
+  const writeBtn = canWrite ? (
+    <button data-testid="add-report-btn" type="button" onClick={openAdd}
       className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 hover:bg-helm-gold-hover">
-      <Plus className="w-4 h-4" /> Add report
+      <Plus className="w-4 h-4" /> Write a report
     </button>
   ) : null;
+
+  const jumps = [
+    { id: "this-week", label: "This week" },
+    { id: "ceo-pack", label: "CEO Pack" },
+    canExportFinancials && { id: "accountant-export", label: "Accountant export" },
+    canWrite && { id: "daily-files", label: "Daily files" },
+    { id: "saved-reports", label: "Saved reports" },
+  ].filter(Boolean);
 
   return (
     <div>
       <PageHeader
         title="Reports"
-        subtitle="Understand the week, add context, and create an update you can share."
-        action={action}
+        subtitle="See how the week went, write updates, and export your numbers. Everything comes from your own records."
+        action={writeBtn}
       />
 
-      <GlassCard className="p-4 mb-6 fade-up border-helm-line">
-        <p className="text-sm text-helm-muted leading-relaxed">
-          <span className="text-helm-fg">What happens here:</span> Trenston tracks money, team, and completed work week over week.
-          Turn a trend card into a report when you want context on the record. Then draft the CEO Pack for a
-          plain-English update you can share.
-        </p>
-      </GlassCard>
-
-      {drafts.length > 0 && (
-        <div className="mb-8" data-testid="department-drafts">
-          <SectionLabel className="mb-3">Suggested from your departments</SectionLabel>
-          <p className="text-sm text-helm-muted mb-3">
-            Rollups of completed department work this week. Review before they become a report. They are not published until you say so.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {drafts.map((d, i) => (
-              <GlassCard key={d.id} className="p-5 fade-up border-helm-gold/35" style={{ animationDelay: `${i * 60}ms` }} data-testid={`draft-${d.id}`}>
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="w-4 h-4 text-helm-gold" />
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-helm-muted">{d.type} · {d.period}</span>
-                  <span className="text-[9px] font-mono uppercase rounded px-1.5 py-0.5 ml-auto text-helm-gold bg-helm-gold/12">Draft</span>
-                </div>
-                <h3 className="text-helm-fg font-medium">{d.title}</h3>
-                <p className="text-sm text-helm-muted mt-2 leading-relaxed">{d.summary}</p>
-                {d.metrics?.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-helm-line">
-                    {d.metrics.map((m) => (
-                      <div key={m.label}>
-                        <p className="font-mono text-lg text-helm-fg">{m.value}</p>
-                        <p className="text-[10px] text-helm-muted uppercase tracking-wide">{m.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {canWrite && (
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      data-testid={`publish-draft-${d.id}`}
-                      type="button"
-                      onClick={() => openPublishDraft(d)}
-                      className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-3 py-2 hover:bg-helm-gold-hover"
-                    >
-                      <Check className="w-3.5 h-3.5" /> Publish
-                    </button>
-                    <button
-                      data-testid={`dismiss-draft-${d.id}`}
-                      type="button"
-                      onClick={() => dismissDraft(d)}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5"
-                    >
-                      <X className="w-3.5 h-3.5" /> Dismiss
-                    </button>
-                  </div>
-                )}
-              </GlassCard>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {manual.length > 0 && (
-        <>
-          <SectionLabel className="mb-3">Your reports</SectionLabel>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            {manual.map((r, i) => (
-              <ReportCard key={r.id} report={r} index={i} canWrite={canWrite} onEdit={() => openEdit(r)} onDelete={() => del(r)} badge="Manual" />
-            ))}
-          </div>
-        </>
-      )}
-
-      {manual.length === 0 && canWrite && (
-        <div className="mb-8">
-          <EmptyState title="No manual reports yet" body="Add your first report: weekly sales, production uptime, procurement status, or anything your team tracks." />
-        </div>
-      )}
+      <nav aria-label="Report sections" className="-mt-2 mb-8 flex flex-wrap gap-2" data-testid="report-jumps">
+        {jumps.map((j) => (
+          <a
+            key={j.id}
+            href={`#${j.id}`}
+            onClick={(e) => { e.preventDefault(); document.getElementById(j.id)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}
+            className="rounded-full border border-helm-line px-3 py-1 text-xs text-helm-muted hover:border-helm-gold/40 hover:text-helm-fg"
+          >
+            {j.label}
+          </a>
+        ))}
+      </nav>
 
       {auto.length > 0 && (
-        <div className="mb-10" data-testid="week-over-week-trends">
-          <SectionLabel className="mb-2">Week-over-week trends</SectionLabel>
-          <p className="text-sm text-helm-muted mb-6 max-w-2xl leading-relaxed">
-            Auto-generated from your data. Use these as a starting point for your own report.
-          </p>
-          <div className="grid gap-5 md:grid-cols-3">
+        <Section
+          id="this-week"
+          testId="week-over-week-trends"
+          title="This week at a glance"
+          description="Built automatically from your records and compared with last week. Nothing to fill in."
+        >
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             {auto.map((r, i) => (
               <ReportCard
                 key={r.id}
                 report={r}
                 index={i}
-                badge="Auto"
                 canWrite={canWrite}
                 onAddToReport={() => openFromTrend(r)}
                 source={AUTO_REPORT_SOURCES[r.id]}
               />
             ))}
           </div>
-        </div>
+        </Section>
       )}
 
-      {canExportFinancials && (
-        <GlassCard className="p-6 fade-up border-helm-line mb-6" data-testid="financial-export-card">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <SectionLabel>Financial Export</SectionLabel>
-              <p className="text-sm text-helm-muted max-w-xl mt-1">
-                Income Statement, Cash Summary, and named line items for a selected month: the same figures as Financials, ready for your accountant. Not a balance sheet.
-              </p>
+      <Section
+        id="ceo-pack"
+        title="CEO Pack"
+        description="A one-page update on the week for you, your team or investors. Trenston writes it from this week's numbers and your saved reports. Read it, then copy it or download a PDF."
+        action={canGeneratePack ? (
+          <button data-testid="generate-pack-btn" type="button" onClick={generatePack} disabled={packBusy}
+            className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60">
+            <FileText className="w-4 h-4" />{packBusy ? "Writing… (about 20 seconds)" : pack ? "Write a new one" : "Write this week's CEO Pack"}
+          </button>
+        ) : null}
+      >
+        {!canGeneratePack && (
+          <GlassCard className="p-5 text-sm text-helm-muted" data-testid="pack-locked">
+            {(user?.perms || []).includes("reports:pack")
+              ? "The CEO Pack is on the Starter plan and above."
+              : "Only owners and executives can write the CEO Pack."}
+          </GlassCard>
+        )}
+        {canGeneratePack && !pack && (
+          <GlassCard className="p-5 text-sm text-helm-muted" data-testid="pack-empty">
+            No CEO Pack yet. Press the button and Trenston will write one in about 20 seconds.
+          </GlassCard>
+        )}
+        {pack && (
+          <GlassCard className="p-5" data-testid="pack-content">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              {packWrittenAt && (
+                <span className="mr-auto text-xs text-helm-muted" data-testid="pack-written-at">Written {writtenAt(packWrittenAt)}</span>
+              )}
+              <button data-testid="copy-pack-btn" type="button" onClick={copyPack}
+                className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5">
+                <Copy className="w-3.5 h-3.5" />{copied ? "Copied" : "Copy"}
+              </button>
+              {canGeneratePack && (
+                <button data-testid="download-pack-pdf-btn" type="button" onClick={downloadPdf} disabled={exporting}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
+                  <Download className="w-3.5 h-3.5" />{exporting ? "Building PDF…" : "Download PDF"}
+                </button>
+              )}
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-end gap-3 shrink-0">
+            <AiSummaryMeta asOf={packAsOf} detailHref="/app/financials" detailLabel="Financials" className="mb-3" />
+            <PackPreview content={pack} />
+          </GlassCard>
+        )}
+      </Section>
+
+      {canExportFinancials && (
+        <Section
+          id="accountant-export"
+          testId="financial-export-card"
+          title="Export for your accountant"
+          description="Income statement, cash summary and every line item for one month, as a PDF or Excel file. Same numbers as Financials. Not a balance sheet."
+        >
+          <GlassCard className="p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <label className="text-xs text-helm-muted">
-                Period
+                Month
                 <input
                   data-testid="financial-export-period"
                   type="month"
@@ -412,134 +438,154 @@ export default function Reports() {
                 />
               </label>
               <div className="flex flex-wrap gap-2">
-                <button
-                  data-testid="financial-export-pdf-btn"
-                  type="button"
-                  onClick={() => downloadFinancialExport("pdf")}
-                  disabled={Boolean(finExporting)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  {finExporting === "pdf" ? "Building PDF…" : "Download PDF"}
+                <button data-testid="financial-export-pdf-btn" type="button" onClick={() => downloadFinancialExport("pdf")} disabled={Boolean(finExporting)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
+                  <Download className="w-3.5 h-3.5" />{finExporting === "pdf" ? "Building PDF…" : "Download PDF"}
                 </button>
-                <button
-                  data-testid="financial-export-xlsx-btn"
-                  type="button"
-                  onClick={() => downloadFinancialExport("xlsx")}
-                  disabled={Boolean(finExporting)}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  {finExporting === "xlsx" ? "Building Excel…" : "Download Excel"}
+                <button data-testid="financial-export-xlsx-btn" type="button" onClick={() => downloadFinancialExport("xlsx")} disabled={Boolean(finExporting)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60">
+                  <Download className="w-3.5 h-3.5" />{finExporting === "xlsx" ? "Building Excel…" : "Download Excel"}
+                </button>
+                <button data-testid="financial-export-preview-toggle" type="button" onClick={() => setShowFinPreview((v) => !v)} aria-expanded={showFinPreview}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5">
+                  {showFinPreview ? "Hide preview" : "Preview"}
+                  <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showFinPreview && "rotate-180")} />
                 </button>
               </div>
             </div>
-          </div>
-          {(finPreviewLoading || finPreview) && (
-            <div className="mt-6" data-testid="financial-export-preview">
-              {finPreviewLoading && !finPreview ? (
-                <p className="text-xs text-helm-muted">Loading accountant view…</p>
-              ) : (
-                <FinancialExportPreview bundle={finPreview} />
-              )}
-            </div>
-          )}
-        </GlassCard>
+            {showFinPreview && (
+              <div className="mt-6 overflow-x-auto" data-testid="financial-export-preview">
+                {finPreviewLoading && !finPreview ? (
+                  <p className="text-xs text-helm-muted">Loading preview…</p>
+                ) : finPreview ? (
+                  <FinancialExportPreview bundle={finPreview} />
+                ) : (
+                  <p className="text-xs text-helm-muted">Could not load the preview for this month.</p>
+                )}
+              </div>
+            )}
+          </GlassCard>
+        </Section>
       )}
 
-      {canWrite && <ReportsDailyDigest canWrite={canWrite} />}
+      {canWrite && (
+        <Section
+          id="daily-files"
+          title="Daily report files"
+          description="Have reports from your team as Excel, CSV, PDF or photos? Add them here. Trenston reads each one and writes one short summary for the day."
+        >
+          <ReportsDailyDigest canWrite={canWrite} />
+        </Section>
+      )}
 
-      <GlassCard className="p-6 fade-up border-helm-line">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-          <div>
-            <SectionLabel>CEO Pack</SectionLabel>
-            <p className="text-sm text-helm-muted max-w-xl mt-1">
-              A one-page leadership update: what happened, what needs your attention, and what to do next.
-              Trenston drafts it from the week-over-week trends above and any reports your team added.
-            </p>
-          </div>
-          {canGeneratePack ? (
-            <button data-testid="generate-pack-btn" onClick={generatePack} disabled={busy}
-              className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60 shrink-0">
-              <FileText className="w-4 h-4" />{busy ? "Drafting…" : "Draft CEO Pack"}
-            </button>
-          ) : (
-            <p className="text-xs text-helm-muted shrink-0 max-w-xs text-right">
-              {(user?.perms || []).includes("reports:pack")
-                ? "CEO Pack needs a Growth plan or higher."
-                : "Owner or executive access required to generate."}
-            </p>
-          )}
-        </div>
-        {pack && (
-          <div className="mt-4 rounded-lg border border-helm-line bg-helm-ink/30 p-5" data-testid="pack-content">
-            <AiSummaryMeta
-              asOf={packAsOf}
-              detailHref="/app/financials"
-              detailLabel="Financials"
-              className="mb-3"
-            />
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <button
-                data-testid="copy-pack-btn"
-                type="button"
-                onClick={copyPack}
-                className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                {copied ? "Copied" : "Copy"}
-              </button>
-              {canGeneratePack && (
-                <button
-                  data-testid="download-pack-pdf-btn"
-                  type="button"
-                  onClick={downloadPdf}
-                  disabled={exporting}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-helm-gold/35 bg-helm-gold/12 text-helm-gold text-sm px-3 py-2 hover:bg-helm-gold/10 disabled:opacity-60"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  {exporting ? "Building PDF…" : "Download PDF"}
-                </button>
-              )}
+      <Section
+        id="saved-reports"
+        title="Saved reports"
+        description="Short notes with a few key numbers, written by you or suggested by your departments. They stay here for your team and go into the CEO Pack."
+      >
+        {drafts.length > 0 && (
+          <div className="mb-6" data-testid="department-drafts">
+            <SectionLabel className="mb-3">Suggested by your departments</SectionLabel>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              {drafts.map((d, i) => (
+                <GlassCard key={d.id} className="p-5 fade-up border-helm-gold/35" style={{ animationDelay: `${i * 60}ms` }} data-testid={`draft-${d.id}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FileText className="w-4 h-4 text-helm-gold" />
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-helm-muted truncate">{[d.type, d.period].filter(Boolean).join(" · ")}</span>
+                    <span className="text-[9px] font-mono uppercase rounded px-1.5 py-0.5 ml-auto text-helm-gold bg-helm-gold/12">Not published</span>
+                  </div>
+                  <h3 className="text-helm-fg font-medium">{d.title}</h3>
+                  <p className="text-sm text-helm-muted mt-2 leading-relaxed">{d.summary}</p>
+                  {d.metrics?.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-helm-line">
+                      {d.metrics.map((m, mi) => (
+                        <div key={`${m.label}-${mi}`}>
+                          <p className="font-mono text-lg text-helm-fg">{m.value}</p>
+                          <p className="text-[10px] text-helm-muted uppercase tracking-wide">{m.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {canWrite && (
+                    <div className="flex gap-2 mt-4">
+                      <button data-testid={`publish-draft-${d.id}`} type="button" onClick={() => openPublishDraft(d)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-3 py-2 hover:bg-helm-gold-hover">
+                        <Check className="w-3.5 h-3.5" /> Review and publish
+                      </button>
+                      <button data-testid={`dismiss-draft-${d.id}`} type="button" onClick={() => dismissDraft(d)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5">
+                        <X className="w-3.5 h-3.5" /> Dismiss
+                      </button>
+                    </div>
+                  )}
+                </GlassCard>
+              ))}
             </div>
-            <PackPreview content={pack} />
           </div>
         )}
-      </GlassCard>
+
+        {manual.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {manual.map((r, i) => (
+              <ReportCard key={r.id} report={r} index={i} canWrite={canWrite} onEdit={() => openEdit(r)} onDelete={() => del(r)} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No saved reports yet"
+            body={canWrite
+              ? "Write a short note on anything your team tracks, like weekly sales or production, with up to six numbers. Or press \"Save as report\" on a card above."
+              : "Reports your team writes will show up here."}
+          />
+        )}
+      </Section>
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-helm-ink/70" onClick={closeForm} />
-          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit report" : "Add a report"} onKeyDown={(e) => { if (e.key === "Escape") closeForm(); }} className="relative w-full sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="report-form">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg text-helm-fg font-light">{editing ? "Edit report" : publishingDraftId ? "Review department draft" : "Add a report"}</h3>
-              <button type="button" aria-label="Close" onClick={closeForm} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
+          <GlassCard role="dialog" aria-modal="true" aria-label={editing ? "Edit report" : "Write a report"} onKeyDown={(e) => { if (e.key === "Escape") closeForm(); }} className="relative max-h-[90vh] w-full overflow-y-auto sm:max-w-lg m-0 sm:m-4 rounded-t-2xl sm:rounded-2xl p-6" data-testid="report-form">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg text-helm-fg font-light">{editing ? "Edit report" : publishingDraftId ? "Review department draft" : "Write a report"}</h3>
+              <button type="button" aria-label="Close" title="Close" onClick={closeForm} className="text-helm-muted hover:text-helm-fg"><X className="w-5 h-5" /></button>
             </div>
+            <p className="mb-5 text-xs leading-relaxed text-helm-muted">A short note with a few numbers. It is saved for your team and included in the next CEO Pack.</p>
             <div className="space-y-3">
               <label className="text-xs text-helm-muted block">Title
-                <input data-testid="report-title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Sales Performance" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                <input data-testid="report-title" value={form.title} maxLength={120} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Sales this week" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
               </label>
               <div className="grid grid-cols-2 gap-3">
-                <label className="text-xs text-helm-muted">Type
-                  <input value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} placeholder="Sales" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                <label className="text-xs text-helm-muted">Area
+                  <input data-testid="report-type" list="report-type-options" value={form.type} maxLength={40} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} placeholder="Sales" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                  <datalist id="report-type-options">
+                    {REPORT_TYPES.map((t) => <option key={t} value={t} />)}
+                  </datalist>
                 </label>
-                <label className="text-xs text-helm-muted">Period
-                  <input value={form.period} onChange={(e) => setForm((f) => ({ ...f, period: e.target.value }))} placeholder="This week" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
+                <label className="text-xs text-helm-muted">Time it covers
+                  <input data-testid="report-period" value={form.period} maxLength={60} onChange={(e) => setForm((f) => ({ ...f, period: e.target.value }))} placeholder="Oct 12 to 18" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40" />
                 </label>
               </div>
-              <label className="text-xs text-helm-muted block">Summary
-                <textarea value={form.summary} onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))} rows={3} placeholder="What happened and why it matters…" className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40 resize-none" />
+              <label className="text-xs text-helm-muted block">What happened
+                <textarea data-testid="report-summary" value={form.summary} maxLength={2000} onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))} rows={3} placeholder="Two new clients signed. Pipeline is up after the trade show." className="mt-1 w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-3 py-2 focus:outline-none focus:border-helm-gold/40 resize-none" />
               </label>
-              <div className="grid grid-cols-3 gap-2">
-                {form.metrics.map((m, i) => (
-                  <div key={i}>
-                    <input value={m.label} onChange={(e) => setForm((f) => { const metrics = [...f.metrics]; metrics[i] = { ...metrics[i], label: e.target.value }; return { ...f, metrics }; })} placeholder="Metric" className="w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-xs px-2 py-1.5 mb-1 focus:outline-none focus:border-helm-gold/40" />
-                    <input value={m.value} onChange={(e) => setForm((f) => { const metrics = [...f.metrics]; metrics[i] = { ...metrics[i], value: e.target.value }; return { ...f, metrics }; })} placeholder="Value" className="w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-xs px-2 py-1.5 focus:outline-none focus:border-helm-gold/40" />
-                  </div>
-                ))}
+              <div>
+                <p className="text-xs text-helm-muted mb-1">Key numbers (optional)</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {form.metrics.map((m, i) => (
+                    <div key={i}>
+                      <input value={m.label} maxLength={60} onChange={(e) => setMetric(i, "label", e.target.value)} placeholder="Name, e.g. Deals won" aria-label={`Number ${i + 1} name`} className="w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-xs px-2 py-1.5 mb-1 focus:outline-none focus:border-helm-gold/40" />
+                      <input value={m.value} maxLength={40} onChange={(e) => setMetric(i, "value", e.target.value)} placeholder="Value, e.g. 4" aria-label={`Number ${i + 1} value`} className="w-full rounded-md border border-helm-line bg-helm-card text-helm-fg text-xs px-2 py-1.5 focus:outline-none focus:border-helm-gold/40" />
+                    </div>
+                  ))}
+                </div>
+                {form.metrics.length < MAX_REPORT_METRICS && (
+                  <button type="button" data-testid="report-add-metric" onClick={() => setForm((f) => ({ ...f, metrics: [...f.metrics, blankMetric()] }))}
+                    className="mt-2 inline-flex items-center gap-1 text-xs text-helm-gold hover:text-helm-gold-hover">
+                    <Plus className="w-3 h-3" /> Add a number
+                  </button>
+                )}
               </div>
             </div>
-            <button data-testid="submit-report-btn" onClick={submit} disabled={busy} className="mt-5 w-full rounded-md bg-helm-gold text-helm-navy font-medium py-2.5 text-sm hover:bg-helm-gold-hover disabled:opacity-60">{busy ? "Saving…" : editing ? "Save report" : publishingDraftId ? "Publish report" : "Add report"}</button>
+            <button data-testid="submit-report-btn" type="button" onClick={submit} disabled={busy} className="mt-5 w-full rounded-md bg-helm-gold text-helm-navy font-medium py-2.5 text-sm hover:bg-helm-gold-hover disabled:opacity-60">{busy ? "Saving…" : editing ? "Save changes" : publishingDraftId ? "Publish report" : "Save report"}</button>
           </GlassCard>
         </div>
       )}
@@ -547,14 +593,20 @@ export default function Reports() {
   );
 }
 
-function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToReport, badge, hideSummary, source }) {
-  const isAuto = badge === "Auto" || badge === "Updated automatically" || r.source === "auto";
+/** Card header line: "Sales · Oct 12 to 18". Hides the old "Manual" placeholder period. */
+export function reportMeta(r) {
+  const period = r?.period === "Manual" ? "" : r?.period;
+  return [r?.type, period].filter(Boolean).join(" · ");
+}
+
+function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToReport, hideSummary, source }) {
+  const isAuto = r.source === "auto";
   const metrics = r.metrics || [];
 
   return (
     <GlassCard
       className={cn(
-        "p-6 fade-up group relative flex flex-col h-full",
+        "p-6 fade-up group relative flex flex-col h-full min-w-0",
         isAuto && "border-helm-gold/25 shadow-sm",
       )}
       style={{ animationDelay: `${index * 60}ms` }}
@@ -562,7 +614,7 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
     >
       {canWrite && onEdit && (
         <div className="absolute top-3 right-3 flex gap-1 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
-          <button type="button" onClick={onEdit} className="text-helm-muted hover:text-helm-gold p-1" aria-label="Edit report"><PenLine className="w-3.5 h-3.5" /></button>
+          <button type="button" onClick={onEdit} className="text-helm-muted hover:text-helm-gold p-1" aria-label="Edit report" title="Edit report"><PenLine className="w-3.5 h-3.5" /></button>
           <CirDeleteBtn onClick={onDelete} title="Delete report" />
         </div>
       )}
@@ -570,12 +622,7 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-helm-gold/12 border border-helm-gold/25 shrink-0">
           <FileText className="w-3.5 h-3.5 text-helm-gold" />
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-helm-muted min-w-0 truncate">{r.type} · {r.period}</span>
-        {badge && (
-          <span className="text-[9px] uppercase tracking-wide rounded px-1.5 py-0.5 ml-auto shrink-0 text-helm-gold bg-helm-gold/12">
-            {badge}
-          </span>
-        )}
+        <span className="text-[10px] uppercase tracking-wider text-helm-muted min-w-0 truncate">{isAuto ? r.period : reportMeta(r)}</span>
       </div>
       <h3 className="text-helm-fg text-base font-medium tracking-tight pr-8">{r.title}</h3>
       {!hideSummary && r.summary && (
@@ -587,8 +634,8 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
           metrics.length >= 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2",
         )}
         >
-          {metrics.map((m) => (
-            <div key={m.label} className="min-w-0">
+          {metrics.map((m, mi) => (
+            <div key={`${m.label}-${mi}`} className="min-w-0">
               <p className="font-mono text-xl md:text-2xl tracking-tight text-helm-fg tabular-nums leading-none break-words">
                 {m.value}
               </p>
@@ -609,7 +656,7 @@ function ReportCard({ report: r, index, canWrite, onEdit, onDelete, onAddToRepor
               onClick={onAddToReport}
               className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 hover:border-helm-fg/20 transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" /> Add to report
+              <Plus className="w-3.5 h-3.5" /> Save as report
             </button>
           )}
           {source && (

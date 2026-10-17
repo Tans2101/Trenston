@@ -8745,6 +8745,30 @@ async def _apply_report_snapshot(workspace_id: str, current: dict) -> Optional[d
     return previous
 
 
+def _burn_metric(fin: dict, change: str, currency: str) -> dict:
+    """Net burn, or profit when revenue beat expenses (never a confusing negative burn)."""
+    burn = fin.get("burn_value")
+    if fin.get("burn_known") and burn is not None and float(burn) < 0:
+        return {"label": "Profit this month", "value": fmt_money(abs(float(burn)), currency), "change": change}
+    return {"label": "Net burn this month", "value": format_burn_display(fin), "change": change}
+
+
+def _sanitize_report_metrics(metrics) -> list[dict]:
+    """Up to 6 {label, value} pairs of short text. Anything else is dropped."""
+    out: list[dict] = []
+    for m in metrics or []:
+        if not isinstance(m, dict):
+            continue
+        label = str(m.get("label") or "").strip()[:60]
+        value = m.get("value")
+        value = "" if value is None or isinstance(value, (dict, list)) else str(value).strip()[:40]
+        if label and value:
+            out.append({"label": label, "value": value})
+        if len(out) >= 6:
+            break
+    return out
+
+
 def _computed_report_cards(c, fin, items, ups, headcount, prior=None, *, include_financials: bool = True):
     # Task / update / blocker / shipped counts and people-roster headcount are
     # computed from workspace collections. Zero is unambiguous (none found) —
@@ -8795,9 +8819,12 @@ def _computed_report_cards(c, fin, items, ups, headcount, prior=None, *, include
                  {"label": "Monthly recurring revenue", "value": format_mrr_display(fin), "change": mrr_change},
                  {"label": "Cash runway", "value": (
                      f"{fin['runway_months']} months" if fin["runway_months"] is not None
-                     else (RUNWAY_NO_BURN_LABEL if fin.get("runway_no_burn") else "Add data")
-                 ), "change": runway_change},
-                 {"label": "Net burn this month", "value": format_burn_display(fin), "change": burn_change},
+                     else ("No burn" if fin.get("runway_no_burn") else "Add data")
+                 ), "change": (
+                     "Cash is growing" if fin["runway_months"] is None and fin.get("runway_no_burn")
+                     else runway_change
+                 )},
+                 _burn_metric(fin, burn_change, currency),
              ],
              "baseline_at": baseline_at, "source": "auto"},
         )
@@ -8855,6 +8882,17 @@ async def reports(principal=Depends(get_principal)):
             scoped = await compute_financials(c["workspace_id"], department_ids=dept_ids)
             financial_months = list(scoped.get("months") or [])
             financial_latest_month = scoped.get("latest_month")
+            # Someone limited to some finance departments must not see whole-company
+            # money in the Money check-in card. Show their scope, without a weekly
+            # comparison (the saved baseline is company-wide).
+            scoped_cards = _computed_report_cards(
+                c, scoped, items, ups, headcount, prior=None, include_financials=True,
+            )
+            auto = [scoped_cards[0]] + [card for card in auto if card["id"] != "auto_fin"]
+    can_generate_pack = (
+        "reports:pack" in perms_for(principal["pack"])
+        and workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS)
+    )
     payload_out = {
         "reports": manual + auto,
         "manual_reports": manual,
@@ -8865,10 +8903,9 @@ async def reports(principal=Depends(get_principal)):
         "financial_months": financial_months,
         "financial_latest_month": financial_latest_month,
         "is_pro": workspace_is_pro(c),
-        "can_generate_pack": (
-            "reports:pack" in perms_for(principal["pack"])
-            and workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS)
-        ),
+        "can_generate_pack": can_generate_pack,
+        # The last CEO Pack someone drafted, so it is not lost on reload.
+        "last_pack": (c.get("last_weekly_pack") or None) if can_generate_pack else None,
     }
     simple_cache.put(cache_key, payload_out, _DEPT_LIST_CACHE_TTL_SECONDS)
     return payload_out
@@ -8903,11 +8940,11 @@ async def create_report(payload: ReportInput, principal=Depends(require_section(
     manual = list(c.get("manual_reports") or [])
     report = {
         "id": f"rep_{uuid.uuid4().hex[:10]}",
-        "title": payload.title.strip(),
-        "type": (payload.type or "General").strip(),
-        "period": (payload.period or "Manual").strip(),
-        "summary": payload.summary.strip(),
-        "metrics": payload.metrics[:6] if payload.metrics else [],
+        "title": payload.title.strip()[:120],
+        "type": (payload.type or "General").strip()[:40] or "General",
+        "period": (payload.period or "").strip()[:60],
+        "summary": payload.summary.strip()[:2000],
+        "metrics": _sanitize_report_metrics(payload.metrics),
         "source": "manual",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -8929,11 +8966,11 @@ async def edit_report(report_id: str, payload: ReportInput, principal=Depends(re
     for r in manual:
         if r["id"] == report_id:
             r.update({
-                "title": payload.title.strip() or r["title"],
-                "type": (payload.type or r.get("type", "General")).strip(),
-                "period": (payload.period or r.get("period", "Manual")).strip(),
-                "summary": payload.summary.strip() if payload.summary is not None else r.get("summary", ""),
-                "metrics": payload.metrics if payload.metrics is not None else r.get("metrics", []),
+                "title": payload.title.strip()[:120] or r["title"],
+                "type": (payload.type or r.get("type", "General")).strip()[:40] or "General",
+                "period": (payload.period or "").strip()[:60],
+                "summary": payload.summary.strip()[:2000],
+                "metrics": _sanitize_report_metrics(payload.metrics),
                 "updated_at": datetime.now(timezone.utc).isoformat(),
             })
             found = r
@@ -9442,7 +9479,18 @@ async def _generate_weekly_pack_content(workspace_id: str) -> dict:
 @api_router.post("/reports/weekly-pack")
 async def weekly_pack(principal=Depends(require_pro_perm("reports:pack"))):
     result = await _generate_weekly_pack_content(principal["workspace_id"])
+    saved = {
+        "content": result["content"],
+        "data_as_of": result.get("data_as_of"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": principal["user_id"],
+    }
+    await db.workspaces.update_one(
+        {"workspace_id": principal["workspace_id"]}, {"$set": {"last_weekly_pack": saved}},
+    )
+    invalidate_workspace_list_cache(principal["workspace_id"], "reports")
     return {
+        "created_at": saved["created_at"],
         "content": result["content"],
         "data_as_of": result.get("data_as_of"),
         "data_freshness_sources": result.get("data_freshness_sources") or {},

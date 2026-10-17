@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { fetchErrorMessage } from "@/hooks/useFetch";
 import { GlassCard, SectionLabel, SkeletonCardList } from "@/components/kit";
 import AiSummaryMeta from "@/components/AiSummaryMeta";
+import { todayISO, addDaysISO } from "@/lib/dates";
+import { useWorkspaceTimezone } from "@/hooks/useWorkspaceTimezone";
 
 const REPORT_UPLOAD_TYPES = [
   "application/pdf",
@@ -15,24 +17,6 @@ const REPORT_UPLOAD_TYPES = [
   "application/csv",
 ];
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
-
-function todayIso() {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-function shiftIso(iso, deltaDays) {
-  const [y, m, d] = iso.split("-").map(Number);
-  const dt = new Date(y, m - 1, d);
-  dt.setDate(dt.getDate() + deltaDays);
-  const yy = dt.getFullYear();
-  const mm = String(dt.getMonth() + 1).padStart(2, "0");
-  const dd = String(dt.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
-}
 
 function acceptFile(file) {
   if (!file) return false;
@@ -58,8 +42,18 @@ function mimeForFile(file) {
  * Running daily digest of uploaded report files (xlsx/csv/pdf/images).
  * Distinct from Weekly CEO Pack and auto_fin/team/exec cards.
  */
+/** Upload errors as plain text (FastAPI may send a string or a list). */
+export function uploadErrorText(e, fallback) {
+  const detail = e?.response?.data?.detail;
+  if (typeof detail === "string" && detail) return detail;
+  return fallback;
+}
+
 export default function ReportsDailyDigest({ canWrite }) {
-  const [date, setDate] = useState(todayIso);
+  const tz = useWorkspaceTimezone();
+  const today = todayISO(tz);
+  const [date, setDate] = useState(() => todayISO(tz));
+  const [retrying, setRetrying] = useState(null);
   const [digest, setDigest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -98,8 +92,10 @@ export default function ReportsDailyDigest({ canWrite }) {
       }
     }
     setUploading(true);
-    try {
-      for (const file of files) {
+    let added = 0;
+    // One bad file should not stop the rest: keep going and report each failure.
+    for (const file of files) {
+      try {
         const fd = new FormData();
         const blob = new File([file], file.name, { type: mimeForFile(file) });
         fd.append("file", blob);
@@ -108,39 +104,50 @@ export default function ReportsDailyDigest({ canWrite }) {
           headers: { "Content-Type": "multipart/form-data" },
           timeout: 60000,
         });
-        await api.post(`/reports/documents/${uploaded.document_id}/summarize`, null, {
-          timeout: 120000,
-        });
+        try {
+          await api.post(`/reports/documents/${uploaded.document_id}/summarize`, null, { timeout: 120000 });
+          added += 1;
+        } catch (e) {
+          toast.error(`${file.name}: ${uploadErrorText(e, "saved, but could not be read yet. Try again from the list.")}`);
+        }
+      } catch (e) {
+        toast.error(`${file.name}: ${uploadErrorText(e, "could not be uploaded")}`);
       }
-      toast.success(files.length === 1 ? "Report added to digest" : `${files.length} reports added`);
-      await loadDigest(date);
+    }
+    if (added > 0) toast.success(added === 1 ? "File added to the day's summary" : `${added} files added`);
+    setUploading(false);
+    if (inputRef.current) inputRef.current.value = "";
+    await loadDigest(date);
+  };
+
+  const retry = async (r) => {
+    setRetrying(r.id);
+    try {
+      await api.post(`/reports/documents/${r.id}/summarize`, null, { timeout: 120000 });
+      toast.success(`${r.filename} is ready`);
     } catch (e) {
-      toast.error(e?.response?.data?.detail || "Could not add report");
-      await loadDigest(date);
+      toast.error(uploadErrorText(e, "Could not read this file"));
     } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+      setRetrying(null);
+      await loadDigest(date);
     }
   };
 
-  const isToday = date === todayIso();
+  const isToday = date === today;
   const reports = digest?.reports || [];
   const combined = (digest?.combined_digest || "").trim();
 
   return (
-    <GlassCard className="p-6 mb-6 fade-up border-helm-line" data-testid="reports-daily-digest">
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-        <div>
-          <SectionLabel>Today&apos;s Reports</SectionLabel>
-          <p className="text-sm text-helm-muted max-w-xl mt-1">
-            Drop the day&apos;s Excel, CSV, or PDF reports here. Trenston reads each file and folds the numbers into one short briefing you can open anytime.
-          </p>
-        </div>
+    <GlassCard className="p-5 fade-up border-helm-line" data-testid="reports-daily-digest">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <p className="text-sm text-helm-fg">{isToday ? "Today" : date}</p>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value || todayIso())}
+            max={today}
+            aria-label="Day"
+            onChange={(e) => setDate(e.target.value || today)}
             data-testid="digest-date"
             className="rounded-md border border-helm-line bg-helm-card text-helm-fg text-sm px-2.5 py-2 focus:outline-none focus:border-helm-gold/40"
           />
@@ -148,7 +155,7 @@ export default function ReportsDailyDigest({ canWrite }) {
             <button
               type="button"
               data-testid="digest-today-btn"
-              onClick={() => setDate(todayIso())}
+              onClick={() => setDate(today)}
               className="text-xs text-helm-gold hover:text-helm-gold-hover font-medium"
             >
               Today
@@ -157,7 +164,7 @@ export default function ReportsDailyDigest({ canWrite }) {
           <button
             type="button"
             data-testid="digest-yesterday-btn"
-            onClick={() => setDate(shiftIso(todayIso(), -1))}
+            onClick={() => setDate(addDaysISO(today, -1))}
             className="text-xs text-helm-muted hover:text-helm-fg font-medium"
           >
             Yesterday
@@ -184,7 +191,7 @@ export default function ReportsDailyDigest({ canWrite }) {
             className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy text-sm font-medium px-4 py-2.5 hover:bg-helm-gold-hover disabled:opacity-60"
           >
             <Upload className="w-4 h-4" />
-            {uploading ? "Reading reports…" : "Add report files"}
+            {uploading ? "Reading files…" : "Add files"}
           </button>
           <p className="text-[11px] text-helm-muted mt-2">PDF, PNG, JPEG, XLSX, or CSV. Multiple files at once are fine.</p>
         </div>
@@ -194,13 +201,13 @@ export default function ReportsDailyDigest({ canWrite }) {
         <SkeletonCardList count={2} />
       ) : error && !digest ? (
         <p className="text-sm text-helm-muted">
-          {fetchErrorMessage(error, "Could not load this day&apos;s reports.")}{" "}
+          {fetchErrorMessage(error, "Could not load this day's files.")}{" "}
           <button type="button" className="text-helm-gold hover:underline" onClick={() => loadDigest(date)}>Retry</button>
         </p>
       ) : reports.length === 0 ? (
         <p className="text-sm text-helm-muted leading-relaxed" data-testid="digest-empty">
-          No reports for this day yet.
-          {canWrite ? " Add the first file above and Trenston will write a grounded summary from what is actually in it." : ""}
+          No files for this day yet.
+          {canWrite ? " Add one and Trenston will summarize what is in it, using only the numbers in the file." : ""}
         </p>
       ) : (
         <>
@@ -212,18 +219,18 @@ export default function ReportsDailyDigest({ canWrite }) {
                 detailLabel="uploaded reports"
                 className="mb-2"
               />
-              <p className="text-[10px] font-mono uppercase tracking-wider text-helm-muted mb-2">Combined digest</p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-helm-muted mb-2">Summary of the day</p>
               <div className="text-sm text-helm-fg leading-relaxed whitespace-pre-wrap">{combined}</div>
             </div>
           ) : (
             <p className="text-sm text-helm-muted mb-5">
-              {uploading || reports.some((r) => r.status === "uploaded")
-                ? "Summaries are still running…"
-                : "Individual reports are listed below. Combined digest will appear once at least one file is summarized."}
+              {uploading
+                ? "Reading files…"
+                : "The day's summary appears once at least one file below has been read."}
             </p>
           )}
 
-          <SectionLabel className="mb-3">Files for {date}</SectionLabel>
+          <SectionLabel className="mb-3">Files</SectionLabel>
           <ul className="space-y-3" data-testid="digest-file-list">
             {reports.map((r) => (
               <li
@@ -233,8 +240,21 @@ export default function ReportsDailyDigest({ canWrite }) {
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-sm text-helm-fg font-medium truncate">{r.filename}</p>
-                  <span className="text-[10px] font-mono uppercase text-helm-muted shrink-0">
-                    {r.status === "summarized" ? "Ready" : r.status === "failed" ? "Failed" : "Pending"}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase text-helm-muted">
+                      {r.status === "summarized" ? "Ready" : r.status === "failed" ? "Could not read" : "Not read yet"}
+                    </span>
+                    {canWrite && r.status !== "summarized" && (
+                      <button
+                        type="button"
+                        data-testid={`digest-retry-${r.id}`}
+                        disabled={retrying === r.id || uploading}
+                        onClick={() => retry(r)}
+                        className="text-xs text-helm-gold hover:text-helm-gold-hover disabled:opacity-60"
+                      >
+                        {retrying === r.id ? "Reading…" : "Try again"}
+                      </button>
+                    )}
                   </span>
                 </div>
                 {r.summary && (
