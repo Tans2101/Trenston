@@ -212,8 +212,9 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             db, dept["department_id"], principal["user_id"],
         )
         is_lead = _can_lead_sales(principal, membership)
-        summary = sales_ob.order_book_summary(rows)
         month = sales_ob.current_month(await _ws_today(principal))
+        # Same workspace-local month as the target below (default would be UTC).
+        summary = sales_ob.order_book_summary(rows, month=month)
         target_row = await db.sales_targets.find_one(
             {"workspace_id": principal["workspace_id"], "month": month},
             {"_id": 0},

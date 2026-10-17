@@ -13228,11 +13228,12 @@ async def list_maintenance_tickets(
     sched_rows = await db.maintenance_schedules.find(
         {"department_id": dept["department_id"]}, {"_id": 0},
     ).to_list(2000)
-    overdue_sched = maint_ops.overdue_schedules(sched_rows)
+    ws_today = (await _workspace_now(principal["workspace_id"])).date()
+    overdue_sched = maint_ops.overdue_schedules(sched_rows, today=ws_today)
     contract_rows = await db.maintenance_contracts.find(
         {"department_id": dept["department_id"]}, {"_id": 0},
     ).to_list(2000)
-    needing_renewal = maint_ops.contracts_needing_attention(contract_rows)
+    needing_renewal = maint_ops.contracts_needing_attention(contract_rows, today=ws_today)
     # Overhead: ticket costs resolved this month + ledger.
     resolved_month = await db.maintenance_tickets.find(
         {
