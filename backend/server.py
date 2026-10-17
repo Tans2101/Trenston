@@ -2074,8 +2074,8 @@ async def compute_financials(
         def lbl(m):
             return datetime.strptime(m, "%Y-%m").strftime("%b")
 
-        revenue_series = [{"month": lbl(m), "revenue": round(rev_by[m]), "expenses": round(exp_by[m])} for m in last]
-        burn_series = [{"month": lbl(m), "burn": round(exp_by[m] - rev_by[m])} for m in last]
+        revenue_series = [{"month": lbl(m), "key": m, "revenue": round(rev_by[m]), "expenses": round(exp_by[m])} for m in last]
+        burn_series = [{"month": lbl(m), "key": m, "burn": round(exp_by[m] - rev_by[m])} for m in last]
         latest = months[-1] if months else None
         # MRR is recurring revenue only — one-time sales must not look like confirmed $0 MRR
         has_ledger = bool(entries)
@@ -6914,6 +6914,40 @@ async def financials(principal=Depends(require_financials_view)):
         "accounting": _workspace_accounting_sync(c),
         "modeling_allowed": workspace_allows(c, helm_plans.FEATURE_FINANCIAL_MODELING),
     }
+
+
+@api_router.get("/financials/month/{month}")
+async def financials_month(month: str, principal=Depends(require_financials_view)):
+    """Every revenue and expense line behind one month's totals (recurring ones expanded)."""
+    import finance_recurrence as fin_recur
+
+    if not fin_recur.is_valid_month(month):
+        raise HTTPException(status_code=400, detail="Month must look like 2026-07")
+    ws_id = principal["workspace_id"]
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+    )
+    fin = await compute_financials(ws_id, department_ids=dept_ids, return_entries=True)
+    entries = list(fin.pop("entries", None) or [])
+    ws_now = await _workspace_now(ws_id)
+    current, _scheduled = fin_recur.partition_ledger_entries(entries, ws_now)
+    horizon = fin_recur.resolve_expense_horizon(current, ws_now)
+    first_month = min((str(e["month"]) for e in current if fin_recur.is_valid_month(str(e.get("month") or ""))), default=None)
+    out = {
+        "month": month,
+        "current_month": fin_recur.current_month(ws_now),
+        "first_month": first_month,
+        "future": fin_recur.is_future_month(month, ws_now),
+        "currency": fin.get("currency") or "usd",
+    }
+    if out["future"]:
+        return {**out, "counted": [], "not_counted": [], "revenue_total": 0, "expense_total": 0, "net": 0}
+    detail = fin_recur.month_breakdown(current, month, horizon)
+    for row in detail["counted"] + detail["not_counted"]:
+        row["name"] = normalize_entry_name(row.get("name"), row.get("category"))
+    for row in detail["not_counted"]:
+        row["replaced_by_name"] = normalize_entry_name(row.get("replaced_by_name"), row.get("category"))
+    return {**out, **detail}
 
 
 # ---- Financials: "What's making money / losing money / why it matters" (Haiku) ----

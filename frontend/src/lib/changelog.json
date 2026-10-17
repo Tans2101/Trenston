@@ -2,6 +2,11 @@
   "intro": "What actually shipped, not a roadmap. One summary per day in plain language. Older notes may still say Helm; the product is now Trenston.",
   "entries": [
     {
+      "date": "2026-10-17",
+      "title": "Click a month to see every line",
+      "description": "On Financials, click a month on the charts, or pick one from the month buttons under Revenue vs expenses, to see exactly what was counted that month. A recurring expense such as a monthly subscription now shows up in each month it applies to, with when it started. If a recurring entry stops counting because a newer one in the same category replaced it, the month view says so."
+    },
+    {
       "date": "2026-10-16",
       "title": "A money summary on Financials",
       "description": "Financials now has a Money summary with three short sections: What's making money, What's losing money and Why this matters. It looks at your last finished month, compares it with the month before, and explains it in plain English. The numbers come straight from your ledger, so the summary always matches the rest of the page. If a month has no revenue or expenses logged, it tells you what to add instead of showing zero. Press Write summary to create it and Refresh to update it. If nothing has changed since the last one, Refresh keeps the saved summary. If AI summaries are unavailable, you'll see a short under maintenance message."

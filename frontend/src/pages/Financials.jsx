@@ -9,6 +9,7 @@ import {
 import { Plus, Wallet, X, PenLine, History, Upload, Sparkles, FileText, AlertTriangle, FileSpreadsheet, Sheet, ArrowRight, Plug, ChevronDown } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import MoneyInsights from "@/components/MoneyInsights";
+import MonthDetail from "@/components/MonthDetail";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
@@ -195,6 +196,7 @@ export default function Financials() {
   const { data: company } = useCompanyQuery();
   const revCategory = defaultRevenueCategory(company?.industry);
   const [showForm, setShowForm] = useState(false);
+  const [detailMonth, setDetailMonth] = useState(null);
   const [form, setForm] = useState(() => emptyForm(tz, revCategory));
   const [busy, setBusy] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -643,6 +645,10 @@ export default function Financials() {
     .map((e) => ({ ...e, scheduled: true }))
     .sort((a, b) => String(b.month || "").localeCompare(String(a.month || "")));
   const entries = [...scheduledEntries, ...postedEntries];
+  const openMonthFromChart = (state) => {
+    const key = state?.activePayload?.[0]?.payload?.key;
+    if (key) setDetailMonth(key);
+  };
   const runwayMonths = data.runway_months != null ? Number(data.runway_months) : null;
   const runwayLow = runwayMonths != null && Number.isFinite(runwayMonths) && runwayMonths < RUNWAY_WARN_MONTHS;
 
@@ -1128,7 +1134,7 @@ export default function Financials() {
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart data={data.revenue_series} margin={{ left: -8, right: 8, top: 8 }}>
+                  <AreaChart data={data.revenue_series} margin={{ left: -8, right: 8, top: 8 }} style={{ cursor: "pointer" }} onClick={(st) => openMonthFromChart(st)}>
                     <CartesianGrid stroke={gridStroke} vertical={false} />
                     <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={52} />
@@ -1137,6 +1143,22 @@ export default function Financials() {
                     <Area type="monotone" dataKey="expenses" name="Expenses" stroke={expenseStroke} strokeWidth={1.5} fill="none" strokeDasharray="4 4" />
                   </AreaChart>
                 </ResponsiveContainer>
+                {(data.revenue_series || []).some((r) => r.key) && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="month-chips">
+                    <span className="text-xs text-helm-muted">See every line for a month:</span>
+                    {data.revenue_series.filter((r) => r.key).map((r) => (
+                      <button
+                        key={r.key}
+                        type="button"
+                        onClick={() => setDetailMonth(r.key)}
+                        data-testid={`month-chip-${r.key}`}
+                        className="rounded-md border border-helm-line px-2.5 py-1 font-mono text-[11px] text-helm-muted hover:border-helm-gold/40 hover:text-helm-fg"
+                      >
+                        {monthLabel(r.key)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </GlassCard>
 
               <GlassCard className="flex flex-col p-6" data-testid="expense-mix">
@@ -1171,7 +1193,7 @@ export default function Financials() {
                   <SectionLabel>Monthly net burn</SectionLabel>
                   <p className="mt-1 mb-5 text-xs text-helm-muted">Expenses minus revenue. Bars below zero are months you made money.</p>
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={burnSeries} margin={{ left: -8, right: 8 }}>
+                    <BarChart data={burnSeries} margin={{ left: -8, right: 8 }} style={{ cursor: "pointer" }} onClick={(st) => openMonthFromChart(st)}>
                       <CartesianGrid stroke={gridStroke} vertical={false} />
                       <XAxis dataKey="month" stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} />
                       <YAxis stroke={axisStroke} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatAxisMoney(v, { symbol: sym })} width={52} />
@@ -1420,6 +1442,10 @@ export default function Financials() {
             </GlassCard>
           )}
         </>
+      )}
+
+      {detailMonth && (
+        <MonthDetail month={detailMonth} sym={sym} onClose={() => setDetailMonth(null)} onMonthChange={setDetailMonth} />
       )}
 
       {showForm && (

@@ -393,3 +393,78 @@ def line_items_for_period(
                 })
 
     return rows
+
+
+def month_breakdown(
+    entries: list[dict[str, Any]],
+    period: str,
+    horizon_end: str,
+) -> dict[str, Any]:
+    """Everything behind one month's totals, for the "click a month" view.
+
+    `counted` is exactly line_items_for_period (so it always adds up to the
+    Financials chart for that month). `not_counted` lists recurring rows that
+    started on or before `period` but are replaced there by a later recurring row
+    in the same category and cadence, so a missing subscription is explained
+    instead of silently absent.
+    """
+    from collections import defaultdict
+
+    counted = line_items_for_period(entries, period, horizon_end)
+    by_id = {e.get("id"): e for e in entries or [] if e.get("id")}
+    for row in counted:
+        src = by_id.get(row.get("id")) or {}
+        row["cadence"] = (
+            normalize_recurrence(True, src.get("recurrence"), row["type"]) if row.get("recurring") else None
+        )
+    counted_ids = {r.get("id") for r in counted if r.get("id")}
+
+    not_counted: list[dict[str, Any]] = []
+    if is_valid_month(period) and is_valid_month(horizon_end) and period <= horizon_end:
+        groups: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+        for e in entries or []:
+            entry_type = (e.get("type") or "").strip().lower()
+            start = (e.get("month") or "").strip()
+            if entry_type not in ("revenue", "expense") or not e.get("recurring") or not is_valid_month(start):
+                continue
+            cat = (e.get("category") or "Other").strip() or "Other"
+            cadence = normalize_recurrence(True, e.get("recurrence"), entry_type) or "monthly"
+            groups[(entry_type, cat, cadence)].append(e)
+        for (entry_type, cat, cadence), group in groups.items():
+            group.sort(key=lambda x: (x.get("month") or "", x.get("id") or ""))
+            started = [e for e in group if e["month"] <= period]
+            if len(started) < 2:
+                continue
+            winner = started[-1]
+            for e in started[:-1]:
+                if e.get("id") in counted_ids or not e.get("id"):
+                    continue
+                not_counted.append({
+                    "id": e.get("id"),
+                    "name": e.get("name"),
+                    "category": cat,
+                    "type": entry_type,
+                    "cadence": cadence,
+                    "amount": float(_monthlyized(e, entry_type)),
+                    "is_credit": _signed(e, 1.0) < 0,
+                    "month": e["month"],
+                    "replaced_by_name": winner.get("name"),
+                    "replaced_from": winner["month"],
+                })
+
+    def _total(entry_type: str) -> float:
+        return round(sum(
+            -r["amount"] if r.get("is_credit") else r["amount"]
+            for r in counted if r["type"] == entry_type
+        ), 2)
+
+    counted.sort(key=lambda r: (r["type"], -float(r["amount"])))
+    revenue_total, expense_total = _total("revenue"), _total("expense")
+    return {
+        "period": period,
+        "counted": counted,
+        "not_counted": not_counted,
+        "revenue_total": revenue_total,
+        "expense_total": expense_total,
+        "net": round(revenue_total - expense_total, 2),
+    }
