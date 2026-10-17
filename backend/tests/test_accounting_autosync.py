@@ -145,3 +145,43 @@ def test_accounting_sync_endpoint_runs_with_cron_header():
         )
     assert res.status_code == 200
     assert res.json()["workspaces_scanned"] == 0
+
+
+def test_accounting_auto_sync_skips_workspaces_whose_plan_dropped_the_provider():
+    workspaces = [
+        {"workspace_id": "ws_free", "plan": "free", "quickbooks_tokens": {"sealed": True},
+         "quickbooks_tokens_connected_by": "user_a"},
+        {"workspace_id": "ws_cancel", "plan": "starter", "subscription_status": "canceled",
+         "quickbooks_tokens": {"sealed": True}, "quickbooks_tokens_connected_by": "user_b"},
+        {"workspace_id": "ws_ok", "plan": "starter", "subscription_status": "active",
+         "quickbooks_tokens": {"sealed": True}, "quickbooks_tokens_connected_by": "user_c"},
+        {"workspace_id": "ws_sap_starter", "plan": "starter", "subscription_status": "active",
+         "sap_b1_credentials": {"sealed": True}, "sap_b1_credentials_connected_by": "user_d"},
+    ]
+
+    class Cursor:
+        async def to_list(self, _n):
+            return workspaces
+
+    fake_db = MagicMock()
+    fake_db.workspaces.find = MagicMock(return_value=Cursor())
+    synced = []
+
+    async def fake_qb(c, principal, *, source="quickbooks_sync"):
+        synced.append(c["workspace_id"])
+        return {"synced_count": 1}
+
+    sap = AsyncMock(return_value={"synced_count": 1})
+    with (
+        patch.object(server, "BILLING_ENFORCED", True),
+        patch.object(server, "db", fake_db),
+        patch.object(server.cred_crypto, "credentials_present", side_effect=lambda v: bool(v)),
+        patch.object(server, "_run_quickbooks_sync_for_workspace", side_effect=fake_qb),
+        patch.object(server, "_run_sap_b1_sync_for_workspace", sap),
+    ):
+        stats = asyncio.run(server.run_accounting_auto_sync())
+
+    assert synced == ["ws_ok"]
+    assert stats["quickbooks_skipped"] == 2
+    sap.assert_not_awaited()
+    assert stats["sap_b1_skipped"] == 1

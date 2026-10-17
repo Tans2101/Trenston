@@ -1217,6 +1217,10 @@ async def _notify_high_severity_alerts(workspace_id: str, decision_suggestions: 
     )
     slack_result = {"ok": False, "reason": "not_configured"}
     webhook = _slack_webhook_plaintext(c)
+    # Slack is a paid-plan integration: stop posting once the plan no longer includes it.
+    if webhook and not workspace_allows_provider(c, "slack"):
+        webhook = None
+        slack_result = {"ok": False, "reason": "plan"}
     if webhook and (c.get("slack_webhook_status") or "") != "broken":
         slack_result = await post_slack_webhook(
             webhook, slack_text, workspace_id=c.get("workspace_id") or "",
@@ -16417,6 +16421,8 @@ async def run_accounting_auto_sync() -> dict:
             "quickbooks_tokens_connected_by": 1,
             "xero_tokens_connected_by": 1,
             "sap_b1_credentials_connected_by": 1,
+            "plan": 1, "subscription_status": 1, "billing_status": 1,
+            "pending_plan": 1, "pending_plan_effective_at": 1,
         },
     )
     workspaces = await cursor.to_list(2000)
@@ -16438,7 +16444,19 @@ async def run_accounting_auto_sync() -> dict:
     }
     for c in workspaces:
         ws_id = c.get("workspace_id") or ""
-        if cred_crypto.credentials_present(c.get("quickbooks_tokens")):
+        # Only sync providers the workspace's current plan still includes
+        # (a downgrade to Free or a cancelled subscription stops auto-sync).
+        pending = c.get("pending_plan")
+        effective_at = plan_usage.parse_dt(c.get("pending_plan_effective_at"))
+        if pending and effective_at and datetime.now(timezone.utc) >= effective_at:
+            c = {**c, "plan": helm_plans.normalize_plan(pending)}
+        allowed = {p: workspace_allows_provider(c, p) for p in ("quickbooks", "xero", "sap_b1")}
+        for p_name, ok in allowed.items():
+            if not ok and cred_crypto.credentials_present(c.get(
+                {"quickbooks": "quickbooks_tokens", "xero": "xero_tokens", "sap_b1": "sap_b1_credentials"}[p_name]
+            )):
+                stats[f"{p_name}_skipped"] += 1
+        if allowed["quickbooks"] and cred_crypto.credentials_present(c.get("quickbooks_tokens")):
             try:
                 principal = _system_accounting_principal(c, "quickbooks_tokens")
                 result = await _run_quickbooks_sync_for_workspace(
@@ -16463,7 +16481,7 @@ async def run_accounting_auto_sync() -> dict:
                 stats["quickbooks_errors"] += 1
                 logger.exception("QuickBooks auto-sync failed for %s", ws_id)
 
-        if cred_crypto.credentials_present(c.get("xero_tokens")):
+        if allowed["xero"] and cred_crypto.credentials_present(c.get("xero_tokens")):
             tokens = _integration_tokens(c, "xero_tokens") or {}
             if not tokens.get("tenant_id"):
                 stats["xero_skipped"] += 1
@@ -16499,7 +16517,7 @@ async def run_accounting_auto_sync() -> dict:
                     stats["xero_errors"] += 1
                     logger.exception("Xero auto-sync failed for %s", ws_id)
 
-        if cred_crypto.credentials_present(c.get("sap_b1_credentials")):
+        if allowed["sap_b1"] and cred_crypto.credentials_present(c.get("sap_b1_credentials")):
             try:
                 principal = _system_accounting_principal(c, "sap_b1_credentials")
                 result = await _run_sap_b1_sync_for_workspace(
