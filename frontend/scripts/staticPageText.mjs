@@ -138,10 +138,19 @@ function homeSections() {
   const steps = marketingExport("GET_STARTED_STEPS") || [];
   const quotes = marketingExport("TESTIMONIALS") || [];
   const faq = marketingExport("HOME_FAQ") || [];
+  const story = JSON.parse(readFileSync(join(__dirname, "../src/lib/homeStory.json"), "utf8"));
   const sections = [];
   if (tagline || hero || sub) {
     sections.push({ heading: "What Trenston does", parts: [hero, sub, tagline].filter(Boolean) });
   }
+  sections.push({
+    heading: story.problem.title,
+    parts: [story.problem.intro, ...story.problem.items.map((r) => `${r.title}: ${r.body}`)],
+  });
+  sections.push({
+    heading: story.whyUs.title,
+    parts: story.whyUs.items.map((r) => `${r.title}: ${r.body}`),
+  });
   if (what) sections.push({ heading: "The product", parts: [what] });
   if (Array.isArray(who) && who.length) {
     sections.push({ heading: "Who it is for", parts: who.map((r) => `${r.title}: ${r.body}`) });
@@ -244,6 +253,52 @@ function compareSections() {
   ];
 }
 
+function compareVsData() {
+  return JSON.parse(readFileSync(join(__dirname, "../src/lib/compareVs.json"), "utf8"));
+}
+
+export function compareVsSlug(path) {
+  const m = /^\/compare\/([a-z0-9-]+)$/.exec(path);
+  return m ? m[1] : null;
+}
+
+function compareVsSections(slug) {
+  const data = compareVsData();
+  const page = data.pages.find((p) => p.slug === slug);
+  if (!page) return null;
+  return {
+    h1: `Trenston vs ${page.name}`,
+    sections: [
+      {
+        heading: `What ${page.short} says it is`,
+        parts: [
+          ...page.sources.map((s) => `"${s.quote}" ${s.tool}, ${s.label}: ${s.url}`),
+          `Quoted as of ${data.asOf}.`,
+        ],
+      },
+      {
+        heading: "Side by side",
+        parts: [
+          data.howToRead,
+          ...page.rows.map((r) => `${r.label}. ${page.name}: ${r.tool} Trenston: ${r.trenston}`),
+          ...data.trenstonIs,
+          ...data.trenstonIsNot,
+        ],
+      },
+      {
+        heading: "Which to use",
+        parts: [
+          page.together,
+          `When ${page.short} is the better choice: ${page.useToolWhen.join(" ")}`,
+          `When Trenston may fit: ${page.useTrenstonWhen.join(" ")}`,
+          data.trademarks,
+          data.notAdvice,
+        ],
+      },
+    ],
+  };
+}
+
 function integrationsSections() {
   const intro = marketingExport("PUBLIC_INTEGRATIONS_INTRO") || "";
   const items = marketingExport("PUBLIC_INTEGRATIONS") || [];
@@ -317,6 +372,9 @@ const NAV = [
   ["/features", "Features"],
   ["/pricing", "Pricing"],
   ["/compare", "How we compare"],
+  ["/compare/excel-google-sheets", "Trenston vs Excel and Google Sheets"],
+  ["/compare/power-bi", "Trenston vs Power BI"],
+  ["/compare/notion", "Trenston vs Notion"],
   ["/integrations", "Integrations"],
   ["/security", "Security"],
   ["/privacy", "Privacy"],
@@ -354,6 +412,10 @@ export function staticBodyFor(path, page) {
   } else if (path === "/compare") {
     h1 = "How Trenston is different";
     sections = compareSections();
+  } else if (compareVsSlug(path)) {
+    const vs = compareVsSections(compareVsSlug(path));
+    h1 = vs ? vs.h1 : "How Trenston compares";
+    sections = vs ? vs.sections : [];
   } else if (path === "/integrations") {
     h1 = "Trenston Integrations";
     sections = integrationsSections();

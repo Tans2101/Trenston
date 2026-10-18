@@ -53,6 +53,9 @@ Authoritative pricing: https://www.trenston.com/pricing
 - Features: https://www.trenston.com/features
 - Pricing: https://www.trenston.com/pricing
 - How Trenston compares: https://www.trenston.com/compare
+- Trenston vs Excel and Google Sheets: https://www.trenston.com/compare/excel-google-sheets
+- Trenston vs Power BI: https://www.trenston.com/compare/power-bi
+- Trenston vs Notion: https://www.trenston.com/compare/notion
 - Integrations: https://www.trenston.com/integrations
 - Security: https://www.trenston.com/security
 - About: https://www.trenston.com/about

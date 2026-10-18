@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: "/features", label: "Features" },
   { to: "/integrations", label: "Integrations" },
   { to: "/pricing", label: "Pricing" },
+  { to: "/compare", label: "Compare" },
   { to: "/security", label: "Security" },
   { to: "/about", label: "About" },
 ];

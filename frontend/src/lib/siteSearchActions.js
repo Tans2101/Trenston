@@ -33,6 +33,27 @@ export const SITE_SEARCH_ACTIONS = [
     keywords: ["compare", "comparison", "alternatives", "versus", "vs", "spreadsheets", "dashboards"],
   },
   {
+    id: "compare-excel-google-sheets",
+    label: "Trenston vs Excel and Google Sheets",
+    to: "/compare/excel-google-sheets",
+    description: "Site",
+    keywords: ["excel", "google sheets", "spreadsheet", "versus", "vs"],
+  },
+  {
+    id: "compare-power-bi",
+    label: "Trenston vs Power BI",
+    to: "/compare/power-bi",
+    description: "Site",
+    keywords: ["power bi", "microsoft", "dashboard", "versus", "vs"],
+  },
+  {
+    id: "compare-notion",
+    label: "Trenston vs Notion",
+    to: "/compare/notion",
+    description: "Site",
+    keywords: ["notion", "docs", "wiki", "versus", "vs"],
+  },
+  {
     id: "help",
     label: "Help",
     to: "/help",

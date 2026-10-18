@@ -1,0 +1,168 @@
+{
+  "asOf": "October 18, 2026",
+  "howToRead": "This page describes each product using its maker's own public wording, quoted and linked below. It does not rate either product, and says nothing about price. Trenston's own statements describe features that are live today.",
+  "trademarks": "Excel, Power BI and Microsoft are trademarks of Microsoft Corporation. Google Sheets and Google are trademarks of Google LLC. Notion is a trademark of Notion Labs, Inc. Names are used only to identify the products. Trenston is not affiliated with, endorsed by or sponsored by any of them.",
+  "notAdvice": "This is general information, not legal, financial or purchasing advice. Products change, so check the linked sources for current wording. If something here is out of date or wrong, email contact@trenston.com and we will fix it.",
+  "trenstonIs": [
+    "A workspace for the founder or CEO: a Briefing of what changed, financials and runway, pipeline, tasks and department queues.",
+    "A Decision Center that ranks open decisions, drafts a recommendation with a confidence score, and waits for you to confirm.",
+    "Delegation: assign work to an owner in Tasks or a department, and they get an email.",
+    "Role-based access, so people see their own departments and financial data is limited to people granted Financials access.",
+    "Connections to QuickBooks, Xero, SAP Business One, HubSpot and Slack, rather than a replacement for them."
+  ],
+  "trenstonIsNot": [
+    "Not a spreadsheet, a report builder or a general document tool.",
+    "Not accounting software, a full ERP or a full CRM.",
+    "Not on autopilot. Suggestions are drafts until you confirm them."
+  ],
+  "pages": [
+    {
+      "slug": "excel-google-sheets",
+      "name": "Excel and Google Sheets",
+      "short": "spreadsheets",
+      "maker": "Microsoft and Google",
+      "seoTitle": "Trenston vs Excel and Google Sheets · Trenston",
+      "description": "How Trenston differs from Excel and Google Sheets, described in each maker's own words, plus when a spreadsheet is the better choice for running a company.",
+      "ogTitle": "Trenston vs Excel and Google Sheets",
+      "ogDescription": "Spreadsheets and Trenston do different jobs. Here is each one in plain terms, and when to use which.",
+      "heroSub": "Both are good at what they are for. Here is what each one says it is, what Trenston is, and when a spreadsheet is the better choice.",
+      "sources": [
+        {
+          "tool": "Microsoft Excel",
+          "quote": "Microsoft Excel is the industry leading spreadsheet application and data analysis tool.",
+          "label": "microsoft.com, Excel product page",
+          "url": "https://www.microsoft.com/en-us/microsoft-365/excel"
+        },
+        {
+          "tool": "Google Sheets",
+          "quote": "Build spreadsheets, visualize data in mini-apps, and fill data in seamlessly.",
+          "label": "workspace.google.com, Sheets product page",
+          "url": "https://workspace.google.com/products/sheets/"
+        }
+      ],
+      "rows": [
+        {
+          "label": "What it is for",
+          "tool": "Building spreadsheets and analyzing data, according to Microsoft and Google.",
+          "trenston": "Running a company: seeing what changed, deciding, and handing work off."
+        },
+        {
+          "label": "What you work with",
+          "tool": "Spreadsheets and data that you set up and structure yourself.",
+          "trenston": "A Briefing and department pages already laid out, plus a built-in demo company to explore first."
+        }
+      ],
+      "useToolWhen": [
+        "You want total flexibility to build your own model, layout or formulas.",
+        "You are analyzing data one time, or doing detailed financial modeling.",
+        "Your team already works in spreadsheets and the numbers are small enough to track there."
+      ],
+      "useTrenstonWhen": [
+        "You are tired of rebuilding the same company picture from several files.",
+        "You want open decisions ranked and tracked in one place.",
+        "You want work handed to an owner and followed up, not left in a cell comment."
+      ],
+      "together": "You do not have to choose. Keep your spreadsheets for modeling, and use Trenston as the place you look to see the company. Financials in Trenston accepts a CSV import."
+    },
+    {
+      "slug": "power-bi",
+      "name": "Power BI",
+      "short": "Power BI",
+      "maker": "Microsoft",
+      "seoTitle": "Trenston vs Power BI · Trenston",
+      "description": "How Trenston differs from Microsoft Power BI, described in Microsoft's own words, plus when Power BI is the better choice.",
+      "ogTitle": "Trenston vs Power BI",
+      "ogDescription": "Power BI and Trenston do different jobs. Here is each one in plain terms, and when to use which.",
+      "heroSub": "Power BI is a business analytics platform. Trenston is an operating system for the person running the company. Here is each in plain terms.",
+      "sources": [
+        {
+          "tool": "Power BI",
+          "quote": "Power BI is Microsoft's business analytics platform that helps you turn data into actionable insights.",
+          "label": "learn.microsoft.com, Power BI overview",
+          "url": "https://learn.microsoft.com/en-us/power-bi/fundamentals/power-bi-overview"
+        },
+        {
+          "tool": "Power BI",
+          "quote": "Power BI offers integrated tools and services to connect, visualize, and share data across your organization.",
+          "label": "learn.microsoft.com, Power BI overview",
+          "url": "https://learn.microsoft.com/en-us/power-bi/fundamentals/power-bi-overview"
+        }
+      ],
+      "rows": [
+        {
+          "label": "What it is for",
+          "tool": "Business analytics: connecting, visualizing and sharing data, according to Microsoft.",
+          "trenston": "Running a company: seeing what changed, deciding, and handing work off."
+        },
+        {
+          "label": "Who it is built for",
+          "tool": "Business users, report creators and developers, according to Microsoft's overview.",
+          "trenston": "The founder or CEO of a small or mid-size company."
+        },
+        {
+          "label": "What you work with",
+          "tool": "Data, reports and visuals that you connect and build.",
+          "trenston": "A ready-made Briefing, Decision Center, tasks and department pages."
+        }
+      ],
+      "useToolWhen": [
+        "You have a data team or analyst who builds custom reports and models.",
+        "You need to connect many data sources and design your own visuals.",
+        "You already use Microsoft's data tools across your organization."
+      ],
+      "useTrenstonWhen": [
+        "You want one ready-made view of the company without building reports first.",
+        "You want open decisions ranked, with a recommendation you can confirm.",
+        "You want to delegate follow-up to an owner from the same place you see the numbers."
+      ],
+      "together": "They can sit side by side. A data team can keep its detailed reporting where it is, while the founder uses Trenston as the day-to-day view."
+    },
+    {
+      "slug": "notion",
+      "name": "Notion",
+      "short": "Notion",
+      "maker": "Notion Labs",
+      "seoTitle": "Trenston vs Notion · Trenston",
+      "description": "How Trenston differs from Notion, described in Notion's own words, plus when Notion is the better choice.",
+      "ogTitle": "Trenston vs Notion",
+      "ogDescription": "Notion and Trenston do different jobs. Here is each one in plain terms, and when to use which.",
+      "heroSub": "Notion is a connected workspace for docs and projects. Trenston is an operating system for running the company. Here is each in plain terms.",
+      "sources": [
+        {
+          "tool": "Notion",
+          "quote": "Notion is a connected workspace that brings docs, wikis, projects, and databases together in one place.",
+          "label": "notion.com, Notion product page",
+          "url": "https://www.notion.com/product/notion"
+        }
+      ],
+      "rows": [
+        {
+          "label": "What it is for",
+          "tool": "Docs, wikis, projects and databases in one connected workspace, according to Notion.",
+          "trenston": "Running a company: seeing what changed, deciding, and handing work off."
+        },
+        {
+          "label": "What you work with",
+          "tool": "Pages and databases that you set up for your team.",
+          "trenston": "Financials and runway, pipeline, a Decision Center, tasks and department pages, already laid out."
+        },
+        {
+          "label": "Where the company numbers come from",
+          "tool": "Whatever you put into your databases.",
+          "trenston": "The accounting and CRM tools you connect, plus figures you enter or import."
+        }
+      ],
+      "useToolWhen": [
+        "You want a flexible home for documents, notes, wikis and team projects.",
+        "Your team wants to design its own pages and databases.",
+        "The main job is writing things down and organizing knowledge."
+      ],
+      "useTrenstonWhen": [
+        "You want company-wide numbers and open decisions in one place, not spread across pages.",
+        "You want money, sales and department work to roll into a single Briefing.",
+        "You want delegated work to reach the owner by email and stay tracked."
+      ],
+      "together": "They do different jobs, so you can use both: Notion for documents and knowledge, Trenston for the numbers and decisions."
+    }
+  ]
+}

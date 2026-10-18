@@ -1,0 +1,45 @@
+{
+  "problem": {
+    "eyebrow": "The problem",
+    "title": "Running a company should not mean rebuilding the picture every morning.",
+    "intro": "Trenston started in management meetings. The decisions were often quick. Getting to them was the slow part.",
+    "items": [
+      {
+        "title": "The numbers live in different places",
+        "body": "Money in one tool, pipeline in another, hiring in a third. Nobody has the whole picture, least of all the person responsible for it."
+      },
+      {
+        "title": "Status means asking",
+        "body": "A big part of a leader's week goes into asking for updates and piecing the answers together from spreadsheets, email and chat."
+      },
+      {
+        "title": "Decisions get lost",
+        "body": "Approvals vanish into chat threads. Weeks later, nobody can find what was decided, or why."
+      },
+      {
+        "title": "Missing data looks like zero",
+        "body": "An empty cell can be mistaken for a zero, so a gap in the data quietly becomes a wrong number."
+      }
+    ]
+  },
+  "whyUs": {
+    "eyebrow": "Why Trenston",
+    "title": "Built around the person who has to decide.",
+    "intro": "Three things we chose to do differently.",
+    "items": [
+      {
+        "title": "It tells you what it does not know",
+        "body": "Where data is missing, Trenston shows \"Add data\" instead of a made-up zero. Ask Trenston answers from your workspace and is instructed to say when something has not been entered."
+      },
+      {
+        "title": "It is built around the decision",
+        "body": "The Decision Center ranks open calls, drafts a recommendation with a confidence score, and waits for you to confirm. Nothing becomes a decision until you do."
+      },
+      {
+        "title": "It sits on top of your tools",
+        "body": "Connect QuickBooks, Xero, SAP Business One, HubSpot and Slack instead of replacing them. Start free and explore a built-in demo company before you enter anything."
+      }
+    ],
+    "linkLabel": "See how Trenston compares"
+  }
+}

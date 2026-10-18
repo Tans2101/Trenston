@@ -44,6 +44,7 @@ import {
   TESTIMONIALS,
 } from "@/lib/marketingCopy";
 import { cn } from "@/lib/utils";
+import homeStory from "@/lib/homeStory.json";
 
 /** CEO_DAY has no visual field in marketingCopy.js (it's also read by
  * marketingClaimsVerification.test.js) — map each to a real product surface. */
@@ -154,6 +155,23 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* The problem: black band right after the hero */}
+      <section id="problem" className="scroll-mt-16 bg-mk-black px-6 py-24 text-white md:py-28" aria-label="The problem">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            dark
+            eyebrow={homeStory.problem.eyebrow}
+            title={homeStory.problem.title}
+            intro={homeStory.problem.intro}
+          />
+          <div className="mt-16 grid gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+            {homeStory.problem.items.map((it, i) => (
+              <RuledItem key={it.title} dark i={i} index={i + 1} title={it.title} body={it.body} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* At a glance — black band under the white hero; large left-aligned statements */}
       <section className="bg-mk-black px-6 py-20 text-white">
         <div className="mx-auto grid max-w-7xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -163,6 +181,23 @@ export default function Landing() {
               <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-mk-gray-dark">{s.l}</p>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* Why Trenston: three plain differentiators */}
+      <section id="why" className="scroll-mt-16 bg-white px-6 py-24 md:py-28" aria-label="Why Trenston">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeader
+            eyebrow={homeStory.whyUs.eyebrow}
+            title={homeStory.whyUs.title}
+            intro={homeStory.whyUs.intro}
+            action={<MkLink to="/compare" className="text-mk-navy">{homeStory.whyUs.linkLabel}</MkLink>}
+          />
+          <div className="mt-16 grid gap-12 md:grid-cols-3 md:gap-10">
+            {homeStory.whyUs.items.map((it, i) => (
+              <RuledItem key={it.title} i={i} index={i + 1} title={it.title} body={it.body} />
+            ))}
+          </div>
         </div>
       </section>
 

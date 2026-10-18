@@ -79,6 +79,24 @@
       "description": "Trenston billing, trials, and refund policy.",
       "ogTitle": "Refunds · Trenston",
       "ogDescription": "How trials, cancellations, and refunds work on Trenston."
+    },
+    "/compare/excel-google-sheets": {
+      "title": "Trenston vs Excel and Google Sheets · Trenston",
+      "description": "How Trenston differs from Excel and Google Sheets, described in each maker's own words, plus when a spreadsheet is the better choice for running a company.",
+      "ogTitle": "Trenston vs Excel and Google Sheets",
+      "ogDescription": "Spreadsheets and Trenston do different jobs. Here is each one in plain terms, and when to use which."
+    },
+    "/compare/power-bi": {
+      "title": "Trenston vs Power BI · Trenston",
+      "description": "How Trenston differs from Microsoft Power BI, described in Microsoft's own words, plus when Power BI is the better choice.",
+      "ogTitle": "Trenston vs Power BI",
+      "ogDescription": "Power BI and Trenston do different jobs. Here is each one in plain terms, and when to use which."
+    },
+    "/compare/notion": {
+      "title": "Trenston vs Notion · Trenston",
+      "description": "How Trenston differs from Notion, described in Notion's own words, plus when Notion is the better choice.",
+      "ogTitle": "Trenston vs Notion",
+      "ogDescription": "Notion and Trenston do different jobs. Here is each one in plain terms, and when to use which."
     }
   }
 }
