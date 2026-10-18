@@ -83,6 +83,12 @@ export default defineConfig(({ mode }) => {
             return "static/media/[name].[hash][extname]";
           },
           manualChunks(id) {
+            // React core in its own chunk, otherwise Rollup folds it into the
+            // recharts chunk and every page downloads the charting library.
+            if (id.includes("commonjsHelpers")) return "react-vendor";
+            if (/node_modules\/(react|react-dom|scheduler|react-is|use-sync-external-store|clsx|tailwind-merge)\//.test(id)) {
+              return "react-vendor";
+            }
             // Keep recharts out of the initial/main graph (RevenueBars is lazy).
             if (id.includes("node_modules/recharts") || id.includes("node_modules/victory-vendor")) {
               return "recharts";
