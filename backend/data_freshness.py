@@ -184,3 +184,91 @@ async def resolve_workspace_data_as_of(db, workspace: dict) -> dict:
         "data_as_of": data_as_of,
         "sources": {k: v for k, v in sources.items() if v},
     }
+
+
+# Department type -> the collection whose newest row shows someone is keeping it up to date.
+_ACTIVITY_COLLECTION_BY_TYPE: dict[str, str] = {
+    dept_catalog.TYPE_SALES: "sales_order_book",
+    dept_catalog.TYPE_PRODUCTION: "production_work_orders",
+    dept_catalog.TYPE_PROCUREMENT: "procurement_requests",
+    dept_catalog.TYPE_LEGAL: "legal_matters",
+    dept_catalog.TYPE_ENGINEERING_MAINTENANCE: "maintenance_tickets",
+    dept_catalog.TYPE_HR: "hr_onboarding_instances",
+    dept_catalog.TYPE_ACCOUNTING_FINANCE: "financial_entries",
+}
+
+
+async def _latest_ts_for_query(db, coll_name: str, query: dict) -> Optional[datetime]:
+    coll = getattr(db, coll_name, None)
+    if coll is None:
+        return None
+    try:
+        rows = await coll.find(
+            query, {"_id": 0, "updated_at": 1, "created_at": 1, "modified_at": 1},
+        ).sort([("updated_at", -1), ("created_at", -1)]).limit(1).to_list(1)
+    except Exception:
+        return None
+    return item_timestamp(rows[0]) if rows else None
+
+
+async def stale_department_alerts(
+    db, workspace_id: str, *, now: Optional[datetime] = None,
+) -> list[dict]:
+    """Departments that were being kept up to date but have gone quiet.
+
+    Only departments that have at least one record are listed: a department
+    nobody uses is not "stale", it is just off. Each alert names the
+    department lead (when one is set) so the owner knows who to ping. Never
+    raises; a failed lookup returns an empty list.
+    """
+    now = now or datetime.now(timezone.utc)
+    if not workspace_id:
+        return []
+    try:
+        depts = await db.departments.find(
+            {"workspace_id": workspace_id, "enabled": {"$ne": False}},
+            {"_id": 0, "department_id": 1, "type": 1, "name": 1},
+        ).to_list(50)
+    except Exception:
+        return []
+    alerts: list[dict] = []
+    seen_types: set[str] = set()
+    for dept in depts:
+        dtype = dept.get("type")
+        coll_name = _ACTIVITY_COLLECTION_BY_TYPE.get(dtype or "")
+        if not coll_name or dtype in seen_types:
+            continue
+        seen_types.add(dtype)
+        if dtype == dept_catalog.TYPE_ACCOUNTING_FINANCE:
+            queries = [(coll_name, {"workspace_id": workspace_id})]
+        else:
+            dq = {"department_id": dept.get("department_id")}
+            queries = [(coll_name, dq)]
+            if dtype == dept_catalog.TYPE_SALES:
+                queries.append(("deals", dq))
+        latest = _max_ts(*[await _latest_ts_for_query(db, c, q) for c, q in queries])
+        if latest is None:
+            continue  # never used: not stale, just not tracked
+        age = now - latest
+        limit = stale_after_days(dtype)
+        if age < timedelta(days=limit):
+            continue
+        lead_name = None
+        try:
+            lead = await db.department_members.find_one(
+                {"department_id": dept.get("department_id"), "role": "lead"}, {"_id": 0, "user_id": 1},
+            )
+            if lead:
+                u = await db.users.find_one({"user_id": lead.get("user_id")}, {"_id": 0, "name": 1})
+                lead_name = (u or {}).get("name") or None
+        except Exception:
+            lead_name = None
+        alerts.append({
+            "type": dtype,
+            "name": dept.get("name") or dtype,
+            "days_since_update": age.days,
+            "last_updated_at": latest.isoformat(),
+            "lead_name": lead_name,
+        })
+    alerts.sort(key=lambda a: -a["days_since_update"])
+    return alerts

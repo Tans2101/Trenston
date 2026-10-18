@@ -391,6 +391,28 @@ export default function Briefing({ asHome = false } = {}) {
 
       <GetStarted />
 
+      {Array.isArray(data.stale_data) && data.stale_data.length > 0 && (
+        <section className="mb-6 border-y border-helm-line py-3" data-testid="stale-data-card" aria-label="Data that may be out of date">
+          <BriefLabel>Data may be out of date</BriefLabel>
+          <ul className="mt-2 divide-y divide-helm-line">
+            {data.stale_data.map((a) => (
+              <li key={a.type} className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-helm-fg">
+                  <span className="font-medium">{a.name}</span>
+                  <span className="text-helm-muted">
+                    {` has not been updated in ${a.days_since_update} days.`}
+                    {a.lead_name ? ` Ask ${a.lead_name}.` : ""}
+                  </span>
+                </p>
+                <Link to={`/app/departments/${a.type}`} className="shrink-0 text-sm text-helm-gold hover:text-helm-gold-hover">
+                  Open {a.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {data.reserve_prompt && (
         <div className="mb-6 flex flex-col gap-2 border-y border-helm-line py-3 sm:flex-row sm:items-center sm:justify-between" data-testid="reserve-prompt">
           <p className="text-sm text-helm-muted">

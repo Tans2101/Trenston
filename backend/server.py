@@ -4476,6 +4476,21 @@ async def _briefing_ops_metrics(workspace_id: str, workspace: dict | None = None
     return ob.ops_briefing_metric_cards(data)
 
 
+async def _briefing_stale_data(principal: dict, workspace_id: str, has_fin_access: bool) -> list[dict]:
+    """Quiet departments the viewer may open, so the owner can ping the lead."""
+    alerts = await helm_freshness.stale_department_alerts(db, workspace_id)
+    if not alerts:
+        return []
+    if not dept_access.can_read_all_departments(principal):
+        access = await dept_access.accessible_department_ids_by_type(
+            db, principal, sorted({a["type"] for a in alerts}),
+        )
+        alerts = [a for a in alerts if access.get(a["type"])]
+    if not has_fin_access:
+        alerts = [a for a in alerts if a["type"] != dept_catalog.TYPE_ACCOUNTING_FINANCE]
+    return alerts
+
+
 @api_router.get("/briefing")
 async def briefing(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
@@ -4570,6 +4585,7 @@ async def briefing(principal=Depends(get_principal)):
     b["what_to_decide_total"] = len(decide_all)
     b["what_to_delegate"] = _briefing_what_to_delegate(c)
     b["insights_generated_at"] = c.get("insights_generated_at")
+    b["stale_data"] = await _briefing_stale_data(principal, c["workspace_id"], has_fin_access)
     b["data_as_of"] = freshness.get("data_as_of")
     b["data_freshness_sources"] = freshness.get("sources") or {}
     # Free includes AI briefing — do not strip the stored summary just because
@@ -18479,7 +18495,8 @@ async def run_daily_briefing_cron() -> dict:
                 stats["skipped_suppressed"] += 1
                 continue
             data = await assemble_ops_briefing_data(wid, workspace=c)
-            if not data.get("has_content"):
+            data["stale_data"] = await helm_freshness.stale_department_alerts(db, wid)
+            if not data.get("has_content") and not data["stale_data"]:
                 stats["skipped_empty"] += 1
                 continue
             # Atomic claim after we know we will send — racing crons: loser skips.

@@ -744,6 +744,18 @@ def daily_briefing_email_html(
             rows.append(_row("Overhead this month", f"{_money(oh['actual'])} · no budget set"))
         blocks.append(_section("Engineering & Maintenance", "".join(rows)))
 
+    stale = data.get("stale_data") or []
+    if stale:
+        stale_rows = "".join(
+            _row(
+                str(a.get("name") or "Department"),
+                f"No update in {int(a.get('days_since_update') or 0)} days"
+                + (f". Ask {a['lead_name']}." if a.get("lead_name") else "."),
+            )
+            for a in stale
+        )
+        blocks.insert(0, _section("Data may be out of date", stale_rows))
+
     body_sections = "\n".join(blocks) if blocks else _section(
         "Operations", _row("Status", "No Sales / Procurement / Production / Maintenance departments enabled"),
     )
