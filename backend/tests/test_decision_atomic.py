@@ -95,6 +95,7 @@ async def test_delete_decision_uses_pull():
     update = AsyncMock(return_value=MagicMock(matched_count=1, modified_count=1))
     mock_db = MagicMock()
     mock_db.workspaces.update_one = update
+    mock_db.decision_effects.delete_one = AsyncMock()
     with (
         patch.object(server, "get_ws", AsyncMock(return_value=_ws([{"id": "d1"}]))),
         patch.object(server, "db", mock_db),
@@ -107,6 +108,10 @@ async def test_delete_decision_uses_pull():
     assert out["ok"] is True
     args, _ = update.await_args
     assert args[1] == {"$pull": {"decisions": {"id": "d1"}}}
+    # The saved ripple (money effect) goes with the decision.
+    mock_db.decision_effects.delete_one.assert_awaited_once_with(
+        {"workspace_id": "ws1", "decision_id": "d1"},
+    )
 
 
 @pytest.mark.asyncio

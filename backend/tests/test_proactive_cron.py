@@ -112,124 +112,143 @@ def test_run_daily_alerts_isolates_workspace_failures():
     assert stats["new_alerts"] == 2
 
 
-def test_run_weekly_digest_emails_pdf_and_debounces():
-    week = server._iso_week_key(datetime(2026, 9, 17, tzinfo=timezone.utc))
-    rows = [
-        {
-            "workspace_id": "ws_send",
-            "name": "Send Co",
-            "plan": "growth",
-        },
-        {
-            "workspace_id": "ws_done",
-            "name": "Done Co",
-            "plan": "growth",
-            "weekly_digest_emailed_week": week,
-        },
-        {
-            "workspace_id": "ws_free",
-            "name": "Free Co",
-            "plan": "free",
-        },
-    ]
-    fake_db = MagicMock()
-    fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
-    fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+# Monday 19 Oct 2026, 08:00 in Manila (UTC+8).
+MONDAY_MORNING_MANILA = datetime(2026, 10, 19, 0, 0, tzinfo=timezone.utc)
 
+_FIN = {
+    "cash": "₱500K", "cash_entered": True,
+    "burn": "₱120K", "burn_known": True, "burn_value": 120000,
+    "runway_months": 4.2, "runway_no_burn": False, "runway_basis": "Based on the last 3 full months.",
+}
+
+
+def _ws(wid, **extra):
+    doc = {
+        "workspace_id": wid, "name": f"{wid} Co", "plan": "growth", "timezone": "Asia/Manila",
+        "decisions": [{"id": "d1", "title": "Hire a plant manager", "status": "pending"}],
+        "tasks": {"items": [{"id": "t1", "title": "Send report", "assignee": "Sarah",
+                             "column": "doing", "due": "2026-10-03"}]},
+    }
+    doc.update(extra)
+    return doc
+
+
+def _run_weekly(monkeypatch, docs, *, now=MONDAY_MORNING_MANILA, fin_readers=("ceo@x.test",),
+                everyone=("ceo@x.test", "coo@x.test"), pack_raises=None):
+    from mongomock_motor import AsyncMongoMockClient
+
+    db = AsyncMongoMockClient()["weekly"]
     sent = []
 
     async def fake_send(*, to, subject, html, attachments=None, headers=None):
-        sent.append({
-            "to": to,
-            "subject": subject,
-            "html": html,
-            "attachments": attachments,
-            "headers": headers,
-        })
-        return {"sent": True, "id": "email_1"}
+        sent.append({"to": to, "subject": subject, "html": html, "attachments": attachments, "headers": headers})
+        return {"sent": True, "id": "e1"}
 
-    async def fake_recipients(wid, **_kw):
-        return ["ceo@send.test"] if wid == "ws_send" else []
+    async def recipients(wid, financial=False, **_kw):
+        return list(fin_readers if financial else everyone)
 
-    with (
-        patch.object(server, "db", fake_db),
-        patch.object(server, "BILLING_ENFORCED", True),
-        patch.object(server, "SESSION_SECRET", "weekly-digest-test-secret"),
-        patch.object(server, "_alert_recipient_emails", side_effect=fake_recipients),
-        patch.object(
-            server,
-            "_generate_weekly_pack_content",
-            new=AsyncMock(return_value={
-                "content": "# Send Co: this week\n\nQuiet week.",
-                "workspace_name": "Send Co",
-                "workspace_id": "ws_send",
-            }),
-        ),
-        patch.object(server, "send_resend_email", side_effect=fake_send),
-        patch(
-            "weekly_pack_export.render_weekly_pack_pdf",
-            return_value=b"%PDF-1.4 fake",
-        ),
-        patch(
-            "weekly_pack_export.pdf_filename",
-            return_value="Trenston-Weekly-Pack-Send-Co-2026-09-17.pdf",
-        ),
-        patch.object(server, "_iso_week_key", return_value=week),
-    ):
-        stats = asyncio.run(server.run_weekly_digest_cron())
+    async def pack(wid):
+        if pack_raises:
+            raise pack_raises
+        return {"content": "# Pack\n\nQuiet week.", "workspace_name": f"{wid} Co", "workspace_id": wid}
 
-    assert stats["sent"] == 1
-    assert stats["skipped_already"] == 1
-    assert stats["skipped_plan"] == 1
-    assert stats["errors"] == 0
-    assert len(sent) == 1
-    assert sent[0]["to"] == ["ceo@send.test"]
-    assert "Send Co" in sent[0]["subject"]
-    assert "Unsubscribe" in sent[0]["html"]
-    assert "BGC, Taguig, Philippines" in sent[0]["html"]
-    assert sent[0]["headers"] and "List-Unsubscribe" in sent[0]["headers"]
-    assert sent[0]["attachments"][0]["filename"].endswith(".pdf")
-    assert sent[0]["attachments"][0]["content"] == b"%PDF-1.4 fake"
-    fake_db.workspaces.update_one.assert_awaited_once()
-    set_fields = fake_db.workspaces.update_one.await_args.args[1]["$set"]
-    assert set_fields["weekly_digest_emailed_week"] == week
+    async def stale(_db, _wid, **_kw):
+        return []
+
+    async def fin(_wid, *a, **k):
+        return dict(_FIN)
+
+    async def go():
+        if docs:
+            await db.workspaces.insert_many([dict(d) for d in docs])
+        with (
+            patch.object(server, "db", db),
+            patch.object(server, "BILLING_ENFORCED", True),
+            patch.object(server, "SESSION_SECRET", "weekly-digest-test-secret"),
+            patch.object(server, "_alert_recipient_emails", side_effect=recipients),
+            patch.object(server, "_generate_weekly_pack_content", side_effect=pack),
+            patch.object(server, "compute_financials", side_effect=fin),
+            patch.object(server.helm_freshness, "stale_department_alerts", side_effect=stale),
+            patch.object(server, "send_resend_email", side_effect=fake_send),
+            patch("weekly_pack_export.render_weekly_pack_pdf", return_value=b"%PDF-1.4 fake"),
+            patch("weekly_pack_export.pdf_filename", return_value="Pack.pdf"),
+        ):
+            stats = await server.run_weekly_digest_cron(now=now)
+            again = await server.run_weekly_digest_cron(now=now)
+        marks = {d["workspace_id"]: d.get("weekly_digest_emailed_week")
+                 async for d in db.workspaces.find({}, {"_id": 0, "workspace_id": 1, "weekly_digest_emailed_week": 1})}
+        return stats, again, marks
+
+    stats, again, marks = asyncio.run(go())
+    return stats, again, marks, sent
 
 
-def test_run_weekly_digest_continues_after_one_failure():
-    rows = [
-        {"workspace_id": "ws_bad", "name": "Bad", "plan": "growth"},
-        {"workspace_id": "ws_ok", "name": "Ok", "plan": "growth"},
+def test_weekly_digest_sends_inline_summary_and_debounces(monkeypatch):
+    stats, again, marks, sent = _run_weekly(monkeypatch, [_ws("ws_a")])
+    assert stats["sent"] == 1 and stats["errors"] == 0
+    assert marks["ws_a"] == "2026-W43"
+    # The second run the same Monday sends nothing.
+    assert again["sent"] == 0 and again["skipped_already"] == 1
+    assert len(sent) == 2
+    by_to = {m["to"][0]: m for m in sent}
+    ceo, coo = by_to["ceo@x.test"], by_to["coo@x.test"]
+    # Inline content, subject names what needs attention, compliance footer present.
+    assert "ws_a Co" in ceo["subject"] and "1 decision waiting" in ceo["subject"]
+    assert "Hire a plant manager" in ceo["html"] and "Send report" in ceo["html"]
+    assert "Unsubscribe" in ceo["html"] and "List-Unsubscribe" in ceo["headers"]
+    # Money and the PDF go only to the person with Financials access.
+    assert "₱500K" in ceo["html"] and ceo["attachments"][0]["filename"] == "Pack.pdf"
+    assert "₱500K" not in coo["html"] and coo["attachments"] is None
+    assert stats["pdf_attached"] == 1
+
+
+def test_weekly_digest_waits_for_monday_morning_in_the_workspaces_own_timezone(monkeypatch):
+    docs = [
+        _ws("ws_manila"),
+        _ws("ws_ny", timezone="America/New_York"),  # still Sunday evening there
     ]
-    fake_db = MagicMock()
-    fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
-    fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    stats, _again, marks, sent = _run_weekly(monkeypatch, docs)
+    assert stats["sent"] == 1 and stats["skipped_not_due"] == 1
+    assert marks["ws_manila"] == "2026-W43" and marks["ws_ny"] is None
+    assert {m["subject"].split(":")[0] for m in sent} == {"ws_manila Co"}
+    # Before 07:00 Monday in Manila nothing goes out either.
+    early = datetime(2026, 10, 18, 20, 0, tzinfo=timezone.utc)  # Manila Monday 04:00
+    stats, _a, _m, sent = _run_weekly(monkeypatch, [_ws("ws_early")], now=early)
+    assert stats["skipped_not_due"] == 1 and sent == []
 
-    async def fake_pack(wid):
-        if wid == "ws_bad":
-            raise RuntimeError("llm down")
-        return {
-            "content": "# Ok: this week\n\nFine.",
-            "workspace_name": "Ok",
-            "workspace_id": wid,
-        }
 
-    with (
-        patch.object(server, "db", fake_db),
-        patch.object(server, "BILLING_ENFORCED", True),
-        patch.object(server, "SESSION_SECRET", "weekly-digest-test-secret"),
-        patch.object(server, "_alert_recipient_emails", new=AsyncMock(return_value=["a@b.test"])),
-        patch.object(server, "_generate_weekly_pack_content", side_effect=fake_pack),
-        patch.object(server, "send_resend_email", new=AsyncMock(return_value={"sent": True})),
-        patch("weekly_pack_export.render_weekly_pack_pdf", return_value=b"%PDF"),
-        patch("weekly_pack_export.pdf_filename", return_value="pack.pdf"),
-        patch.object(server, "_iso_week_key", return_value="2026-W38"),
-    ):
-        stats = asyncio.run(server.run_weekly_digest_cron())
+def test_weekly_digest_free_plan_gets_the_summary_without_the_pdf(monkeypatch):
+    stats, _a, _m, sent = _run_weekly(monkeypatch, [_ws("ws_free", plan="free")])
+    assert stats["sent"] == 1 and stats["pdf_attached"] == 0
+    assert all(m["attachments"] is None for m in sent)
+    assert any("Hire a plant manager" in m["html"] for m in sent)
 
-    assert stats["errors"] == 1
-    assert stats["sent"] == 1
+
+def test_weekly_digest_skips_sample_workspaces_and_empty_weeks(monkeypatch):
+    docs = [
+        _ws("ws_sample", template="sample"),
+        _ws("ws_empty", decisions=[], tasks={"items": []}),
+    ]
+    # Readers with no Financials access, so an empty workspace has nothing at all to say.
+    stats, _a, marks, sent = _run_weekly(monkeypatch, docs, fin_readers=())
+    assert stats["skipped_sample"] == 1 and stats["skipped_empty"] == 1 and stats["sent"] == 0
+    assert sent == [] and marks == {"ws_sample": None, "ws_empty": None}
+
+
+def test_weekly_digest_summary_still_goes_out_when_the_pdf_fails(monkeypatch):
+    stats, _a, marks, sent = _run_weekly(monkeypatch, [_ws("ws_a")], pack_raises=RuntimeError("llm down"))
+    assert stats["sent"] == 1 and stats["errors"] == 0
+    assert marks["ws_a"] == "2026-W43"
+    assert all(m["attachments"] is None for m in sent)
+
+
+def test_weekly_digest_continues_after_one_workspace_fails(monkeypatch):
+    # A malformed tasks value breaks that workspace only; its week is never claimed.
+    bad = _ws("ws_bad", tasks="broken")
+    stats, _a, marks, sent = _run_weekly(monkeypatch, [bad, _ws("ws_ok")])
+    assert stats["errors"] >= 1 and stats["sent"] == 1
+    assert marks["ws_ok"] == "2026-W43" and marks["ws_bad"] is None
+    assert all("ws_ok" in m["subject"] for m in sent)
 
 
 @pytest.mark.asyncio

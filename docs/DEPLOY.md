@@ -199,7 +199,7 @@ These run as Render **Cron** services on the same repo/branch as the API. Sync t
 | `helm-retention-checks` | daily | `POST /api/internal/run-retention-checks` (`INTERNAL_CRON_SECRET`) |
 | `helm-accounting-sync` | hourly | `POST /api/internal/run-accounting-sync` (`INTERNAL_CRON_SECRET`) |
 | `helm-daily-alerts` | daily | `POST /api/internal/run-daily-alerts` (`INTERNAL_CRON_SECRET`) |
-| `helm-weekly-digest` | weekly | `POST /api/internal/run-weekly-digest` (`INTERNAL_CRON_SECRET`) |
+| `helm-weekly-digest` | hourly (each workspace gets its Monday briefing at 07:00 local) | `POST /api/internal/run-weekly-digest` (`INTERNAL_CRON_SECRET`) |
 | `helm-daily-briefing` | daily | `POST /api/internal/run-daily-briefing` (`INTERNAL_CRON_SECRET`) |
 | `helm-orphan-doc-cleanup` | daily | `POST /api/admin/cleanup-orphaned-documents` (`SETUP_SECRET` / `X-Setup-Secret`) |
 

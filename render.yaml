@@ -194,7 +194,9 @@ services:
       - key: DAILY_ALERTS_CRON_URL
         value: https://www.trenston.com/api/internal/run-daily-alerts
 
-  # Weekly pack PDF emailed to CEO/owner (separate from daily alerts).
+  # Monday briefing emailed to CEO/owner. Runs hourly; each workspace is sent
+  # once, at the first run after 07:00 Monday in its own timezone (the job
+  # itself decides who is due). Paid plans also get the CEO pack PDF attached.
   - type: cron
     name: helm-weekly-digest
     runtime: python
@@ -202,7 +204,7 @@ services:
     repo: https://github.com/Tans2101/Trenston
     branch: main
     rootDir: backend
-    schedule: "0 14 * * 1"
+    schedule: "0 * * * *"
     buildCommand: pip install --upgrade pip
     startCommand: python scripts/run_weekly_digest_cron.py
     envVars:

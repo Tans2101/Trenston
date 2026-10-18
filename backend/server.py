@@ -18937,127 +18937,181 @@ def _iso_week_key(now: datetime | None = None) -> str:
     return now.strftime("%G-W%V")
 
 
-def _weekly_digest_email_html(*, workspace_name: str, app_url: str, unsubscribe_url: str = "") -> str:
-    import email_compliance as ec
-
-    name = html.escape(workspace_name or "your company")
-    link = html.escape((app_url or "").rstrip("/") + "/app/reports", quote=True)
-    footer = (
-        ec.marketing_footer_html(unsubscribe_url=unsubscribe_url)
-        if unsubscribe_url
-        else """\
-<tr><td style="padding:20px 36px 30px 36px;border-top:1px solid rgba(255,255,255,0.06);">
-<p style="color:#52525b;font-size:12px;margin:0;line-height:1.6;">Know what matters before your first meeting.</p>
-</td></tr>"""
-    )
-    return f"""\
-<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
-<tr><td align="center">
-<table width="480" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
-<tr><td style="padding:32px 36px 8px 36px;">
-<p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;">Weekly pack</p>
-<h1 style="color:#ffffff;font-size:24px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">This week's briefing for<br><span style="color:#c9a962;">{name}</span></h1>
-<p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:18px 0 0 0;">Your Trenston weekly pack is attached as a PDF. No need to log in to read it. Open the attachment, or review it in the app when you are ready.</p>
-<table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
-<td style="background:#c9a962;border-radius:8px;">
-<a href="{link}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Reports in Trenston &rarr;</a>
-</td></tr></table>
-</td></tr>
-{footer}
-</table>
-</td></tr></table></body></html>"""
+# Monday briefing goes out at the first hourly run at or after this local hour.
+WEEKLY_DIGEST_LOCAL_HOUR = 7
 
 
-async def run_weekly_digest_cron() -> dict:
-    """Cron: generate weekly pack PDF and email it to CEO/owner recipients.
+def _weekly_digest_due(workspace: dict, now_utc: datetime) -> tuple[bool, str]:
+    """Is it Monday morning (07:00 or later) in the workspace's own timezone?
 
-    Kept as a separate runner (and Render cron) from daily alerts so schedules stay
-    independent — daily at a fixed UTC morning hour, weekly on Mondays.
-    Debounces with weekly_digest_emailed_week (ISO week) so a re-run the same week
-    does not re-send. Respects the same plan gate as /api/reports/weekly-pack.
-    Commercial: CAN-SPAM footer + immediate email_suppressions check per recipient.
+    The week key is the workspace-local ISO week, so a run late on Monday still
+    counts and a re-run the same week never sends twice.
     """
+    local = now_utc.astimezone(tz_utils.workspace_tz(workspace))
+    return local.weekday() == 0 and local.hour >= WEEKLY_DIGEST_LOCAL_HOUR, _iso_week_key(local)
+
+
+async def run_weekly_digest_cron(now: datetime | None = None) -> dict:
+    """Cron (hourly): email each workspace its Monday briefing at 07:00 local time.
+
+    The email carries the summary inline (money, decisions waiting, overdue tasks,
+    quiet departments) so nobody has to open an attachment or log in. It goes to
+    every plan. Paid plans with Reports also get the full CEO pack PDF attached,
+    for people who may see Financials only.
+
+    - Money lines go only to recipients with Financials access; others get the rest.
+    - A week with nothing to say sends nothing (no empty emails), and sample-data
+      workspaces are skipped because their numbers are not real.
+    - The week is claimed atomically before sending, so overlapping runs cannot
+      double-send; the claim is released if every send fails.
+    - Commercial mail: CAN-SPAM footer and a suppression check per recipient.
+    """
+    import weekly_summary as wsum
     import weekly_pack_export as pack_pdf
     import email_compliance as ec
 
-    workspaces = await db.workspaces.find({}, {"_id": 0}).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
-    week = _iso_week_key()
+    now = now or datetime.now(timezone.utc)
+    workspaces = await db.workspaces.find(
+        {},
+        {"_id": 0, "workspace_id": 1, "name": 1, "timezone": 1, "template": 1,
+         "weekly_digest_emailed_week": 1, "plan": 1, "subscription_status": 1, "billing_status": 1},
+    ).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
     app_url = _app_base_url()
     api_base = public_api_origin()
     stats = {
         "workspaces_scanned": len(workspaces),
-        "week": week,
         "sent": 0,
+        "pdf_attached": 0,
+        "skipped_not_due": 0,
         "skipped_already": 0,
-        "skipped_plan": 0,
+        "skipped_sample": 0,
         "skipped_no_recipients": 0,
         "skipped_suppressed": 0,
         "skipped_empty": 0,
         "send_failed": 0,
         "errors": 0,
     }
-    for c in workspaces:
-        wid = (c.get("workspace_id") or "").strip()
+    for row in workspaces:
+        wid = (row.get("workspace_id") or "").strip()
         if not wid:
             continue
+        due, week = _weekly_digest_due(row, now)
+        if not due:
+            stats["skipped_not_due"] += 1
+            continue
+        if (row.get("weekly_digest_emailed_week") or "") == week:
+            stats["skipped_already"] += 1
+            continue
+        claimed = False
         try:
-            if (c.get("weekly_digest_emailed_week") or "") == week:
-                stats["skipped_already"] += 1
+            if (row.get("template") or "") == "sample":
+                stats["skipped_sample"] += 1
                 continue
-            if not workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS):
-                stats["skipped_plan"] += 1
-                continue
-            # The pack contains cash and burn figures: Financials access only.
-            recipients = await _alert_recipient_emails(wid, financial=True)
-            if not recipients:
+            everyone = await _alert_recipient_emails(wid)
+            if not everyone:
                 stats["skipped_no_recipients"] += 1
                 continue
-            sendable = await ec.filter_unsuppressed(db, recipients)
+            sendable = await ec.filter_unsuppressed(db, everyone)
             if not sendable:
                 stats["skipped_suppressed"] += 1
                 continue
-            pack = await _generate_weekly_pack_content(wid)
-            content = (pack.get("content") or "").strip()
-            if not content:
+            money_ok = {
+                a.strip().lower() for a in await _alert_recipient_emails(wid, financial=True)
+            }
+            sees_money = [a for a in sendable if a.strip().lower() in money_ok]
+
+            c = await get_ws(wid)
+            ws_name = c.get("name") or row.get("name") or "Company"
+            today = now.astimezone(tz_utils.workspace_tz(c)).date()
+            stale = await helm_freshness.stale_department_alerts(db, wid)
+            fin = await compute_financials(wid) if sees_money else None
+            summary_money = wsum.build_summary(workspace=c, fin=fin, stale=stale, today=today)
+            summary_plain = wsum.build_summary(
+                workspace=c,
+                fin=None,
+                stale=[a for a in stale if a.get("type") != dept_catalog.TYPE_ACCOUNTING_FINANCE],
+                today=today,
+            )
+            plan = [
+                (addr, summary_money if addr in sees_money else summary_plain)
+                for addr in sendable
+            ]
+            plan = [(addr, s) for addr, s in plan if s["has_content"]]
+            if not plan:
                 stats["skipped_empty"] += 1
                 continue
-            ws_name = pack.get("workspace_name") or c.get("name") or "Company"
-            pdf = pack_pdf.render_weekly_pack_pdf(content, workspace_name=ws_name)
-            filename = pack_pdf.pdf_filename(ws_name)
+
+            claim = await db.workspaces.find_one_and_update(
+                {"workspace_id": wid, "weekly_digest_emailed_week": {"$ne": week}},
+                {"$set": {
+                    "weekly_digest_emailed_week": week,
+                    "weekly_digest_emailed_at": now.isoformat(),
+                }},
+            )
+            if not claim:
+                stats["skipped_already"] += 1
+                continue
+            claimed = True
+
+            # The full CEO pack (AI-written, has cash and burn): paid Reports plans,
+            # Financials readers only. Never blocks the summary if it fails.
+            pdf = None
+            if sees_money and workspace_allows(row, helm_plans.FEATURE_ADVANCED_REPORTS):
+                try:
+                    pack = await _generate_weekly_pack_content(wid)
+                    content = (pack.get("content") or "").strip()
+                    if content:
+                        pack_name = pack.get("workspace_name") or ws_name
+                        pdf = {
+                            "filename": pack_pdf.pdf_filename(pack_name),
+                            "content": pack_pdf.render_weekly_pack_pdf(content, workspace_name=pack_name),
+                            "content_type": "application/pdf",
+                        }
+                except HTTPException:
+                    logger.info("weekly pack skipped for %s (AI unavailable)", wid)
+                except Exception:
+                    logger.exception("weekly pack PDF failed for workspace %s", wid)
+
             any_sent = False
-            for addr in sendable:
+            for addr, summary in plan:
+                attach = pdf if (pdf and addr in sees_money) else None
                 unsub = ec.unsubscribe_url(app_url, addr, secret=SESSION_SECRET)
                 one_click = ec.api_unsubscribe_url(api_base, addr, secret=SESSION_SECRET)
-                email_result = await send_resend_email(
+                result = await send_resend_email(
                     to=[addr],
-                    subject=f"Your Trenston weekly pack: {ws_name}",
-                    html=_weekly_digest_email_html(
+                    subject=wsum.subject_for(ws_name, summary),
+                    html=wsum.email_html(
                         workspace_name=ws_name,
+                        summary=summary,
                         app_url=app_url,
                         unsubscribe_url=unsub,
+                        has_pdf=bool(attach),
                     ),
-                    attachments=[{
-                        "filename": filename,
-                        "content": pdf,
-                        "content_type": "application/pdf",
-                    }],
+                    attachments=[attach] if attach else None,
                     headers=ec.list_unsubscribe_headers(one_click),
                 )
-                if email_result.get("sent"):
+                if result.get("sent"):
                     any_sent = True
+                    if attach:
+                        stats["pdf_attached"] += 1
             if any_sent:
-                await db.workspaces.update_one(
-                    {"workspace_id": wid},
-                    {"$set": {
-                        "weekly_digest_emailed_week": week,
-                        "weekly_digest_emailed_at": datetime.now(timezone.utc).isoformat(),
-                    }},
-                )
                 stats["sent"] += 1
             else:
+                await db.workspaces.update_one(
+                    {"workspace_id": wid, "weekly_digest_emailed_week": week},
+                    {"$unset": {"weekly_digest_emailed_week": "", "weekly_digest_emailed_at": ""}},
+                )
+                claimed = False
                 stats["send_failed"] += 1
         except Exception:
+            if claimed:
+                try:
+                    await db.workspaces.update_one(
+                        {"workspace_id": wid, "weekly_digest_emailed_week": week},
+                        {"$unset": {"weekly_digest_emailed_week": "", "weekly_digest_emailed_at": ""}},
+                    )
+                except Exception:
+                    logger.exception("weekly digest failed to release claim for workspace %s", wid)
             stats["errors"] += 1
             logger.exception("weekly digest cron failed for workspace %s", wid)
     return stats
@@ -19361,7 +19415,7 @@ async def internal_run_daily_alerts(request: Request):
 
 @api_router.post("/internal/run-weekly-digest")
 async def internal_run_weekly_digest(request: Request):
-    """Weekly Render cron: email weekly pack PDF to CEO/owner. Shared-secret header required."""
+    """Hourly Render cron: send each workspace its Monday briefing (07:00 local). Shared-secret header required."""
     _require_internal_cron(request)
     return await run_weekly_digest_cron()
 

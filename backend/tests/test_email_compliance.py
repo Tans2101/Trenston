@@ -68,8 +68,14 @@ def test_retention_email_includes_footer_when_url_set():
 
 
 def test_weekly_digest_html_includes_footer():
-    html = server._weekly_digest_email_html(
+    import weekly_summary
+
+    html = weekly_summary.email_html(
         workspace_name="Acme",
+        summary=weekly_summary.build_summary(
+            workspace={"decisions": [{"title": "Hire", "status": "pending"}], "tasks": {"items": []}},
+            fin=None, stale=[], today=__import__("datetime").date(2026, 10, 19),
+        ),
         app_url="https://www.trenston.com",
         unsubscribe_url="https://www.trenston.com/unsubscribe?token=digest",
     )
