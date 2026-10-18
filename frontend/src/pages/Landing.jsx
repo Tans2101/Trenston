@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, useScroll, useTransform } from "motion/react";
 import LaptopMockup from "@/components/marketing/LaptopMockup";
-import dashboardBriefing from "@/assets/marketing/dashboard-briefing.webp";
+import { briefingImage } from "@/assets/marketing/briefingImage";
 import { AskScreen, DecisionScreen, PackScreen } from "@/components/marketing/ProductScreens";
 import TestimonialCard from "@/components/marketing/TestimonialCard";
 
@@ -49,7 +49,7 @@ import homeStory from "@/lib/homeStory.json";
 /** CEO_DAY has no visual field in marketingCopy.js (it's also read by
  * marketingClaimsVerification.test.js) — map each to a real product surface. */
 const CEO_DAY_VISUALS = {
-  Briefing: () => <LaptopMockup src={dashboardBriefing} alt="The Briefing screen in Trenston" />,
+  Briefing: () => <LaptopMockup {...briefingImage} alt="The Briefing screen in Trenston" />,
   "Decision Center": () => <div className="mx-auto max-w-md origin-center lg:scale-[1.15]"><DecisionScreen /></div>,
   "Ask Trenston": () => <div className="mx-auto max-w-md origin-center lg:scale-[1.15]"><AskScreen /></div>,
   "CEO Pack": () => <div className="mx-auto max-w-md origin-center lg:scale-[1.15]"><PackScreen /></div>,
@@ -147,7 +147,7 @@ export default function Landing() {
             className="lg:-mr-10 xl:-mr-20"
           >
             <LaptopMockup
-              src={dashboardBriefing}
+              {...briefingImage}
               alt="The Briefing screen in Trenston, showing revenue, burn, runway and a revenue-by-month chart"
               priority
             />

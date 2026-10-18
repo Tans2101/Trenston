@@ -27,7 +27,7 @@ Trenston brings together what is happening across your company (money, sales, pe
 - Google Calendar and Drive, on every plan (Trenston does not request any Gmail access)
 - QuickBooks, Xero, and Slack, from Starter
 - SAP Business One and HubSpot, from Growth
-- Details: https://www.trenston.com/integrations
+- [Details](https://www.trenston.com/integrations)
 
 ## Pricing
 
@@ -38,7 +38,7 @@ Trenston brings together what is happening across your company (money, sales, pe
 
 Paid plans (Starter, Growth, Business) include a 7-day free trial.
 Billing is via Paddle. Cancel anytime from Billing.
-Authoritative pricing: https://www.trenston.com/pricing
+[Authoritative pricing](https://www.trenston.com/pricing)
 
 ## Common questions
 
@@ -49,21 +49,21 @@ Authoritative pricing: https://www.trenston.com/pricing
 
 ## Pages
 
-- Home: https://www.trenston.com/
-- Features: https://www.trenston.com/features
-- Pricing: https://www.trenston.com/pricing
-- How Trenston compares: https://www.trenston.com/compare
-- Trenston vs Excel and Google Sheets: https://www.trenston.com/compare/excel-google-sheets
-- Trenston vs Power BI: https://www.trenston.com/compare/power-bi
-- Trenston vs Notion: https://www.trenston.com/compare/notion
-- Guides for founders and CEOs: https://www.trenston.com/guides
-- How to track runway as a founder: https://www.trenston.com/guides/how-to-track-runway-as-a-founder
-- What a CEO should check every morning: https://www.trenston.com/guides/what-a-ceo-should-check-every-morning
-- Integrations: https://www.trenston.com/integrations
-- Security: https://www.trenston.com/security
-- About: https://www.trenston.com/about
-- Help: https://www.trenston.com/help
-- Changelog: https://www.trenston.com/changelog
+- [Home](https://www.trenston.com/)
+- [Features](https://www.trenston.com/features)
+- [Pricing](https://www.trenston.com/pricing)
+- [How Trenston compares](https://www.trenston.com/compare)
+- [Trenston vs Excel and Google Sheets](https://www.trenston.com/compare/excel-google-sheets)
+- [Trenston vs Power BI](https://www.trenston.com/compare/power-bi)
+- [Trenston vs Notion](https://www.trenston.com/compare/notion)
+- [Guides for founders and CEOs](https://www.trenston.com/guides)
+- [How to track runway as a founder](https://www.trenston.com/guides/how-to-track-runway-as-a-founder)
+- [What a CEO should check every morning](https://www.trenston.com/guides/what-a-ceo-should-check-every-morning)
+- [Integrations](https://www.trenston.com/integrations)
+- [Security](https://www.trenston.com/security)
+- [About](https://www.trenston.com/about)
+- [Help](https://www.trenston.com/help)
+- [Changelog](https://www.trenston.com/changelog)
 
 ## Company
 

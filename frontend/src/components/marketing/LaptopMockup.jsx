@@ -8,6 +8,8 @@ import styles from "./LaptopMockup.module.css";
  */
 export default function LaptopMockup({
   src,
+  srcSet,
+  sizes,
   alt = "",
   caption,
   className,
@@ -31,6 +33,8 @@ export default function LaptopMockup({
             {src ? (
               <img
                 src={src}
+                srcSet={srcSet}
+                sizes={sizes}
                 alt={alt}
                 width={width}
                 height={height}

@@ -6,7 +6,7 @@ import {
   FinanceScreen,
   TeamScreen,
 } from "@/components/marketing/ProductScreens";
-import dashboardBriefing from "@/assets/marketing/dashboard-briefing.webp";
+import { briefingImage } from "@/assets/marketing/briefingImage";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * (ProductScreens) rather than a fabricated full-dashboard photo.
  */
 const TAB_PANELS = {
-  intelligence: { kind: "photo", src: dashboardBriefing, alt: "The Briefing screen in Trenston" },
+  intelligence: { kind: "photo", ...briefingImage, alt: "The Briefing screen in Trenston" },
   finance: { kind: "fragments", screens: [FinanceScreen, DecisionScreen] },
   operations: { kind: "fragments", screens: [ProductionScreen, ProcurementScreen] },
   people: { kind: "fragments", screens: [TeamScreen] },
@@ -25,7 +25,7 @@ const TAB_PANELS = {
 /** Laptop frame showing the product surface for one feature category. */
 export default function FeatureShowcase({ categoryId }) {
   const panel = TAB_PANELS[categoryId] || TAB_PANELS.intelligence;
-  if (panel.kind === "photo") return <LaptopMockup src={panel.src} alt={panel.alt} />;
+  if (panel.kind === "photo") return <LaptopMockup src={panel.src} srcSet={panel.srcSet} sizes={panel.sizes} alt={panel.alt} />;
   return (
     <LaptopMockup>
       <div className={cn("grid w-full gap-3", panel.screens.length > 1 ? "grid-cols-2" : "mx-auto max-w-sm")}>
