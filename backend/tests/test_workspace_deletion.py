@@ -32,6 +32,7 @@ class Collection:
         self.delete_many = AsyncMock()
         self.delete_one = AsyncMock()
         self.find_one = AsyncMock(return_value=None)
+        self.update_many = AsyncMock()
 
 
 class FakeDB:
@@ -51,6 +52,7 @@ class FakeDB:
         self.referrals = Collection()
         self.workspaces = Collection()
         self.user_google_tokens = Collection()
+        self.users = Collection()
         self.collections.update({
             "documents": self.documents,
             "report_documents": self.report_documents,
@@ -82,3 +84,7 @@ def test_delete_workspace_purges_r2_and_workspace_collections():
     fake_db.memberships.delete_many.assert_awaited_once_with({"workspace_id": "ws_1"})
     fake_db.referrals.delete_many.assert_awaited_once_with({"referred_workspace_id": "ws_1"})
     fake_db.workspaces.delete_one.assert_awaited_once_with({"workspace_id": "ws_1"})
+    # Nobody is left pointing at the deleted company.
+    fake_db.users.update_many.assert_awaited_once_with(
+        {"active_workspace_id": "ws_1"}, {"$unset": {"active_workspace_id": ""}},
+    )

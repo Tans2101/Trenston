@@ -612,20 +612,79 @@ async def sync_members_into_people(workspace_id: str) -> dict:
     return await get_ws(workspace_id)
 
 
-async def unlink_person_membership(workspace_id: str, membership_id: str):
-    """Keep the roster person when access is revoked — just clear the login link."""
+async def unlink_person_membership(workspace_id: str, membership_id: str, *, drop_user_link: bool = False):
+    """Keep the roster person when access is revoked — just clear the login link.
+
+    drop_user_link also forgets which account the row belonged to (account deleted).
+    """
     ws = await get_ws(workspace_id)
     people = dict(ws.get("people") or {"people": []})
     changed = False
     for p in people.get("people") or []:
         if p.get("membership_id") == membership_id:
             p.pop("membership_id", None)
+            if drop_user_link:
+                p.pop("user_id", None)
             changed = True
     if changed:
         await db.workspaces.update_one(
             {"workspace_id": workspace_id},
             {"$set": {"people": people}},
         )
+
+
+async def _best_effort(step: str, coro) -> None:
+    """Run one cleanup step; log and carry on so one failure cannot skip the rest."""
+    try:
+        await coro
+    except Exception:
+        logger.exception("membership cleanup step failed: %s", step)
+
+
+async def _detach_user_from_workspace(
+    workspace_id: str,
+    user_id: Optional[str],
+    *,
+    membership: Optional[dict] = None,
+    drop_roster_link: bool = False,
+) -> None:
+    """Everything that tied a person to a company, once their access has ended.
+
+    Used when someone is removed, deletes their account, or is deleted in Clerk.
+    Without it the person's department lanes would come back silently if they
+    were re-added, their stored Google tokens would stay behind, the roster would
+    still point at their account, and their seat would stay counted. Each step is
+    independent and best-effort: the membership itself is already gone, and a
+    failed tidy-up must never block removing the person or deleting an account.
+    """
+    if user_id:
+        async def _drop_department_lanes():
+            dept_rows = await db.departments.find(
+                {"workspace_id": workspace_id}, {"_id": 0, "department_id": 1},
+            ).to_list(1000)
+            dept_ids = [d["department_id"] for d in dept_rows if d.get("department_id")]
+            if dept_ids:
+                await db.department_members.delete_many(
+                    {"user_id": user_id, "department_id": {"$in": dept_ids}},
+                )
+
+        await _best_effort("department lanes", _drop_department_lanes())
+        await _best_effort(
+            "google tokens",
+            db.user_google_tokens.delete_many({"workspace_id": workspace_id, "user_id": user_id}),
+        )
+        await _best_effort("api access", _revoke_api_access(user_id, workspace_id))
+    if membership and membership.get("membership_id"):
+        await _best_effort(
+            "roster link",
+            unlink_person_membership(
+                workspace_id, membership["membership_id"], drop_user_link=drop_roster_link,
+            ),
+        )
+    if membership and membership.get("status", "active") in ("active", "invited"):
+        await _best_effort("seat", _release_seat_reservation(workspace_id))
+    invalidate_departments_cache(workspace_id)
+    invalidate_workspace_list_cache(workspace_id, "people")
 
 
 async def can_section_write(
@@ -1324,10 +1383,20 @@ async def _revoke_local_user_for_clerk_delete(clerk_id: str) -> dict:
     uid = user["user_id"]
     now = datetime.now(timezone.utc).isoformat()
     await db.user_sessions.delete_many({"user_id": uid})
+    live_memberships = await db.memberships.find(
+        {"user_id": uid, "status": "active"}, {"_id": 0},
+    ).to_list(50)
     await db.memberships.update_many(
         {"user_id": uid, "status": "active"},
         {"$set": {"status": "revoked", "revoked_at": now, "revoked_reason": "clerk_user_deleted"}},
     )
+    for m in live_memberships:
+        try:
+            await _detach_user_from_workspace(
+                m["workspace_id"], uid, membership=m, drop_roster_link=True,
+            )
+        except Exception:
+            logger.exception("cleanup after Clerk delete failed for %s in %s", uid, m.get("workspace_id"))
     await db.users.update_one(
         {"user_id": uid},
         {
@@ -3653,6 +3722,19 @@ async def list_members(principal=Depends(get_principal)):
     }
 
 
+async def _live_membership_by_email(workspace_id: str, email: str) -> Optional[dict]:
+    """The active or pending membership for this email, if any.
+
+    A revoked row is what is left when someone's account was deleted in Clerk. It
+    carries their old email, so it must not block inviting that address again.
+    """
+    existing = await db.memberships.find_one({"workspace_id": workspace_id, "email": email})
+    if existing and existing.get("status") == "revoked":
+        await db.memberships.delete_one({"membership_id": existing.get("membership_id")})
+        return None
+    return existing
+
+
 class InviteInput(BaseModel):
     email: EmailStr
     pack: str = "member"
@@ -3666,7 +3748,7 @@ async def invite_member(payload: InviteInput, request: Request, principal=Depend
     pack = _require_assignable_pack(payload.pack)
     role = "member"
     email = payload.email.strip().lower()
-    existing = await db.memberships.find_one({"workspace_id": principal["workspace_id"], "email": email})
+    existing = await _live_membership_by_email(principal["workspace_id"], email)
     if existing:
         raise HTTPException(status_code=400, detail="Already a member or invited")
     await _enforce_seat_available(principal["workspace_id"])
@@ -3915,13 +3997,9 @@ async def remove_member(membership_id: str, principal=Depends(require_pro_perm("
     if m.get("user_id") == principal["user_id"]:
         raise HTTPException(status_code=400, detail="You cannot remove yourself")
     await db.memberships.delete_one({"membership_id": membership_id, "workspace_id": principal["workspace_id"]})
-    if m.get("user_id"):
-        # Otherwise re-inviting the person later would bring their old keys back to life.
-        await _revoke_api_access(m["user_id"], principal["workspace_id"])
-    await _release_seat_reservation(principal["workspace_id"])
-    await unlink_person_membership(principal["workspace_id"], membership_id)
-    # People list caches has_access from memberships — drop it so roster badges update.
-    invalidate_workspace_list_cache(principal["workspace_id"], "people")
+    # Revokes their API keys (so re-inviting never revives them), clears department
+    # lanes and stored Google tokens, unlinks the roster row and frees the seat.
+    await _detach_user_from_workspace(principal["workspace_id"], m.get("user_id"), membership=m)
     return {"ok": True}
 
 
@@ -10745,7 +10823,7 @@ async def add_person(payload: PersonInput, request: Request, principal=Depends(r
         if not email:
             raise HTTPException(status_code=400, detail="Email is required to include in Team & Access")
         pack = _require_assignable_pack(payload.pack)
-        existing = await db.memberships.find_one({"workspace_id": principal["workspace_id"], "email": email})
+        existing = await _live_membership_by_email(principal["workspace_id"], email)
         if existing:
             raise HTTPException(status_code=400, detail="Already a member or invited; they should already be on the roster")
         await _enforce_seat_available(principal["workspace_id"])
@@ -17859,6 +17937,21 @@ async def delete_account(user=Depends(get_user)):
     for ws_id in sole_owner:
         await _delete_workspace_data(ws_id)
     uid = user["user_id"]
+    # Companies that stay: free the seat, clear department lanes and tokens, and
+    # unlink the roster row, so the owner is not told the plan is full by a ghost.
+    for m in memberships:
+        if m["workspace_id"] not in sole_owner:
+            await _detach_user_from_workspace(
+                m["workspace_id"], uid, membership=m, drop_roster_link=True,
+            )
+    await db.department_members.delete_many({"user_id": uid})
+    # Their sent invites hold other people's email addresses; where they were the
+    # person referred, keep the reward record but drop their email.
+    await db.referrals.delete_many({"referrer_user_id": uid})
+    await db.referrals.update_many(
+        {"referred_user_id": uid},
+        {"$set": {"referred_email": "", "referred_user_id": None}},
+    )
     await db.memberships.delete_many({"user_id": uid})
     await db.user_sessions.delete_many({"user_id": uid})
     await db.chat_messages.delete_many({"user_id": uid})
@@ -17995,6 +18088,10 @@ async def _delete_workspace_data(ws_id: str):
     await db.memberships.delete_many({"workspace_id": ws_id})
     await db.referrals.delete_many({"referred_workspace_id": ws_id})
     await db.workspaces.delete_one({"workspace_id": ws_id})
+    # Nobody should be left pointing at a company that no longer exists.
+    await db.users.update_many(
+        {"active_workspace_id": ws_id}, {"$unset": {"active_workspace_id": ""}},
+    )
 
 
 async def _delete_workspace_handler(principal: dict):

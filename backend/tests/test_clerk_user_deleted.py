@@ -142,6 +142,9 @@ class _FakeMemberships:
     def __init__(self):
         self.updates = []
 
+    def find(self, *_args, **_kwargs):
+        return MagicMock(to_list=AsyncMock(return_value=[]))
+
     async def update_many(self, query, update):
         self.updates.append((query, update))
         return MagicMock(modified_count=1)
@@ -413,6 +416,9 @@ async def test_delete_account_calls_clerk_when_clerk_id(monkeypatch):
     mock_db.product_events.delete_many = AsyncMock()
     mock_db.activities.update_many = AsyncMock()
     mock_db.users.delete_one = AsyncMock()
+    mock_db.department_members.delete_many = AsyncMock()
+    mock_db.referrals.delete_many = AsyncMock()
+    mock_db.referrals.update_many = AsyncMock()
     # API keys / OAuth connections are deleted through db[collection].
     mock_db.__getitem__.return_value = MagicMock(delete_many=AsyncMock())
     clerk_delete = AsyncMock(return_value={"ok": True})

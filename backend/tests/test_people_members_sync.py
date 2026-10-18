@@ -286,6 +286,9 @@ async def test_remove_member_unlinks_and_invalidates_people_cache():
     # Removing a member also revokes their API keys and assistant connections.
     mock_db.__getitem__.return_value = MagicMock(update_many=AsyncMock())
     mock_db.oauth_grants.update_many = AsyncMock()
+    # ...and clears their department lanes and stored Google tokens.
+    mock_db.departments.find = MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[])))
+    mock_db.user_google_tokens.delete_many = AsyncMock()
 
     async def persist(_q, update):
         if "people" in (update.get("$set") or {}):
@@ -296,6 +299,7 @@ async def test_remove_member_unlinks_and_invalidates_people_cache():
     with patch.object(server, "db", mock_db), \
          patch.object(server, "get_ws", new=AsyncMock(return_value=ws)), \
          patch.object(server, "_release_seat_reservation", new=AsyncMock()), \
+         patch.object(server, "invalidate_departments_cache"), \
          patch.object(server, "invalidate_workspace_list_cache") as inv:
         out = await server.remove_member("mem_alex", MOCK_PRINCIPAL)
     assert out == {"ok": True}
