@@ -1284,9 +1284,9 @@
     "semantic_hash": "a27df6c76eae074987105bdc965677d1"
   },
   "frontend/src/components/DecisionCard.jsx": {
-    "mtime": 1792330769.6850574,
-    "seen": 1792330984.7839944,
-    "ast_hash": "bae26ffc907874adeec4fadf532a1cb1",
+    "mtime": 1792333704.5371897,
+    "seen": 1792333791.0866945,
+    "ast_hash": "f5d353c23bb782c64563a02327e01008",
     "semantic_hash": ""
   },
   "frontend/src/components/DepartmentsSettings.jsx": {
@@ -1374,9 +1374,9 @@
     "semantic_hash": "5a7d44f1218ab44f55f4512ad90f6072"
   },
   "frontend/src/components/SuggestionCard.jsx": {
-    "mtime": 1790677288.2729945,
-    "seen": 1792320956.215792,
-    "ast_hash": "1e588ea90c07543a7d9ad77b97661615",
+    "mtime": 1792333704.5377243,
+    "seen": 1792333791.0867307,
+    "ast_hash": "40389f176d078a2ad54b6268d393f701",
     "semantic_hash": ""
   },
   "frontend/src/components/charts/animation.js": {
@@ -1794,9 +1794,9 @@
     "semantic_hash": "6a99433923a49799bd0dabbac641aece"
   },
   "frontend/src/components/kit.jsx": {
-    "mtime": 1791969596.6629786,
-    "seen": 1792320956.2158573,
-    "ast_hash": "f50a1c66ae548a2d0fb89a1a72a65063",
+    "mtime": 1792333630.153051,
+    "seen": 1792333791.0868216,
+    "ast_hash": "c2458c0be784f0a37bf12e34974d2c53",
     "semantic_hash": ""
   },
   "frontend/src/components/kokonutui/action-search-bar.jsx": {
@@ -2550,9 +2550,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Decisions.jsx": {
-    "mtime": 1792330778.153252,
-    "seen": 1792330984.7842832,
-    "ast_hash": "df65b12734d531d6e6eaa6309742a920",
+    "mtime": 1792333630.1544092,
+    "seen": 1792333791.0871272,
+    "ast_hash": "3bc1cc66926aeb3f67313a5deb0bdc4c",
     "semantic_hash": ""
   },
   "frontend/src/pages/DepartmentPlaceholder.jsx": {
@@ -2622,9 +2622,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/MyDay.jsx": {
-    "mtime": 1792067004.9131026,
-    "seen": 1792320956.216037,
-    "ast_hash": "0d9bebc0972ab742463854e9f70b27aa",
+    "mtime": 1792333759.466574,
+    "seen": 1792333791.0871475,
+    "ast_hash": "eb2ec98abc19806d255f996d0a59dd2f",
     "semantic_hash": ""
   },
   "frontend/src/pages/NotFound.jsx": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792333082.7774093,
-    "seen": 1792333112.0517294,
+    "mtime": 1792333764.0014498,
+    "seen": 1792333791.0877337,
     "ast_hash": "f0ecf2bac31f369d41e6571838abf7cc",
     "semantic_hash": ""
   },
