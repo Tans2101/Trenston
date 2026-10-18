@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792330667.6972618,
-    "seen": 1792330984.7836728,
-    "ast_hash": "c51a214d482f79b3276df8ac97cc9a14",
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.633548,
+    "ast_hash": "a7a3e9873563a03d2e90ec09bc9495d0",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -582,9 +582,9 @@
     "semantic_hash": "2dc2cbe6475d16e8cc5585f24e60a61d"
   },
   "backend/tests/test_decision_atomic.py": {
-    "mtime": 1791365419.8513007,
-    "seen": 1792320956.215504,
-    "ast_hash": "e0afcb50e16fb0902bc2604bc5af662b",
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.6336727,
+    "ast_hash": "936266a0edd3deb363a29a3677687305",
     "semantic_hash": ""
   },
   "backend/tests/test_decision_insights.py": {
@@ -654,10 +654,10 @@
     "semantic_hash": ""
   },
   "backend/tests/test_email_compliance.py": {
-    "mtime": 1790515659.548069,
-    "seen": 1792320956.215517,
-    "ast_hash": "1ded2faa70095442c0b66ba32ce829f7",
-    "semantic_hash": "1ded2faa70095442c0b66ba32ce829f7"
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.6336994,
+    "ast_hash": "2d33be58ac1a445f1eb64fa8152c6ffa",
+    "semantic_hash": ""
   },
   "backend/tests/test_finance_entry.py": {
     "mtime": 1792130134.244704,
@@ -906,9 +906,9 @@
     "semantic_hash": "e6285bceb2ea4f650790c261ff4d8098"
   },
   "backend/tests/test_proactive_cron.py": {
-    "mtime": 1792309765.499235,
-    "seen": 1792320956.2155743,
-    "ast_hash": "b22e1a92636c19426e871e987a2514b3",
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.6338778,
+    "ast_hash": "d3d3069ba92ad9542eee317387b26c66",
     "semantic_hash": ""
   },
   "backend/tests/test_procurement_expense_financials.py": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1792330872.018636,
-    "seen": 1792330984.784191,
-    "ast_hash": "909c4ef0b975f43eccd5983cbc4202b7",
+    "mtime": 1792331815.0870762,
+    "seen": 1792331850.6342635,
+    "ast_hash": "15b3e94f8c0ceed38706c4900e388b84",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -5028,9 +5028,9 @@
     "semantic_hash": ""
   },
   "docs/DEPLOY.md": {
-    "mtime": 1790515659.5509202,
-    "seen": 1792320956.216392,
-    "ast_hash": "353767484d39d010dd13b6fff213356d",
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.6351721,
+    "ast_hash": "abdffe04867e93f4489cefeda9a6e48a",
     "semantic_hash": ""
   },
   "docs/GOOGLE_WORKSPACE_AND_CLOUD.txt": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792330952.6220098,
-    "seen": 1792330984.7848465,
+    "mtime": 1792331823.4580615,
+    "seen": 1792331850.6351879,
     "ast_hash": "f0ecf2bac31f369d41e6571838abf7cc",
     "semantic_hash": ""
   },
@@ -5100,9 +5100,9 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1791972009.2286596,
-    "seen": 1792320956.2164059,
-    "ast_hash": "9c9f25ed5e10042a68d59336138bd43a",
+    "mtime": 1792331804.1500604,
+    "seen": 1792331850.6351955,
+    "ast_hash": "9a855f129e1d22c27ba91793f5ac8370",
     "semantic_hash": ""
   },
   "favicon-and-profile/trenston-medallion-cream-1024.png": {
@@ -6585,6 +6585,18 @@
     "mtime": 1792321618.0345573,
     "seen": 1792330984.7849247,
     "ast_hash": "d037b9f04c53b0eef3d7f1b5e8571f84",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_weekly_summary.py": {
+    "mtime": 1792331589.8860476,
+    "seen": 1792331850.6339536,
+    "ast_hash": "2eb7a825fd87a30edf09aaf6bcf74d3b",
+    "semantic_hash": ""
+  },
+  "backend/weekly_summary.py": {
+    "mtime": 1792331797.1617856,
+    "seen": 1792331850.6339688,
+    "ast_hash": "964fcf013a4130d1b5f5bab6d40708a5",
     "semantic_hash": ""
   }
 }
