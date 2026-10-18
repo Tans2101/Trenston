@@ -264,6 +264,7 @@ async def stale_department_alerts(
         except Exception:
             lead_name = None
         alerts.append({
+            "department_id": dept.get("department_id"),
             "type": dtype,
             "name": dept.get("name") or dtype,
             "days_since_update": age.days,

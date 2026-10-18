@@ -377,7 +377,7 @@ def test_run_daily_briefing_emails_and_debounces():
     assert "Target vs actual" in sent[0]["html"]
     assert sent[0]["headers"] and "List-Unsubscribe" in sent[0]["headers"]
     # Slim projection — never load full workspace blobs for the cron sweep.
-    proj = fake_db.workspaces.find.call_args.args[1]
+    proj = fake_db.workspaces.find.call_args_list[0].args[1]
     assert set(proj.keys()) >= {"_id", "workspace_id", "name", "daily_briefing_emailed_date"}
     fake_db.workspaces.find_one_and_update.assert_awaited_once()
     claim_filt = fake_db.workspaces.find_one_and_update.await_args.args[0]

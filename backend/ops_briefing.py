@@ -788,3 +788,56 @@ def daily_briefing_email_html(
 {footer}
 </table>
 </td></tr></table></body></html>"""
+
+
+def stale_department_email_html(
+    *,
+    recipient_name: str,
+    department_name: str,
+    workspace_name: str,
+    days: int,
+    last_updated_at: str = "",
+    app_url: str,
+    dept_type: str,
+    unsubscribe_url: str = "",
+) -> str:
+    """Short nudge to a person working in a department that has gone quiet."""
+    import email_compliance as ec
+
+    first = html.escape((recipient_name or "").strip().split(" ")[0] or "there")
+    dept = html.escape(department_name or "your department")
+    ws = html.escape(workspace_name or "your company")
+    link = html.escape(
+        (app_url or "").rstrip("/") + "/app/departments/" + (dept_type or ""), quote=True,
+    )
+    last = ""
+    try:
+        dt = datetime.fromisoformat(str(last_updated_at).replace("Z", "+00:00"))
+        last = f" The last update was on {dt.strftime('%b')} {dt.day}."
+    except (ValueError, TypeError):
+        last = ""
+    footer = (
+        ec.marketing_footer_html(unsubscribe_url=unsubscribe_url)
+        if unsubscribe_url
+        else ""
+    )
+    return f"""\
+<!DOCTYPE html><html><body style="margin:0;padding:0;background:#09090b;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#09090b;padding:40px 0;">
+<tr><td align="center">
+<table width="520" cellpadding="0" cellspacing="0" style="background:#121214;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+<tr><td style="padding:32px 36px 8px 36px;">
+<p style="color:#c9a962;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;">{ws}</p>
+<h1 style="color:#ffffff;font-size:22px;font-weight:400;margin:10px 0 0 0;line-height:1.3;">Hi {first},</h1>
+<p style="color:#ffffff;font-size:15px;line-height:1.6;margin:14px 0 0 0;">The {dept} department hasn't been updated in {int(days)} days.{html.escape(last)}</p>
+<p style="color:#a1a1aa;font-size:14px;line-height:1.6;margin:14px 0 0 0;">Your leadership team reads this data in their Briefing. A quick update keeps it accurate, even if the update is that nothing has changed.</p>
+</td></tr>
+<tr><td style="padding:24px 36px 8px 36px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="background:#c9a962;border-radius:8px;">
+<a href="{link}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open {dept} &rarr;</a>
+</td></tr></table>
+</td></tr>
+{footer}
+</table>
+</td></tr></table></body></html>"""

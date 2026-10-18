@@ -18565,7 +18565,124 @@ async def run_daily_briefing_cron() -> dict:
                     )
             stats["errors"] += 1
             logger.exception("daily briefing cron failed for workspace %s", wid)
+    try:
+        stats["stale_nudges"] = await run_stale_department_nudges()
+    except Exception:
+        logger.exception("stale department nudges failed")
+        stats["stale_nudges"] = {"errors": 1}
     return stats
+
+
+STALE_NUDGE_COOLDOWN_DAYS = 7
+MAX_STALE_NUDGE_RECIPIENTS = 25
+
+
+async def run_stale_department_nudges(*, now: datetime | None = None) -> dict:
+    """Email the people in a department that has gone quiet.
+
+    Runs inside the daily briefing cron. Each department is nudged at most once
+    every STALE_NUDGE_COOLDOWN_DAYS: the claim is an atomic update on the
+    department row, reverted if no email went out. Only active members of the
+    workspace are emailed, and suppressed addresses are skipped.
+    """
+    import email_compliance as ec
+
+    now = now or datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=STALE_NUDGE_COOLDOWN_DAYS)).isoformat()
+    stats = {"departments_nudged": 0, "emails_sent": 0, "skipped_cooldown": 0,
+             "skipped_no_recipients": 0, "send_failed": 0, "errors": 0}
+    workspaces = await db.workspaces.find(
+        {}, {"_id": 0, "workspace_id": 1, "name": 1},
+    ).to_list(MAX_PROACTIVE_CRON_WORKSPACES)
+    app_url = _app_base_url()
+    api_base = public_api_origin()
+    for c in workspaces:
+        wid = (c.get("workspace_id") or "").strip()
+        if not wid:
+            continue
+        try:
+            alerts = await helm_freshness.stale_department_alerts(db, wid, now=now)
+            for a in alerts:
+                dept_id = a.get("department_id")
+                if not dept_id:
+                    continue
+                claim = await db.departments.update_one(
+                    {
+                        "workspace_id": wid, "department_id": dept_id,
+                        "$or": [
+                            {"stale_nudge_sent_at": {"$exists": False}},
+                            {"stale_nudge_sent_at": {"$lt": cutoff}},
+                        ],
+                    },
+                    {"$set": {"stale_nudge_sent_at": now.isoformat()}},
+                )
+                if not claim.modified_count:
+                    stats["skipped_cooldown"] += 1
+                    continue
+                members = await db.department_members.find(
+                    {"department_id": dept_id}, {"_id": 0, "user_id": 1},
+                ).to_list(MAX_STALE_NUDGE_RECIPIENTS)
+                uids = [m["user_id"] for m in members if m.get("user_id")]
+                active = {
+                    m["user_id"] async for m in db.memberships.find(
+                        {"workspace_id": wid, "status": "active", "user_id": {"$in": uids}},
+                        {"_id": 0, "user_id": 1},
+                    )
+                } if uids else set()
+                users = await _users_by_ids(sorted(active), {"_id": 0, "user_id": 1, "email": 1, "name": 1})
+                people = {}
+                for uid in active:
+                    u = users.get(uid) or {}
+                    addr = (u.get("email") or "").strip().lower()
+                    if addr:
+                        people[addr] = u.get("name") or ""
+                sendable = await ec.filter_unsuppressed(db, list(people))
+                if not sendable:
+                    stats["skipped_no_recipients"] += 1
+                    await db.departments.update_one(
+                        {"workspace_id": wid, "department_id": dept_id},
+                        {"$unset": {"stale_nudge_sent_at": ""}},
+                    )
+                    continue
+                any_sent = False
+                for addr in sendable:
+                    unsub = ec.unsubscribe_url(app_url, addr, secret=SESSION_SECRET)
+                    one_click = ec.api_unsubscribe_url(api_base, addr, secret=SESSION_SECRET)
+                    res = await send_resend_email(
+                        to=[addr],
+                        subject=f"{a['name']} has not been updated in {a['days_since_update']} days",
+                        html=ob_stale_email(
+                            recipient_name=people.get(addr, ""),
+                            department_name=a["name"],
+                            workspace_name=c.get("name") or "Company",
+                            days=a["days_since_update"],
+                            last_updated_at=a.get("last_updated_at") or "",
+                            app_url=app_url,
+                            dept_type=a["type"],
+                            unsubscribe_url=unsub,
+                        ),
+                        headers=ec.list_unsubscribe_headers(one_click),
+                    )
+                    if res.get("sent"):
+                        any_sent = True
+                        stats["emails_sent"] += 1
+                if any_sent:
+                    stats["departments_nudged"] += 1
+                else:
+                    stats["send_failed"] += 1
+                    await db.departments.update_one(
+                        {"workspace_id": wid, "department_id": dept_id},
+                        {"$unset": {"stale_nudge_sent_at": ""}},
+                    )
+        except Exception:
+            stats["errors"] += 1
+            logger.exception("stale department nudge failed for workspace %s", wid)
+    return stats
+
+
+def ob_stale_email(**kwargs) -> str:
+    import ops_briefing as ob
+    return ob.stale_department_email_html(**kwargs)
 
 
 @api_router.post("/internal/run-retention-checks")
