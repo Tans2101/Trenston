@@ -56,6 +56,9 @@ Authoritative pricing: https://www.trenston.com/pricing
 - Trenston vs Excel and Google Sheets: https://www.trenston.com/compare/excel-google-sheets
 - Trenston vs Power BI: https://www.trenston.com/compare/power-bi
 - Trenston vs Notion: https://www.trenston.com/compare/notion
+- Guides for founders and CEOs: https://www.trenston.com/guides
+- How to track runway as a founder: https://www.trenston.com/guides/how-to-track-runway-as-a-founder
+- What a CEO should check every morning: https://www.trenston.com/guides/what-a-ceo-should-check-every-morning
 - Integrations: https://www.trenston.com/integrations
 - Security: https://www.trenston.com/security
 - About: https://www.trenston.com/about

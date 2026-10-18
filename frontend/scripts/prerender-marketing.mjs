@@ -34,7 +34,7 @@ import {
 } from "./loadMarketingPlans.mjs";
 import { writeLlmsTxt } from "./sync-llms-txt.mjs";
 import { syncSitemapToBuild } from "./sync-sitemap.mjs";
-import { staticBodyFor, textLength } from "./staticPageText.mjs";
+import { staticBodyFor, textLength, guideSlug } from "./staticPageText.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = join(__dirname, "..");
@@ -269,6 +269,26 @@ function injectAboutPersonJsonLd(html, founder, origin) {
   return html.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
 }
 
+function guideArticleJsonLd(guide, author, page, origin, ogImage) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: guide.title,
+    description: guide.description,
+    datePublished: guide.datePublished,
+    dateModified: guide.datePublished,
+    author: { "@type": "Person", name: author, url: `${origin}/about` },
+    publisher: { "@type": "Organization", name: "Trenston", url: `${origin}/`, logo: { "@type": "ImageObject", url: `${origin}/apple-touch-icon.png` } },
+    mainEntityOfPage: `${origin}/guides/${guide.slug}`,
+    image: ogImage,
+  };
+}
+
+function injectGuideArticleJsonLd(html, guide, author, page, origin, ogImage) {
+  const jsonLd = `<script type="application/ld+json" id="helm-guide-jsonld">${JSON.stringify(guideArticleJsonLd(guide, author, page, origin, ogImage))}</script>`;
+  return html.replace(/<\/head>/i, `    ${jsonLd}\n    </head>`);
+}
+
 function helpFaqJsonLd(faq, origin) {
   return {
     "@context": "https://schema.org",
@@ -368,6 +388,11 @@ function main() {
     if (path === "/help") {
       html = injectHelpFaq(html, helpFaq, origin);
     }
+    if (guideSlug(path)) {
+      const gdata = JSON.parse(readFileSync(join(frontendRoot, "src/lib/guidesContent.json"), "utf8"));
+      const guide = gdata.guides.find((x) => x.slug === guideSlug(path));
+      if (guide) html = injectGuideArticleJsonLd(html, guide, gdata.author, page, origin, ogImage);
+    }
     if (path === "/") {
       html = injectHomeFaqJsonLd(html, homeFaq, origin);
     }
@@ -379,8 +404,8 @@ function main() {
         console.error(`prerender-marketing: could not inject body for ${path}`);
         process.exit(1);
       }
-      const richPaths = ["/", "/about", "/features", "/compare", "/compare/excel-google-sheets", "/compare/power-bi", "/compare/notion", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
-      const minLen = ["/", "/about", "/features", "/integrations", "/changelog"].includes(path) ? 800 : 1500;
+      const richPaths = ["/", "/about", "/features", "/compare", "/compare/excel-google-sheets", "/compare/power-bi", "/compare/notion", "/guides", "/guides/how-to-track-runway-as-a-founder", "/guides/what-a-ceo-should-check-every-morning", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
+      const minLen = ["/", "/about", "/features", "/integrations", "/changelog", "/guides"].includes(path) ? 800 : 1500;
       if (richPaths.includes(path) && textLength(body) < minLen) {
         console.error(`prerender-marketing: ${path} prerendered text is suspiciously short (${textLength(body)} chars)`);
         process.exit(1);

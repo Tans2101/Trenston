@@ -54,6 +54,27 @@ export const SITE_SEARCH_ACTIONS = [
     keywords: ["notion", "docs", "wiki", "versus", "vs"],
   },
   {
+    id: "guides",
+    label: "Guides",
+    to: "/guides",
+    description: "Site",
+    keywords: ["guides", "learn", "how to", "articles", "founder"],
+  },
+  {
+    id: "guide-how-to-track-runway-as-a-founder",
+    label: "How to track runway as a founder",
+    to: "/guides/how-to-track-runway-as-a-founder",
+    description: "Site",
+    keywords: ["guide", "runway", "burn", "cash"],
+  },
+  {
+    id: "guide-what-a-ceo-should-check-every-morning",
+    label: "What a CEO should check every morning",
+    to: "/guides/what-a-ceo-should-check-every-morning",
+    description: "Site",
+    keywords: ["guide", "morning", "routine", "briefing", "ceo"],
+  },
+  {
     id: "help",
     label: "Help",
     to: "/help",

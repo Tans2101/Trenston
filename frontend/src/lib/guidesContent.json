@@ -1,0 +1,140 @@
+{
+  "author": "Tansher Dhawan",
+  "authorRole": "Founder, Trenston",
+  "hub": {
+    "title": "Guides for founders and CEOs",
+    "intro": "Short, practical guides on running a company: the numbers to watch, the questions to ask, and how to stop chasing people for updates."
+  },
+  "guides": [
+    {
+      "slug": "how-to-track-runway-as-a-founder",
+      "title": "How to track runway as a founder",
+      "seoTitle": "How to Track Runway as a Founder · Trenston",
+      "description": "What runway is, how to calculate it from cash and net burn, a worked example, and the mistakes that make founders misjudge how long their money lasts.",
+      "ogTitle": "How to track runway as a founder",
+      "ogDescription": "Runway is how many months of cash you have left. Here is how to calculate it, with an example, and what to watch each week.",
+      "datePublished": "2026-10-18",
+      "readMinutes": 5,
+      "intro": "Runway is the number of months your company can keep operating before the cash runs out. It is the single figure most founders wish they had checked sooner. This guide shows how to calculate it, how to keep it honest, and how to turn it into a weekly habit.",
+      "example": { "cash": 120000, "monthlyExpenses": 40000, "monthlyRevenue": 25000 },
+      "sections": [
+        {
+          "heading": "What runway means",
+          "paragraphs": [
+            "Runway is your cash balance divided by your monthly net burn. Net burn is the amount of cash you lose each month after counting the cash that comes in.",
+            "If the business earns more cash than it spends, there is no burn and runway is not a concern. If it spends more than it earns, runway tells you how many months you have to fix that."
+          ]
+        },
+        {
+          "heading": "The formula",
+          "paragraphs": [
+            "Runway in months = cash in the bank / monthly net burn.",
+            "Monthly net burn = cash going out each month minus cash coming in each month."
+          ]
+        },
+        {
+          "heading": "A worked example",
+          "paragraphs": [
+            "These numbers are an illustration, not a benchmark. Say a company has $120,000 in the bank. It spends $40,000 a month and collects $25,000 a month from customers.",
+            "Net burn is $40,000 minus $25,000, which is $15,000 a month. Runway is $120,000 divided by $15,000, which is 8 months.",
+            "Notice what happens if spending rises to $50,000 and nothing else changes. Net burn becomes $25,000 and runway drops to 4.8 months. Small changes in spending move runway a lot, which is why it needs checking often."
+          ]
+        },
+        {
+          "heading": "Mistakes that make runway look better than it is",
+          "bullets": [
+            "Using revenue instead of cash. An invoice you sent is not cash until the customer pays it.",
+            "Using one good month. Average the last three months of burn so a single quiet month does not flatter you.",
+            "Forgetting one-time costs. Annual software fees, taxes, equipment and a planned hire all reduce cash even if they are not in a normal month.",
+            "Counting money you do not control. Funds you owe to someone else or have set aside are not available to spend.",
+            "Never setting a floor. Decide the minimum cash you want to keep, and treat that as zero when you calculate runway."
+          ]
+        },
+        {
+          "heading": "How often to check it",
+          "paragraphs": [
+            "Check runway weekly. Cash moves with every payment and payroll run, and monthly checks let a problem grow for weeks before you see it.",
+            "There is no single right number of months. Many founders start acting when runway gets short, because raising money, cutting costs or growing revenue all take time. How early you need to act depends on how fast you can do each of them."
+          ]
+        },
+        {
+          "heading": "How to track it",
+          "paragraphs": [
+            "You can track runway in a spreadsheet: one row for cash in, one for cash out, and a formula for the result. It works until the data goes out of date, which is the usual way a spreadsheet runway number goes wrong.",
+            "Whatever you use, the figure is only as good as how recently the cash data was updated. Make one person responsible for updating it, and check the date as well as the number."
+          ]
+        }
+      ],
+      "trenston": {
+        "heading": "Tracking runway in Trenston",
+        "paragraphs": [
+          "Trenston calculates runway from the revenue and expenses logged in Financials, or from a connected accounting tool such as QuickBooks, Xero or SAP Business One. It shows burn and runway in your daily Briefing.",
+          "You can set a minimum cash reserve so Trenston warns you before cash gets tight. When data is missing, it shows \"Add data\" instead of inventing a zero."
+        ]
+      }
+    },
+    {
+      "slug": "what-a-ceo-should-check-every-morning",
+      "title": "What a CEO should check every morning",
+      "seoTitle": "What a CEO Should Check Every Morning · Trenston",
+      "description": "A five-minute morning routine for founders and CEOs: cash, what changed, what is blocked, which decisions are waiting, and what to hand off.",
+      "ogTitle": "What a CEO should check every morning",
+      "ogDescription": "A five-minute routine for founders and CEOs: look at what changed, not just the totals, and decide what only you need to handle.",
+      "datePublished": "2026-10-18",
+      "readMinutes": 4,
+      "intro": "Most of a leader's morning can disappear into opening tools and asking people for updates. A short, repeatable routine fixes that. This guide lays out five things to check, in order, and how to keep the whole thing under five minutes.",
+      "sections": [
+        {
+          "heading": "Look at what changed, not just the totals",
+          "paragraphs": [
+            "A total tells you where you are. A change tells you where to look. Start with what moved since yesterday: new orders, payments received, deals that advanced or stalled, tasks that slipped.",
+            "If nothing changed, that is useful information too, and it takes seconds to confirm."
+          ]
+        },
+        {
+          "heading": "1. Cash and runway",
+          "paragraphs": [
+            "Check how much cash you have and how many months it lasts at the current burn. You do not need to analyze it every day. You are checking that nothing surprising happened overnight."
+          ]
+        },
+        {
+          "heading": "2. Revenue and pipeline",
+          "paragraphs": [
+            "Look at sales since yesterday and at the deals expected to close soon. Pay particular attention to deals that have gone quiet, because those are the ones that slip away unnoticed."
+          ]
+        },
+        {
+          "heading": "3. What is blocked or late",
+          "paragraphs": [
+            "Find the work that is stuck: a delayed order, a purchase waiting on approval, a contract with a deadline coming up. A blocked item usually needs one person to make one call, and often that person is you."
+          ]
+        },
+        {
+          "heading": "4. Decisions waiting on you",
+          "paragraphs": [
+            "Make a short list of the calls only you can make. Rank them by impact and by how long they have been waiting. Decide what you can in the morning so other people are not blocked until afternoon."
+          ]
+        },
+        {
+          "heading": "5. What to hand off",
+          "paragraphs": [
+            "Everything else should go to an owner. Assign each item to one person with a clear next step, and let them know. A task with no named owner is a task that does not happen."
+          ]
+        },
+        {
+          "heading": "Check how fresh the data is",
+          "paragraphs": [
+            "A morning check is only useful if the numbers are current. If a department has not updated its data in weeks, treat its figures as unreliable and ask the person responsible to update them before you rely on them."
+          ]
+        }
+      ],
+      "trenston": {
+        "heading": "The morning routine in Trenston",
+        "paragraphs": [
+          "The Briefing in Trenston is built around this routine. It shows what changed, what needs a decision and what you can delegate, based on your live company data.",
+          "The Decision Center ranks open decisions with a recommendation and a confidence score, and nothing becomes a decision until you confirm it. If a department has gone quiet, the Briefing says so and tells you who to ask."
+        ]
+      }
+    }
+  ]
+}

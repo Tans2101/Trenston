@@ -299,6 +299,38 @@ function compareVsSections(slug) {
   };
 }
 
+function guidesData() {
+  return JSON.parse(readFileSync(join(__dirname, "../src/lib/guidesContent.json"), "utf8"));
+}
+
+export function guideSlug(path) {
+  const m = /^\/guides\/([a-z0-9-]+)$/.exec(path);
+  return m ? m[1] : null;
+}
+
+function guideSections(slug) {
+  const data = guidesData();
+  const g = data.guides.find((x) => x.slug === slug);
+  if (!g) return null;
+  const sections = [
+    { heading: "", parts: [g.intro, `By ${data.author}, ${data.authorRole}. ${g.datePublished}.`] },
+    ...g.sections.map((sec) => ({ heading: sec.heading, parts: [...(sec.paragraphs || []), ...(sec.bullets || [])] })),
+    { heading: g.trenston.heading, parts: g.trenston.paragraphs },
+  ];
+  return { h1: g.title, sections };
+}
+
+function guidesHubSections() {
+  const data = guidesData();
+  return [
+    { heading: "", parts: [data.hub.intro] },
+    {
+      heading: "All guides",
+      parts: data.guides.map((g) => `${g.title}: ${g.description} https://www.trenston.com/guides/${g.slug}`),
+    },
+  ];
+}
+
 function integrationsSections() {
   const intro = marketingExport("PUBLIC_INTEGRATIONS_INTRO") || "";
   const items = marketingExport("PUBLIC_INTEGRATIONS") || [];
@@ -375,6 +407,7 @@ const NAV = [
   ["/compare/excel-google-sheets", "Trenston vs Excel and Google Sheets"],
   ["/compare/power-bi", "Trenston vs Power BI"],
   ["/compare/notion", "Trenston vs Notion"],
+  ["/guides", "Guides"],
   ["/integrations", "Integrations"],
   ["/security", "Security"],
   ["/privacy", "Privacy"],
@@ -416,6 +449,13 @@ export function staticBodyFor(path, page) {
     const vs = compareVsSections(compareVsSlug(path));
     h1 = vs ? vs.h1 : "How Trenston compares";
     sections = vs ? vs.sections : [];
+  } else if (path === "/guides") {
+    h1 = "Guides for founders and CEOs";
+    sections = guidesHubSections();
+  } else if (guideSlug(path)) {
+    const gd = guideSections(guideSlug(path));
+    h1 = gd ? gd.h1 : "Guides for founders and CEOs";
+    sections = gd ? gd.sections : [];
   } else if (path === "/integrations") {
     h1 = "Trenston Integrations";
     sections = integrationsSections();
