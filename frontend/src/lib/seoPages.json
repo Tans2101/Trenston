@@ -3,7 +3,7 @@
   "ogImage": "https://www.trenston.com/og-share-v2.png",
   "pages": {
     "/": {
-      "title": "Trenston",
+      "title": "Trenston: CEO Dashboard and Operating System for Founders",
       "description": "Briefing, decisions, financials, and department work in one place. Built for founders and CEOs running real operations, however lean the team.",
       "ogTitle": "Trenston — Run your business. Don't chase it.",
       "ogDescription": "Briefing, decisions, financials, and department work in one place. Built for founders and CEOs running real operations, however lean the team."
@@ -15,13 +15,13 @@
       "ogDescription": "Trenston pulls financials, decisions, and day-to-day work into one place so founders and CEOs see what needs them, not another dashboard to chase."
     },
     "/features": {
-      "title": "Features · Trenston",
+      "title": "Features: Briefing, Decisions and Financials · Trenston",
       "description": "Briefing, Decision Center, Financials, Ask Trenston, and department pages: everything in Trenston.",
       "ogTitle": "Trenston Features",
       "ogDescription": "See what Trenston includes: briefing, decisions, runway, Ask Trenston, and department workflows in one operating system for founders and CEOs."
     },
     "/pricing": {
-      "title": "Pricing · Trenston",
+      "title": "Pricing and Free Plan · Trenston",
       "description": "Trenston plans: Free $0 (3 users), Starter $15/mo (7 users), Growth $39/mo (20 users), Business $99/mo (35 users). 7-day free trials on paid plans.",
       "ogTitle": "Trenston Pricing",
       "ogDescription": "Free, Starter ($15/mo), Growth ($39/mo), and Business ($99/mo), with users and AI quotas that scale with your company."
@@ -33,7 +33,7 @@
       "ogDescription": "An honest look at where Trenston fits next to the tools founders already use, and when another tool is the better choice."
     },
     "/integrations": {
-      "title": "Integrations · Trenston",
+      "title": "Integrations: QuickBooks, Xero, HubSpot, Slack · Trenston",
       "description": "Connect Google, QuickBooks, Xero, SAP Business One, HubSpot, and Slack webhook alerts to Trenston, with no migration required.",
       "ogTitle": "Trenston Integrations",
       "ogDescription": "What each Trenston integration actually does: Google Calendar & Drive, accounting, CRM, and Slack alerts."
