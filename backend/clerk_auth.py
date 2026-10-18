@@ -1364,16 +1364,32 @@ async def _patch_clerk_json(
     return await client.patch(f"{CLERK_BAPI}/{path.lstrip('/')}", headers=headers, json=body)
 
 
+_PASSWORD_OPTIONAL_DASHBOARD_FIX = (
+    "Clerk Dashboard → Configure → Email, phone, username → Password → "
+    "turn OFF Required (keep Enabled). Google sign-up cannot finish while Required is on."
+)
+
+
 async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
     """Password must not be required for frictionless Google sign-up.
 
     When password is required, post-OAuth sign-up stays in missing_requirements and
     Clerk must show /sign-up/continue. If that handoff fails, users see
     \"Unable to complete action at this time\".
+
+    BAPI PATCH can return 2xx without changing auth_config.password — always verify
+    against FAPI /v1/environment before reporting ok.
     """
     result: dict[str, Any] = {"attempted": True, "ok": False, "tries": []}
     if not clerk_configured():
         result["reason"] = "not_configured"
+        return result
+
+    _clear_probe_value("signup_policy")
+    before = await clerk_signup_policy()
+    if before.get("password_required") is False:
+        result["ok"] = True
+        result["reason"] = "already_optional"
         return result
 
     bodies = [
@@ -1408,6 +1424,7 @@ async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
         "instance",
         "beta_features",
     )
+    saw_http_ok = False
     try:
         async with httpx.AsyncClient(timeout=20) as client:
             headers = _bapi_headers()
@@ -1425,22 +1442,29 @@ async def sync_clerk_password_optional_for_oauth() -> dict[str, Any]:
                             "body": patch_r.text[:160],
                         }
                     )
-                    if patch_r.status_code < 400:
-                        _clear_probe_value("signup_policy")
+                    if patch_r.status_code >= 400:
+                        continue
+                    saw_http_ok = True
+                    _clear_probe_value("signup_policy")
+                    after = await clerk_signup_policy()
+                    if after.get("password_required") is False:
                         result["ok"] = True
                         result["reason"] = "ok"
                         result["patched_path"] = path
                         logger.info("Clerk password set optional via PATCH /%s", path)
                         return result
-            result["reason"] = "all_paths_failed"
-            result["dashboard_fix"] = (
-                "Clerk Dashboard → Configure → Email, phone, username → Password → "
-                "turn OFF Required (keep Enabled). Google sign-up cannot finish while Required is on."
-            )
+                    # 2xx but FAPI still says required — keep trying other shapes.
+                    result["tries"][-1]["fapi_still_required"] = True
+            if saw_http_ok:
+                result["reason"] = "patch_ok_but_fapi_still_required"
+            else:
+                result["reason"] = "all_paths_failed"
+            result["dashboard_fix"] = _PASSWORD_OPTIONAL_DASHBOARD_FIX
             return result
     except Exception:
         logger.exception("Clerk password optional sync failed")
         result["reason"] = "exception"
+        result["dashboard_fix"] = _PASSWORD_OPTIONAL_DASHBOARD_FIX
         return result
 
 

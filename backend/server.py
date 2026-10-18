@@ -3106,6 +3106,22 @@ async def auth_config():
         sync = clerk_auth.clerk_sync_status()
         portal = sync.get("account_portal") if isinstance(sync, dict) else None
         password_opt = sync.get("password_optional") if isinstance(sync, dict) else None
+        # Live FAPI is authoritative: boot sync used to mark password_optional ok on any
+        # BAPI 2xx even when auth_config.password stayed "required" (breaks Google sign-up).
+        password_still_required = bool(signup_policy.get("password_required"))
+        password_opt_ok = bool(password_opt.get("ok")) if isinstance(password_opt, dict) else None
+        password_opt_reason = password_opt.get("reason") if isinstance(password_opt, dict) else None
+        password_opt_fix = (
+            password_opt.get("dashboard_fix") if isinstance(password_opt, dict) else None
+        )
+        if password_still_required:
+            password_opt_ok = False
+            if password_opt_reason in (None, "ok", "already_optional"):
+                password_opt_reason = "fapi_still_required"
+            password_opt_fix = password_opt_fix or (
+                "Clerk Dashboard → Configure → Email, phone, username → Password → "
+                "turn OFF Required (keep Enabled). Google sign-up cannot finish while Required is on."
+            )
         clerk_sync = {
             "reason": sync.get("reason") if isinstance(sync, dict) else None,
             "synced": bool(sync.get("synced")) if isinstance(sync, dict) else False,
@@ -3117,11 +3133,9 @@ async def auth_config():
             "account_portal_error": portal.get("account_portal_error") if isinstance(portal, dict) else None,
             "display_config_error": portal.get("display_config_error") if isinstance(portal, dict) else None,
             # Boot sync tries to turn password Required OFF (needed for Google OAuth).
-            "password_optional_ok": bool(password_opt.get("ok")) if isinstance(password_opt, dict) else None,
-            "password_optional_reason": password_opt.get("reason") if isinstance(password_opt, dict) else None,
-            "password_optional_dashboard_fix": (
-                password_opt.get("dashboard_fix") if isinstance(password_opt, dict) else None
-            ),
+            "password_optional_ok": password_opt_ok,
+            "password_optional_reason": password_opt_reason,
+            "password_optional_dashboard_fix": password_opt_fix,
         }
     return {
         "demo_login": ALLOW_DEMO_LOGIN,

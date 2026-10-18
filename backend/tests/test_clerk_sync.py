@@ -218,3 +218,87 @@ def test_sync_skipped_when_not_configured(monkeypatch):
     result = asyncio.run(clerk_auth.sync_clerk_instance())
     assert result["synced"] is False
     assert result["reason"] == "clerk_not_configured"
+
+
+def test_password_optional_sync_rejects_2xx_without_fapi_change():
+    """BAPI can return 204 while auth_config.password stays required — must not report ok."""
+
+    class Resp:
+        def __init__(self, data, status=200, text=""):
+            self.status_code = status
+            self._data = data
+            self.text = text
+            self.content = b"{}" if data is not None else b""
+
+        def json(self):
+            return self._data
+
+    env_required = {
+        "user_settings": {
+            "password_settings": {"min_length": 15},
+            "attributes": {"password": {"enabled": True, "required": True}},
+            "sign_up": {"captcha_enabled": False},
+            "social": {"oauth_google": {"enabled": True}},
+        },
+        "auth_config": {"password": "required"},
+    }
+
+    async def mock_get(url, **kwargs):
+        if "/environment" in str(url):
+            return Resp(env_required)
+        return Resp({}, 404, "not found")
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(side_effect=mock_get)
+    mock_client.patch = AsyncMock(return_value=Resp({}, 204))
+
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__.return_value = mock_client
+    mock_cm.__aexit__.return_value = None
+
+    with patch("clerk_auth.httpx.AsyncClient", return_value=mock_cm):
+        clerk_auth._clear_probe_value("signup_policy")
+        result = asyncio.run(clerk_auth.sync_clerk_password_optional_for_oauth())
+
+    assert result["ok"] is False
+    assert result["reason"] == "patch_ok_but_fapi_still_required"
+    assert result.get("dashboard_fix")
+    assert mock_client.patch.call_count >= 1
+
+
+def test_password_optional_sync_ok_when_fapi_already_optional():
+    class Resp:
+        def __init__(self, data, status=200, text=""):
+            self.status_code = status
+            self._data = data
+            self.text = text
+            self.content = b"{}" if data is not None else b""
+
+        def json(self):
+            return self._data
+
+    env_optional = {
+        "user_settings": {
+            "password_settings": {"min_length": 8},
+            "attributes": {"password": {"enabled": True, "required": False}},
+            "sign_up": {"captcha_enabled": False},
+            "social": {"oauth_google": {"enabled": True}},
+        },
+        "auth_config": {"password": "on"},
+    }
+
+    mock_client = AsyncMock()
+    mock_client.get = AsyncMock(return_value=Resp(env_optional))
+    mock_client.patch = AsyncMock()
+
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__.return_value = mock_client
+    mock_cm.__aexit__.return_value = None
+
+    with patch("clerk_auth.httpx.AsyncClient", return_value=mock_cm):
+        clerk_auth._clear_probe_value("signup_policy")
+        result = asyncio.run(clerk_auth.sync_clerk_password_optional_for_oauth())
+
+    assert result["ok"] is True
+    assert result["reason"] == "already_optional"
+    mock_client.patch.assert_not_called()
