@@ -55,4 +55,8 @@ describe("demo-first setup flow", () => {
     expect(src).toMatch(/!skipWelcome && !company\?\.demo_seen/);
     expect(src).toMatch(/\{inDemo && <DemoBanner \/>\}/);
   });
+
+  it("DemoBanner follows the live sidebar width (collapsed rail included)", () => {
+    expect(read("../components/DemoBanner.jsx")).toMatch(/lg:pl-\[var\(--sidebar-w\)\]/);
+  });
 });

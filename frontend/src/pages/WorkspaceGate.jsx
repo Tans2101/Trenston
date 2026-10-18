@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Building2, KeyRound, ArrowRight, LogOut } from "lucide-react";
 import { api, apiErrorMessage } from "@/lib/api";
@@ -8,12 +8,32 @@ import { consumeReferralCode, withReferralPayload } from "@/lib/referral";
 import TrenstonMark from "@/components/HelmMark";
 
 export default function WorkspaceGate() {
-  const { user, logout } = useAuth();
+  const { user, logout, checkAuth } = useAuth();
   const [mode, setMode] = useState(null); // "create" | "join"
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(Boolean(user?.age_confirmed));
+
+  // An invite can auto-join while this screen is open (email match). Re-check
+  // session on focus/visibility so needs_workspace clears without a full reload.
+  useEffect(() => {
+    if (!checkAuth) return undefined;
+    let cooling = false;
+    const refresh = () => {
+      if (cooling || document.visibilityState === "hidden") return;
+      cooling = true;
+      checkAuth().catch(() => {}).finally(() => {
+        window.setTimeout(() => { cooling = false; }, 1500);
+      });
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [checkAuth]);
 
   const create = async () => {
     // Enter in the field calls this too, so a second press must not start a second company.

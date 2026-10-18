@@ -1493,6 +1493,31 @@ async def _user_from_request(request: Request):
     return user
 
 
+async def _claim_active_workspace_if_unset(user_id: str, workspace_id: str, user: dict | None = None) -> None:
+    """If this person still has no active company, land them in workspace_id.
+
+    Used when an invite auto-joins someone who is still on WorkspaceGate
+    (needs_workspace). Does not steal an existing active company.
+    """
+    if not user_id or not workspace_id:
+        return
+    if user is not None and user.get("active_workspace_id"):
+        return
+    result = await db.users.update_one(
+        {
+            "user_id": user_id,
+            "$or": [
+                {"active_workspace_id": {"$exists": False}},
+                {"active_workspace_id": None},
+                {"active_workspace_id": ""},
+            ],
+        },
+        {"$set": {"active_workspace_id": workspace_id}},
+    )
+    if user is not None and getattr(result, "modified_count", 0):
+        user["active_workspace_id"] = workspace_id
+
+
 async def _activate_invites(user):
     """Attach any pending email invites to this user (join inviting workspace)."""
     email = _normalize_email(user.get("email") or "")
@@ -1518,6 +1543,12 @@ async def _activate_invites(user):
         ws_id = m.get("workspace_id")
         if ws_id:
             await dept_migrate.enroll_user_in_sales_finance(db, ws_id, user["user_id"])
+    # Brand-new invitees still on WorkspaceGate need an active company so
+    # /auth/me stops returning needs_workspace after the invite activates.
+    if not user.get("active_workspace_id") and mems:
+        first_ws = next((m.get("workspace_id") for m in mems if m.get("workspace_id")), None)
+        if first_ws:
+            await _claim_active_workspace_if_unset(user["user_id"], first_ws, user)
 
 
 async def _bootstrap(user):
@@ -3785,6 +3816,10 @@ async def invite_member(payload: InviteInput, request: Request, principal=Depend
         await dept_migrate.enroll_user_in_sales_finance(
             db, principal["workspace_id"], membership["user_id"],
         )
+        # Auto-join can land while they are still on WorkspaceGate with no company.
+        await _claim_active_workspace_if_unset(
+            membership["user_id"], principal["workspace_id"], existing_user,
+        )
     ws = await get_ws(principal["workspace_id"])
     app_url = APP_URL or FRONTEND_URL or str(request.base_url).rstrip("/")
     email_result = await send_invite_email(email, principal.get("name") or "Your team lead", ws["name"], PACK_LABEL.get(pack, "Member"), app_url)
@@ -4326,7 +4361,13 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
     elif payload.template == "clear-sample":
         await _clear_sample_workspace(ws_id, principal)
     else:
-        await db.workspaces.update_one({"workspace_id": ws_id}, {"$set": {"onboarding_done": True}})
+        # "clean" (and any other non-sample template): finish onboarding with an
+        # empty workspace. Keep template=empty so Briefing empty states and the
+        # sample banner stay accurate.
+        await db.workspaces.update_one(
+            {"workspace_id": ws_id},
+            {"$set": {"onboarding_done": True, "template": "empty", "demo_mode": False}},
+        )
     return {"ok": True}
 
 
@@ -10883,6 +10924,13 @@ async def add_person(payload: PersonInput, request: Request, principal=Depends(r
         person["membership_id"] = membership["membership_id"]
         person["user_id"] = membership.get("user_id")
         person["has_access"] = True
+        if membership.get("user_id"):
+            await dept_migrate.enroll_user_in_sales_finance(
+                db, principal["workspace_id"], membership["user_id"],
+            )
+            await _claim_active_workspace_if_unset(
+                membership["user_id"], principal["workspace_id"], existing_user,
+            )
         ws = c
         app_url = APP_URL or FRONTEND_URL or str(request.base_url).rstrip("/")
         email_result = await send_invite_email(

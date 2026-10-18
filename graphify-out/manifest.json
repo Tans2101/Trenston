@@ -54,8 +54,8 @@
     "semantic_hash": ""
   },
   "backend/clerk_auth.py": {
-    "mtime": 1792317377.0308712,
-    "seen": 1792317610.9682412,
+    "mtime": 1792317669.2368777,
+    "seen": 1792318263.809006,
     "ast_hash": "d3e049d7781a8e89f089adc5f8f32ca0",
     "semantic_hash": ""
   },
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792317377.830863,
-    "seen": 1792317610.9683347,
-    "ast_hash": "67bf1430eeb97339665d0605d1b45b8d",
+    "mtime": 1792317972.8958695,
+    "seen": 1792318263.8091083,
+    "ast_hash": "d676c8710e7567748bfce2264a7d71a4",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -444,9 +444,9 @@
     "semantic_hash": "f0fdf113cfa348183ad344a47c369517"
   },
   "backend/tests/test_apply_template_gate.py": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9683614,
-    "ast_hash": "5ba38b11da2e608dfafd155fa593c8a8",
+    "mtime": 1792318049.4637744,
+    "seen": 1792318263.8091364,
+    "ast_hash": "8b91c071c28517ebbc0d573f770855d7",
     "semantic_hash": ""
   },
   "backend/tests/test_ask_cost_optimizations.py": {
@@ -522,8 +522,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_sync.py": {
-    "mtime": 1792317413.1704865,
-    "seen": 1792317610.9684017,
+    "mtime": 1792317669.2408776,
+    "seen": 1792318263.809169,
     "ast_hash": "1514929d2d1e79349f11147d218e4cc9",
     "semantic_hash": ""
   },
@@ -2544,9 +2544,9 @@
     "semantic_hash": "c2553e6254d43693bc79a47a77087a2c"
   },
   "frontend/src/pages/CompanySetup.jsx": {
-    "mtime": 1792316455.8448288,
-    "seen": 1792317610.9690037,
-    "ast_hash": "2d3b087dd58417a2d7850c4aceb2902f",
+    "mtime": 1792318013.7998471,
+    "seen": 1792318263.8098614,
+    "ast_hash": "34f62af03683ec223025290ea7f98937",
     "semantic_hash": ""
   },
   "frontend/src/pages/Decisions.jsx": {
@@ -2736,9 +2736,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/WorkspaceGate.jsx": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.969049,
-    "ast_hash": "f00823df8fc5c7cd033d71d980c77df0",
+    "mtime": 1792318012.1958494,
+    "seen": 1792318263.8099084,
+    "ast_hash": "8afe27587474e4d63cc382609f6fae8e",
     "semantic_hash": ""
   },
   "frontend/src/pages/teamAccessInvite.test.js": {
@@ -5724,9 +5724,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/DemoBanner.jsx": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9686441,
-    "ast_hash": "31987d1e37a8070789620523db04d6a2",
+    "mtime": 1792318012.1838493,
+    "seen": 1792318263.8094394,
+    "ast_hash": "2adb7bd9657b1ac9813e8d01cbc9ad4d",
     "semantic_hash": ""
   },
   "frontend/src/pages/SetupWelcome.jsx": {
@@ -5736,9 +5736,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/setupWelcomeFlow.test.js": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9690533,
-    "ast_hash": "5194520f8a8c7f6dd2051485937c10c9",
+    "mtime": 1792318012.1838493,
+    "seen": 1792318263.8099144,
+    "ast_hash": "2dc2ebc0b1d51846fcaba35a0591c018",
     "semantic_hash": ""
   },
   "backend/api_keys.py": {
@@ -6222,9 +6222,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Home.jsx": {
-    "mtime": 1792316455.8448288,
-    "seen": 1792317610.969015,
-    "ast_hash": "60aea6ecfad76a734c03ad9a8520deff",
+    "mtime": 1792318012.1518495,
+    "seen": 1792318263.8098736,
+    "ast_hash": "f54db05d9aeaf381440bb32da5fee159",
     "semantic_hash": ""
   },
   "backend/tests/test_role_access.py": {
@@ -6324,9 +6324,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_auth_onboarding_audit.py": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9683785,
-    "ast_hash": "d4483b0ff678bfd143ca17d792c79a5a",
+    "mtime": 1792318143.7875829,
+    "seen": 1792318263.8091488,
+    "ast_hash": "6b662e6be1cd66c330b04010131f7a39",
     "semantic_hash": ""
   },
   "backend/tests/test_automation_plan_limit.py": {
@@ -6423,6 +6423,12 @@
     "mtime": 1792316455.8408282,
     "seen": 1792317610.9695673,
     "ast_hash": "1c703ce55ea2cc23c7de5ef4e3523c4f",
+    "semantic_hash": ""
+  },
+  "frontend/src/pages/homeOnboardingGate.test.js": {
+    "mtime": 1792318020.667836,
+    "seen": 1792318263.8099132,
+    "ast_hash": "2f44fcf078922bcbe9af427e8a18f29f",
     "semantic_hash": ""
   }
 }

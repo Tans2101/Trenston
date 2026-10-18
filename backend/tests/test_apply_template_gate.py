@@ -171,6 +171,25 @@ async def test_regular_sample_apply_is_not_demo_mode():
 
 
 @pytest.mark.asyncio
+async def test_clean_template_marks_empty_and_finishes_onboarding():
+    ws = build_workspace("ws1", "Acme", "u1", empty=True)
+    mock_db = _demo_db()
+    with (
+        patch.object(server, "get_ws", AsyncMock(return_value=ws)),
+        patch.object(server, "db", mock_db),
+    ):
+        out = await server.apply_template(
+            server.TemplateInput(template="clean"),
+            {"user_id": "u1", "workspace_id": "ws1", "pack": "owner"},
+        )
+    assert out == {"ok": True}
+    update = mock_db.workspaces.update_one.await_args.args[1]["$set"]
+    assert update["onboarding_done"] is True
+    assert update["template"] == "empty"
+    assert update["demo_mode"] is False
+
+
+@pytest.mark.asyncio
 async def test_leaving_demo_returns_to_company_setup_with_clean_profile():
     ws = build_workspace("ws1", "Acme", "u1", empty=False)
     ws["demo_mode"] = True

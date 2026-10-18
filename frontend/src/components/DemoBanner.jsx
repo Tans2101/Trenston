@@ -23,7 +23,7 @@ export default function DemoBanner() {
 
   return (
     <div
-      className="lg:pl-[240px] border-b border-helm-gold/30 bg-helm-gold/10 px-5 py-2.5"
+      className="lg:pl-[var(--sidebar-w)] border-b border-helm-gold/30 bg-helm-gold/10 px-5 py-2.5"
       data-testid="demo-banner"
     >
       <div className="flex flex-col gap-2 text-sm text-helm-fg sm:flex-row sm:items-center sm:justify-between lg:px-5">

@@ -87,6 +87,7 @@ function Section({ title, children }) {
 export default function CompanySetup({ company }) {
   const { user, setUser } = useAuth();
   const [busy, setBusy] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(Boolean(user?.age_confirmed));
   const [hasTeamTouched, setHasTeamTouched] = useState(
     typeof company?.has_team === "boolean",
   );
@@ -106,6 +107,7 @@ export default function CompanySetup({ company }) {
   });
 
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }));
+  const needsAge = !user?.age_confirmed;
 
   const setEmployees = (value) => {
     setForm((f) => ({
@@ -128,6 +130,7 @@ export default function CompanySetup({ company }) {
   if (!form.stage) missing.push("stage");
   if (!form.employees) missing.push("team size");
   if (typeof form.has_team !== "boolean") missing.push("whether you can delegate");
+  if (needsAge && !ageConfirmed) missing.push("age confirmation");
   // Founded is optional (backend accepts blank); only reject a partial year.
   const foundedInvalid = !!form.founded && form.founded.length !== 4;
   const canSubmit = missing.length === 0 && !foundedInvalid && !busy;
@@ -137,7 +140,13 @@ export default function CompanySetup({ company }) {
     if (!canSubmit) return;
     setBusy(true);
     try {
-      if (!user?.age_confirmed) {
+      // Only after an explicit checkbox — never silent-confirm on submit.
+      if (needsAge) {
+        if (!ageConfirmed) {
+          toast.error("Confirm you are 18+ (or using Trenston under a parent/guardian)");
+          setBusy(false);
+          return;
+        }
         await api.patch("/account/age-confirmation", { confirmed: true });
       }
       // Always write the onboarding name to the same display-name field the rest of the app reads.
@@ -304,6 +313,22 @@ export default function CompanySetup({ company }) {
               />
             </Field>
           </Section>
+
+          {needsAge ? (
+            <Section title="Confirm">
+              <label className="flex items-start gap-2.5 text-sm text-helm-muted cursor-pointer" data-testid="setup-age-confirm">
+                <input
+                  type="checkbox"
+                  checked={ageConfirmed}
+                  onChange={(e) => setAgeConfirmed(e.target.checked)}
+                  className="mt-0.5 rounded border-helm-line"
+                />
+                <span>
+                  I confirm I am 18 or older, or I am using Trenston under a parent or guardian&apos;s supervision.
+                </span>
+              </label>
+            </Section>
+          ) : null}
         </div>
 
         <div className="flex flex-col-reverse gap-3 border-t border-helm-line pt-6 sm:flex-row sm:items-center sm:justify-between">
