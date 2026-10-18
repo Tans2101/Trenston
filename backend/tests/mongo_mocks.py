@@ -127,7 +127,7 @@ class FakeCollection:
         return res
 
     async def update_one(self, flt, update, upsert=False):
-        """Supports $set only (dotted keys are set literally)."""
+        """Supports $set / $unset (dotted keys are set literally)."""
         res = MagicMock()
         res.matched_count = 0
         res.modified_count = 0
@@ -135,13 +135,15 @@ class FakeCollection:
             if match_filter(d, flt or {}):
                 for k, v in ((update or {}).get("$set") or {}).items():
                     d[k] = v
+                for k in ((update or {}).get("$unset") or {}):
+                    d.pop(k, None)
                 res.matched_count = 1
                 res.modified_count = 1
                 break
         return res
 
     async def update_many(self, flt, update, upsert=False):
-        """Supports $set only, applied to every matching document."""
+        """Supports $set / $unset, applied to every matching document."""
         res = MagicMock()
         res.matched_count = 0
         res.modified_count = 0
@@ -149,6 +151,8 @@ class FakeCollection:
             if match_filter(d, flt or {}):
                 for k, v in ((update or {}).get("$set") or {}).items():
                     d[k] = v
+                for k in ((update or {}).get("$unset") or {}):
+                    d.pop(k, None)
                 res.matched_count += 1
                 res.modified_count += 1
         return res

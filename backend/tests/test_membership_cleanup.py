@@ -211,7 +211,8 @@ def test_a_failed_tidy_up_never_blocks_account_deletion(fake_db, monkeypatch):
         out = await server.delete_account(a)
 
         assert out["ok"] is True
-        assert await fake_db.users.count_documents({"user_id": "u_a"}) == 0
+        tomb = await fake_db.users.find_one({"user_id": "u_a"})
+        assert tomb and tomb.get("deleted_at")
         assert await fake_db.memberships.count_documents({"user_id": "u_a"}) == 0
         assert await _seat_counter(fake_db) == 1  # the seat is still freed
 

@@ -415,7 +415,7 @@ async def test_delete_account_calls_clerk_when_clerk_id(monkeypatch):
     mock_db.user_google_tokens.delete_many = AsyncMock()
     mock_db.product_events.delete_many = AsyncMock()
     mock_db.activities.update_many = AsyncMock()
-    mock_db.users.delete_one = AsyncMock()
+    mock_db.users.update_one = AsyncMock()
     mock_db.department_members.delete_many = AsyncMock()
     mock_db.referrals.delete_many = AsyncMock()
     mock_db.referrals.update_many = AsyncMock()
@@ -427,3 +427,8 @@ async def test_delete_account_calls_clerk_when_clerk_id(monkeypatch):
         out = await server.delete_account(user=user)
     assert out == {"ok": True, "clerk_deleted": True}
     clerk_delete.assert_awaited_once_with("user_del_9")
+    mock_db.users.update_one.assert_awaited()
+    set_fields = mock_db.users.update_one.await_args.args[1]["$set"]
+    assert set_fields["clerk_deleted_id"] == "user_del_9"
+    assert set_fields["email"].startswith("deleted+u9@")
+    assert "deleted_at" in set_fields

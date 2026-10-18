@@ -53,6 +53,7 @@ class FakeDB:
         self.workspaces = Collection()
         self.user_google_tokens = Collection()
         self.users = Collection()
+        self.user_sessions = Collection()
         self.collections.update({
             "documents": self.documents,
             "report_documents": self.report_documents,

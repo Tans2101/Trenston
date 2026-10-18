@@ -3682,6 +3682,11 @@ async def join_workspace(payload: JoinInput, request: Request, user=Depends(get_
         raise HTTPException(status_code=404, detail="Invalid invite code")
     ws_id = ws["workspace_id"]
     existing = await db.memberships.find_one({"workspace_id": ws_id, "user_id": user["user_id"]}, {"_id": 0})
+    # Revoked leftovers (Clerk user.deleted path) must not silently re-admit without
+    # a seat check, and must not leave the user pointed at a dead membership.
+    if existing and existing.get("status") == "revoked":
+        await db.memberships.delete_one({"membership_id": existing.get("membership_id")})
+        existing = None
     if not existing:
         await _enforce_seat_available(ws_id, ws.get("plan"))
         membership = {
@@ -3696,6 +3701,13 @@ async def join_workspace(payload: JoinInput, request: Request, user=Depends(get_
             await _release_seat_reservation(ws_id)
             raise
         existing = membership
+    elif existing.get("status") != "active":
+        # e.g. invited row already linked to this user_id — activate it.
+        await db.memberships.update_one(
+            {"membership_id": existing["membership_id"]},
+            {"$set": {"status": "active", "email": user["email"]}},
+        )
+        existing = {**existing, "status": "active", "email": user["email"]}
     await ensure_person_for_membership(ws_id, existing, name=user.get("name"))
     await dept_migrate.enroll_user_in_sales_finance(db, ws_id, user["user_id"])
     await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"active_workspace_id": ws_id}})
@@ -3735,7 +3747,12 @@ async def rotate_join_code(principal=Depends(require_pro_perm("members:invite"))
 
 @api_router.get("/members")
 async def list_members(principal=Depends(get_principal)):
-    mems = await db.memberships.find({"workspace_id": principal["workspace_id"]}, {"_id": 0}).to_list(100)
+    # Revoked rows are Clerk-delete leftovers — hide them from Team & Access and
+    # keep seats_used aligned with _seat_count / billing.
+    mems = await db.memberships.find(
+        {"workspace_id": principal["workspace_id"], "status": {"$in": ["active", "invited"]}},
+        {"_id": 0},
+    ).to_list(100)
     users_by_id = await _users_by_ids(
         [m.get("user_id") for m in mems],
         {"_id": 0, "user_id": 1, "name": 1, "picture": 1},
@@ -3798,6 +3815,9 @@ async def invite_member(payload: InviteInput, request: Request, principal=Depend
         raise HTTPException(status_code=400, detail="Already a member or invited")
     await _enforce_seat_available(principal["workspace_id"])
     existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+    # Soft-tombstoned rows keep a rewritten email, but never auto-join a deleted account.
+    if existing_user and _user_is_deleted(existing_user):
+        existing_user = None
     membership = {
         "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": principal["workspace_id"],
         "user_id": existing_user["user_id"] if existing_user else None, "email": email,
@@ -4049,6 +4069,20 @@ async def remove_member(membership_id: str, principal=Depends(require_pro_perm("
     # Revokes their API keys (so re-inviting never revives them), clears department
     # lanes and stored Google tokens, unlinks the roster row and frees the seat.
     await _detach_user_from_workspace(principal["workspace_id"], m.get("user_id"), membership=m)
+    uid = (m.get("user_id") or "").strip()
+    if uid:
+        # Drop the pointer at this company so /auth/me does not keep serving it.
+        await db.users.update_one(
+            {"user_id": uid, "active_workspace_id": principal["workspace_id"]},
+            {"$unset": {"active_workspace_id": ""}},
+        )
+        # If they have no other live company, end Trenston sessions so a stale
+        # cookie cannot keep calling APIs until the next natural expiry.
+        other = await db.memberships.find_one(
+            {"user_id": uid, "status": "active"}, {"_id": 0, "membership_id": 1},
+        )
+        if not other:
+            await db.user_sessions.delete_many({"user_id": uid})
     return {"ok": True}
 
 
@@ -10921,6 +10955,8 @@ async def add_person(payload: PersonInput, request: Request, principal=Depends(r
     if invite:
         role = "member"
         existing_user = await db.users.find_one({"email": email}, {"_id": 0})
+        if existing_user and _user_is_deleted(existing_user):
+            existing_user = None
         membership = {
             "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": principal["workspace_id"],
             "user_id": existing_user["user_id"] if existing_user else None, "email": email,
@@ -18057,9 +18093,27 @@ async def delete_account(user=Depends(get_user)):
         {"$set": {"actor_user_id": None, "actor_name": "Deleted user"}},
     )
     clerk_id = (user.get("clerk_id") or "").strip() or None
-    await db.users.delete_one({"user_id": uid})
-    # Best-effort: remove the Clerk identity so they cannot sign back in and
-    # spawn a fresh Trenston row. Local wipe already succeeded above.
+    # Soft-tombstone (same shape as Clerk user.deleted webhook). Hard-deleting the
+    # row left a gap: if Clerk delete failed, a still-valid JWT could upsert a fresh
+    # Trenston user and regain access. Tombstone + clerk_deleted_id blocks that.
+    now = datetime.now(timezone.utc).isoformat()
+    tombstone_set = {
+        "deleted_at": now,
+        "email": f"deleted+{uid}@invalid.local",
+    }
+    if clerk_id:
+        tombstone_set["clerk_deleted_id"] = clerk_id
+    await db.users.update_one(
+        {"user_id": uid},
+        {
+            "$set": tombstone_set,
+            "$unset": {"clerk_id": "", "active_workspace_id": ""},
+        },
+    )
+    if clerk_id:
+        _CLERK_ALIVE_CACHE.pop(clerk_id, None)
+    # Best-effort: remove the Clerk identity. Local tombstone already blocks re-entry
+    # via the same clerk_id even if this call fails.
     clerk_deleted = False
     if clerk_id:
         try:
@@ -18067,7 +18121,7 @@ async def delete_account(user=Depends(get_user)):
             clerk_deleted = True
         except Exception:
             logger.exception(
-                "In-app account delete wiped local user %s but Clerk delete failed for %s",
+                "In-app account delete tombstoned user %s but Clerk delete failed for %s",
                 uid,
                 clerk_id,
             )
@@ -18175,6 +18229,15 @@ async def _delete_workspace_data(ws_id: str):
         await db[coll].delete_many({"workspace_id": ws_id})
     await db.user_google_tokens.delete_many({"workspace_id": ws_id})
     await db.departments.delete_many({"workspace_id": ws_id})
+    member_rows = await db.memberships.find(
+        {"workspace_id": ws_id}, {"_id": 0, "user_id": 1},
+    ).to_list(500)
+    member_uids = sorted({
+        (r.get("user_id") or "").strip()
+        for r in member_rows
+        if (r.get("user_id") or "").strip()
+    })
+
     await db.memberships.delete_many({"workspace_id": ws_id})
     await db.referrals.delete_many({"referred_workspace_id": ws_id})
     await db.workspaces.delete_one({"workspace_id": ws_id})
@@ -18182,6 +18245,14 @@ async def _delete_workspace_data(ws_id: str):
     await db.users.update_many(
         {"active_workspace_id": ws_id}, {"$unset": {"active_workspace_id": ""}},
     )
+    # Members with no remaining active company lose their Trenston sessions so a
+    # cookie cannot keep calling APIs against a vanished workspace.
+    for uid in member_uids:
+        other = await db.memberships.find_one(
+            {"user_id": uid, "status": "active"}, {"_id": 0, "membership_id": 1},
+        )
+        if not other:
+            await db.user_sessions.delete_many({"user_id": uid})
 
 
 async def _delete_workspace_handler(principal: dict):
