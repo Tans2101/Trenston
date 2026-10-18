@@ -108,11 +108,11 @@ function SignUpClerk() {
             Get started with Trenston
           </h1>
           <p className="mt-2 text-sm text-mk-gray leading-relaxed">
-            Google or email. Activate Trenston after sign-up.
+            Google or email. You will set up your company next.
           </p>
           {passwordRequired && (
             <p className="mt-3 text-xs text-mk-gray leading-relaxed">
-              After Google, Clerk may ask you to set a password
+              After Google, you may be asked to set a password
               {passwordMinLength > 8 ? ` (at least ${passwordMinLength} characters)` : ""}
               {captchaEnabled ? ". CAPTCHA may appear" : ""}.
             </p>

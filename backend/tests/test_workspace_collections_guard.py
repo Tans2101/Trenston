@@ -29,6 +29,7 @@ HANDLED_ELSEWHERE = {
     "paddle_events",       # webhook idempotency ids, no tenant content
     "email_suppressions",  # keyed by email address, not workspace
     "join_rate_events",    # rate limiter, keyed by user/ip
+    "workspace_create_claims",  # double-click guard, keyed by user and name, expires after an hour
     "payment_transactions",  # present in tuple but written only by billing code
     # API keys and AI-assistant connections: deleted via _WORKSPACE_CREDENTIAL_COLLECTIONS
     # (workspace and account deletion) and deliberately never exported.

@@ -3398,6 +3398,49 @@ class CreateWsInput(BaseModel):
     referral_code: Optional[str] = None
 
 
+_WS_CREATE_DEDUPE_SECONDS = 60
+
+
+async def _recent_workspace_by_owner(user_id: str, name: str) -> Optional[dict]:
+    cutoff = (datetime.now(timezone.utc) - timedelta(seconds=_WS_CREATE_DEDUPE_SECONDS)).isoformat()
+    return await db.workspaces.find_one(
+        {"owner_user_id": user_id, "name": name, "created_at": {"$gte": cutoff}},
+        {"_id": 0, "workspace_id": 1},
+    )
+
+
+async def _claim_workspace_create(user_id: str, name: str) -> Optional[str]:
+    """Stop a double-click or retry from creating the same company twice.
+
+    Returns None when this request may create the company. Returns the id of the
+    company the same person just created under that name when it should reuse it.
+    The claim is one document per person and name that only a request older than
+    the window can take over, so two simultaneous requests cannot both win.
+    """
+    from pymongo.errors import DuplicateKeyError
+
+    key = f"{user_id}:{name.lower()}"
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(seconds=_WS_CREATE_DEDUPE_SECONDS)).isoformat()
+    try:
+        await db.workspace_create_claims.update_one(
+            {"_id": key, "claimed_at": {"$lt": cutoff}},
+            # expires_at lets Mongo remove the claim on its own (TTL index below).
+            {"$set": {"claimed_at": now.isoformat(), "expires_at": now + timedelta(hours=1)}},
+            upsert=True,
+        )
+        return None
+    except DuplicateKeyError:
+        pass
+    # Another request holds the claim: wait briefly for its company to appear.
+    for _ in range(12):
+        existing = await _recent_workspace_by_owner(user_id, name)
+        if existing:
+            return existing["workspace_id"]
+        await asyncio.sleep(0.25)
+    raise HTTPException(status_code=409, detail="This company is already being created. Wait a moment, then refresh.")
+
+
 @api_router.post("/workspaces")
 async def create_workspace(payload: CreateWsInput, user=Depends(get_user)):
     user_doc = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0, "age_confirmed": 1})
@@ -3406,9 +3449,21 @@ async def create_workspace(payload: CreateWsInput, user=Depends(get_user)):
             status_code=403,
             detail="Confirm you are 18 or older (or using Trenston under a parent/guardian) before creating a company",
         )
+    ws_name = payload.name.strip() or "New Company"
+    if len(ws_name) > 120:
+        raise HTTPException(status_code=400, detail="Company name is too long")
+    reuse_id = await _claim_workspace_create(user["user_id"], ws_name)
+    if reuse_id:
+        await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"active_workspace_id": reuse_id}})
+        return {"ok": True, "workspace_id": reuse_id}
     ws_id = f"ws_{uuid.uuid4().hex[:12]}"
-    doc = build_workspace(ws_id, payload.name.strip() or "New Company", user["user_id"], empty=True)
-    await db.workspaces.insert_one(doc)
+    doc = build_workspace(ws_id, ws_name, user["user_id"], empty=True)
+    try:
+        await db.workspaces.insert_one(doc)
+    except Exception:
+        # Free the claim so an immediate retry is not told the company is "being created".
+        await db.workspace_create_claims.delete_one({"_id": f"{user['user_id']}:{ws_name.lower()}"})
+        raise
     membership = {
         "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": ws_id,
         "user_id": user["user_id"], "email": user["email"], "role": "owner",
@@ -3541,6 +3596,27 @@ async def get_join_code(principal=Depends(require_pro_perm("members:invite"))):
         code = gen_join_code()
         await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": {"join_code": code}})
     return {"join_code": code}
+
+
+@api_router.post("/workspaces/join-code/rotate")
+async def rotate_join_code(principal=Depends(require_pro_perm("members:invite"))):
+    """Replace the invite code. The old one stops working at once.
+
+    Removing someone does not change the code, so anyone who still knows it can
+    rejoin. Rotating is how the owner closes that door.
+    """
+    from pymongo.errors import DuplicateKeyError
+
+    for _ in range(5):
+        code = gen_join_code()
+        try:
+            await db.workspaces.update_one(
+                {"workspace_id": principal["workspace_id"]}, {"$set": {"join_code": code}},
+            )
+        except DuplicateKeyError:
+            continue
+        return {"join_code": code}
+    raise HTTPException(status_code=503, detail="Could not create a new code. Try again.")
 
 
 @api_router.get("/members")
@@ -19385,6 +19461,8 @@ async def _ensure_indexes():
         (db.document_ai_usage, [("workspace_id", 1)], {}),
         (db.join_rate_events, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS}),
         (db.join_rate_events, [("client_ip", 1)], {}),
+        # Double-click guard for "create company": one short-lived row per person and name.
+        (db.workspace_create_claims, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.join_rate_buckets, [("created_at", 1)], {"expireAfterSeconds": doc_rate_limit.JOIN_WINDOW_SECONDS * 2}),
         (db.site_events, [("created_at", 1)], {"expireAfterSeconds": site_events.RETENTION_DAYS * 86400}),
         (db.site_events, [("name", 1), ("created_at", -1)], {}),

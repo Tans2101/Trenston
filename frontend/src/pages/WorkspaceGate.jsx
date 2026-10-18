@@ -16,7 +16,10 @@ export default function WorkspaceGate() {
   const [ageConfirmed, setAgeConfirmed] = useState(Boolean(user?.age_confirmed));
 
   const create = async () => {
+    // Enter in the field calls this too, so a second press must not start a second company.
+    if (busy) return;
     if (!name.trim()) { toast.error("Name your company"); return; }
+    if (name.trim().length > 120) { toast.error("Company name is too long (120 characters max)"); return; }
     if (!ageConfirmed && !user?.age_confirmed) {
       toast.error("Confirm you are 18+ (or using Trenston under a parent/guardian)");
       return;
@@ -36,6 +39,7 @@ export default function WorkspaceGate() {
   };
 
   const join = async () => {
+    if (busy) return;
     if (!code.trim()) { toast.error("Enter your invite code"); return; }
     setBusy(true);
     try {

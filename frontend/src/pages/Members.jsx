@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { UserPlus, User, Mail, Copy, Link2, Shield, Check } from "lucide-react";
+import { UserPlus, User, Mail, Copy, Link2, Shield, Check, RefreshCw } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
@@ -19,7 +19,8 @@ export default function Members() {
   const { data, loading, error, reload } = useFetch("/members");
   const canInvite = hasPerm(user, "members:invite");
   const canManageOwners = hasPerm(user, "members:manage");
-  const { data: codeData } = useFetch(canInvite ? "/workspaces/join-code" : null);
+  const { data: codeData, setData: setCodeData } = useFetch(canInvite ? "/workspaces/join-code" : null);
+  const [codeBusy, setCodeBusy] = useState(false);
   const { data: accessData, reload: reloadAccess } = useFetch(canManageOwners ? "/access/sections" : null);
 
   const [searchParams] = useSearchParams();
@@ -150,7 +151,7 @@ export default function Members() {
       await api.delete(`/members/${m.membership_id}`);
       reload();
       reloadAccess();
-      toast.success("Member removed. They stay on People as roster-only until you remove them there.");
+      toast.success("Member removed. They stay on People as roster-only until you remove them there. Reset the invite code if they still have it.");
     } catch (e) { toast.error(e?.response?.data?.detail || "Could not remove this member. Please try again."); }
   };
 
@@ -161,6 +162,27 @@ export default function Members() {
       toast.success("Invite code copied");
     } catch {
       toast.error("Could not copy. Select the code instead");
+    }
+  };
+
+  const resetCode = async () => {
+    if (codeBusy) return;
+    const ok = await confirmAction({
+      title: "Reset the invite code?",
+      description: "The current code stops working right away. Removing someone does not change it, so reset it if a person who left still knows it. Share the new code with the people who should join.",
+      confirmLabel: "Reset code",
+      destructive: true,
+    });
+    if (!ok) return;
+    setCodeBusy(true);
+    try {
+      const { data: res } = await api.post("/workspaces/join-code/rotate");
+      setCodeData(res);
+      toast.success("New invite code created. The old one no longer works.");
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Could not reset the code. Please try again.");
+    } finally {
+      setCodeBusy(false);
     }
   };
 
@@ -361,6 +383,7 @@ export default function Members() {
                 <p data-mono className="font-mono text-lg text-helm-fg tracking-[0.3em] mt-0.5" data-testid="join-code-value">{codeData.join_code}</p>
               </div>
               <button data-testid="copy-join-code" onClick={copyCode} className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5"><Copy className="w-3.5 h-3.5" /> Copy</button>
+              <button data-testid="reset-join-code" onClick={resetCode} disabled={codeBusy} className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-muted text-sm px-3 py-2 hover:bg-helm-fg/5 hover:text-helm-fg disabled:opacity-50"><RefreshCw className="w-3.5 h-3.5" /> {codeBusy ? "Resetting…" : "Reset"}</button>
             </GlassCard>
           )}
 

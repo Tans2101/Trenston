@@ -119,6 +119,11 @@ function LoginClerk() {
           {urlError === "session_retired" && (
             <p className="mt-4 text-sm text-helm-status-warning">That sign-in link has expired. Please sign in again below.</p>
           )}
+          {(urlError === "oauth" || urlError === "session") && (
+            <p className="mt-4 text-sm text-helm-status-warning" data-testid="login-error">
+              Sign-in did not finish. Please try again below.
+            </p>
+          )}
 
           {passwordMinLength > 8 && (
             <p className="mt-3 text-xs text-mk-gray leading-relaxed">
