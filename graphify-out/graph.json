@@ -7862,7 +7862,7 @@
       "file_type": "code",
       "norm_label": "ai_extracts_lifetime_limit()",
       "source_file": "backend/plans.py",
-      "source_location": "L285"
+      "source_location": "L286"
     },
     {
       "id": "backend_plans_any_paddle_price_configured",
@@ -7874,7 +7874,7 @@
       "file_type": "code",
       "norm_label": "any_paddle_price_configured()",
       "source_file": "backend/plans.py",
-      "source_location": "L320"
+      "source_location": "L321"
     },
     {
       "id": "backend_plans_ask_helm_monthly_limit",
@@ -7886,7 +7886,7 @@
       "file_type": "code",
       "norm_label": "ask_helm_monthly_limit()",
       "source_file": "backend/plans.py",
-      "source_location": "L290"
+      "source_location": "L291"
     },
     {
       "id": "backend_plans_automation_rules_limit",
@@ -7898,7 +7898,7 @@
       "file_type": "code",
       "norm_label": "automation_rules_limit()",
       "source_file": "backend/plans.py",
-      "source_location": "L295"
+      "source_location": "L296"
     },
     {
       "id": "backend_plans_feature_for_action",
@@ -7910,7 +7910,7 @@
       "file_type": "code",
       "norm_label": "feature_for_action()",
       "source_file": "backend/plans.py",
-      "source_location": "L347"
+      "source_location": "L348"
     },
     {
       "id": "backend_plans_is_downgrade",
@@ -7922,7 +7922,7 @@
       "file_type": "code",
       "norm_label": "is_downgrade()",
       "source_file": "backend/plans.py",
-      "source_location": "L246"
+      "source_location": "L247"
     },
     {
       "id": "backend_plans_is_upgrade",
@@ -7934,7 +7934,7 @@
       "file_type": "code",
       "norm_label": "is_upgrade()",
       "source_file": "backend/plans.py",
-      "source_location": "L242"
+      "source_location": "L243"
     },
     {
       "id": "backend_plans_normalize_plan",
@@ -7946,7 +7946,7 @@
       "file_type": "code",
       "norm_label": "normalize_plan()",
       "source_file": "backend/plans.py",
-      "source_location": "L215"
+      "source_location": "L216"
     },
     {
       "id": "backend_plans_paddle_price_id_for",
@@ -7958,7 +7958,7 @@
       "file_type": "code",
       "norm_label": "paddle_price_id_for()",
       "source_file": "backend/plans.py",
-      "source_location": "L300"
+      "source_location": "L301"
     },
     {
       "id": "backend_plans_plan_allows_provider",
@@ -7970,7 +7970,7 @@
       "file_type": "code",
       "norm_label": "plan_allows_provider()",
       "source_file": "backend/plans.py",
-      "source_location": "L257"
+      "source_location": "L258"
     },
     {
       "id": "backend_plans_plan_def",
@@ -7982,7 +7982,7 @@
       "file_type": "code",
       "norm_label": "plan_def()",
       "source_file": "backend/plans.py",
-      "source_location": "L230"
+      "source_location": "L231"
     },
     {
       "id": "backend_plans_plan_for_paddle_price",
@@ -7994,7 +7994,7 @@
       "file_type": "code",
       "norm_label": "plan_for_paddle_price()",
       "source_file": "backend/plans.py",
-      "source_location": "L311"
+      "source_location": "L312"
     },
     {
       "id": "backend_plans_plan_rank",
@@ -8006,7 +8006,7 @@
       "file_type": "code",
       "norm_label": "plan_rank()",
       "source_file": "backend/plans.py",
-      "source_location": "L234"
+      "source_location": "L235"
     },
     {
       "id": "backend_plans_public_plan_list",
@@ -8018,7 +8018,7 @@
       "file_type": "code",
       "norm_label": "public_plan_list()",
       "source_file": "backend/plans.py",
-      "source_location": "L324"
+      "source_location": "L325"
     },
     {
       "id": "backend_plans_seats_limit",
@@ -8030,7 +8030,7 @@
       "file_type": "code",
       "norm_label": "seats_limit()",
       "source_file": "backend/plans.py",
-      "source_location": "L275"
+      "source_location": "L276"
     },
     {
       "id": "backend_server_paddle_apply_checkout_entitlements",
@@ -13181,14 +13181,14 @@
       "source_location": "L102"
     },
     {
-      "id": "backend_tests_test_public_api_keys_test_creating_keys_requires_growth",
-      "label": "test_creating_keys_requires_growth()",
+      "id": "backend_tests_test_public_api_keys_test_creating_keys_requires_a_paid_plan",
+      "label": "test_creating_keys_requires_a_paid_plan()",
       "_callable": true,
       "_origin": "ast",
       "community": 137,
       "community_name": "test_public_api_keys.py",
       "file_type": "code",
-      "norm_label": "test_creating_keys_requires_growth()",
+      "norm_label": "test_creating_keys_requires_a_paid_plan()",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L355"
     },
@@ -13203,6 +13203,18 @@
       "norm_label": "test_deleted_account_key_rejected()",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L263"
+    },
+    {
+      "id": "backend_tests_test_public_api_keys_test_free_plan_is_refused",
+      "label": "test_free_plan_is_refused()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 137,
+      "community_name": "test_public_api_keys.py",
+      "file_type": "code",
+      "norm_label": "test_free_plan_is_refused()",
+      "source_file": "backend/tests/test_public_api_keys.py",
+      "source_location": "L252"
     },
     {
       "id": "backend_tests_test_public_api_keys_test_generated_keys_are_prefixed_long_and_unique",
@@ -13323,18 +13335,6 @@
       "norm_label": "test_owner_gets_financial_summary()",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L277"
-    },
-    {
-      "id": "backend_tests_test_public_api_keys_test_plans_below_growth_are_refused",
-      "label": "test_plans_below_growth_are_refused()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 137,
-      "community_name": "test_public_api_keys.py",
-      "file_type": "code",
-      "norm_label": "test_plans_below_growth_are_refused()",
-      "source_file": "backend/tests/test_public_api_keys.py",
-      "source_location": "L252"
     },
     {
       "id": "backend_tests_test_public_api_keys_test_rate_limit_returns_429",
@@ -15854,7 +15854,7 @@
       "file_type": "code",
       "norm_label": "plan_allows()",
       "source_file": "backend/plans.py",
-      "source_location": "L250"
+      "source_location": "L251"
     },
     {
       "id": "backend_tests_test_plans_test_billing_anniversary_period_resets",
@@ -42386,7 +42386,7 @@
       "file_type": "code",
       "norm_label": "is_paid_plan()",
       "source_file": "backend/plans.py",
-      "source_location": "L238"
+      "source_location": "L239"
     },
     {
       "id": "backend_server_active_member_ids",
@@ -52262,7 +52262,7 @@
       "file_type": "code",
       "norm_label": "ai_extracts_limit()",
       "source_file": "backend/plans.py",
-      "source_location": "L280"
+      "source_location": "L281"
     },
     {
       "id": "backend_rate_limit_acquire_event_slot",
@@ -70137,7 +70137,7 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_plans_rationale_216",
+      "id": "backend_plans_rationale_217",
       "label": "Map legacy/unknown plans to a canonical id. Existing paying workspaces stored\u2026",
       "_origin": "ast",
       "community": 113,
@@ -70145,10 +70145,10 @@
       "file_type": "rationale",
       "norm_label": "map legacy/unknown plans to a canonical id. existing paying workspaces stored...",
       "source_file": "backend/plans.py",
-      "source_location": "L216"
+      "source_location": "L217"
     },
     {
-      "id": "backend_plans_rationale_258",
+      "id": "backend_plans_rationale_259",
       "label": "Whether the plan may connect/sync a given integration provider. Google is\u2026",
       "_origin": "ast",
       "community": 113,
@@ -70156,10 +70156,10 @@
       "file_type": "rationale",
       "norm_label": "whether the plan may connect/sync a given integration provider. google is...",
       "source_file": "backend/plans.py",
-      "source_location": "L258"
+      "source_location": "L259"
     },
     {
-      "id": "backend_plans_rationale_276",
+      "id": "backend_plans_rationale_277",
       "label": "None would mean unlimited; all current tiers set an integer cap.",
       "_origin": "ast",
       "community": 113,
@@ -70167,10 +70167,10 @@
       "file_type": "rationale",
       "norm_label": "none would mean unlimited; all current tiers set an integer cap.",
       "source_file": "backend/plans.py",
-      "source_location": "L276"
+      "source_location": "L277"
     },
     {
-      "id": "backend_plans_rationale_286",
+      "id": "backend_plans_rationale_287",
       "label": "One-time extract allowance (Free). 0 means not used \u2014 fall back to monthly.",
       "_origin": "ast",
       "community": 113,
@@ -70178,10 +70178,10 @@
       "file_type": "rationale",
       "norm_label": "one-time extract allowance (free). 0 means not used \u2014 fall back to monthly.",
       "source_file": "backend/plans.py",
-      "source_location": "L286"
+      "source_location": "L287"
     },
     {
-      "id": "backend_plans_rationale_291",
+      "id": "backend_plans_rationale_292",
       "label": "Monthly Ask Trenston message cap for the plan (billing-period keyed). 0 =\u2026",
       "_origin": "ast",
       "community": 113,
@@ -70189,10 +70189,10 @@
       "file_type": "rationale",
       "norm_label": "monthly ask trenston message cap for the plan (billing-period keyed). 0 =...",
       "source_file": "backend/plans.py",
-      "source_location": "L291"
+      "source_location": "L292"
     },
     {
-      "id": "backend_plans_rationale_296",
+      "id": "backend_plans_rationale_297",
       "label": "How many Automations rules a workspace on this plan can keep.",
       "_origin": "ast",
       "community": 113,
@@ -70200,10 +70200,10 @@
       "file_type": "rationale",
       "norm_label": "how many automations rules a workspace on this plan can keep.",
       "source_file": "backend/plans.py",
-      "source_location": "L296"
+      "source_location": "L297"
     },
     {
-      "id": "backend_plans_rationale_301",
+      "id": "backend_plans_rationale_302",
       "label": "Resolve Paddle price id from PADDLE_PRICE_ID_{STARTER,GROWTH,BUSINESS}.",
       "_origin": "ast",
       "community": 113,
@@ -70211,7 +70211,7 @@
       "file_type": "rationale",
       "norm_label": "resolve paddle price id from paddle_price_id_{starter,growth,business}.",
       "source_file": "backend/plans.py",
-      "source_location": "L301"
+      "source_location": "L302"
     },
     {
       "id": "backend_server_rationale_17536",
@@ -76413,7 +76413,7 @@
       "source_location": ""
     },
     {
-      "id": "backend_plans_rationale_251",
+      "id": "backend_plans_rationale_252",
       "label": "When billing is off, everything is allowed (dev / soft launch).",
       "_origin": "ast",
       "community": 148,
@@ -76421,7 +76421,7 @@
       "file_type": "rationale",
       "norm_label": "when billing is off, everything is allowed (dev / soft launch).",
       "source_file": "backend/plans.py",
-      "source_location": "L251"
+      "source_location": "L252"
     },
     {
       "id": "backend_tests_test_plans_rationale_1",
@@ -125756,7 +125756,7 @@
       "source_location": "L7"
     },
     {
-      "id": "backend_plans_rationale_281",
+      "id": "backend_plans_rationale_282",
       "label": "Monthly renewing extract quota. Free uses ai_extracts_lifetime instead.",
       "_origin": "ast",
       "community": 532,
@@ -125764,7 +125764,7 @@
       "file_type": "rationale",
       "norm_label": "monthly renewing extract quota. free uses ai_extracts_lifetime instead.",
       "source_file": "backend/plans.py",
-      "source_location": "L281"
+      "source_location": "L282"
     },
     {
       "id": "backend_rate_limit_rationale_128",
@@ -132525,6 +132525,18 @@
       "type": "external"
     },
     {
+      "id": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
+      "label": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
+      "_origin": "semantic",
+      "community": 10,
+      "community_name": "Decisions.jsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "frontend_src_components_ui_dropdown_menu_dropdownmenutrigger",
       "label": "frontend_src_components_ui_dropdown_menu_dropdownmenutrigger",
       "_origin": "semantic",
@@ -133697,17 +133709,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "secrets",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
-      "label": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
-      "community": 10,
-      "community_name": "Decisions.jsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "frontend_src_components_ui_dropdown_menu_dropdownmenusub",
       "source_file": "",
       "type": "external"
     }
@@ -142794,7 +142795,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L287",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -142806,7 +142807,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L282",
+      "source_location": "L283",
       "weight": 1.0
     },
     {
@@ -142818,7 +142819,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L321",
+      "source_location": "L322",
       "weight": 1.0
     },
     {
@@ -142830,7 +142831,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L292",
+      "source_location": "L293",
       "weight": 1.0
     },
     {
@@ -142842,7 +142843,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L297",
+      "source_location": "L298",
       "weight": 1.0
     },
     {
@@ -142854,7 +142855,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L247",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -142866,7 +142867,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L239",
+      "source_location": "L240",
       "weight": 1.0
     },
     {
@@ -142878,7 +142879,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L243",
+      "source_location": "L244",
       "weight": 1.0
     },
     {
@@ -142890,7 +142891,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L302",
+      "source_location": "L303",
       "weight": 1.0
     },
     {
@@ -142902,7 +142903,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L254",
+      "source_location": "L255",
       "weight": 1.0
     },
     {
@@ -142914,7 +142915,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L271",
+      "source_location": "L272",
       "weight": 1.0
     },
     {
@@ -142926,7 +142927,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L231",
+      "source_location": "L232",
       "weight": 1.0
     },
     {
@@ -142938,7 +142939,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L315",
+      "source_location": "L316",
       "weight": 1.0
     },
     {
@@ -142950,7 +142951,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L235",
+      "source_location": "L236",
       "weight": 1.0
     },
     {
@@ -142962,7 +142963,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L327",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -142974,7 +142975,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/plans.py",
-      "source_location": "L277",
+      "source_location": "L278",
       "weight": 1.0
     },
     {
@@ -188182,7 +188183,7 @@
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_public_api_keys_test_creating_keys_requires_growth",
+      "source": "backend_tests_test_public_api_keys_test_creating_keys_requires_a_paid_plan",
       "target": "backend_tests_test_public_api_keys_as",
       "relation": "calls",
       "_origin": "ast",
@@ -188215,6 +188216,18 @@
       "context": "call",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_tests_test_public_api_keys_test_free_plan_is_refused",
+      "target": "backend_tests_test_public_api_keys_auth",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "backend/tests/test_public_api_keys.py",
+      "source_location": "L253",
       "weight": 1.0
     },
     {
@@ -188419,18 +188432,6 @@
       "context": "call",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L282",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_tests_test_public_api_keys_test_plans_below_growth_are_refused",
-      "target": "backend_tests_test_public_api_keys_auth",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "backend/tests/test_public_api_keys.py",
-      "source_location": "L253",
       "weight": 1.0
     },
     {
@@ -222598,7 +222599,7 @@
       "weight": 1.0
     },
     {
-      "source": "backend_tests_test_public_api_keys_test_creating_keys_requires_growth",
+      "source": "backend_tests_test_public_api_keys_test_creating_keys_requires_a_paid_plan",
       "target": "backend_tests_test_public_api_keys_py_parametrize",
       "relation": "references",
       "_origin": "ast",
@@ -222607,6 +222608,18 @@
       "context": "decorator",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L354",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_tests_test_public_api_keys_test_free_plan_is_refused",
+      "target": "backend_tests_test_public_api_keys_py_parametrize",
+      "relation": "references",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "decorator",
+      "source_file": "backend/tests/test_public_api_keys.py",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -222619,18 +222632,6 @@
       "context": "decorator",
       "source_file": "backend/tests/test_public_api_keys.py",
       "source_location": "L258",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_tests_test_public_api_keys_test_plans_below_growth_are_refused",
-      "target": "backend_tests_test_public_api_keys_py_parametrize",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "decorator",
-      "source_file": "backend/tests/test_public_api_keys.py",
-      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -225402,7 +225403,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "backend/plans.py",
-      "source_location": "L230",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -225414,7 +225415,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "backend/plans.py",
-      "source_location": "L324",
+      "source_location": "L325",
       "weight": 1.0
     },
     {
@@ -325133,7 +325134,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L215",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -325144,7 +325145,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L230",
+      "source_location": "L231",
       "weight": 1.0
     },
     {
@@ -325155,7 +325156,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L234",
+      "source_location": "L235",
       "weight": 1.0
     },
     {
@@ -325166,7 +325167,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L238",
+      "source_location": "L239",
       "weight": 1.0
     },
     {
@@ -325177,7 +325178,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L242",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -325188,7 +325189,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L246",
+      "source_location": "L247",
       "weight": 1.0
     },
     {
@@ -325199,7 +325200,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L250",
+      "source_location": "L251",
       "weight": 1.0
     },
     {
@@ -325210,7 +325211,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L257",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -325221,7 +325222,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L275",
+      "source_location": "L276",
       "weight": 1.0
     },
     {
@@ -325232,7 +325233,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L280",
+      "source_location": "L281",
       "weight": 1.0
     },
     {
@@ -325243,7 +325244,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L285",
+      "source_location": "L286",
       "weight": 1.0
     },
     {
@@ -325254,7 +325255,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L290",
+      "source_location": "L291",
       "weight": 1.0
     },
     {
@@ -325265,7 +325266,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L295",
+      "source_location": "L296",
       "weight": 1.0
     },
     {
@@ -325276,7 +325277,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L300",
+      "source_location": "L301",
       "weight": 1.0
     },
     {
@@ -325287,7 +325288,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L311",
+      "source_location": "L312",
       "weight": 1.0
     },
     {
@@ -325298,7 +325299,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L320",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -325309,7 +325310,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L324",
+      "source_location": "L325",
       "weight": 1.0
     },
     {
@@ -325320,7 +325321,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L347",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -351538,7 +351539,7 @@
     },
     {
       "source": "backend_tests_test_public_api_keys",
-      "target": "backend_tests_test_public_api_keys_test_plans_below_growth_are_refused",
+      "target": "backend_tests_test_public_api_keys_test_free_plan_is_refused",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -351681,7 +351682,7 @@
     },
     {
       "source": "backend_tests_test_public_api_keys",
-      "target": "backend_tests_test_public_api_keys_test_creating_keys_requires_growth",
+      "target": "backend_tests_test_public_api_keys_test_creating_keys_requires_a_paid_plan",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -391727,102 +391728,102 @@
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_216",
+      "source": "backend_plans_rationale_217",
       "target": "backend_plans_normalize_plan",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L216",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_251",
+      "source": "backend_plans_rationale_252",
       "target": "backend_plans_plan_allows",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L251",
+      "source_location": "L252",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_258",
+      "source": "backend_plans_rationale_259",
       "target": "backend_plans_plan_allows_provider",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L258",
+      "source_location": "L259",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_276",
+      "source": "backend_plans_rationale_277",
       "target": "backend_plans_seats_limit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L276",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_281",
+      "source": "backend_plans_rationale_282",
       "target": "backend_plans_ai_extracts_limit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L281",
+      "source_location": "L282",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_286",
+      "source": "backend_plans_rationale_287",
       "target": "backend_plans_ai_extracts_lifetime_limit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L286",
+      "source_location": "L287",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_291",
+      "source": "backend_plans_rationale_292",
       "target": "backend_plans_ask_helm_monthly_limit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L291",
+      "source_location": "L292",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_296",
+      "source": "backend_plans_rationale_297",
       "target": "backend_plans_automation_rules_limit",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L296",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
-      "source": "backend_plans_rationale_301",
+      "source": "backend_plans_rationale_302",
       "target": "backend_plans_paddle_price_id_for",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/plans.py",
-      "source_location": "L301",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -412505,5 +412506,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "a4d41423ed0113284f3b641d852799f14fafbb71"
+  "built_at_commit": "59d41e26154eda63e2635211eade020713f0fca2"
 }
