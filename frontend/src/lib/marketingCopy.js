@@ -699,6 +699,12 @@ export const HOW_TO_USE_STEPS = [
     audience: "everyone",
   },
   {
+    title: "Bring in your numbers (owners)",
+    body:
+      "Open Set up from a file (/app/import) and drop in an Excel or CSV file you already keep, such as a monthly P&L or budget, a client list, supplier orders or a to-do list. Trenston shows what it found on each sheet before anything is saved, and one click undoes the whole import. Skip this if you would rather type things in.",
+    audience: "owner",
+  },
+  {
     title: "Act on one Decision",
     body:
       "Open Decisions (/app/decisions). Pick one item that needs a call, then approve it, reject it, or assign a clear owner. Trenston keeps the result in recently resolved so the call does not vanish after you act.",
@@ -790,7 +796,8 @@ export const HOW_TO_USE_FAQ = [
 /** Quick-reference paths for people who already know the concepts above. */
 export const HOW_TO_USE_MODULES = [
   { nav: "Home", path: "/app", tip: "Owners and executives: the company briefing plus your own work. Everyone else: your tasks, decisions, notes, and team update." },
-  { nav: "Decisions", path: "/app/decisions", tip: "Approve, reject, or assign ownership; review what already resolved." },
+  { nav: "Set up from a file", path: "/app/import", tip: "Owners: drop in a spreadsheet you already keep and review what Trenston found before saving. One click undoes it." },
+  { nav: "Decisions", path: "/app/decisions", tip: "Approve, reject, or assign ownership; review what already resolved. Add what a decision costs to see its effect on your runway." },
   { nav: "Ask Trenston", path: "/app/ask", tip: "Ask a question about your live company data." },
   { nav: "Metrics", path: "/app/metrics", tip: "One-screen snapshot of key numbers and risks (access required)." },
   { nav: "Financials", path: "/app/financials", tip: "Log revenue, expenses, and cash (access required)." },
