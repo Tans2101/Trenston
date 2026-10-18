@@ -54,8 +54,8 @@
     "semantic_hash": ""
   },
   "backend/clerk_auth.py": {
-    "mtime": 1792317669.2368777,
-    "seen": 1792318263.809006,
+    "mtime": 1792318313.4794877,
+    "seen": 1792318906.412659,
     "ast_hash": "d3e049d7781a8e89f089adc5f8f32ca0",
     "semantic_hash": ""
   },
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792318369.8802977,
-    "seen": 1792318471.434481,
-    "ast_hash": "b7306d34b76e87587864f28fcb5ff39b",
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4127405,
+    "ast_hash": "f91cad1ff30e95d5b36f1d4d029bed23",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -402,9 +402,9 @@
     "semantic_hash": "4c5f50baa5768b34bbd211b9851bfa24"
   },
   "backend/tests/mongo_mocks.py": {
-    "mtime": 1792316455.8448288,
-    "seen": 1792317610.9683459,
-    "ast_hash": "5893134c8b54cdd7e5f70f0c2f2a569c",
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4127505,
+    "ast_hash": "a2c36603a5e34020d1828538a3197bb8",
     "semantic_hash": ""
   },
   "backend/tests/test_accounting_autosync.py": {
@@ -444,8 +444,8 @@
     "semantic_hash": "f0fdf113cfa348183ad344a47c369517"
   },
   "backend/tests/test_apply_template_gate.py": {
-    "mtime": 1792318411.4602728,
-    "seen": 1792318471.434513,
+    "mtime": 1792318876.9164495,
+    "seen": 1792318906.4127657,
     "ast_hash": "bc9019f862415a5cb22b556e89efc00d",
     "semantic_hash": ""
   },
@@ -522,8 +522,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_sync.py": {
-    "mtime": 1792317669.2408776,
-    "seen": 1792318263.809169,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4127913,
     "ast_hash": "1514929d2d1e79349f11147d218e4cc9",
     "semantic_hash": ""
   },
@@ -1092,9 +1092,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_workspace_deletion.py": {
-    "mtime": 1792316455.8328273,
-    "seen": 1792317610.9685793,
-    "ast_hash": "67db67bce25778eebcaabb678e1ba894",
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4129379,
+    "ast_hash": "4cb8fd1e24515c368bf3f96da5775dec",
     "semantic_hash": ""
   },
   "backend/tests/test_workspace_is_pro_status.py": {
@@ -2544,8 +2544,8 @@
     "semantic_hash": "c2553e6254d43693bc79a47a77087a2c"
   },
   "frontend/src/pages/CompanySetup.jsx": {
-    "mtime": 1792318013.7998471,
-    "seen": 1792318263.8098614,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4133255,
     "ast_hash": "34f62af03683ec223025290ea7f98937",
     "semantic_hash": ""
   },
@@ -2634,8 +2634,8 @@
     "semantic_hash": "bc65e0602b60cef738afecfdc1d3347c"
   },
   "frontend/src/pages/Onboarding.jsx": {
-    "mtime": 1792318367.6362984,
-    "seen": 1792318471.435194,
+    "mtime": 1792318876.9164495,
+    "seen": 1792318906.4133472,
     "ast_hash": "b862b32a5e98093c5241a96de4c34018",
     "semantic_hash": ""
   },
@@ -2736,8 +2736,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/WorkspaceGate.jsx": {
-    "mtime": 1792318012.1958494,
-    "seen": 1792318263.8099084,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4133666,
     "ast_hash": "8afe27587474e4d63cc382609f6fae8e",
     "semantic_hash": ""
   },
@@ -5394,8 +5394,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_new_workspace_first_load.py": {
-    "mtime": 1792318381.2162933,
-    "seen": 1792318471.434651,
+    "mtime": 1792318876.9164495,
+    "seen": 1792318906.4128685,
     "ast_hash": "c294a32aa696a6e5f15678a80ec02025",
     "semantic_hash": ""
   },
@@ -5412,9 +5412,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_user_deleted.py": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9684043,
-    "ast_hash": "88f19e9b7d5f262e5386628349fb248a",
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4127936,
+    "ast_hash": "93bd0b37002bdbd42259424432040a9c",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/SocialProofBar.jsx": {
@@ -5724,8 +5724,8 @@
     "semantic_hash": ""
   },
   "frontend/src/components/DemoBanner.jsx": {
-    "mtime": 1792318012.1838493,
-    "seen": 1792318263.8094394,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4129908,
     "ast_hash": "2adb7bd9657b1ac9813e8d01cbc9ad4d",
     "semantic_hash": ""
   },
@@ -5736,8 +5736,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/setupWelcomeFlow.test.js": {
-    "mtime": 1792318411.4722729,
-    "seen": 1792318471.4352217,
+    "mtime": 1792318876.9164495,
+    "seen": 1792318906.413371,
     "ast_hash": "b28f4d6b67078ddddec6b0d4625517c7",
     "semantic_hash": ""
   },
@@ -6222,8 +6222,8 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Home.jsx": {
-    "mtime": 1792318012.1518495,
-    "seen": 1792318263.8098736,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4133363,
     "ast_hash": "f54db05d9aeaf381440bb32da5fee159",
     "semantic_hash": ""
   },
@@ -6324,8 +6324,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_auth_onboarding_audit.py": {
-    "mtime": 1792318143.7875829,
-    "seen": 1792318263.8091488,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4127743,
     "ast_hash": "6b662e6be1cd66c330b04010131f7a39",
     "semantic_hash": ""
   },
@@ -6384,9 +6384,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_membership_cleanup.py": {
-    "mtime": 1792316455.8528297,
-    "seen": 1792317610.9684758,
-    "ast_hash": "7f9748176beff4895da7f3643c967e77",
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4128568,
+    "ast_hash": "d0ec6ce5f4abe5c65d6b4a5870069596",
     "semantic_hash": ""
   },
   "frontend/src/lib/compareVs.json": {
@@ -6426,9 +6426,15 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/homeOnboardingGate.test.js": {
-    "mtime": 1792318020.667836,
-    "seen": 1792318263.8099132,
+    "mtime": 1792318313.4834883,
+    "seen": 1792318906.4133701,
     "ast_hash": "2f44fcf078922bcbe9af427e8a18f29f",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_account_lifecycle_audit.py": {
+    "mtime": 1792318877.3324463,
+    "seen": 1792318906.4127522,
+    "ast_hash": "8f64280f4d94f6e704df871293a708a9",
     "semantic_hash": ""
   }
 }
