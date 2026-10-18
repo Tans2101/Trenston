@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792320396.4922438,
-    "seen": 1792320956.2154152,
-    "ast_hash": "f91cad1ff30e95d5b36f1d4d029bed23",
+    "mtime": 1792330667.6972618,
+    "seen": 1792330984.7836728,
+    "ast_hash": "c51a214d482f79b3276df8ac97cc9a14",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -1194,9 +1194,9 @@
     "semantic_hash": ""
   },
   "frontend/scripts/sync-llms-txt.mjs": {
-    "mtime": 1792320775.174993,
-    "seen": 1792320956.2156885,
-    "ast_hash": "5c5aa3519889386167f9645b5e4d5b1b",
+    "mtime": 1792322297.8795485,
+    "seen": 1792330984.7839687,
+    "ast_hash": "b218059f9f373613c720db659c972eec",
     "semantic_hash": ""
   },
   "frontend/scripts/verify-auth-build.mjs": {
@@ -1212,9 +1212,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/AppLayout.jsx": {
-    "mtime": 1792235414.032057,
-    "seen": 1792320956.2156959,
-    "ast_hash": "e60e3561d173c913c7a9e10dec5a3aa8",
+    "mtime": 1792330928.778192,
+    "seen": 1792330984.7839782,
+    "ast_hash": "d02cebf0b7cca54c67ac87cb1bd532d9",
     "semantic_hash": ""
   },
   "frontend/src/components/AppearanceSync.jsx": {
@@ -1284,9 +1284,9 @@
     "semantic_hash": "a27df6c76eae074987105bdc965677d1"
   },
   "frontend/src/components/DecisionCard.jsx": {
-    "mtime": 1791365419.8553007,
-    "seen": 1792320956.215711,
-    "ast_hash": "8b33987edba0b0e0acafc8895aa6fb0e",
+    "mtime": 1792330769.6850574,
+    "seen": 1792330984.7839944,
+    "ast_hash": "bae26ffc907874adeec4fadf532a1cb1",
     "semantic_hash": ""
   },
   "frontend/src/components/DepartmentsSettings.jsx": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1792320923.2305055,
-    "seen": 1792320956.215942,
-    "ast_hash": "cfa40f59fa09b8fd0d8365910b530e28",
+    "mtime": 1792330872.018636,
+    "seen": 1792330984.784191,
+    "ast_hash": "909c4ef0b975f43eccd5983cbc4202b7",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2346,9 +2346,9 @@
     "semantic_hash": "acd33d38d1dd65af9f0bbff5d2190c56"
   },
   "frontend/src/lib/fetchInvalidation.js": {
-    "mtime": 1791966865.8095865,
-    "seen": 1792320956.2159657,
-    "ast_hash": "1c93ba2e95c8838a4cb6286d34f0f0c0",
+    "mtime": 1792330567.1459868,
+    "seen": 1792330984.7842162,
+    "ast_hash": "342b69475cdb8a0bfe15fdb7bebb9536",
     "semantic_hash": ""
   },
   "frontend/src/lib/fetchInvalidation.test.js": {
@@ -2526,9 +2526,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Briefing.jsx": {
-    "mtime": 1792309279.4561484,
-    "seen": 1792320956.2160182,
-    "ast_hash": "a2c10cac02ea7bf32d051f5daaecb9d2",
+    "mtime": 1792330567.1459868,
+    "seen": 1792330984.7842755,
+    "ast_hash": "3fadf8eb7f3c0316cdecc9c30ebcc946",
     "semantic_hash": ""
   },
   "frontend/src/pages/CalendarPage.jsx": {
@@ -2550,9 +2550,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Decisions.jsx": {
-    "mtime": 1791970003.7489598,
-    "seen": 1792320956.2160244,
-    "ast_hash": "64af8a1d0954d4a54eeea6a4b210a2e2",
+    "mtime": 1792330778.153252,
+    "seen": 1792330984.7842832,
+    "ast_hash": "df65b12734d531d6e6eaa6309742a920",
     "semantic_hash": ""
   },
   "frontend/src/pages/DepartmentPlaceholder.jsx": {
@@ -2592,9 +2592,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Landing.jsx": {
-    "mtime": 1792309049.758075,
-    "seen": 1792320956.216033,
-    "ast_hash": "dfa4acdbb9ebbab5abab575c84825597",
+    "mtime": 1792321618.0833163,
+    "seen": 1792330984.7843018,
+    "ast_hash": "45ed965cf63ef3120e311002717464ed",
     "semantic_hash": ""
   },
   "frontend/src/pages/Legal.jsx": {
@@ -2658,9 +2658,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Privacy.jsx": {
-    "mtime": 1792066419.0200613,
-    "seen": 1792320956.216043,
-    "ast_hash": "f60a081e15cda04b1f75c3dc4ac4b732",
+    "mtime": 1792330567.1459868,
+    "seen": 1792330984.7843127,
+    "ast_hash": "74ccc63f5ffcd1e4c4e3c727997edaa5",
     "semantic_hash": ""
   },
   "frontend/src/pages/Procurement.jsx": {
@@ -2754,9 +2754,9 @@
     "semantic_hash": ""
   },
   "frontend/vercel.json": {
-    "mtime": 1792315707.5253134,
-    "seen": 1792320956.2160633,
-    "ast_hash": "4f0797eee7ceb84a240a3b3e05ffa114",
+    "mtime": 1792321629.0758908,
+    "seen": 1792330984.78435,
+    "ast_hash": "506663c9ba3a9bce075a65694f33055a",
     "semantic_hash": ""
   },
   "skills-lock.json": {
@@ -5082,9 +5082,9 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792320927.9945164,
-    "seen": 1792320956.2164018,
-    "ast_hash": "23966683a1fd0e681e3a2f35819eb67f",
+    "mtime": 1792330952.6220098,
+    "seen": 1792330984.7848465,
+    "ast_hash": "f0ecf2bac31f369d41e6571838abf7cc",
     "semantic_hash": ""
   },
   "frontend/public/robots.txt": {
@@ -5406,9 +5406,9 @@
     "semantic_hash": "e02ccc370119baa9693deb6c6da09468"
   },
   "frontend/src/components/marketing/LaptopMockup.jsx": {
-    "mtime": 1791958095.6854918,
-    "seen": 1792320956.2158685,
-    "ast_hash": "f565331dc14b4ff071148f43fe05cbe4",
+    "mtime": 1792321618.0822852,
+    "seen": 1792330984.784109,
+    "ast_hash": "03aa42052515b179c33162d55cc0b203",
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_user_deleted.py": {
@@ -5424,9 +5424,9 @@
     "semantic_hash": "0b18105867d39ed22c6063128a053a92"
   },
   "frontend/src/components/marketing/FeatureShowcase.jsx": {
-    "mtime": 1791958095.6854918,
-    "seen": 1792320956.2158656,
-    "ast_hash": "522e977b0396cff5893ad4f6ef99dcc8",
+    "mtime": 1792321624.1001782,
+    "seen": 1792330984.7841053,
+    "ast_hash": "70b43329292daa6359af43c56e2259f9",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/PlanCards.jsx": {
@@ -6138,9 +6138,9 @@
     "semantic_hash": ""
   },
   "frontend/src/App.jsx": {
-    "mtime": 1792320775.1737142,
-    "seen": 1792320956.215691,
-    "ast_hash": "167bd40c5179d09d017fe108c53935c6",
+    "mtime": 1792330567.1419868,
+    "seen": 1792330984.7839718,
+    "ast_hash": "17de24efaee669cc7339537586d13ce0",
     "semantic_hash": ""
   },
   "frontend/src/index.jsx": {
@@ -6180,9 +6180,9 @@
     "semantic_hash": ""
   },
   "frontend/vite.config.mjs": {
-    "mtime": 1791958095.689932,
-    "seen": 1792320956.2160642,
-    "ast_hash": "eeaaa0bef3c7c2dbf77867ac89fa231c",
+    "mtime": 1792321089.5093362,
+    "seen": 1792330984.7843513,
+    "ast_hash": "388424c878ece83b378813b2a3e45dd5",
     "semantic_hash": ""
   },
   "frontend/index.html": {
@@ -6519,6 +6519,72 @@
     "mtime": 1790515659.5381951,
     "seen": 1792320956.2163835,
     "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": ""
+  },
+  "backend/quick_import.py": {
+    "mtime": 1792330272.6434398,
+    "seen": 1792330984.7836297,
+    "ast_hash": "d5c9aba68bc3b65276a8b37f4447ecf5",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_decision_ripple.py": {
+    "mtime": 1792330683.0019937,
+    "seen": 1792330984.783763,
+    "ast_hash": "ad978075ad1acdd87e5fe82a64f7b90e",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_quick_import.py": {
+    "mtime": 1792330362.2179747,
+    "seen": 1792330984.7838635,
+    "ast_hash": "26498ab49e3957e92928cb3ee49cbd3e",
+    "semantic_hash": ""
+  },
+  "frontend/src/assets/marketing/briefingImage.js": {
+    "mtime": 1792321618.0584006,
+    "seen": 1792330984.7839744,
+    "ast_hash": "4f83dde5530f38ec8fd63556daee9faf",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/RippleDialog.jsx": {
+    "mtime": 1792330871.9806504,
+    "seen": 1792330984.7840204,
+    "ast_hash": "17d9199dee19b7f4adc599ebe00e90d1",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/quickImport.js": {
+    "mtime": 1792330317.029264,
+    "seen": 1792330984.7842503,
+    "ast_hash": "6dd50a49e42824bd83854b48b7f34036",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/quickImport.test.js": {
+    "mtime": 1792330175.2139635,
+    "seen": 1792330984.7842515,
+    "ast_hash": "a4956e219c737993796617fdf6289beb",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/ripple.js": {
+    "mtime": 1792330703.585995,
+    "seen": 1792330984.7842531,
+    "ast_hash": "ef1c9e466223d776dd8893d3826273cc",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/ripple.test.js": {
+    "mtime": 1792330788.7940001,
+    "seen": 1792330984.7842538,
+    "ast_hash": "6ac54b3d00d099e3b9b1a84903546695",
+    "semantic_hash": ""
+  },
+  "frontend/src/pages/QuickImport.jsx": {
+    "mtime": 1792330339.4979963,
+    "seen": 1792330984.7843175,
+    "ast_hash": "23119f78baaec38caf408c9843539459",
+    "semantic_hash": ""
+  },
+  "frontend/src/assets/marketing/dashboard-briefing-800.webp": {
+    "mtime": 1792321618.0345573,
+    "seen": 1792330984.7849247,
+    "ast_hash": "d037b9f04c53b0eef3d7f1b5e8571f84",
     "semantic_hash": ""
   }
 }
