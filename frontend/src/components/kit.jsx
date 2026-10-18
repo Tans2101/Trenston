@@ -29,6 +29,34 @@ export function PageHeader({ title, subtitle, action }) {
   );
 }
 
+/** Modern app page header: compact title, one-line subtitle, actions on the right.
+ *  Pages move to this one at a time as they are redesigned. */
+export function AppPageHeader({ title, subtitle, action, meta }) {
+  return (
+    <div className="mb-6 flex flex-col gap-3 border-b border-helm-line pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight text-helm-fg">
+          {title}
+          {meta != null && <span className="ml-2 align-middle font-mono text-sm font-normal text-helm-muted tabular-nums">{meta}</span>}
+        </h1>
+        {subtitle && <p className="mt-1 max-w-2xl text-sm text-helm-muted">{subtitle}</p>}
+      </div>
+      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
+    </div>
+  );
+}
+
+/** Small uppercase label above a list, with an optional count. */
+export function ListLabel({ children, count, className, icon }) {
+  return (
+    <h2 className={cn("flex items-center gap-2 border-b border-helm-line pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-helm-muted", className)}>
+      {icon}
+      {children}
+      {count != null && <span className="font-mono tabular-nums text-helm-fg/50">{count}</span>}
+    </h2>
+  );
+}
+
 export function PageHeaderSkeleton({ className }) {
   return (
     <div className={cn("mb-8 fade-up", className)} aria-hidden>

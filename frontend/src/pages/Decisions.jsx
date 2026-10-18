@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, RefreshCw, X, Sparkles } from "lucide-react";
-import CirDeleteBtn from "@/components/CirDeleteBtn";
+
+const SUBTITLE = "Open calls, ranked by impact. Trenston drafts suggestions from your data; nothing counts until you confirm it.";
 import { AnimatePresence } from "motion/react";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { useDecisionActions, buildDelegateOptions } from "@/hooks/useDecisionActions";
 import { api } from "@/lib/api";
-import { PageHeader, GlassCard, SectionLabel, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
-import DecisionCard, { statusStyle } from "@/components/DecisionCard";
+import { AppPageHeader, ListLabel, GlassCard, ErrorScreen, EmptyState, SkeletonCardList } from "@/components/kit";
+import DecisionCard, { MetaLine } from "@/components/DecisionCard";
 import SuggestionCard from "@/components/SuggestionCard";
 import { highlightRecord } from "@/lib/signalRoute";
 import {
@@ -122,7 +123,7 @@ export default function Decisions() {
   if (showSkeleton) {
     return (
       <div>
-        <PageHeader title="Decision Center" subtitle="Every open decision, ranked by impact. Trenston drafts suggestions from live signals. You confirm before anything becomes a real call." />
+        <AppPageHeader title="Decisions" subtitle={SUBTITLE} />
         <SkeletonCardList count={4} />
       </div>
     );
@@ -189,20 +190,21 @@ export default function Decisions() {
   };
 
   const addBtn = canAct ? (
-    <div className="flex items-center gap-2">
+    <>
       <button
+        type="button"
         data-testid="refresh-suggestions-btn"
         onClick={regenerate}
         disabled={genBusy}
-        className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg font-medium text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+        className="app-btn-secondary inline-flex h-8 items-center gap-1.5 px-3 text-[13px] font-medium disabled:opacity-60"
       >
-        <RefreshCw className={cn("w-4 h-4", genBusy && "animate-spin")} />
-        {genBusy ? "Scanning…" : "Refresh suggestions"}
+        <RefreshCw className={cn("h-3.5 w-3.5", genBusy && "animate-spin")} />
+        {genBusy ? "Scanning…" : "Suggest decisions"}
       </button>
-      <button data-testid="new-decision-btn" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-3 py-2 hover:bg-helm-gold-hover">
-        <Plus className="w-4 h-4" /> New decision
+      <button type="button" data-testid="new-decision-btn" onClick={openAdd} className="app-btn-primary inline-flex h-8 items-center gap-1.5 px-3 text-[13px] font-medium">
+        <Plus className="h-3.5 w-3.5" /> New decision
       </button>
-    </div>
+    </>
   ) : null;
 
   const pending = decisions.filter(isActionableDecision);
@@ -210,7 +212,7 @@ export default function Decisions() {
 
   return (
     <div>
-      <PageHeader title="Decision Center" subtitle="Every open decision, ranked by impact. Trenston drafts suggestions from live signals. You confirm before anything becomes a real call." action={addBtn} />
+      <AppPageHeader title="Decisions" subtitle={SUBTITLE} action={addBtn} meta={pending.length || null} />
 
       {softRefreshError ? (
         <div
@@ -225,37 +227,31 @@ export default function Decisions() {
         </div>
       ) : null}
 
-      <div className={cn(suggestions.length > 0 && "mb-8")} data-testid="suggested-decisions">
+      <div className={cn(suggestions.length > 0 && "mb-10")} data-testid="suggested-decisions">
         {suggestions.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-4 h-4 text-helm-status-warning" />
-            <SectionLabel>Suggested by Trenston</SectionLabel>
-            <span className="font-mono text-xs text-helm-status-warning/80">{suggestions.length}</span>
-          </div>
+          <ListLabel count={suggestions.length} icon={<Sparkles className="h-3.5 w-3.5 dec-spark" aria-hidden />}>Suggested by Trenston</ListLabel>
         )}
-        <div className={cn(suggestions.length > 0 && "space-y-3")}>
-          <AnimatePresence mode="popLayout" initial={false}>
-            {suggestions.map((s) => (
-              <SuggestionCard
-                key={s.id}
-                s={s}
-                canAct={canAct}
-                busy={busy}
-                onAcceptSuggestion={approveSuggestion}
-                onDismissSuggestion={dismissSuggestion}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        <AnimatePresence mode="popLayout" initial={false}>
+          {suggestions.map((s) => (
+            <SuggestionCard
+              key={s.id}
+              s={s}
+              canAct={canAct}
+              busy={busy}
+              onAcceptSuggestion={approveSuggestion}
+              onDismissSuggestion={dismissSuggestion}
+            />
+          ))}
+        </AnimatePresence>
       </div>
 
       {decisions.length === 0 && suggestions.length === 0 ? (
         <EmptyState title="What do you need to decide?" body="For example: hire a second salesperson, raise prices 10%, or switch suppliers. Log it with what you are leaning towards and it stays on your Briefing until it is decided. Or refresh suggestions and Trenston drafts some from your runway, deals, tasks and blockers."
-          action={canAct ? <button data-testid="empty-new-decision-btn" onClick={openAdd} className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"><Plus className="w-4 h-4" /> Log first decision</button> : null} />
+          action={canAct ? <button type="button" data-testid="empty-new-decision-btn" onClick={openAdd} className="app-btn-primary inline-flex h-9 items-center gap-1.5 px-4 text-[13px] font-medium"><Plus className="h-3.5 w-3.5" /> Log first decision</button> : null} />
       ) : (
         <>
-          {pending.length > 0 && <SectionLabel className="mb-4">Open decisions</SectionLabel>}
-          <div className="space-y-4">
+          {pending.length > 0 && <ListLabel count={pending.length}>Open</ListLabel>}
+          <div>
             <AnimatePresence mode="popLayout" initial={false}>
               {pending.map((d) => (
                 <DecisionCard
@@ -280,18 +276,34 @@ export default function Decisions() {
           </div>
 
           {resolved.length > 0 && (
-            <div className="mt-8">
-              <SectionLabel className="mb-4">Recently resolved · outcome checks</SectionLabel>
-              <div className="space-y-2">
-                {resolved.map((d) => (
-                  <div key={d.id} className="flex items-center gap-3 rounded-lg border border-helm-line bg-helm-fg/[0.02] px-4 py-3" data-testid={`resolved-${d.id}`} data-deeplink={d.id}>
-                    <span className={cn("text-[10px] font-mono uppercase tracking-wider rounded px-1.5 py-0.5 border", statusStyle[d.status] || statusStyle.pending)}>{d.status}</span>
-                    <span className="text-sm text-helm-fg flex-1">{d.title}</span>
-                    <span className="text-xs text-helm-muted">{d.owner ? `→ ${d.owner}` : ""}</span>
-                    {canAct && <CirDeleteBtn onClick={() => del(d.id)} title="Delete decision" />}
+            <div className="mt-10">
+              <ListLabel count={resolved.length}>Recently decided</ListLabel>
+              {resolved.map((d) => (
+                <div key={d.id} className="dec-row flex items-center gap-3 border-b border-helm-line px-1 py-3 sm:px-3" data-testid={`resolved-${d.id}`} data-deeplink={d.id}>
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "h-2 w-2 shrink-0 rounded-full",
+                      d.status === "approved" ? "bg-helm-status-positive" : d.status === "rejected" ? "bg-helm-status-negative" : "bg-helm-fg/40",
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-helm-fg/80">{d.title}</p>
+                    <MetaLine className="mt-0.5 text-xs" parts={[<span key="s" className="capitalize">{d.status}</span>, d.owner ? `to ${d.owner}` : null]} />
                   </div>
-                ))}
-              </div>
+                  {canAct && (
+                    <button
+                      type="button"
+                      onClick={() => del(d.id)}
+                      aria-label={`Delete ${d.title}`}
+                      title="Delete decision"
+                      className="dec-row-reveal inline-flex h-7 w-7 items-center justify-center text-helm-muted hover:text-helm-status-negative"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </>

@@ -1946,3 +1946,43 @@ html[data-theme="light"] .app-shell .app-main [data-empty-state] > div:first-chi
 
 /* Company map nodes are keyboard-focusable SVG groups; show focus on the node outline. */
 [data-testid^="map-node-"]:focus-visible rect { stroke-width: 3; stroke: var(--helm-fg); }
+
+/* ───────── Modern app kit (rolled out page by page) ─────────
+   Flat rows on hairlines instead of filled cards, small square-cornered buttons,
+   black-and-white with yellow and navy kept as small hints. Works in both themes
+   because it only uses the theme tokens. */
+.app-btn-primary {
+  background: var(--helm-fg);
+  color: var(--helm-bg);
+  border: 1px solid var(--helm-fg);
+  border-radius: 6px;
+  transition: opacity 150ms ease;
+}
+.app-btn-primary:hover:not(:disabled) { opacity: 0.85; }
+.app-btn-secondary {
+  background: transparent;
+  color: var(--helm-fg);
+  border: 1px solid var(--helm-line);
+  border-radius: 6px;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+.app-btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--helm-fg) 5%, transparent);
+  border-color: color-mix(in srgb, var(--helm-fg) 30%, transparent);
+}
+/* Older light/dark overrides recolour text inside .app-shell; pin the button ink. */
+html[data-theme="light"] .app-shell .app-btn-primary { color: #FFFFFF !important; }
+html[data-theme="dark"] .app-shell .app-btn-primary { color: #0A0A0A !important; }
+
+.dec-row { transition: background-color 150ms ease; }
+.dec-row:hover { background: color-mix(in srgb, var(--helm-fg) 2.5%, transparent); }
+.dec-row-reveal { opacity: 0; transition: opacity 150ms ease; }
+.dec-row:hover .dec-row-reveal,
+.dec-row-reveal:focus-visible { opacity: 1; }
+@media (hover: none) { .dec-row-reveal { opacity: 1; } }
+
+/* Yellow hint: High impact and Trenston's own suggestions. Darker gold on white for contrast. */
+.dec-dot-high { background: #C9A24B; }
+.dec-spark { color: #A88432; }
+html[data-theme="dark"] .dec-spark { color: #D4B45C; }
+

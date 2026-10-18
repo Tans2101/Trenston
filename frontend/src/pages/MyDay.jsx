@@ -312,10 +312,10 @@ export default function MyDay({ embedded = false, hideNeedsCall = false } = {}) 
           {needsCallEmpty ? (
             <GlassCard className="p-5">
               <p className="text-sm text-helm-fg">Nothing needs your call right now</p>
-              <p className="text-xs text-helm-muted mt-1">You&apos;re all caught up. Open Decision Center anytime to log a new call or refresh suggestions.</p>
+              <p className="text-xs text-helm-muted mt-1">You&apos;re all caught up. Open Decisions anytime to log a new call or ask Trenston for suggestions.</p>
             </GlassCard>
           ) : (
-            <div className="space-y-3">
+            <div className="border-t border-helm-line">
               {suggestions.map((s) => (
                 <SuggestionCard
                   key={s.id}
