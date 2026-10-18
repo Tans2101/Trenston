@@ -13,9 +13,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const frontendRoot = join(__dirname, "..");
 const ORIGIN = "https://www.trenston.com";
 
+const DESCRIPTION =
+  "Trenston is a Founder & CEO Operating System: web software that puts a company's money, sales, team, tasks and decisions in one place, so the person running the company can see what changed, what needs their decision, and what they can hand off. Each time you open it, the Briefing summarizes your live data. It flags departments that haven't been updated, ranks pending approvals in a Decision Center, and lets you ask questions in plain language. It also connects to QuickBooks, Xero, HubSpot, Slack and Google Calendar and Drive. It is made for founders and CEOs, but your team can work in it too. You invite them, and each person adds their own updates, tasks and records to their department's page, so the CEO sees everything in one place without chasing anyone.";
+
 export function buildLlmsTxt() {
-  const { PLANS, TAGLINE, CATEGORY, AUDIENCE } = loadMarketingPlans();
-  const what = marketingExport("WHAT_TRENSTON_IS") || "";
+  const { PLANS, TAGLINE, CATEGORY } = loadMarketingPlans();
   const who = marketingExport("WHO_HELM_IS_FOR") || [];
   const day = marketingExport("CEO_DAY") || [];
   const faq = marketingExport("HOME_FAQ") || [];
@@ -25,11 +27,7 @@ export function buildLlmsTxt() {
     "",
     `> ${CATEGORY}. ${TAGLINE}`,
     "",
-    "Trenston is web software that puts a company's money, sales, team, tasks, and decisions in one place,",
-    "so the person running the company can see what changed, what needs a decision, and what can be handed off.",
-    AUDIENCE,
-    "",
-    what,
+    DESCRIPTION,
     "",
     "## Who it is for",
     "",

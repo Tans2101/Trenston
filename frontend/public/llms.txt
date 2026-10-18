@@ -2,11 +2,7 @@
 
 > Founder & CEO Operating System. Run your business. Don't chase it.
 
-Trenston is web software that puts a company's money, sales, team, tasks, and decisions in one place,
-so the person running the company can see what changed, what needs a decision, and what can be handed off.
-Built for founders and CEOs running real operations, from your first hire to your hundredth.
-
-Trenston brings together what is happening across your company (money, sales, people, and day-to-day work) in one place, so you do not have to bounce between five tools or chase three people for a status update. It shows what needs a decision from you, lets you hand off what does not, and keeps a simple record of what happened.
+Trenston is a Founder & CEO Operating System: web software that puts a company's money, sales, team, tasks and decisions in one place, so the person running the company can see what changed, what needs their decision, and what they can hand off. Each time you open it, the Briefing summarizes your live data. It flags departments that haven't been updated, ranks pending approvals in a Decision Center, and lets you ask questions in plain language. It also connects to QuickBooks, Xero, HubSpot, Slack and Google Calendar and Drive. It is made for founders and CEOs, but your team can work in it too. You invite them, and each person adds their own updates, tasks and records to their department's page, so the CEO sees everything in one place without chasing anyone.
 
 ## Who it is for
 
