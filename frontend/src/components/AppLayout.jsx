@@ -8,6 +8,7 @@ import {
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
   PanelLeft, Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap, Network,
+  Waves, FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -804,6 +805,26 @@ function useQuickNavActions() {
         icon: <Plus className="w-4 h-4" />,
       }]
       : [];
+    if (byId.has("decisions") && (user?.granted_sections || []).includes("financials")) {
+      createActions.push({
+        id: "decision-ripple",
+        label: "See a decision's ripple",
+        to: "/app/decisions",
+        description: "Decisions",
+        keywords: ["ripple", "what if", "runway impact", "cash impact", "afford", "hire", "simulate"],
+        icon: <Waves className="w-4 h-4" />,
+      });
+    }
+    if (isOwner) {
+      createActions.push({
+        id: "import-file",
+        label: "Import a spreadsheet",
+        to: "/app/import",
+        description: "Set up",
+        keywords: ["import", "upload", "excel", "xlsx", "csv", "spreadsheet", "p&l", "budget", "set up from a file"],
+        icon: <FileSpreadsheet className="w-4 h-4" />,
+      });
+    }
 
     return {
       actions: [...createActions, ...navActions, ...deptActions, ...settingsActions, ...siteActions],
