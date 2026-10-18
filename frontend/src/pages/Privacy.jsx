@@ -13,7 +13,7 @@ export default function Privacy() {
 
         <p className="font-mono text-xs uppercase tracking-[0.25em] text-mk-navy mb-4">Legal</p>
         <h1 className="font-display text-3xl md:text-4xl font-medium tracking-tight text-mk-black">Privacy Policy</h1>
-        <p className="text-mk-gray text-sm mt-3">Last updated: September 24, 2026</p>
+        <p className="text-mk-gray text-sm mt-3">Last updated: October 18, 2026</p>
 
         <div className="mt-10 space-y-8 text-[15px] text-mk-black/80 leading-relaxed">
           <section>
@@ -173,12 +173,14 @@ export default function Privacy() {
             <p>
               Trenston uses a third-party AI provider, <span className="text-mk-black">Anthropic (Claude)</span>, for
               features including Ask Trenston chat, document and bill/receipt extraction, Decision Engine suggestions,
-              Weekly Pack and Briefing summaries, and report digests. Ask Trenston chat messages (your questions and
+              Weekly Pack and Briefing summaries, report digests, and spreadsheet import. Ask Trenston chat messages (your questions and
               assistant replies) are stored in Trenston&apos;s database for your user in the workspace so you can reopen
               the conversation. When you use Ask Trenston, Trenston transmits a company snapshot to Anthropic that can
               include financial figures (when your role may access Financials), pipeline and department queue data you
               can access, people-roster counts, risk and open-decision titles, plus recent chat turns for multi-turn
-              context. Other AI features transmit the document or workspace records needed for that request. Anthropic
+              context. When you import a spreadsheet, Trenston sends the sheet names, header row, a few sample rows,
+              and line labels so the AI can match columns; the whole file is not sent, and every value saved comes
+              from your file, not from the AI. Other AI features transmit the document or workspace records needed for that request. Anthropic
               uses that context to generate the requested response or suggested entries for your workspace. Do not
               submit data you are not authorized to process with third-party AI providers. Trenston does not claim SOC 2,
               HIPAA, GDPR, or similar certifications based solely on this disclosure.

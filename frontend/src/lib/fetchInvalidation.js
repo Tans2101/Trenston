@@ -33,6 +33,9 @@ const MUTATION_INVALIDATIONS = [
   { match: "/integrations", paths: ["/integrations", "/calendar", "/briefing", "/financials"] },
   { match: "/members", paths: ["/members", "/people", "/access/sections"] },
   { match: "/departments", paths: ["/departments"] },
+  // Quick import (file drop) adds rows to many pages at once; undo removes them.
+  { match: "/quick-import/confirm", paths: ["/financials", "/briefing", "/telemetry", "/deals", "/tasks", "/me/work-items", "/calendar", "/production/work-orders", "/procurement/requests", "/departments", "/quick-import"] },
+  { match: "/quick-import/qimp_", paths: ["/financials", "/briefing", "/telemetry", "/deals", "/tasks", "/me/work-items", "/calendar", "/production/work-orders", "/procurement/requests", "/quick-import"] },
   // Scenario CRUD — keep the modeling page's list fresh across tabs.
   { match: "/modeling/scenarios", paths: ["/modeling/scenarios"] },
 ];

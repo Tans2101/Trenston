@@ -8493,6 +8493,419 @@ async def import_financials_csv_confirm(
     return {"ok": True, "committed": True, "imported_count": len(docs), "entries": docs}
 
 
+# ------------------------- Quick import: drop a file, get a company -------------------------
+import quick_import as qi
+
+QUICK_IMPORT_AI_HOURLY = 20
+QUICK_IMPORT_MAX_RECORDS = 20000
+
+
+def _require_import_owner(principal: dict) -> None:
+    if not dept_access.is_workspace_ceo(principal):
+        raise HTTPException(status_code=403, detail="Only the company owner can import files")
+
+
+async def _quick_import_ai_plan(sheet: dict, plan: dict) -> Optional[dict]:
+    """Ask the fast model to map columns. Any failure falls back to the rules plan."""
+    if not plan.get("row_count"):
+        return None
+    try:
+        text = await asyncio.wait_for(
+            helm_llm.complete(
+                qi.AI_SYSTEM, qi.ai_prompt_for_sheet(sheet, plan),
+                max_tokens=1500, model=helm_llm.ANTHROPIC_MODEL_FAST,
+            ),
+            timeout=25,
+        )
+    except Exception:
+        logger.warning("quick import: AI mapping failed for a sheet", exc_info=True)
+        return None
+    return qi.parse_ai_json(text)
+
+
+@api_router.post("/quick-import/preview")
+async def quick_import_preview(
+    file: UploadFile = File(...),
+    year: Optional[int] = Form(None),
+    principal=Depends(get_principal),
+):
+    """Read an Excel/CSV file and show what Trenston would create. Writes nothing."""
+    _require_import_owner(principal)
+    ws_id = principal["workspace_id"]
+    raw = await file.read(qi.MAX_BYTES + 1)
+    try:
+        sheets = qi.read_workbook(raw, file.filename or "")
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:
+        logger.exception("quick import: could not read file")
+        raise HTTPException(status_code=400, detail="This file could not be read. Try saving it again as .xlsx or .csv")
+
+    ws_now = await _workspace_now(ws_id)
+    current_month = ws_now.strftime("%Y-%m")
+    current_year = ws_now.year
+    if year and 2000 <= int(year) <= ws_now.year:
+        current_year = int(year)
+
+    plans = [qi.analyze_sheet(s, current_year=current_year) for s in sheets]
+    used_ai = False
+    if helm_llm.anthropic_configured() and await doc_rate_limit.acquire_event_slot(
+        db, ws_id, "quick_import_ai", QUICK_IMPORT_AI_HOURLY,
+    ):
+        ai_results = await asyncio.gather(*[_quick_import_ai_plan(s, p) for s, p in zip(sheets, plans)])
+        plans = [qi.merge_ai_plan(p, a, current_year=current_year) for p, a in zip(plans, ai_results)]
+        used_ai = any(ai_results)
+
+    enabled = await dept_migrate.get_enabled_departments_by_type(db, ws_id, ["production", "procurement"])
+    currency = await _workspace_currency(ws_id)
+    out_sheets = []
+    total = 0
+    for idx, (sheet, plan) in enumerate(zip(sheets, plans)):
+        kind = plan["kind"]
+        built = {"records": [], "skipped": [], "notes": []}
+        if kind in qi.IMPORTABLE_KINDS:
+            built = qi.build_records(sheet, plan, current_month=current_month, current_year=current_year)
+        records = built["records"]
+        if total + len(records) > QUICK_IMPORT_MAX_RECORDS:
+            records = records[: max(0, QUICK_IMPORT_MAX_RECORDS - total)]
+            built["notes"].append("This file is very large, so only part of it was read.")
+        total += len(records)
+        if kind == qi.KIND_DEALS and any(r.get("stage") == "won" for r in records):
+            built["notes"].append(
+                "Won deals are added to Sales as won. Their revenue is not added to Financials, "
+                "so nothing is counted twice if your P&L is in this file too."
+            )
+        mapped_cols = set(int(i) for i in (plan.get("columns") or {}).values())
+        if plan.get("label_column") is not None:
+            mapped_cols.add(int(plan["label_column"]))
+        mapped_cols.update(int(k) for k in (plan.get("month_columns") or {}).keys())
+        unused = [
+            h for i, h in enumerate(plan.get("headers") or [])
+            if h and i not in mapped_cols
+        ][:12] if kind in qi.IMPORTABLE_KINDS else []
+        dept_type = qi.KIND_DEPARTMENT.get(kind)
+        line_types = []
+        if kind == qi.KIND_FINANCIAL_WIDE:
+            line_types = [{"label": k, "type": v} for k, v in (plan.get("line_types") or {}).items()]
+        out_sheets.append({
+            "index": idx,
+            "name": sheet["name"],
+            "kind": kind,
+            "kind_label": qi.KIND_LABEL.get(kind, kind),
+            "confidence": plan.get("confidence"),
+            "source": plan.get("source"),
+            "row_count": plan.get("row_count", 0),
+            "columns": qi.column_labels(plan),
+            "unused_columns": unused,
+            "records": records,
+            "skipped": built["skipped"][:30],
+            "skipped_count": len(built["skipped"]),
+            "notes": built["notes"],
+            "summary": qi.summarize(kind, records) if kind in qi.IMPORTABLE_KINDS else {},
+            "line_types": line_types,
+            "department": dept_type,
+            "department_enabled": bool(enabled.get(dept_type)) if dept_type else True,
+            "assumed_year": plan.get("assumed_year"),
+        })
+    return {
+        "ok": True,
+        "filename": (file.filename or "")[:200],
+        "used_ai": used_ai,
+        "currency": currency,
+        "current_month": current_month,
+        "sheets": out_sheets,
+    }
+
+
+class QuickImportSheetIn(BaseModel):
+    name: str = ""
+    kind: str
+    records: list[dict] = Field(default_factory=list)
+
+
+class QuickImportConfirmIn(BaseModel):
+    filename: str = ""
+    sheets: list[QuickImportSheetIn] = Field(default_factory=list, max_length=qi.MAX_SHEETS)
+
+
+def _quick_import_fingerprint(batches: dict) -> str:
+    import hashlib
+    import json
+
+    blob = json.dumps(batches, separators=(",", ":"), sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+@api_router.post("/quick-import/confirm")
+async def quick_import_confirm(payload: QuickImportConfirmIn, principal=Depends(get_principal)):
+    """Create the previewed records. Every record is validated again here."""
+    from pymongo.errors import DuplicateKeyError
+
+    _require_import_owner(principal)
+    ws_id = principal["workspace_id"]
+    ws_now = await _workspace_now(ws_id)
+    current_month = ws_now.strftime("%Y-%m")
+    batches: dict[str, list[dict]] = {k: [] for k in ("financial", "deal", "task", "work_order", "purchase_request")}
+    for sheet in payload.sheets:
+        kind = (sheet.kind or "").strip()
+        if kind not in qi.IMPORTABLE_KINDS:
+            continue
+        rk = qi.RECORD_KIND[kind]
+        for raw in sheet.records[: qi.MAX_ROWS_PER_SHEET]:
+            rec = qi.clean_record(rk, raw, current_month=current_month)
+            if rec:
+                batches[rk].append(rec)
+    total = sum(len(v) for v in batches.values())
+    if not total:
+        raise HTTPException(status_code=400, detail="Nothing to import. Tick at least one sheet with rows")
+    if total > QUICK_IMPORT_MAX_RECORDS:
+        raise HTTPException(status_code=400, detail="Too many rows in one import (max 20,000)")
+
+    fingerprint = _quick_import_fingerprint(batches)
+    prior = await db.quick_imports.find_one(
+        {"workspace_id": ws_id, "fingerprint": fingerprint, "undone_at": None}, {"_id": 0, "fingerprint": 0},
+    )
+    if prior:
+        return {"ok": True, "replayed": True, "batch": prior}
+
+    batch_id = f"qimp_{uuid.uuid4().hex[:12]}"
+    now = datetime.now(timezone.utc).isoformat()
+    counts = {k: len(v) for k, v in batches.items()}
+    batch = {
+        "id": batch_id,
+        "workspace_id": ws_id,
+        "fingerprint": fingerprint,
+        "filename": (payload.filename or "")[:200],
+        "counts": counts,
+        "enabled_departments": [],
+        "created_by": principal["user_id"],
+        "created_at": now,
+        "undone_at": None,
+    }
+    try:
+        await db.quick_imports.insert_one(dict(batch))
+    except DuplicateKeyError:
+        prior = await db.quick_imports.find_one({"workspace_id": ws_id, "fingerprint": fingerprint}, {"_id": 0, "fingerprint": 0})
+        return {"ok": True, "replayed": True, "batch": prior}
+
+    enabled_now: list[str] = []
+    dept_ids: dict[str, str] = {}
+    for dtype, rk in (("production", "work_order"), ("procurement", "purchase_request")):
+        if not batches[rk]:
+            continue
+        existing = await dept_migrate.get_enabled_department(db, ws_id, dtype)
+        if existing:
+            dept_ids[dtype] = existing["department_id"]
+            continue
+        res = await enable_department(EnableDepartmentInput(type=dtype), principal)
+        dept_ids[dtype] = res["department"]["department_id"]
+        enabled_now.append(dtype)
+
+    creator_name = (principal.get("name") or principal.get("email") or "").strip()
+    stamp = {"import_batch_id": batch_id, "created_at": now}
+    try:
+        if batches["financial"]:
+            finance_dept_id = await dept_migrate.finance_department_id(db, ws_id)
+            home_currency = await _workspace_currency(ws_id)
+            docs = []
+            for r in batches["financial"]:
+                docs.append({
+                    "id": f"fe_{uuid.uuid4().hex[:10]}",
+                    "workspace_id": ws_id,
+                    "department_id": finance_dept_id,
+                    "type": r["type"],
+                    "category": r["category"],
+                    "name": normalize_entry_name(r["name"], r["category"]),
+                    "amount": r["amount"],
+                    **amap.money_fields(r["amount"], currency=home_currency, home_currency=home_currency),
+                    "month": r["month"],
+                    "recurring": False,
+                    "note": r["note"],
+                    "source": "quick_import",
+                    "created_by": principal["user_id"],
+                    **stamp,
+                })
+            await db.financial_entries.insert_many(docs)
+            invalidate_financials_cache(ws_id)
+        if batches["deal"]:
+            sales_dept_id = await dept_migrate.sales_department_id(db, ws_id)
+            docs = []
+            for r in batches["deal"]:
+                docs.append({
+                    "id": f"deal_{uuid.uuid4().hex[:8]}",
+                    "workspace_id": ws_id,
+                    "department_id": sales_dept_id,
+                    "name": r["name"],
+                    "company": r["company"],
+                    "value": r["value"],
+                    "stage": r["stage"],
+                    "owner_user_id": None,
+                    "owner_name": r["owner_name"] or creator_name,
+                    "created_by_user_id": principal["user_id"],
+                    "created_by_name": creator_name,
+                    "close_date": r["close_date"],
+                    "next_step": r["next_step"],
+                    "next_step_date": "",
+                    "source": "quick_import",
+                    "updated_at": now,
+                    **stamp,
+                })
+            await db.deals.insert_many(docs)
+        if batches["task"]:
+            assignee_name = principal.get("name") or principal.get("email") or "Me"
+            items = []
+            for r in batches["task"]:
+                item = {
+                    "id": f"t_{uuid.uuid4().hex[:8]}",
+                    "title": r["title"],
+                    "assignee": assignee_name,
+                    "assignee_user_id": principal["user_id"],
+                    "priority": r["priority"],
+                    "column": r["column"],
+                    "tag": r["tag"],
+                    "due": r["due"],
+                    "progress": 100 if r["column"] == "done" else 0,
+                    "import_batch_id": batch_id,
+                }
+                if r["column"] == "done":
+                    item["done_at"] = now
+                items.append(item)
+            await get_ws(ws_id)  # makes sure the task board exists
+            await db.workspaces.update_one(
+                {"workspace_id": ws_id},
+                {"$push": {"tasks.items": {"$each": items}}},
+            )
+        if batches["work_order"]:
+            docs = []
+            for r in batches["work_order"]:
+                docs.append({
+                    "id": f"pwo_{uuid.uuid4().hex[:10]}",
+                    "department_id": dept_ids["production"],
+                    "workspace_id": ws_id,
+                    "reference": r["reference"][:200],
+                    "product": r["product"][:200],
+                    "quantity_planned": r["quantity_planned"],
+                    "quantity_produced": None,
+                    "customer": r["customer"][:200],
+                    "priority": r["priority"],
+                    "due_date": r["due_date"],
+                    "status": "in_production",
+                    "blocked": False,
+                    "blocked_reason": None,
+                    "linked_procurement_request_id": None,
+                    "linked_maintenance_ticket_id": None,
+                    "source_deal_id": None,
+                    "assigned_user_ids": [],
+                    "notes": r["notes"],
+                    "unit": "",
+                    "yield_tracking_enabled": False,
+                    "expected_yield_pct": None,
+                    "input_unit": "",
+                    "updated_at": now,
+                    "completed_at": None,
+                    **stamp,
+                })
+            await db.production_work_orders.insert_many(docs)
+        if batches["purchase_request"]:
+            docs = []
+            for r in batches["purchase_request"]:
+                docs.append({
+                    "id": f"preq_{uuid.uuid4().hex[:10]}",
+                    "department_id": dept_ids["procurement"],
+                    "workspace_id": ws_id,
+                    "item": r["item"],
+                    "quantity": r["quantity"],
+                    "vendor_name": r["vendor_name"],
+                    "cost": r["cost"],
+                    "requested_by": principal["user_id"],
+                    "approved_by": None,
+                    "status": "requested",
+                    "notes": r["notes"],
+                    "expected_delivery_date": r["expected_delivery_date"],
+                    "priority": r["priority"],
+                    "vendor_selected_at": now if r["vendor_name"] else None,
+                    "ordered_at": None,
+                    "actual_delivery_date": None,
+                    "updated_at": now,
+                    **stamp,
+                })
+            await db.procurement_requests.insert_many(docs)
+    except Exception:
+        logger.exception("quick import: insert failed, rolling back batch %s", batch_id)
+        await _quick_import_remove_records(ws_id, batch_id)
+        await db.quick_imports.delete_one({"id": batch_id, "workspace_id": ws_id})
+        raise HTTPException(status_code=500, detail="Import failed. Nothing was added, please try again")
+
+    if enabled_now:
+        await db.quick_imports.update_one({"id": batch_id}, {"$set": {"enabled_departments": enabled_now}})
+        batch["enabled_departments"] = enabled_now
+    invalidate_workspace_list_cache(ws_id)
+    parts = []
+    labels = {"financial": "money entr{}", "deal": "deal{}", "task": "task{}",
+              "work_order": "production order{}", "purchase_request": "purchase request{}"}
+    for k, n in counts.items():
+        if n:
+            word = labels[k].format("y" if (k == "financial" and n == 1) else ("ies" if k == "financial" else ("" if n == 1 else "s")))
+            parts.append(f"{n} {word}")
+    await log_activity(
+        principal, "workspace", "quick_import",
+        f"Imported {', '.join(parts)} from {batch['filename'] or 'a file'}",
+        {"counts": counts, "batch_id": batch_id},
+    )
+    await _product_event(ws_id, principal["user_id"], "quick_import_used", {"counts": counts})
+    batch.pop("fingerprint", None)
+    return {"ok": True, "replayed": False, "batch": batch}
+
+
+async def _quick_import_remove_records(ws_id: str, batch_id: str) -> dict:
+    q = {"workspace_id": ws_id, "import_batch_id": batch_id}
+    removed = {}
+    for coll in ("financial_entries", "deals", "production_work_orders", "procurement_requests"):
+        res = await db[coll].delete_many(q)
+        removed[coll] = res.deleted_count
+    await db.workspaces.update_one(
+        {"workspace_id": ws_id},
+        {"$pull": {"tasks.items": {"import_batch_id": batch_id}}},
+    )
+    invalidate_financials_cache(ws_id)
+    invalidate_workspace_list_cache(ws_id)
+    return removed
+
+
+@api_router.get("/quick-import/recent")
+async def quick_import_recent(principal=Depends(get_principal)):
+    _require_import_owner(principal)
+    rows = await db.quick_imports.find(
+        {"workspace_id": principal["workspace_id"], "undone_at": None},
+        {"_id": 0, "fingerprint": 0},
+    ).sort("created_at", -1).to_list(5)
+    return {"imports": rows}
+
+
+@api_router.delete("/quick-import/{batch_id}")
+async def quick_import_undo(batch_id: str, principal=Depends(get_principal)):
+    """Remove everything one import added (including later edits to those records)."""
+    _require_import_owner(principal)
+    ws_id = principal["workspace_id"]
+    batch = await db.quick_imports.find_one({"id": batch_id, "workspace_id": ws_id}, {"_id": 0})
+    if not batch:
+        raise HTTPException(status_code=404, detail="Import not found")
+    if batch.get("undone_at"):
+        return {"ok": True, "already_undone": True}
+    removed = await _quick_import_remove_records(ws_id, batch_id)
+    # Free the fingerprint so the same file can be imported again later.
+    await db.quick_imports.update_one(
+        {"id": batch_id, "workspace_id": ws_id},
+        {"$set": {"undone_at": datetime.now(timezone.utc).isoformat(), "fingerprint": f"undone:{batch_id}"}},
+    )
+    await log_activity(
+        principal, "workspace", "quick_import.undo",
+        f"Undid the import from {batch.get('filename') or 'a file'}",
+        {"batch_id": batch_id, "removed": removed},
+    )
+    return {"ok": True, "removed": removed}
+
+
 @api_router.get("/tasks")
 async def tasks(principal=Depends(get_principal)):
     c = await get_ws(principal["workspace_id"])
@@ -17723,6 +18136,8 @@ _WORKSPACE_COLLECTIONS = (
     "automation_rules", "automation_events", "anomaly_alerts",
     # CSV import fingerprints (duplicate-import guard). Also expire after 30 days.
     "csv_import_receipts",
+    # Quick import batches (file drop): what each import added, for undo.
+    "quick_imports",
 )
 
 # Credentials for the public API and AI-assistant connectors. Removed with the
@@ -19810,6 +20225,11 @@ async def _ensure_indexes():
             "name": "ws_csv_import_fingerprint",
         }),
         (db.csv_import_receipts, [("created_at", 1)], {"expireAfterSeconds": 60 * 60 * 24 * 30}),
+        (db.quick_imports, [("workspace_id", 1), ("fingerprint", 1)], {
+            "unique": True,
+            "name": "ws_quick_import_fingerprint",
+        }),
+        (db.quick_imports, [("workspace_id", 1), ("created_at", -1)], {}),
         (db.documents, [("workspace_id", 1)], {}),
         (db.documents, [("workspace_id", 1), ("uploaded_at", -1)], {}),
         (db.documents, [("id", 1)], {"unique": True}),

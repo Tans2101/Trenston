@@ -58,6 +58,7 @@ export default function Briefing({ asHome = false } = {}) {
   const navigate = useNavigate();
 
   const canClearSample = hasPerm(user, "workspace:edit");
+  const isOwner = user?.role === "owner" || user?.pack === "owner";
   const sampleBannerKey = company?.workspace_id
     ? `helm-sample-banner-${company.workspace_id}`
     : null;
@@ -300,15 +301,33 @@ export default function Briefing({ asHome = false } = {}) {
           >
             <p className="font-display text-lg text-helm-fg tracking-tight">Ready when you are</p>
             <p className="mt-1.5 text-sm text-helm-muted leading-relaxed">
-              Log a financial entry and invite your team so Briefing can show real numbers instead of placeholders.
+              {isOwner
+                ? "Drop in a spreadsheet you already keep, like a P&L, client list or job orders, and Trenston fills itself in. Or add entries by hand and invite your team."
+                : "Log a financial entry and invite your team so Briefing can show real numbers instead of placeholders."}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
+              {isOwner && (
+                <button
+                  type="button"
+                  data-testid="briefing-setup-import"
+                  onClick={() => navigate("/app/import")}
+                  className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+                >
+                  Import a spreadsheet
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              )}
               {user?.can_edit_financials !== false && (
                 <button
                   type="button"
                   data-testid="briefing-setup-financials"
                   onClick={() => navigate("/app/financials#log-mrr")}
-                  className="inline-flex items-center gap-2 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2.5 hover:bg-helm-gold-hover transition-colors"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-md text-sm px-4 py-2.5 transition-colors",
+                    isOwner
+                      ? "border border-helm-line bg-helm-card text-helm-fg hover:bg-helm-fg/[0.04]"
+                      : "bg-helm-gold text-helm-navy font-medium hover:bg-helm-gold-hover",
+                  )}
                 >
                   Add financial entry
                   <ArrowUpRight className="w-3.5 h-3.5" />
@@ -356,6 +375,17 @@ export default function Briefing({ asHome = false } = {}) {
                 >
                   {clearSampleBusy ? "Removing…" : "Remove sample & start fresh"}
                 </button>
+                {isOwner && (
+                  <button
+                    type="button"
+                    data-testid="sample-banner-import-btn"
+                    onClick={() => navigate("/app/import")}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-3.5 py-2 hover:bg-helm-fg/[0.04]"
+                  >
+                    Import my own spreadsheet
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
                 <button
                   type="button"
                   data-testid="sample-banner-settings-btn"
