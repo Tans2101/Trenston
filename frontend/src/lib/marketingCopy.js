@@ -10,6 +10,8 @@ export const FOUNDER_CREDIT = `${FOUNDER_NAME}, ${FOUNDER_ROLE}`;
 export const FOUNDER_LINKEDIN_URL = "https://www.linkedin.com/in/tansherdhawan/";
 export const PUBLIC_CONTACT_EMAIL = "contact@trenston.com";
 export const PUBLIC_CONTACT_MAILTO = `mailto:${PUBLIC_CONTACT_EMAIL}`;
+/** Company LinkedIn page — footer link and Organization JSON-LD sameAs. */
+export const PUBLIC_LINKEDIN_URL = "https://www.linkedin.com/company/trenston/";
 export const PUBLIC_INSTAGRAM_HANDLE = "@usetrenston";
 export const PUBLIC_INSTAGRAM_URL = "https://www.instagram.com/usetrenston/";
 export const FOUNDED_DATE = "September 2026";

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useMarketingAuth } from "@/hooks/useMarketingAuth";
-import { ArrowUpRight, Instagram } from "lucide-react";
+import { ArrowUpRight, Instagram, Linkedin } from "lucide-react";
 import FounderCredit from "@/components/marketing/FounderCredit";
 import MarketingLogo from "@/components/marketing/MarketingLogo";
 import {
@@ -10,6 +10,7 @@ import {
   PUBLIC_CONTACT_MAILTO,
   PUBLIC_INSTAGRAM_HANDLE,
   PUBLIC_INSTAGRAM_URL,
+  PUBLIC_LINKEDIN_URL,
 } from "@/lib/marketingCopy";
 
 const FOOTER_LINKS = {
@@ -108,6 +109,16 @@ export default function MarketingFooter() {
             >
               <Instagram className="h-4 w-4" aria-hidden />
               {PUBLIC_INSTAGRAM_HANDLE}
+            </a>
+            <a
+              href={PUBLIC_LINKEDIN_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Trenston on LinkedIn"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-white"
+            >
+              <Linkedin className="h-4 w-4" aria-hidden />
+              LinkedIn
             </a>
             <Link to="/privacy" className="transition-colors hover:text-white">Privacy</Link>
             <Link to="/terms" className="transition-colors hover:text-white">Terms</Link>
