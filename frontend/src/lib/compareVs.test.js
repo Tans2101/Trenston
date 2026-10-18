@@ -76,6 +76,6 @@ describe("comparison pages", () => {
 
   test("homepage problem and why-us sections are filled in", () => {
     expect(story.problem.items.length).toBeGreaterThanOrEqual(3);
-    expect(story.whyUs.items.length).toBe(3);
+    expect(story.whyUs.items.length).toBe(4);
   });
 });

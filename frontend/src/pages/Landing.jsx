@@ -193,7 +193,7 @@ export default function Landing() {
             intro={homeStory.whyUs.intro}
             action={<MkLink to="/compare" className="text-mk-navy">{homeStory.whyUs.linkLabel}</MkLink>}
           />
-          <div className="mt-16 grid gap-12 md:grid-cols-3 md:gap-10">
+          <div className="mt-16 grid gap-12 md:grid-cols-2 md:gap-10 lg:grid-cols-4">
             {homeStory.whyUs.items.map((it, i) => (
               <RuledItem key={it.title} i={i} index={i + 1} title={it.title} body={it.body} />
             ))}

@@ -25,7 +25,7 @@
   "whyUs": {
     "eyebrow": "Why Trenston",
     "title": "Built around the person who has to decide.",
-    "intro": "Three things we chose to do differently.",
+    "intro": "Four things we chose to do differently.",
     "items": [
       {
         "title": "It tells you what it does not know",
@@ -38,6 +38,10 @@
       {
         "title": "It sits on top of your tools",
         "body": "Connect QuickBooks, Xero, SAP Business One, HubSpot and Slack instead of replacing them. Start free and explore a built-in demo company before you enter anything."
+      },
+      {
+        "title": "It is a team workspace, not a solo dashboard",
+        "body": "You hand work to managers and they work in it too. Each person sees their own departments, assignees get an email when work is delegated, and financial data stays limited to people you grant Financials access."
       }
     ],
     "linkLabel": "See how Trenston compares"
