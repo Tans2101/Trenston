@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Check, X, Sparkles, PenLine, ArrowUpRight } from "lucide-react";
+import { Check, X, Sparkles, PenLine, ArrowUpRight, Waves } from "lucide-react";
 import CirDeleteBtn from "@/components/CirDeleteBtn";
 import { motion, useReducedMotion } from "motion/react";
 import { GlassCard } from "@/components/kit";
@@ -48,6 +48,8 @@ export default function DecisionCard({
   selfOptionLabel,
   onEdit,
   onDelete,
+  ripple = null,
+  onRipple = null,
 }) {
   const isAi = d.source === "ai_suggested";
   const reduceMotion = useReducedMotion();
@@ -129,6 +131,24 @@ export default function DecisionCard({
           </div>
           <h3 className="text-lg text-helm-fg font-medium tracking-tight">{d.title}</h3>
           {d.description && <p className="text-sm text-helm-muted mt-1">{d.description}</p>}
+          {onRipple && (
+            <button
+              type="button"
+              onClick={() => onRipple(d)}
+              data-testid={`ripple-${d.id}`}
+              className={cn(
+                "mt-2 mr-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition-colors",
+                ripple?.tone === "worse"
+                  ? "border-helm-status-negative/35 bg-helm-status-negative/10 text-helm-fg hover:bg-helm-status-negative/15"
+                  : ripple?.tone === "better"
+                    ? "border-helm-status-positive/35 bg-helm-status-positive/10 text-helm-fg hover:bg-helm-status-positive/15"
+                    : "border-helm-line text-helm-muted hover:text-helm-fg hover:bg-helm-fg/[0.04]",
+              )}
+            >
+              <Waves className="h-3.5 w-3.5 text-helm-gold" aria-hidden />
+              {ripple?.label || "See the ripple"}
+            </button>
+          )}
           {source?.to && (
             <Link
               to={source.to}

@@ -5830,7 +5830,80 @@ async def delete_decision(decision_id: str, principal=Depends(require_section("d
     # decision row was actually removed.
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Not found")
+    await db.decision_effects.delete_one({"workspace_id": c["workspace_id"], "decision_id": decision_id})
     invalidate_workspace_list_cache(principal["workspace_id"], "me_work", "calendar")
+    return {"ok": True}
+
+
+# ------------------------- Decision ripple: what a decision does to cash and runway -------------------------
+# Stored apart from the decision itself so money figures never travel with
+# decision lists (Briefing, My Day, API) to people without Financials access.
+
+class DecisionRippleIn(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+    direction: str = Field("cost", pattern="^(cost|income)$")
+    cadence: str = Field("monthly", pattern="^(monthly|once)$")
+    amount: float = Field(..., gt=0, le=modeling.MAX_MONEY)
+    start_offset: int = Field(1, ge=1, le=12)
+
+
+async def _require_ripple_access(principal: dict) -> None:
+    if not await can_access_financials(principal):
+        raise HTTPException(
+            status_code=403,
+            detail={"reason": "permission", "message": FINANCIALS_ACCESS_DENIED_MESSAGE},
+        )
+
+
+@api_router.get("/decisions/ripple")
+async def decision_ripple_data(principal=Depends(get_principal)):
+    """Baseline from real Financials plus any saved decision effects."""
+    await _require_ripple_access(principal)
+    ws_id = principal["workspace_id"]
+    fin = await compute_financials(ws_id)
+    rows = await db.decision_effects.find({"workspace_id": ws_id}, {"_id": 0, "workspace_id": 0}).to_list(500)
+    return {
+        "baseline": modeling_baseline_from_fin(fin),
+        "effects": {r["decision_id"]: r for r in rows},
+        "can_edit": await can_section_write(principal, "decisions", "decisions:act"),
+    }
+
+
+@api_router.put("/decisions/{decision_id}/ripple")
+async def save_decision_ripple(
+    decision_id: str,
+    payload: DecisionRippleIn,
+    principal=Depends(require_section("decisions", "decisions:act")),
+):
+    await _require_ripple_access(principal)
+    ws_id = principal["workspace_id"]
+    c = await get_ws(ws_id)
+    if not any(d.get("id") == decision_id for d in (c.get("decisions") or [])):
+        raise HTTPException(status_code=404, detail="Decision not found")
+    doc = {
+        "decision_id": decision_id,
+        "direction": payload.direction,
+        "cadence": payload.cadence,
+        "amount": round(float(payload.amount), 2),
+        "start_offset": int(payload.start_offset),
+        "updated_by": principal["user_id"],
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.decision_effects.update_one(
+        {"workspace_id": ws_id, "decision_id": decision_id},
+        {"$set": doc, "$setOnInsert": {"workspace_id": ws_id}},
+        upsert=True,
+    )
+    return {"ok": True, "effect": doc}
+
+
+@api_router.delete("/decisions/{decision_id}/ripple")
+async def clear_decision_ripple(
+    decision_id: str,
+    principal=Depends(require_section("decisions", "decisions:act")),
+):
+    await _require_ripple_access(principal)
+    await db.decision_effects.delete_one({"workspace_id": principal["workspace_id"], "decision_id": decision_id})
     return {"ok": True}
 
 
@@ -18138,6 +18211,8 @@ _WORKSPACE_COLLECTIONS = (
     "csv_import_receipts",
     # Quick import batches (file drop): what each import added, for undo.
     "quick_imports",
+    # Money effect a decision would have (Ripple on Decisions).
+    "decision_effects",
 )
 
 # Credentials for the public API and AI-assistant connectors. Removed with the
@@ -20230,6 +20305,7 @@ async def _ensure_indexes():
             "name": "ws_quick_import_fingerprint",
         }),
         (db.quick_imports, [("workspace_id", 1), ("created_at", -1)], {}),
+        (db.decision_effects, [("workspace_id", 1), ("decision_id", 1)], {"unique": True, "name": "ws_decision_effect"}),
         (db.documents, [("workspace_id", 1)], {}),
         (db.documents, [("workspace_id", 1), ("uploaded_at", -1)], {}),
         (db.documents, [("id", 1)], {"unique": True}),

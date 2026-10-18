@@ -19,6 +19,9 @@ import {
 } from "@/lib/decisionsUi";
 import { cn } from "@/lib/utils";
 import { confirmAction } from "@/components/ConfirmHost";
+import RippleDialog from "@/components/RippleDialog";
+import { useAuth } from "@/context/AuthContext";
+import { baselineReady, changeTone, rippleProjection, runwayChangeLabel } from "@/lib/ripple";
 
 const emptyForm = () => ({ title: "", category: "General", description: "", recommendation: "", due: "", impact: "Medium" });
 
@@ -40,6 +43,18 @@ export default function Decisions() {
   // Members only needed when the viewer can act (create / delegate).
   const { data: membersData } = useFetch(data?.can_act ? "/members" : null);
   const { busy, act, approveSuggestion, dismissSuggestion } = useDecisionActions(reload);
+  const { user } = useAuth();
+  // Ripple uses real money figures, so only people with Financials access load it.
+  const canSeeFinancials = (user?.granted_sections || []).includes("financials");
+  const { data: rippleData, reload: reloadRipple } = useFetch(canSeeFinancials ? "/decisions/ripple" : null);
+  const [rippleFor, setRippleFor] = useState(null);
+  const rippleChip = (d) => {
+    const saved = rippleData?.effects?.[d.id];
+    if (!saved || !baselineReady(rippleData?.baseline).ok) return null;
+    const p = rippleProjection(rippleData.baseline, saved);
+    const label = runwayChangeLabel(p.base.runway, p.after.runway);
+    return label ? { label, tone: changeTone(p.base.runway, p.after.runway) } : null;
+  };
   const location = useLocation();
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -257,6 +272,8 @@ export default function Decisions() {
                   selfOptionLabel={selfOptionLabel}
                   onEdit={openEdit}
                   onDelete={del}
+                  ripple={rippleData ? rippleChip(d) : null}
+                  onRipple={rippleData ? setRippleFor : null}
                 />
               ))}
             </AnimatePresence>
@@ -310,6 +327,17 @@ export default function Decisions() {
             <button data-testid="save-decision-btn" onClick={save} disabled={saving} className="mt-5 w-full rounded-md bg-helm-gold text-helm-navy font-medium py-2.5 text-sm transition-colors hover:bg-helm-gold-hover disabled:opacity-60">{saving ? "Saving…" : editing ? "Save changes" : "Log decision"}</button>
           </GlassCard>
         </div>
+      )}
+      {rippleData && (
+        <RippleDialog
+          open={Boolean(rippleFor)}
+          onOpenChange={(v) => { if (!v) setRippleFor(null); }}
+          decision={rippleFor}
+          baseline={rippleData.baseline}
+          saved={rippleFor ? rippleData.effects?.[rippleFor.id] || null : null}
+          canEdit={Boolean(rippleData.can_edit)}
+          onSaved={reloadRipple}
+        />
       )}
     </div>
   );
