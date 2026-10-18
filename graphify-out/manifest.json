@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792306990.855995,
-    "seen": 1792307185.5667481,
-    "ast_hash": "025b4504472b2b15a2864842adfc34fa",
+    "mtime": 1792307777.3752007,
+    "seen": 1792307949.2476597,
+    "ast_hash": "d6473c555d343aa24511c488260d5dd4",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -888,9 +888,9 @@
     "semantic_hash": "f119bbfaabaf35ed7bccbb1118128779"
   },
   "backend/tests/test_people_members_sync.py": {
-    "mtime": 1791800106.044484,
-    "seen": 1792216269.7296157,
-    "ast_hash": "ee1bbc47c40503dc69f4260e681b5a13",
+    "mtime": 1792307777.3760705,
+    "seen": 1792307949.2479155,
+    "ast_hash": "85c9a962cb466e132e2c744f7d3910f1",
     "semantic_hash": ""
   },
   "backend/tests/test_plans.py": {
@@ -1092,9 +1092,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_workspace_deletion.py": {
-    "mtime": 1792222913.4542634,
-    "seen": 1792307185.5669959,
-    "ast_hash": "75041b3c4beb9404cef0bef0c012b0fb",
+    "mtime": 1792307620.5494063,
+    "seen": 1792307949.2480059,
+    "ast_hash": "67db67bce25778eebcaabb678e1ba894",
     "semantic_hash": ""
   },
   "backend/tests/test_workspace_is_pro_status.py": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1792307005.1229029,
-    "seen": 1792307185.5673163,
-    "ast_hash": "56e824a67367221e449ff1c86875ee1a",
+    "mtime": 1792307632.5946817,
+    "seen": 1792307949.2484193,
+    "ast_hash": "6b13f27697149130654e71265aecc692",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -5412,9 +5412,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_user_deleted.py": {
-    "mtime": 1792219942.7738984,
-    "seen": 1792307185.5668118,
-    "ast_hash": "8a3becf20ab028993eed63b2e8e746d3",
+    "mtime": 1792307620.5488725,
+    "seen": 1792307949.2477732,
+    "ast_hash": "88f19e9b7d5f262e5386628349fb248a",
     "semantic_hash": ""
   },
   "frontend/src/components/marketing/SocialProofBar.jsx": {
@@ -6435,6 +6435,12 @@
     "mtime": 1792222108.2129045,
     "seen": 1792307185.567436,
     "ast_hash": "c6fed2026ac8599381aece79828adf94",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_membership_cleanup.py": {
+    "mtime": 1792307916.0903318,
+    "seen": 1792307949.2478814,
+    "ast_hash": "7f9748176beff4895da7f3643c967e77",
     "semantic_hash": ""
   }
 }
