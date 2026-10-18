@@ -1314,9 +1314,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/HelmHowToUse.jsx": {
-    "mtime": 1792066748.2485764,
-    "seen": 1792320956.2157638,
-    "ast_hash": "2b0659af405287f93e2f9bc148c2885b",
+    "mtime": 1792332724.1119483,
+    "seen": 1792332814.5386853,
+    "ast_hash": "58d5dd9a55f88f41bd377acde885346b",
     "semantic_hash": ""
   },
   "frontend/src/components/HelmMark.jsx": {
@@ -2280,9 +2280,9 @@
     "semantic_hash": "a94e56f28ea80a82af47504d16d7e2f7"
   },
   "frontend/src/lib/changelog.json": {
-    "mtime": 1792331815.0870762,
-    "seen": 1792331850.6342635,
-    "ast_hash": "15b3e94f8c0ceed38706c4900e388b84",
+    "mtime": 1792332789.9068325,
+    "seen": 1792332814.538878,
+    "ast_hash": "bff86b077a50d7d453e0844405854b43",
     "semantic_hash": ""
   },
   "frontend/src/lib/clerkConfig.js": {
@@ -2400,9 +2400,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingCopy.js": {
-    "mtime": 1792320683.751052,
-    "seen": 1792320956.2159812,
-    "ast_hash": "30c1757bee5a9b8c8440b5e359a9544d",
+    "mtime": 1792332613.018316,
+    "seen": 1792332814.5389488,
+    "ast_hash": "78f16912447b35b46c7c3b850d6be2eb",
     "semantic_hash": ""
   },
   "frontend/src/lib/marketingHash.js": {
@@ -2508,10 +2508,10 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/AppHelp.jsx": {
-    "mtime": 1790515659.573568,
-    "seen": 1792320956.2160141,
-    "ast_hash": "c1365c294a17dcc920cfd3e6d68b0a48",
-    "semantic_hash": "c1365c294a17dcc920cfd3e6d68b0a48"
+    "mtime": 1792332613.019362,
+    "seen": 1792332814.5389915,
+    "ast_hash": "f203204f9eeb7fadfac7152d53563777",
+    "semantic_hash": ""
   },
   "frontend/src/pages/AskHelm.jsx": {
     "mtime": 1792070274.596608,
@@ -2580,10 +2580,10 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Help.jsx": {
-    "mtime": 1790588485.7424116,
-    "seen": 1792320956.2160304,
-    "ast_hash": "af59b0fb09b76a8c6e9efdbc2109fdf1",
-    "semantic_hash": "af59b0fb09b76a8c6e9efdbc2109fdf1"
+    "mtime": 1792332724.1128163,
+    "seen": 1792332814.5390108,
+    "ast_hash": "bf04691cd36e6187ca6d62d5510df0d3",
+    "semantic_hash": ""
   },
   "frontend/src/pages/Integrations.jsx": {
     "mtime": 1792129915.2349813,
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792331823.4580615,
-    "seen": 1792331850.6351879,
+    "mtime": 1792332782.9693916,
+    "seen": 1792332814.5405002,
     "ast_hash": "f0ecf2bac31f369d41e6571838abf7cc",
     "semantic_hash": ""
   },
