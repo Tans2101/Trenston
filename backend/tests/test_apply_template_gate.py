@@ -1,5 +1,9 @@
 """Unit tests for sample apply-template destructive gate."""
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
+
+os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
+os.environ.setdefault("DB_NAME", "test_apply_template_gate")
 
 import pytest
 from fastapi import HTTPException
@@ -10,7 +14,11 @@ from seed_data import build_workspace
 
 @pytest.mark.asyncio
 async def test_sample_apply_allowed_during_onboarding():
+    """Post-CompanySetup onboarding: setup done, template wizard still open."""
     ws = build_workspace("ws1", "Acme", "u1", empty=True)
+    ws["company_setup_done"] = True
+    ws["industry"] = "SaaS / Software"
+    ws["has_team"] = False
     assert ws["onboarding_done"] is False
     ws_update = AsyncMock()
     fin_delete = AsyncMock()
@@ -36,6 +44,29 @@ async def test_sample_apply_allowed_during_onboarding():
     assert out == {"ok": True}
     fin_delete.assert_awaited_once()
     fin_insert.assert_awaited_once()
+    update = ws_update.await_args.args[1]["$set"]
+    assert update["industry"] == "SaaS / Software"
+    assert update["has_team"] is False
+    assert update["company_setup_done"] is True
+
+
+@pytest.mark.asyncio
+async def test_sample_apply_rejected_before_company_setup():
+    ws = build_workspace("ws1", "Acme", "u1", empty=True)
+    assert ws["company_setup_done"] is False
+    mock_db = MagicMock()
+    mock_db.financial_entries.find_one = AsyncMock(return_value=None)
+    with (
+        patch.object(server, "get_ws", AsyncMock(return_value=ws)),
+        patch.object(server, "db", mock_db),
+    ):
+        with pytest.raises(HTTPException) as exc:
+            await server.apply_template(
+                server.TemplateInput(template="sample"),
+                {"user_id": "u1", "workspace_id": "ws1", "pack": "owner"},
+            )
+    assert exc.value.status_code == 400
+    assert "company setup" in str(exc.value.detail).lower()
 
 
 @pytest.mark.asyncio
@@ -153,6 +184,7 @@ async def test_demo_apply_rejected_after_company_setup():
 @pytest.mark.asyncio
 async def test_regular_sample_apply_is_not_demo_mode():
     ws = build_workspace("ws1", "Acme", "u1", empty=True)
+    ws["company_setup_done"] = True
     mock_db = _demo_db()
     with (
         patch.object(server, "get_ws", AsyncMock(return_value=ws)),

@@ -4069,8 +4069,13 @@ async def company(principal=Depends(get_principal)):
         # Set once they have opened the demo, so the welcome choice is not shown twice.
         "demo_seen": bool(c.get("demo_seen")),
         "template": c.get("template", "sample"),
-        # Missing has_team → True so legacy workspaces keep handoff UI until setup re-runs.
-        "has_team": decision_engine.workspace_has_team(c),
+        # Raw value for CompanySetup: null = not answered yet (empty workspaces).
+        # Clients that need the legacy "assume team" default use `has_team !== false`
+        # (or server-side workspace_has_team). Do not coerce here — that pre-selected
+        # "Yes" on every fresh setup and blocked the Just-me auto-suggest.
+        "has_team": (
+            None if c.get("has_team") is None else bool(c.get("has_team"))
+        ),
         "logo_url": c.get("logo_url") or None,
         "timezone": tz_utils.workspace_tz_name(c),
         "currency": normalize_currency((c.get("financial_settings") or {}).get("currency")),
@@ -4311,6 +4316,13 @@ async def apply_template(payload: TemplateInput, principal=Depends(require("work
             raise HTTPException(
                 status_code=400,
                 detail="The demo is only available before company setup",
+            )
+        if not is_demo and not current.get("company_setup_done"):
+            # Non-demo sample would stamp Northwind and mark setup done, skipping
+            # CompanySetup. UI only offers sample after setup; reject API shortcuts.
+            raise HTTPException(
+                status_code=400,
+                detail="Finish company setup before loading sample data",
             )
         if await db.financial_entries.find_one(_synced_entry_filter(ws_id), {"_id": 1}):
             raise HTTPException(

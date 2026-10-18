@@ -59,4 +59,11 @@ describe("demo-first setup flow", () => {
   it("DemoBanner follows the live sidebar width (collapsed rail included)", () => {
     expect(read("../components/DemoBanner.jsx")).toMatch(/lg:pl-\[var\(--sidebar-w\)\]/);
   });
+
+  it("Onboarding template choose guards against double-submit like departments", () => {
+    const src = read("Onboarding.jsx");
+    const chooseIdx = src.indexOf("const choose = async (template)");
+    expect(chooseIdx).toBeGreaterThan(-1);
+    expect(src.slice(chooseIdx, chooseIdx + 200)).toMatch(/if \(busy\) return/);
+  });
 });

@@ -92,6 +92,8 @@ export default function Onboarding() {
   };
 
   const choose = async (template) => {
+    // Enter / double-click must not fire two apply-template calls (sample wipe/reseed).
+    if (busy) return;
     setBusy(template);
     try {
       await api.post("/workspace/apply-template", { template });

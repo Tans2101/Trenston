@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792317972.8958695,
-    "seen": 1792318263.8091083,
-    "ast_hash": "d676c8710e7567748bfce2264a7d71a4",
+    "mtime": 1792318369.8802977,
+    "seen": 1792318471.434481,
+    "ast_hash": "b7306d34b76e87587864f28fcb5ff39b",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -444,9 +444,9 @@
     "semantic_hash": "f0fdf113cfa348183ad344a47c369517"
   },
   "backend/tests/test_apply_template_gate.py": {
-    "mtime": 1792318049.4637744,
-    "seen": 1792318263.8091364,
-    "ast_hash": "8b91c071c28517ebbc0d573f770855d7",
+    "mtime": 1792318411.4602728,
+    "seen": 1792318471.434513,
+    "ast_hash": "bc9019f862415a5cb22b556e89efc00d",
     "semantic_hash": ""
   },
   "backend/tests/test_ask_cost_optimizations.py": {
@@ -2634,9 +2634,9 @@
     "semantic_hash": "bc65e0602b60cef738afecfdc1d3347c"
   },
   "frontend/src/pages/Onboarding.jsx": {
-    "mtime": 1792316455.8488293,
-    "seen": 1792317610.9690266,
-    "ast_hash": "1c1d0b34484111846141fdda4b276731",
+    "mtime": 1792318367.6362984,
+    "seen": 1792318471.435194,
+    "ast_hash": "b862b32a5e98093c5241a96de4c34018",
     "semantic_hash": ""
   },
   "frontend/src/pages/People.jsx": {
@@ -5394,9 +5394,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_new_workspace_first_load.py": {
-    "mtime": 1792316455.8248265,
-    "seen": 1792317610.9684925,
-    "ast_hash": "e71460593bcd91c3897fcd2f444648d9",
+    "mtime": 1792318381.2162933,
+    "seen": 1792318471.434651,
+    "ast_hash": "c294a32aa696a6e5f15678a80ec02025",
     "semantic_hash": ""
   },
   "frontend/src/pages/companySetupNoUndef.test.js": {
@@ -5736,9 +5736,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/setupWelcomeFlow.test.js": {
-    "mtime": 1792318012.1838493,
-    "seen": 1792318263.8099144,
-    "ast_hash": "2dc2ebc0b1d51846fcaba35a0591c018",
+    "mtime": 1792318411.4722729,
+    "seen": 1792318471.4352217,
+    "ast_hash": "b28f4d6b67078ddddec6b0d4625517c7",
     "semantic_hash": ""
   },
   "backend/api_keys.py": {

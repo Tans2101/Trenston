@@ -35,6 +35,17 @@ def test_company_endpoint_loads_empty_workspace():
         out = asyncio.run(server.company(principal=OWNER))
     assert out["name"] == "Acme Robotics"
     assert out["currency"] == "usd"
+    # Unset has_team must stay null so CompanySetup does not pre-select "Yes".
+    assert out["has_team"] is None
+    assert ws.get("has_team") is None
+
+
+def test_company_endpoint_has_team_false_when_solo():
+    ws = _empty_workspace()
+    ws["has_team"] = False
+    with patch.object(server, "get_ws", new=AsyncMock(return_value=ws)):
+        out = asyncio.run(server.company(principal=OWNER))
+    assert out["has_team"] is False
 
 
 def test_briefing_endpoint_loads_empty_workspace():
