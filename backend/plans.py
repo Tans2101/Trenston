@@ -33,7 +33,7 @@ FEATURE_TEAM = "team"
 FEATURE_PRIORITY_SUPPORT = "priority_support"
 # Scenario modeling page (/app/modeling). Growth and Business only.
 FEATURE_FINANCIAL_MODELING = "financial_modeling"
-# Personal API keys for the read-only public API and MCP (Growth and above).
+# Personal API keys for the read-only public API and MCP (Starter and above).
 FEATURE_API_ACCESS = "api_access"
 
 # Company-ledger / CRM / alerts providers gated by plan. Google is per-user on every plan
@@ -112,7 +112,7 @@ PLANS: dict[str, dict[str, Any]] = {
             FEATURE_TEAM: True,
             FEATURE_PRIORITY_SUPPORT: False,
             FEATURE_FINANCIAL_MODELING: False,
-            FEATURE_API_ACCESS: False,
+            FEATURE_API_ACCESS: True,
         },
         "includes": [
             "Up to 7 Trenston users",
@@ -121,6 +121,7 @@ PLANS: dict[str, dict[str, Any]] = {
             "Automations (5 rules)",
             "Integrations: Google, QuickBooks, Xero, Slack",
             "CEO Pack (shareable leadership summary)",
+            "Connect Claude and other AI assistants (read-only)",
             "7-day free trial",
         ],
     },

@@ -182,7 +182,7 @@ const CONTROLS = [
   {
     icon: KeyRound,
     title: "API keys are read-only",
-    body: "Personal API keys (Growth and Business) can only read, never change data. A key sees exactly what its owner can see in Trenston, only in that workspace. Keys are stored as one-way hashes, shown once, rate limited, and revocable at any time in Settings. Assistants connected by signing in (OAuth) get the same read-only access through tokens that last 30 days and renew with rotating refresh tokens, and can be disconnected in Settings at any time, which ends access immediately.",
+    body: "Personal API keys (paid plans) can only read, never change data. A key sees exactly what its owner can see in Trenston, only in that workspace. Keys are stored as one-way hashes, shown once, rate limited, and revocable at any time in Settings. Assistants connected by signing in (OAuth) get the same read-only access through tokens that last 30 days and renew with rotating refresh tokens, and can be disconnected in Settings at any time, which ends access immediately.",
   },
   {
     icon: UserRoundCheck,
@@ -233,7 +233,7 @@ const AI_ACCESS = [
   },
   {
     title: "Sign in, or use a key",
-    body: "Assistants such as Claude connect by sending you to a Trenston consent screen (OAuth 2.1 with PKCE). Scripts and tools like Claude Code can use a personal API key instead. Both are available on the Growth and Business plans.",
+    body: "Assistants such as Claude connect by sending you to a Trenston consent screen (OAuth 2.1 with PKCE). Scripts and tools like Claude Code can use a personal API key instead. Both are available on every paid plan.",
   },
   {
     title: "Expiring tokens, hashed keys",

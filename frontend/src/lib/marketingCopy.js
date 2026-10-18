@@ -744,7 +744,7 @@ export const HOW_TO_USE_FAQ = [
   {
     q: "Can I use Trenston from Claude or another AI assistant?",
     a:
-      "Yes, on Growth and Business. In Claude, add a custom connector with the URL https://trenston-mcp.onrender.com/mcp, sign in to Trenston, and approve read-only access. The assistant can then answer questions from your briefing, decisions, tasks, your assigned work and, if you have Financials access, your financial summary. It can never change anything in Trenston.",
+      "Yes, on every paid plan (Starter, Growth and Business). In Claude, add a custom connector with the URL https://trenston-mcp.onrender.com/mcp, sign in to Trenston, and approve read-only access. The assistant can then answer questions from your briefing, decisions, tasks, your assigned work and, if you have Financials access, your financial summary. It can never change anything in Trenston.",
   },
   {
     q: "Is my data safe if I connect an AI assistant?",
@@ -806,14 +806,14 @@ export const HOW_TO_USE_MODULES = [
   { nav: "Departments", path: "/app/settings", tip: "Turn on Procurement, Production, Legal, HR, and more." },
   { nav: "Team & Access", path: "/app/members", tip: "Invite people and choose what each person can open." },
   { nav: "Integrations", path: "/app/integrations", tip: "Now under Settings → Integrations. Optional connections such as Google Calendar, QuickBooks, Xero, SAP Business One, or HubSpot." },
-  { nav: "API keys & AI assistants", path: "/app/settings#api-keys", tip: "Create read-only keys, and see or disconnect AI assistants such as Claude (Growth and Business)." },
+  { nav: "API keys & AI assistants", path: "/app/settings#api-keys", tip: "Create read-only keys, and see or disconnect AI assistants such as Claude (paid plans)." },
 ];
 
 
 /** "Connect an AI assistant" section of the Help guide (public /help and in-app Help). */
 export const AI_CONNECT_HELP = {
   intro:
-    "Let Claude, or another assistant that supports MCP, read your Trenston workspace and answer questions like \"What needs my decision today?\". Available on Growth and Business.",
+    "Let Claude, or another assistant that supports MCP, read your Trenston workspace and answer questions like \"What needs my decision today?\". Available on every paid plan.",
   readOnly: [
     "It can read your briefing, decisions, tasks, your assigned work and, only if you have Financials access, a financial summary.",
     "It can never create, edit, approve, or delete anything in Trenston.",

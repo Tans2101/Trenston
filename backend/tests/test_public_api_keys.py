@@ -248,8 +248,8 @@ def test_revoked_key_stops_working_immediately(api):
     assert api.client.get("/api/v1/me", headers=_auth(api.owner)).status_code == 401
 
 
-@pytest.mark.parametrize("api", [{"plan": "starter"}, {"plan": "free"}], indirect=True)
-def test_plans_below_growth_are_refused(api):
+@pytest.mark.parametrize("api", [{"plan": "free"}], indirect=True)
+def test_free_plan_is_refused(api):
     r = api.client.get("/api/v1/me", headers=_auth(api.owner))
     assert r.status_code == 403
     assert r.json()["detail"]["feature"] == "api_access"
@@ -351,8 +351,8 @@ def test_cannot_revoke_someone_elses_key(api):
     assert api.client.delete(f"/api/api-keys/{api.owner_key['id']}").status_code == 404
 
 
-@pytest.mark.parametrize("api", [{"plan": "starter"}], indirect=True)
-def test_creating_keys_requires_growth(api):
+@pytest.mark.parametrize("api", [{"plan": "free"}], indirect=True)
+def test_creating_keys_requires_a_paid_plan(api):
     server.app.dependency_overrides[server.get_principal] = _as("u_owner")
     r = api.client.post("/api/api-keys", json={"name": "x"})
     assert r.status_code == 403

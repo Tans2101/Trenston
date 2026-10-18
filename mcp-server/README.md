@@ -7,7 +7,7 @@ It holds no data and no permissions of its own. Each tool call is forwarded to
 Trenston's public API (`/api/v1`) with the caller's personal API key, and
 Trenston applies the same rules as the app: people only see their own
 departments, and financial data needs Financials access. API keys are available
-on the Growth and Business plans.
+on every paid plan (Starter, Growth and Business).
 
 ## Tools
 

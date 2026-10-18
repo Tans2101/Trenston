@@ -19550,7 +19550,7 @@ if not _serve_static:
 # every request rebuilds the same principal the app uses, so pack rules, Financials
 # grants and department scoping all apply unchanged. v1 is GET-only by design.
 
-API_PLAN_REQUIRED_MESSAGE = "API access is available on the Growth and Business plans."
+API_PLAN_REQUIRED_MESSAGE = "API access is available on the Starter, Growth and Business plans."
 
 
 def _api_plan_denied_detail() -> dict:

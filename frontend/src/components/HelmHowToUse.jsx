@@ -224,7 +224,7 @@ function CheckList({ tone, lines }) {
 function AiConnectSection({ tone, linked }) {
   return (
     <section id="ai-assistants" className="scroll-mt-28" data-testid="help-ai-assistants">
-      <SectionHeading tone={tone} eyebrow="For Growth and Business" title="Connect an AI assistant">
+      <SectionHeading tone={tone} eyebrow="For paid plans" title="Connect an AI assistant">
         {AI_CONNECT_HELP.intro}
       </SectionHeading>
       <Card tone={tone} className="mb-4 p-5">

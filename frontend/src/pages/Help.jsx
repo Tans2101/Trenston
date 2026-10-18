@@ -176,7 +176,7 @@ export default function Help() {
         <div className="mx-auto max-w-7xl">
           <SectionHeader
             dark
-            eyebrow="For Growth and Business"
+            eyebrow="For paid plans"
             title="Connect an AI assistant"
             intro={AI_CONNECT_HELP.intro}
           />
