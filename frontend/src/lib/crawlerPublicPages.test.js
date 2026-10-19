@@ -82,16 +82,14 @@ describe("public pages show real text without JavaScript", () => {
     }
     const appHeader = (vercel.headers || []).find((h) => h.source === "/app/(.*)");
     expect(appHeader.headers.some((h) => h.key === "X-Robots-Tag" && h.value.includes("noindex"))).toBe(true);
-    const rewrites = (vercel.rewrites || []).map((r) => r.destination);
-    expect(rewrites).toContain("/app/index.html");
-    expect(rewrites).toContain("/login/index.html");
-    // Soft-404 fix: unknown paths must not rewrite to the marketing homepage.
-    expect(rewrites).not.toContain("/index.html");
-    const redirects = vercel.redirects || [];
-    expect(redirects.some((r) => r.source === "/blog" && r.destination === "/changelog" && r.permanent)).toBe(true);
-    // After filesystem match fails, serve 404.html with HTTP 404 (overrides CRA SPA fallback).
+    // Soft-404 fix lives in routes: filesystem → app/auth SPA shells → 404.html.
+    // Do not use a rewrite to marketing /index.html for unknown paths.
+    expect((vercel.rewrites || []).map((r) => r.destination)).not.toContain("/index.html");
     const routes = vercel.routes || [];
+    expect(routes.some((r) => r.src === "/blog" && r.status === 308)).toBe(true);
     expect(routes.some((r) => r.handle === "filesystem")).toBe(true);
+    expect(routes.some((r) => r.src === "/app/(.*)" && r.dest === "/app/index.html")).toBe(true);
+    expect(routes.some((r) => r.src === "/login/(.*)" && r.dest === "/login/index.html")).toBe(true);
     expect(routes.some((r) => r.status === 404 && r.dest === "/404.html")).toBe(true);
   });
 

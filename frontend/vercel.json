@@ -176,16 +176,6 @@
   ],
   "redirects": [
     {
-      "source": "/blog",
-      "destination": "/changelog",
-      "permanent": true
-    },
-    {
-      "source": "/blog/(.*)",
-      "destination": "/changelog",
-      "permanent": true
-    },
-    {
       "source": "/:path*",
       "has": [
         {
@@ -219,38 +209,46 @@
       "permanent": true
     }
   ],
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://helm-company-cockpit.onrender.com/api/:path*"
-    },
-    {
-      "source": "/.well-known/ai-catalog.json",
-      "destination": "https://helm-company-cockpit.onrender.com/api/no-ai-catalog"
-    },
-    {
-      "source": "/.well-known/oauth-authorization-server",
-      "destination": "https://helm-company-cockpit.onrender.com/api/oauth/metadata"
-    },
-    {
-      "source": "/login/:path*",
-      "destination": "/login/index.html"
-    },
-    {
-      "source": "/sign-up/:path*",
-      "destination": "/sign-up/index.html"
-    },
-    {
-      "source": "/payment/:path*",
-      "destination": "/payment/index.html"
-    },
-    {
-      "source": "/app/:path*",
-      "destination": "/app/index.html"
-    }
-  ],
   "routes": [
+    {
+      "src": "/blog",
+      "status": 308,
+      "headers": { "Location": "/changelog" }
+    },
+    {
+      "src": "/blog/(.*)",
+      "status": 308,
+      "headers": { "Location": "/changelog" }
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "https://helm-company-cockpit.onrender.com/api/$1"
+    },
+    {
+      "src": "/\\.well-known/ai-catalog\\.json",
+      "dest": "https://helm-company-cockpit.onrender.com/api/no-ai-catalog"
+    },
+    {
+      "src": "/\\.well-known/oauth-authorization-server",
+      "dest": "https://helm-company-cockpit.onrender.com/api/oauth/metadata"
+    },
     { "handle": "filesystem" },
+    {
+      "src": "/login/(.*)",
+      "dest": "/login/index.html"
+    },
+    {
+      "src": "/sign-up/(.*)",
+      "dest": "/sign-up/index.html"
+    },
+    {
+      "src": "/payment/(.*)",
+      "dest": "/payment/index.html"
+    },
+    {
+      "src": "/app/(.*)",
+      "dest": "/app/index.html"
+    },
     {
       "src": "/(.*)",
       "status": 404,
