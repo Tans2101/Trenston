@@ -455,7 +455,7 @@ export default function AccountSettings() {
               data-testid="profile-picture-upload"
               disabled={!!busy}
               onClick={() => pictureInputRef.current?.click()}
-              className="rounded-md border border-helm-line text-helm-fg text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+              className="app-btn-secondary text-sm px-3 py-2 disabled:opacity-60"
             >
               {busy === "picture" ? "Uploading…" : "Upload photo"}
             </button>
@@ -465,7 +465,7 @@ export default function AccountSettings() {
                 data-testid="profile-picture-clear"
                 disabled={!!busy}
                 onClick={clearPicture}
-                className="rounded-md border border-helm-line text-helm-muted text-sm px-3 py-2 hover:bg-helm-fg/5 disabled:opacity-60"
+                className="app-btn-secondary text-sm px-3 py-2 disabled:opacity-60"
               >
                 Remove
               </button>

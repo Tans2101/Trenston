@@ -638,8 +638,8 @@ html[data-theme="dark"] #root {
 
 .app-shell .cir-rail__section {
   padding: 1rem 0.875rem 0.25rem;
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--cir-mist);
@@ -1360,13 +1360,13 @@ html[data-theme="dark"] .app-shell {
   --helm-fg: #F4F4F4;
   --helm-bg: #0A0A0A;
   --helm-card: #121212;
-  --helm-line: #262626;
+  --helm-line: #2E2E2E;
   --helm-muted: #C4C4C4;
   --radius: 0.625rem;
 }
 html[data-theme="dark"] .app-shell .border-helm-line,
 html[data-theme="dark"] .app-shell [class*="border-helm-line"] {
-  border-color: #262626 !important;
+  border-color: #2E2E2E !important;
 }
 html[data-theme="dark"] .app-shell .rounded-xl.border,
 html[data-theme="dark"] .app-shell [data-testid*="card"],
@@ -1767,7 +1767,7 @@ html[data-theme="light"] .app-shell .cir-rail__link--solo.cir-rail__link--active
   background: rgb(201 154 46 / 0.10);
   box-shadow: inset 3px 0 0 var(--app-accent);
 }
-html[data-theme="light"] .app-shell .cir-rail__section { color: #8A8F98; }
+html[data-theme="light"] .app-shell .cir-rail__section { color: #5F6368; }
 
 /* Top bar and inputs: lighter edges to match. */
 html[data-theme="light"] .app-shell [data-testid="desktop-top-bar"] { border-bottom-color: #ECECEA; }
@@ -1962,7 +1962,7 @@ html[data-theme="light"] .app-shell .app-main [data-empty-state] > div:first-chi
 .app-btn-secondary {
   background: transparent;
   color: var(--helm-fg);
-  border: 1px solid var(--helm-line);
+  border: 1px solid color-mix(in srgb, var(--helm-fg) 26%, transparent);
   border-radius: 6px;
   transition: background-color 150ms ease, border-color 150ms ease;
 }
@@ -1986,3 +1986,11 @@ html[data-theme="dark"] .app-shell .app-btn-primary { color: #0A0A0A !important;
 .dec-spark { color: #A88432; }
 html[data-theme="dark"] .dec-spark { color: #D4B45C; }
 
+
+/* Accent text links read as links: underlined, not just tinted. */
+.app-main a[class*="text-helm-gold"]:not([class*="bg-"]):not([class*="no-underline"]) {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  text-underline-offset: 3px;
+}
+.app-main a[class*="text-helm-gold"]:not([class*="bg-"]):hover { text-decoration-color: currentColor; }
