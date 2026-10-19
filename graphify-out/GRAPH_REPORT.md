@@ -1,94 +1,94 @@
-# Graph Report - Trenston  (2026-10-18)
+# Graph Report - workspace  (2026-10-19)
 
 ## Corpus Check
-- 1029 files · ~715,458 words
+- 1020 files · ~705,799 words
 - Verdict: corpus is large enough that graph structure adds value.
-- Unclassified: 21 file(s) not represented in the graph (top: (none) 5, .css 4, .woff2 4)
+- Unclassified: 20 file(s) not represented in the graph (top: (none) 4, .css 4, .woff2 4)
 
 ## Summary
-- 11364 nodes · 24101 edges · 524 communities (478 shown, 46 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 503 edges (avg confidence: 0.86)
+- 11375 nodes · 25395 edges · 540 communities (493 shown, 47 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 504 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `59d41e26`
+- Built from commit: `9af2e140`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - cn
-- test_simple_cache.py
+- api.js
 - backend/server.py
 - oauth_server.py
-- patch_production_work_order
-- decision_engine.py
-- perms_for
+- invalidate_workspace_list_cache
+- collect_department_signals
+- run_daily_briefing_cron
 - asyncio
 - .patch
 - commandBar.js
-- Decisions.jsx
+- GlassCard
 - test_oauth_server.py
 - _mongo_candidate_urls
-- quick_import.py
-- google_oauth.py
+- Billing.jsx
+- lucide-react
 - Request
-- collect_signals
+- quickbooks.py
 - dependencies
-- test_slack_webhook_storage.py
+- marketingCopy.js
 - test_computed_and_decisions.py
 - test_document_library.py
 - y-domain-utils.js
-- test_incremental_sync_deletes.py
+- risk_forecast.py
 - FinancialModeling.jsx
 - rate_limit.py
 - spectrum/api.md
 - test_documents.py
-- clerk_google_oauth_status
-- httpx
+- clerk_auth.py
+- pytest
 - workers-best-practices/SKILL.md
-- heatmap-colors.js
+- heatmap-cells.jsx
 - api_keys.py
-- DocStore
-- test_transient_errors.py
-- storage.py
+- ops_api
+- MyDay.jsx
+- test_storage.py
 - register
 - resolutions
 - test_http_gate.py
 - modeling.py
-- clerk_configured
-- weekly_summary.py
-- react
+- clerk_auth.py
+- test_decision_insights_async.py
+- marketingCopy.js
 - test_referrals.py
 - test_packs_activity_people.py
-- can_access_financials
+- heatmap-colors.js
 - test_api_security_hardening.py
-- AppLayout.jsx
-- test_xero.py
-- test_people_members_sync.py
+- react
+- test_xero_403_permissions_without_wipe
+- proc_api
 - finance_recurrence.py
-- heatmap-chart.jsx
-- DocStore
+- DealStore
+- test_production_chain.py
 - H
 - weekly_pack_export.py
 - llm.py
 - FeatureShowcase.jsx
 - maint_api
 - test_risk_forecast.py
-- Durable Objects
+- do-storage/README.md
 - test_calendar_write_perms.py
 - test_stale_data_nudge.py
-- money_insights.py
+- _generate_insights
 - test_missing_synthesis.py
 - test_modeling.py
 - test_calendar_department_dates.py
-- test_ai_audit.py
-- test_multitenant_isolation.py
-- test_dept_ops_extensions.py
+- mk.jsx
+- google_document_ai.py
+- procurement_spend.py
 - test_proactive_cron.py
-- _FakeClient
-- parse_task_due_date
+- test_data_401_retry.py
+- test_transient_errors.py
 - test_clerk_jwks_fallback.py
-- test_clerk_user_deleted.py
+- _FakeUsers
 - financial_export.py
 - production_daily_logs.py
 - test_hr_onboarding.py
@@ -101,11 +101,11 @@
 - C3 (create-cloudflare)
 - accounting_map.py
 - test_retention_connected.py
-- test_quick_import.py
+- test_google_calendar_tz.py
 - workflows/README.md
 - pipelines/patterns.md
 - test_membership_cleanup.py
-- sap_b1.py
+- test_section_access_tasks_decisions.py
 - test_deals_pagination.py
 - test_auth_onboarding_audit.py
 - test_xero_entities.py
@@ -113,45 +113,45 @@
 - heatmap-resolve-separator.js
 - Artifacts Configuration
 - test_deal_won_financials.py
-- calendar
+- test_user_google_tokens.py
 - maintenance_ops.py
-- retention.py
-- quickbooks.py
-- clerk_post_auth_url
-- test_hr_leave_requests.py
-- test_google_calendar_tz.py
+- test_retention.py
+- TestReportSnapshotsHTTP
+- setup_clerk_portal_www
+- leave_api
+- test_google_oauth.py
 - test_schedule_plan_paddle.py
 - pages-functions/README.md
-- _users_by_ids
+- _apply_deal_owner_assignment
 - department_report_drafts.py
 - procurement_metrics.py
 - public_api.py
-- test_ask_helm_calls_membership_slice_for_every_non_finance_dept
-- merge_integrations
+- ask_helm
+- CalendarPage.jsx
 - attach_users_in_find
 - plans.py
 - Guardrails
 - email-routing/README.md
-- test_paddle_billing.py
-- test_storage.py
+- email_compliance.py
+- dept_api
 - plan_usage.py
 - SignUp.jsx
-- alert_notify.py
-- is_valid_month
-- QuickAdd.jsx
+- test_incremental_sync_deletes.py
+- HelmHowToUse.jsx
+- Automations.jsx
 - cloudflare/SKILL.md
 - Financials.jsx
-- Skill validation cases
+- hashlib
 - sales_order_book.py
-- QuickImport.jsx
-- chunkReload.js
+- index.jsx
+- App.jsx
 - components.json
 - trenston_mcp/server.py
 - GraphQL Analytics API Reference
 - Gotchas and Troubleshooting
 - Cloudflare Workers Best Practices
 - test_report_digest.py
-- quick_import_preview
+- test_paddle_billing.py
 - month_breakdown
 - test_public_api_keys.py
 - test_sync_pagination.py
@@ -162,38 +162,38 @@
 - test_sales_finance_fold.py
 - agents-sdk/SKILL.md
 - secrets-store/README.md
-- test_section_access_tasks_decisions.py
+- _complete_oauth_callback
 - test_my_work_items.py
-- test_plans.py
+- GlassCard
 - GraphQL Analytics API Gotchas & Troubleshooting
 - hyperdrive/README.md
 - RealtimeKit Configuration
-- Workers VPC Connectivity
+- tunnel/README.md
 - Workerd Patterns
-- TCP Sockets API Reference
+- Properties
 - Zaraz Reference Implementation Summary
 - Web Performance Audit
 - gauge.jsx
 - test_automations.py
-- clerk_auth.py
+- proxy_clerk_fapi
 - Snippets Configuration Guide
 - Common Patterns
 - test_decision_insights.py
-- test_clerk_sync.py
-- sys
+- test_money_insights.py
+- os
 - test_procurement_expense_financials.py
 - DocStore
 - What you must do to launch Trenston (I cannot do these for you)
 - devDependencies
-- test_decision_insights_async.py
-- test_ensure_session_rejects_rebinding_to_private
+- collect_signals
+- retention.py
 - Bot Management Patterns
 - RealtimeKit Patterns
 - TURN API Reference
-- CollStore
+- test_department_report_drafts.py
 - dept_ops_wiring.py
-- Cursor
-- test_calendar_visibility.py
+- test_privacy_security_fixes.py
+- test_plans.py
 - test_procurement_queue.py
 - test_settings_delete_export.py
 - fetch
@@ -207,12 +207,12 @@
 - Smart Placement Gotchas
 - stream/README.md
 - Workerd Configuration
-- Cloudflare Workers Smart Placement
-- Any
-- BrandLogo.jsx
-- unseal_credentials
+- Smart Placement API
+- test_weekly_pack_export.py
+- PublicIntegrations.jsx
+- credential_crypto.py
 - apply_template
-- DealStore
+- test_stable_ids_currency_tax.py
 - Gotchas & Troubleshooting
 - xero.py
 - C3 Troubleshooting
@@ -226,7 +226,7 @@
 - Block production until these are done
 - test_company_map.py
 - ref_path
-- encrypt_credential
+- migrate_encrypt_slack_webhooks.py
 - env
 - API Reference
 - API Reference
@@ -246,11 +246,11 @@
 - Configuration
 - Common Errors
 - Migrate stable → Sandbox SDK 1.0 preview (`@next`)
-- What You Must Do When Invoked
-- test_data_model.py
+- Status.jsx
+- automations.py
 - paddle_ips.py
-- test_legal_matters.py
-- heatmap-legend.jsx
+- logging
+- heatmap-cells.jsx
 - Email Handling
 - Cloudflare One Migrations
 - Bot Management Configuration
@@ -263,21 +263,21 @@
 - test_ask_department_scope.py
 - R2 SQL API Reference
 - Cloudflare RealtimeKit
-- compute_financials
-- test_activity_heatmap.py
+- test_financials_null_vs_zero.py
+- Cloudflare Workers Smart Placement
 - Web Platform APIs
 - Workerd Gotchas
 - Multi-Tenant Patterns
 - ops_briefing.py
 - test_updates_myday_join_exec.py
-- test_legal_deadlines.py
-- test_money_insights.py
+- test_security.py
+- money_insights.py
 - Trenston — The Operating System for Founders & CEOs
 - Codemode (Experimental)
 - Analytics Engine Patterns
 - Critical Issues
 - Common Patterns
-- credential_crypto.py
+- site_events.py
 - Bot Management API
 - d1/README.md
 - Common Errors
@@ -294,13 +294,13 @@
 - waf/README.md
 - Web Analytics Patterns
 - Cloudflare Workers for Platforms
-- test_weekly_pack_export.py
-- typing
-- build_workspace
+- alert_notify.py
+- test_stable_ids_currency_tax.py
+- test_telemetry_lockdown.py
 - department_access.py
 - Pipelines Configuration
 - Cloudflare R2 SQL
-- login
+- test_xero.py
 - Workers Runtime Patterns
 - Receiving & Routing Inbound Email
 - Analytics Engine API Reference
@@ -324,11 +324,11 @@
 - Zaraz Web API
 - Zaraz Configuration
 - Sandbox SDK — `@next` (1.0 preview)
-- CalendarPage.jsx
-- pie-context.jsx
-- seoPages.js
-- ai_audit.py
-- test_financial_export.py
+- AskHelm.jsx
+- normalize_rule
+- heatmap-chart.jsx
+- risk_forecast.py
+- test_quickbooks_entities.py
 - setupWelcomeFlow.test.js
 - Think (Experimental)
 - Email Deliverability & Best Practices
@@ -337,23 +337,23 @@
 - Common Errors
 - DDoS Configuration
 - Anti-Patterns
-- test_sap_b1.py
+- sap_b1.py
 - Configuration & Deployment
 - Patterns & Use Cases
 - Meeting Object API
 - tz_utils.py
-- test_sap_b1_documents.py
+- attach_users_in_find
 - gauge-label-layout.jsx
 - Common Errors
 - Cloudflare Web Analytics
-- Turnstile Spin skill
+- Security.jsx
 - Workers Playground API
 - Workers Playground Patterns
 - Zaraz Gotchas
 - Cloudflare Zaraz
-- test_sales_order_book.py
-- work_items.py
-- money_fmt.py
+- test_weekly_pack_tone.py
+- collect_for_user
+- test_fetch_collection_revalidates_url_each_page
 - FakeCollection
 - chart-tooltip.jsx
 - legal_api
@@ -372,22 +372,22 @@
 - R2 SQL Configuration
 - API Reference
 - Cloudflare Realtime SFU Reference
-- TestDecisionsCRUD
-- invalidate_financials_cache
+- hr_api
+- log_activity
 - TURN Gotchas & Troubleshooting
 - Web Analytics Gotchas
 - Zaraz Patterns
-- chart-phase.js
-- Pipelines Gotchas
+- heatmap-context.jsx
+- bento-grid.jsx
 - Integrations — Trenston
 - chart-defs.js
-- Snippets API Reference
+- money_fmt.py
 - Browse the Web (Experimental)
 - Callable Methods
 - Configuration
 - Routing
-- ask_helm
-- test_document_ai_limits.py
+- cloudflare-email-service/SKILL.md
+- QuickAdd.render.test.js
 - Integration Patterns
 - DDoS API
 - REST API (Flag Management)
@@ -399,16 +399,16 @@
 - Troubleshooting
 - Critical Issues
 - Sandbox SDK — stable package
-- main
-- Cloudflare Snippets Skill Reference
+- loadMarketingPlans.mjs
+- acquire_join_slot
 - health-endpoints.js
 - WebpackHealthPlugin
 - staticPageText.mjs
 - auth.js
-- test_password_optional_sync_rejects_2xx_without_fapi_change
+- sync_clerk_password_optional_for_oauth
 - Observability
 - Voice (Experimental)
-- Cloudflare Pipelines
+- Durable Objects
 - Cloudflare API Shield Reference
 - argo-smart-routing/README.md
 - Cloudflare DDoS Protection
@@ -416,107 +416,123 @@
 - API Errors
 - Gotchas & Troubleshooting
 - Common Errors
-- test_check_prod_env.py
-- Gotchas & Best Practices
-- test_briefing_ai_summary.py
+- fetch
+- work_items.py
+- normalize_rule
 - Wrangler CLI
-- os
+- unittest_mock
 - companyMapLayout.js
-- test_fetch_collection_revalidates_url_each_page
+- test_maintenance_tickets.py
 - mcp.json
 - Cloudflare R2 setup (document uploads)
 - Render deploy — if build fails, use these exact settings
 - scripts
 - Durable Execution
-- rank_and_cap_signals
+- MatterStore
 - Common Errors
 - Core Concepts
-- logging
+- test_rate_limit.py
 - Bot Management Gotchas
 - Cache Reserve Gotchas
 - DDoS Gotchas
 - FlagDefinition Schema
 - Cloud-Specific Issues
 - Common Errors
-- google_document_ai.py
-- turnstile-spin (skill)
+- merge_integrations
+- test_workspace_currency.py
 - Network Access
 - Gotchas & Limits
 - Observability
 - Best Practices
-- build_ask_messages
-- metric_definitions.py
-- Trenston data model
-- chart-loading-label.jsx
-- JavaScript Detections Setup
-- Request Object
-- _jwt_payload_unverified
-- _advance_legal_due_date
+- useHeatmap
+- Term.jsx
+- Snippets Patterns
+- use-animated-y-domains.js
+- static_frontend.py
+- asyncio
+- company_map.py
+- test_accounting_upsert_race.py
 - compilerOptions
 - y-axis-ticks.js
-- test_decision_atomic.py
+- pytest
 - SDK Configuration
 - Workers Integration
 - BOLA Detection
 - sync-sitemap.mjs
 - Troubleshooting & Best Practices
 - UI Components
-- ai-gateway/README.md
+- ai-search/README.md
 - Features
 - Key Concepts
 - Static Assets
-- automations.py
-- browserslist
-- TestReportSnapshotsHTTP
+- Product Tiers
+- chart-context.jsx
+- test_weekly_pack_trends.py
 - validate.sh
-- startup
-- Webhooks & Push Notifications
-- _paddle_provision
-- Response Object
+- Features.jsx
+- Cloudflare Workers Smart Placement
+- trial_end_from_paddle_payload
+- Learn More
 - filter-data-by-x-domain.js
-- TestIntegrationsPrompt
+- Cloudflare Email Service
 - auth-probe.sh
 - persist-skill.sh
 - widget-create.sh
 - funnel-chart.jsx
-- test_suggested_risk_overdue_task_hidden_after_resolved
-- test_sap_incremental_filter_and_cancelled_deletes
+- bindings/README.md
+- pie-context.jsx
 - 4. Deploy API on Render
 - middleware.js
-- test_startup_seals_plaintext_integration_tokens
+- test_self_delegate_decision.py
 - SocialProofBar.jsx
-- TestTasksSectionAccess
+- ring-chart.jsx
 - fix_clerk_portal_www.sh
 - CLAUDE.md
 - .claude/CLAUDE.md
+- QuickAdd.jsx
 - Trenston MCP server
-- searchRank.js
-- finance_csv.py
-- graphify reference: extra exports and benchmark
+- react
+- datePatterns
+- re
+- Cloudflare Artifacts
+- Common Issues
 - MockMessagePort
-- ring-chart.jsx
+- Worker Code (JS/TS)
+- save_decision_ripple
+- ring.jsx
+- test_financial_access_lockdown.py
+- test_tasks.py
+- owner_client
 - compareVs.test.js
+- test_task_delegation_email.py
 - test_reports_page.py
+- test_workspace_deletion.py
+- selfHostedFonts.test.js
 - get
+- test_workspace_collections_guard.py
+- tooltip-indicator.jsx
 - turnstile-spin/SKILL.md
-- graphify reference: query, path, explain
+- modeling.test.js
 - test_ops_briefing_parallel.py
-- Client SDK Configuration
+- R2 SQL Gotchas
+- TURN Key Management
+- test_accounting_mapper_parity.py
+- Product Tiers
+- Bindings
+- _normalize_appearance
 - lucide-react
-- Snippets Patterns
-- test_role_access.py
+- Cloudflare Snippets Skill Reference
+- test_department_access_batch.py
 - animation.js
-- documents_library
-- test_security.py
-- get_ws
+- Wrangler Configuration
+- _audit_document_access
+- _DB
+- test_slack_webhook_storage.py
+- invalidate_workspace_list_cache
+- date-ticker.jsx
+- JwksKeyMissing
 - test_slack_notify_redacts_stalled_deal_money
-- graphify reference: add a URL and watch a folder
-- graphify reference: commit hook and native CLAUDE.md integration
-- graphify reference: incremental update and cluster-only
 - static-chart-preview-context.jsx
-- graphify reference: GitHub clone and cross-repo merge
-- graphify reference: transcribe video and audio
-- extraction-spec.md
 
 ## God Nodes (most connected - your core abstractions)
 1. `cn()` - 429 edges
@@ -524,172 +540,172 @@
 3. `get_ws()` - 98 edges
 4. `lucide-react` - 95 edges
 5. `invalidate_workspace_list_cache()` - 86 edges
-6. `react-router-dom` - 67 edges
-7. `useFetch()` - 67 edges
-8. `useAuth()` - 66 edges
-9. `fetchErrorMessage()` - 62 edges
-10. `api` - 58 edges
+6. `GlassCard()` - 82 edges
+7. `react-router-dom` - 67 edges
+8. `useFetch()` - 67 edges
+9. `get_department_membership()` - 66 edges
+10. `useAuth()` - 66 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `AI output history (`ai_output_log`)` --references--> `verify_chain()`  [INFERRED]
   docs/DATA_MODEL.md → backend/ai_audit.py
-- `Test 3: Runtime checks match the protected surface` --references--> `login()`  [INFERRED]
-  .agents/skills/turnstile-spin/tests/validation.md → backend/sap_b1.py
 - `Metric rules` --references--> `compute_financials()`  [INFERRED]
   docs/DATA_MODEL.md → backend/server.py
 - `OAuth redirect URIs (register exactly)` --references--> `integrations()`  [INFERRED]
   docs/INTEGRATIONS.md → backend/server.py
-- `When to Use` --references--> `fetch()`  [INFERRED]
-  .agents/skills/agents-sdk/references/browse-the-web.md → mcp-server/trenston_mcp/server.py
+- `Retrieval Sources` --references--> `schedule()`  [INFERRED]
+  .agents/skills/agents-sdk/SKILL.md → backend/tests/test_schedule_plan_paddle.py
+- `Verified Bot Categories` --references--> `Security()`  [INFERRED]
+  .agents/skills/cloudflare/references/bot-management/configuration.md → frontend/src/pages/Security.jsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (524 total, 46 thin omitted)
+## Communities (540 total, 47 thin omitted)
 
 ### Community 0 - "cn"
 Cohesion: 0.01
-Nodes (272): name, packageManager, private, version, FunnelChart(), RingChart(), CirNoteCard(), DangerConfirmCard() (+264 more)
+Nodes (261): browserslist, development, production, name, packageManager, private, version, ChartLoadingLabel() (+253 more)
 
-### Community 1 - "test_simple_cache.py"
-Cohesion: 0.19
-Nodes (10): Unit tests for backend/simple_cache.py., Concurrent invalidate while loader runs must not put stale financials., test_expired_entry_reloads(), run(), test_get_or_set_caches_and_hits(), loader(), run(), test_get_or_set_discards_stale_after_invalidate() (+2 more)
+### Community 1 - "api.js"
+Cohesion: 0.05
+Nodes (54): CirNoteCard(), toastCirNote(), ClerkHelmBridge(), exchangeClerkSession(), sleep(), AITextLoading(), savedTheme(), systemTheme() (+46 more)
 
 ### Community 2 - "backend/server.py"
 Cohesion: 0.02
-Nodes (188): gen_join_code(), add_person(), AgeConfirmInput, AppearanceInput, _assemble_financial_export_for(), automation_owner(), AutomationRulePatch, _best_effort() (+180 more)
+Nodes (150): trigger_is_financial(), prefetch_jwks(), _active_member_ids(), add_department_member(), AgeConfirmInput, _api_auth_error(), api_keys_create(), _api_plan_denied_detail() (+142 more)
 
 ### Community 3 - "oauth_server.py"
 Cohesion: 0.13
-Nodes (30): authorization_server_metadata(), create_code(), exchange_code(), get_client(), grant_view(), _hash(), _is_loopback(), _issue() (+22 more)
+Nodes (24): authorization_server_metadata(), create_code(), exchange_code(), get_client(), grant_view(), _hash(), _is_loopback(), _issue() (+16 more)
 
-### Community 4 - "patch_production_work_order"
-Cohesion: 0.17
-Nodes (21): normalize_unit(), Free-text unit (pick-list suggestion or custom). Never invent a default., _can_lead_production(), _can_update_production_order(), create_production_work_order(), delete_production_daily_log(), delete_production_work_order(), _enrich_work_order() (+13 more)
+### Community 4 - "invalidate_workspace_list_cache"
+Cohesion: 0.04
+Nodes (101): can_access_department(), get_department_membership(), is_department_member(), is_workspace_ceo(), apply_status_completion(), normalize_unit(), api_keys_revoke(), _blocking_production_order_entry() (+93 more)
 
-### Community 5 - "decision_engine.py"
-Cohesion: 0.10
-Nodes (39): build_equipment_history(), collect_department_signals(), compute_average_cycle_time(), compute_downtime(), detect_chronic_equipment_failure(), detect_pending_leave_requests(), detect_stalled_deals(), detect_stalled_onboarding() (+31 more)
+### Community 5 - "collect_department_signals"
+Cohesion: 0.12
+Nodes (21): build_equipment_history(), collect_department_signals(), compute_average_cycle_time(), compute_downtime(), detect_chronic_equipment_failure(), detect_pending_leave_requests(), detect_stalled_deals(), detect_stalled_onboarding() (+13 more)
 
-### Community 6 - "perms_for"
-Cohesion: 0.07
-Nodes (34): _complete_oauth_callback(), _persist_tokens(), dismiss_onboarding_integrations_prompt(), export_activities(), integration_connect(), oauth_callback(), _oauth_callback_uri(), _oauth_error_reason_from_token_response() (+26 more)
+### Community 6 - "run_daily_briefing_cron"
+Cohesion: 0.05
+Nodes (35): public_api_origin(), _alert_recipient_emails(), _app_base_url(), _apply_unsubscribe_token(), assemble_ops_briefing_data(), _complete_oauth_callback(), _persist_tokens(), create_task() (+27 more)
 
 ### Community 7 - "asyncio"
-Cohesion: 0.05
-Nodes (35): asyncio, activation(), _iso(), main(), datetime, Funnel report: where do visitors and new workspaces drop off? Usage (from…, How many of these workspaces reached each step. Sample/seed data is excluded…, After a downgrade, only the plan's number of automation rules keep running. (+27 more)
+Cohesion: 0.12
+Nodes (21): _canonical(), fingerprint(), record(), record_hash(), verify_chain(), _add(), _db(), test_a_broken_database_never_breaks_the_caller() (+13 more)
 
 ### Community 8 - ".patch"
-Cohesion: 0.07
-Nodes (38): Return valid tokens, refreshing via Intuit when the access token is near expiry., refresh_qb_token(), _token_needs_refresh(), _oauth_datetime_expired(), True when an oauth_states.expires_at value is missing or in the past. Mongo may…, Keep JSON-safe OAuth fields; drop id_token and other provider extras., sanitize_oauth_token_payload(), _sign_state() (+30 more)
+Cohesion: 0.10
+Nodes (20): _sign_state(), _expired_tokens(), _Resp, test_google_refresh_invalid_grant_is_auth(), test_other_4xx_without_invalid_grant_is_retryable(), test_qb_data_401_forces_refresh_and_retries(), get(), post() (+12 more)
 
 ### Community 9 - "commandBar.js"
-Cohesion: 0.10
-Nodes (38): addDays(), bareMay(), COMMANDS, dateFrom(), datePatterns(), daysInMonth(), findAssignee(), findDates() (+30 more)
+Cohesion: 0.11
+Nodes (27): bareMay(), COMMANDS, findAssignee(), findDates(), finish(), hasLead(), isoOf(), matchMember() (+19 more)
 
-### Community 10 - "Decisions.jsx"
-Cohesion: 0.05
-Nodes (70): Decisions, DecisionCard(), hasDue(), ImpactDot(), LIST_MOTION, MetaLine(), statusStyle, AppPageHeader() (+62 more)
+### Community 10 - "GlassCard"
+Cohesion: 0.04
+Nodes (107): AiSummaryMeta(), formatAsOf(), ApiKeysSettings(), detailMessage(), formatDate(), DangerConfirmCard(), DepartmentsSettings(), ALLOWED_OPEN_PREFIXES (+99 more)
 
 ### Community 11 - "test_oauth_server.py"
-Cohesion: 0.16
-Nodes (26): auth_params(), _DB, full_flow(), http(), make_db(), parametrize, SimpleNamespace, OAuth sign-in for AI-assistant connectors: DCR, PKCE, codes, refresh rotation. (+18 more)
+Cohesion: 0.14
+Nodes (25): pkce_challenge(), auth_params(), _DB, full_flow(), http(), make_db(), run(), test_access_tokens_expire() (+17 more)
 
 ### Community 12 - "_mongo_candidate_urls"
-Cohesion: 0.15
-Nodes (19): AsyncIOMotorClient, _connect_mongo_at_startup(), _make_mongo_client(), _mongo_candidate_urls(), add(), add_pserv(), _mongo_source_label(), _probe_mongo_candidates() (+11 more)
+Cohesion: 0.29
+Nodes (8): _mongo_candidate_urls(), add(), add_pserv(), test_atlas_only_when_use_atlas_true(), test_local_mongo_url_only(), test_mongo_host_override(), test_mongo_hostport_override(), test_prefers_render_pserv_when_atlas_not_forced()
 
-### Community 13 - "quick_import.py"
-Cohesion: 0.12
-Nodes (35): analyze_sheet(), build_records(), _cell_to_str(), classify_line(), deal_stage(), _decode_text(), find_header_row(), _get() (+27 more)
+### Community 13 - "Billing.jsx"
+Cohesion: 0.08
+Nodes (37): ai_prompt_for_sheet(), analyze_sheet(), build_records(), _cell_to_str(), classify_line(), clean_record(), _clip(), column_labels() (+29 more)
 
-### Community 14 - "google_oauth.py"
-Cohesion: 0.06
-Nodes (65): _all_day_exclusive_end(), _compute_hours(), _counts_toward_hours(), create_calendar_event(), create_spreadsheet(), delete_calendar_event(), download_drive_file(), _fetch_calendar_events() (+57 more)
+### Community 14 - "lucide-react"
+Cohesion: 0.08
+Nodes (34): _all_day_exclusive_end(), create_calendar_event(), create_spreadsheet(), delete_calendar_event(), download_drive_file(), _fetch_calendar_events(), _once(), _page() (+26 more)
 
 ### Community 15 - "Request"
 Cohesion: 0.03
-Nodes (111): public_api_origin(), Public HTTPS origin for OAuth callbacks (Vercel proxies /api to Render)., _activate_invites(), _alert_recipient_emails(), _allowed_auth_redirect(), _app_base_url(), _apply_unsubscribe_token(), _auth_redirect_uri() (+103 more)
+Nodes (78): revoke_all_for_user(), gen_join_code(), _activate_invites(), add_person(), _allowed_auth_redirect(), _auth_redirect_uri(), _bearer_token(), _best_effort() (+70 more)
 
-### Community 16 - "collect_signals"
+### Community 16 - "quickbooks.py"
 Cohesion: 0.10
-Nodes (22): collect_signals(), detect_expense_spike(), detect_new_expense_category(), detect_recurring_blockers(), _new_expense_category_threshold(), Run all detectors and return a flat list of signals. ``cap=None`` keeps every…, Fire per category where latest month spend is up >25% vs prior month., Material-spend floor: flat minimum, raised for large prior-month totals. (+14 more)
+Nodes (13): collect_signals(), detect_expense_spike(), detect_new_expense_category(), detect_recurring_blockers(), _new_expense_category_threshold(), dedupe_overlapping(), test_manual_upcoming_tomorrow_and_missed_yesterday(), test_collect_signals_caps_and_ranks() (+5 more)
 
 ### Community 17 - "dependencies"
 Cohesion: 0.03
 Nodes (68): dependencies, axios, class-variance-authority, @clerk/clerk-react, clsx, cmdk, d3-array, d3-shape (+60 more)
 
-### Community 18 - "test_slack_webhook_storage.py"
+### Community 18 - "marketingCopy.js"
 Cohesion: 0.09
-Nodes (19): _mask_slack_webhook_url(), Require https and host exactly hooks.slack.com. Returns cleaned URL or raises…, e.g. https://hooks.slack.com/services/T…/…abcd — never the full secret path., SlackWebhookInput, update_slack_webhook(), _validate_slack_webhook_url(), asyncio, Slack webhook escaping, broken status, and save-time validation. (+11 more)
+Nodes (14): _mask_slack_webhook_url(), SlackWebhookInput, update_slack_webhook(), _validate_slack_webhook_url(), test_broken_webhook_sets_status(), test_save_rejects_failed_test_message(), test_validate_slack_webhook_url(), _fernet() (+6 more)
 
 ### Community 19 - "test_computed_and_decisions.py"
-Cohesion: 0.12
-Nodes (8): member(), owner(), Iteration 5 — computed telemetry/reports + decisions CRUD. Covers: - Decisions…, _sess(), TestCalendarLiveFlag, TestOnboardingChecklist, TestReportsComputed, TestTelemetryComputed
+Cohesion: 0.10
+Nodes (8): member(), owner(), _sess(), TestCalendarLiveFlag, TestIntegrationsPrompt, TestOnboardingChecklist, TestReportsComputed, TestTelemetryComputed
 
 ### Community 20 - "test_document_library.py"
-Cohesion: 0.16
-Nodes (7): _Cursor, library_client(), Document library + download audit logging., test_financial_document_get_logs_download(), test_library_owner_sees_all_contexts_without_presigned_urls(), as_owner(), test_report_document_get_logs_download()
+Cohesion: 0.15
+Nodes (6): _Cursor, library_client(), test_financial_document_get_logs_download(), test_library_owner_sees_all_contexts_without_presigned_urls(), as_owner(), test_report_document_get_logs_download()
 
 ### Community 21 - "y-domain-utils.js"
-Cohesion: 0.11
-Nodes (24): extractReferenceAreaConfigs(), getChildComponentName(), isReferenceAreaElement(), lerpDomain(), snapDomains(), tweenDomains(), useAnimatedYDomains(), useChartInteraction() (+16 more)
+Cohesion: 0.14
+Nodes (16): extractReferenceAreaConfigs(), getChildComponentName(), isReferenceAreaElement(), useChartInteraction(), defaultDedupeKey(), useScheduledTooltip(), buildYScalesForLines(), buildYScalesFromDomains() (+8 more)
 
-### Community 22 - "test_incremental_sync_deletes.py"
-Cohesion: 0.12
-Nodes (11): _QbClient, T15: incremental sync by last-modified; voids/deletes remove entries., _Resp, test_delete_helper_removes_entries_and_invalidates_cache(), test_qb_edited_old_invoice_found_by_last_updated_time(), test_qb_since_older_than_30_days_does_full_resync(), test_qb_void_and_cdc_delete_become_deletions(), test_sync_with_only_deletions_invalidates_cache() (+3 more)
+### Community 22 - "risk_forecast.py"
+Cohesion: 0.11
+Nodes (12): fetch_qb_transactions(), _since_too_old_for_cdc(), _QbClient, _Resp, test_delete_helper_removes_entries_and_invalidates_cache(), test_qb_edited_old_invoice_found_by_last_updated_time(), test_qb_since_older_than_30_days_does_full_resync(), test_qb_void_and_cdc_delete_become_deletions() (+4 more)
 
 ### Community 23 - "FinancialModeling.jsx"
-Cohesion: 0.05
-Nodes (75): FinancialModeling, lineNote(), Lines(), MonthDetail(), monthTitle(), shiftMonth(), shortMonth(), RevenueBars() (+67 more)
+Cohesion: 0.06
+Nodes (79): PAD, pathFor(), RippleChart(), RippleDialog(), scaleFor(), Stat(), DialogDescription, DialogTitle (+71 more)
 
 ### Community 24 - "rate_limit.py"
-Cohesion: 0.05
-Nodes (54): acquire_ask_helm_slot(), acquire_insights_slot(), acquire_join_slot(), _acquire_window_bucket(), ask_helm_over_limit(), count_ask_helm_events(), count_events(), count_insights_events() (+46 more)
+Cohesion: 0.09
+Nodes (25): acquire_ask_helm_slot(), acquire_insights_slot(), acquire_join_slot(), _acquire_window_bucket(), ask_helm_over_limit(), count_ask_helm_events(), count_events(), count_insights_events() (+17 more)
 
 ### Community 25 - "spectrum/api.md"
-Cohesion: 0.05
-Nodes (44): Analytics API, CreateSpectrumAppRequest, Go SDK, Python SDK, Request/Response Schemas, REST API Endpoints, See Also, SpectrumApp Response (+36 more)
+Cohesion: 0.06
+Nodes (35): Analytics API, CreateSpectrumAppRequest, Go SDK, Python SDK, Request/Response Schemas, REST API Endpoints, See Also, SpectrumApp Response (+27 more)
 
 ### Community 26 - "test_documents.py"
 Cohesion: 0.07
-Nodes (6): client(), Document upload + AI extraction for financial entries., test_cleanup_deletes_old_uncommitted_documents(), test_extract_returns_cached_result_without_second_claude_call(), test_financial_entry_commits_its_source_document(), test_rate_limit_scoped_per_workspace()
+Nodes (4): client(), test_cleanup_deletes_old_uncommitted_documents(), test_extract_returns_cached_result_without_second_claude_call(), test_rate_limit_scoped_per_workspace()
 
-### Community 27 - "clerk_google_oauth_status"
+### Community 27 - "clerk_auth.py"
 Cohesion: 0.20
-Nodes (11): _clerk_google_client_id(), clerk_google_oauth_redirect_uri(), clerk_google_oauth_redirect_uris(), clerk_google_oauth_status(), Google Cloud authorized redirect URIs Clerk may send for this instance., Primary Clerk production Google OAuth callback — must match Google Cloud…, Google OAuth client ID configured in Clerk (from FAPI environment)., Probe whether Google OAuth redirect URI is registered for Clerk sign-in. (+3 more)
+Nodes (6): _clerk_google_client_id(), clerk_google_oauth_redirect_uri(), clerk_google_oauth_redirect_uris(), clerk_google_oauth_status(), test_clerk_google_oauth_primary_uri_is_clerk_host_not_accounts(), test_clerk_google_oauth_redirect_uris_include_account_portal()
 
-### Community 28 - "httpx"
-Cohesion: 0.15
-Nodes (19): Best-effort token revocation when a workspace disconnects an integration.…, Prefer the refresh token: revoking it also invalidates its access tokens., revoke_google(), revoke_hubspot(), revoke_quickbooks(), revoke_xero(), _token(), _patch_client() (+11 more)
+### Community 28 - "pytest"
+Cohesion: 0.17
+Nodes (14): revoke_google(), revoke_hubspot(), revoke_quickbooks(), revoke_xero(), _token(), _patch_client(), factory(), run() (+6 more)
 
 ### Community 29 - "workers-best-practices/SKILL.md"
-Cohesion: 0.10
-Nodes (18): Binding-code consistency, Configuration, Enable nodejs_compat, Enable Workers Logs and Traces, Generate binding types with wrangler types, Keep compatibility_date current, Observability, Store secrets with wrangler secret (+10 more)
-
-### Community 30 - "heatmap-colors.js"
 Cohesion: 0.11
-Nodes (27): CHART_SCALE_VARS, chartScaleCssVars, HeatmapChart(), buildHeatmapColorScale(), buildHeatmapColorScaleFromStyles(), buildHeatmapFillScale(), defaultHeatmapColorScale, defaultHeatmapFillScale (+19 more)
+Nodes (17): Binding-code consistency, Configuration, Enable nodejs_compat, Enable Workers Logs and Traces, Generate binding types with wrangler types, Keep compatibility_date current, Observability, Store secrets with wrangler secret (+9 more)
+
+### Community 30 - "heatmap-cells.jsx"
+Cohesion: 0.11
+Nodes (27): CHART_SCALE_VARS, chartScaleCssVars, HeatmapChart(), buildHeatmapColorScale(), buildHeatmapColorScaleFromStyles(), buildHeatmapFillScale(), defaultHeatmapFillScale, HEATMAP_DEFAULT_LEVEL_STYLES (+19 more)
 
 ### Community 31 - "api_keys.py"
-Cohesion: 0.11
-Nodes (27): _active_filter(), ApiKeyLimitError, list_keys(), looks_like_api_key(), needs_touch(), _parse_ts(), public_view(), datetime (+19 more)
+Cohesion: 0.10
+Nodes (30): _active_filter(), ApiKeyLimitError, create_key(), generate_key(), hash_key(), key_hint(), list_keys(), looks_like_api_key() (+22 more)
 
-### Community 32 - "DocStore"
-Cohesion: 0.13
+### Community 32 - "ops_api"
+Cohesion: 0.12
 Nodes (3): DocStore, _match_query(), ops_api()
 
-### Community 33 - "test_transient_errors.py"
-Cohesion: 0.18
-Nodes (21): _client_returning(), _expired(), _principal(), parametrize, T1: temporary provider errors must never disconnect a customer. For each…, End to end through the runner: Intuit 500 on refresh -> 503, tokens never…, _refresh(), _Resp (+13 more)
+### Community 33 - "MyDay.jsx"
+Cohesion: 0.17
+Nodes (20): _client_returning(), _expired(), _oauth_creds(), _principal(), _refresh(), _Resp, _sap_login(), _sap_no_dns() (+12 more)
 
-### Community 34 - "storage.py"
-Cohesion: 0.12
-Nodes (21): _client(), compress_branding_image(), _content_type_key(), delete_document(), get_document_bytes(), get_presigned_url(), r2_endpoint(), Cloudflare R2 (S3-compatible) document storage. (+13 more)
+### Community 34 - "test_storage.py"
+Cohesion: 0.09
+Nodes (28): _client(), compress_branding_image(), _content_type_key(), delete_document(), get_document_bytes(), get_presigned_url(), maybe_compress_image(), probe_r2() (+20 more)
 
 ### Community 35 - "register"
-Cohesion: 0.12
-Nodes (42): Attach all new department-ops endpoints onto api_router. `db` is resolved at…, register(), _can_lead_maint(), _can_lead_proc(), _can_lead_sales(), create_maintenance_contract(), create_maintenance_cost(), create_maintenance_schedule() (+34 more)
+Cohesion: 0.14
+Nodes (34): month_period_bounds(), register(), _can_lead_maint(), _can_lead_proc(), create_maintenance_contract(), create_maintenance_cost(), create_maintenance_schedule(), create_maintenance_spare() (+26 more)
 
 ### Community 36 - "resolutions"
 Cohesion: 0.06
@@ -697,311 +713,307 @@ Nodes (36): resolutions, **/anymatch/picomatch, **/axios/form-data, @babel/plugi
 
 ### Community 37 - "test_http_gate.py"
 Cohesion: 0.11
-Nodes (11): client(), OAuth discovery and the 401 handshake Claude needs before it will sign in., mcp_server_transport_security, OAuthGate, ASGI middleware in front of the MCP app., allowed_hosts(), build_http_app(), main() (+3 more)
+Nodes (6): calls(), client(), OAuthGate, allowed_hosts(), build_http_app(), main()
 
 ### Community 38 - "modeling.py"
 Cohesion: 0.13
-Nodes (25): add_months(), average_recent(), _avg_field(), baseline_inputs(), _clamp(), _int_in(), _label(), _num() (+17 more)
+Nodes (16): add_months(), average_recent(), _avg_field(), baseline_inputs(), _clamp(), _int_in(), _label(), _num() (+8 more)
 
-### Community 39 - "clerk_configured"
-Cohesion: 0.10
-Nodes (28): _bapi_headers(), clerk_configured(), clerk_user_exists(), delete_clerk_user(), ensure_allowed_origins(), fetch_clerk_instance(), Register Trenston Vercel host as Clerk satellite domain so OAuth can redirect…, Enable Clerk FAPI proxy when clerk.* custom-domain TLS is not ready; clear when… (+20 more)
+### Community 39 - "clerk_auth.py"
+Cohesion: 0.08
+Nodes (27): _bapi_headers(), _cached_health(), clerk_api_ok(), clerk_configured(), clerk_custom_domain_ssl_ok(), clerk_jwks_ok(), _clerk_primary_domain_record(), clerk_user_exists() (+19 more)
 
-### Community 40 - "weekly_summary.py"
+### Community 40 - "test_decision_insights_async.py"
 Cohesion: 0.12
-Nodes (31): _build(), Monday briefing: summary content, money gating, subject line and email HTML., test_counts_only_pending_decisions_and_open_overdue_tasks(), test_email_html_shows_content_escapes_and_has_footer(), test_email_without_money_has_no_money_block_and_links_to_more(), test_empty_workspace_has_no_content(), test_lead_sentence_reads_naturally(), test_money_only_when_figures_were_entered() (+23 more)
+Nodes (25): _build(), test_counts_only_pending_decisions_and_open_overdue_tasks(), test_email_html_shows_content_escapes_and_has_footer(), test_email_without_money_has_no_money_block_and_links_to_more(), test_empty_workspace_has_no_content(), test_lead_sentence_reads_naturally(), test_money_only_when_figures_were_entered(), test_profit_and_no_burn_are_worded_honestly() (+17 more)
 
-### Community 41 - "react"
-Cohesion: 0.02
-Nodes (215): About, AccountSettings, AppHelp, Automations, Billing, Changelog, CompanyMap, Compare (+207 more)
+### Community 41 - "marketingCopy.js"
+Cohesion: 0.06
+Nodes (46): FounderCredit(), FOOTER_LINKS, FooterLink(), MarketingFooter(), MarketingLogo(), ABOUT_DIFFERENTIATOR, ABOUT_PROBLEM, ABOUT_STORY (+38 more)
 
 ### Community 42 - "test_referrals.py"
 Cohesion: 0.06
-Nodes (75): analytics_summary(), _count_by_meta(), _distinct_workspaces(), emit_billing_funnel(), log_event(), log_event_once(), Any, First-party product usage events — Trenston's MongoDB only, no third-party… (+67 more)
+Nodes (58): analytics_summary(), _count_by_meta(), _distinct_workspaces(), emit_billing_funnel(), log_event(), log_event_once(), _sanitize_metadata(), _workspaces_per_step() (+50 more)
 
 ### Community 43 - "test_packs_activity_people.py"
-Cohesion: 0.10
-Nodes (6): member(), owner(), parametrize, Iteration 4 tests: Access Packs (Phase 0), Activity/Briefing loop (Phase 1),…, _sess(), test_regression_owner_reads()
+Cohesion: 0.11
+Nodes (7): member(), mongo(), owner(), _sess(), test_regression_member_can_move_task(), test_regression_owner_decision_action(), test_regression_owner_reads()
 
-### Community 44 - "can_access_financials"
-Cohesion: 0.02
-Nodes (106): trigger_is_financial(), is_deal_money_signal(), is_financial_signal(), True for a signal, suggestion card or accepted decision built from a financial…, True when the item embeds pipeline deal $ (e.g. stalled_deal value/detail)., Whether the CEO can hand work to someone else. Explicit `has_team` on the…, _signal_type_of(), workspace_has_team() (+98 more)
+### Community 44 - "heatmap-colors.js"
+Cohesion: 0.04
+Nodes (46): is_deal_money_signal(), is_financial_signal(), _signal_type_of(), apply_before_filter(), clamp_limit(), encode_cursor(), next_cursor(), _activity_filter() (+38 more)
 
 ### Community 45 - "test_api_security_hardening.py"
-Cohesion: 0.18
-Nodes (18): pkce_challenge(), pkce_verify(), Check an authorization request. Raises OAuthError; never redirects to an…, validate_authorize_request(), activity_db(), AutoDB, Hardening for the public API, OAuth connections and activity privacy., Every attribute is a FakeCollection, created on first use. (+10 more)
+Cohesion: 0.20
+Nodes (12): validate_authorize_request(), activity_db(), AutoDB, run(), seed_connection(), test_account_deletion_removes_keys_and_connections(), test_activity_filter_hides_finance_rows_without_access(), test_credentials_are_deleted_with_the_workspace_and_never_exported() (+4 more)
 
-### Community 46 - "AppLayout.jsx"
+### Community 46 - "react"
 Cohesion: 0.04
-Nodes (80): AppearanceSync(), AppLayout(), departmentNavTo(), departmentNavVisible(), isTypingTarget(), MobileTabBar(), NAV, navItemVisible() (+72 more)
+Nodes (89): AppLayout(), departmentNavTo(), departmentNavVisible(), isTypingTarget(), MobileTabBar(), NAV, navItemVisible(), navShortcutLabel() (+81 more)
 
-### Community 47 - "test_xero.py"
-Cohesion: 0.06
-Nodes (27): asyncio, Unit tests for Xero token refresh and invoice/bill mapping., test_exclude_submitted_invoices(), test_fetch_connections_maps_tenants(), test_map_accpay_bill_to_expense(), test_map_accrec_invoice_to_revenue(), test_map_bank_receive_and_spend(), test_map_credit_notes() (+19 more)
-
-### Community 48 - "test_people_members_sync.py"
-Cohesion: 0.10
-Nodes (14): api_client(), _empty_cursor(), asyncio, People ↔ Team & Access sync., Membership gone but People row still has membership_id — delete must succeed., test_delete_person_allowed_after_access_revoked_stale_link(), test_department_names_by_user_id_maps_memberships(), test_ensure_person_creates_and_links_by_email() (+6 more)
+### Community 48 - "proc_api"
+Cohesion: 0.09
+Nodes (11): api_client(), _empty_cursor(), test_delete_person_allowed_after_access_revoked_stale_link(), test_department_names_by_user_id_maps_memberships(), test_ensure_person_creates_and_links_by_email(), persist(), test_ensure_person_links_existing_roster_by_email(), test_people_get_clears_stale_membership_id() (+3 more)
 
 ### Community 49 - "finance_recurrence.py"
-Cohesion: 0.11
-Nodes (35): expand_entries_by_month(), expand_expense_category_totals(), expense_monthly_amount(), iter_expense_month_amounts(), line_items_for_period(), _line_key(), month_add(), _monthlyized() (+27 more)
+Cohesion: 0.08
+Nodes (31): current_month(), expand_entries_by_month(), expand_expense_category_totals(), expense_monthly_amount(), is_current_or_past_month(), is_future_month(), is_valid_month(), iter_expense_month_amounts() (+23 more)
 
-### Community 50 - "heatmap-chart.jsx"
+### Community 50 - "DealStore"
 Cohesion: 0.11
-Nodes (31): computeHeatmapEnterFadeDelayMs(), computeHeatmapLevelRange(), HEATMAP_DEFAULT_ENTER_DURATION_MS, HEATMAP_DEFAULT_ENTER_EASE, HEATMAP_DEFAULT_ENTER_TRANSITION, HEATMAP_DEFAULT_LOADING_CELL_MAX_OPACITY, HEATMAP_DEFAULT_LOADING_CELL_RANDOMNESS, HEATMAP_ENTER_STAGGER_SPREAD (+23 more)
+Nodes (27): DEFAULT_CHART_LIFECYCLE, DEFAULT_CHART_STATUS, DEFAULT_Y_DOMAIN_TWEEN_MS, resolveRestingChartPhase(), Y_DOMAIN_TWEEN_SKIP_THRESHOLD, computeHeatmapEnterFadeDelayMs(), HEATMAP_DEFAULT_ENTER_DURATION_MS, HEATMAP_DEFAULT_ENTER_TRANSITION (+19 more)
 
-### Community 51 - "DocStore"
-Cohesion: 0.14
+### Community 51 - "test_production_chain.py"
+Cohesion: 0.07
 Nodes (3): DocStore, _match(), prod_api()
 
 ### Community 52 - "H"
 Cohesion: 0.09
-Nodes (15): skip(), ensure_fresh_user(), H(), parametrize, Owner (kalun) already has sample applied per test_credentials note., Add a recurring revenue entry for the latest month, verify MRR flows into…, Owner (fresh) applies sample template, verifies data materialized., Reset the FRESH user + session so onboarding is empty at start-of-suite. (+7 more)
+Nodes (10): skip(), ensure_fresh_user(), H(), TestApplyTemplate, TestFinancePermissions, TestFinancialFlowThrough, TestFinEntryCRUD, TestFinSettings (+2 more)
 
 ### Community 53 - "weekly_pack_export.py"
-Cohesion: 0.11
-Nodes (24): financial_pdf_filename(), financial_xlsx_filename(), test_pdf_filename_includes_workspace_and_date(), test_pdf_filename_strips_unsafe_chars(), test_render_rejects_empty(), test_render_weekly_pack_pdf_is_legible_pdf(), _inline_xml(), markdown_to_flowables() (+16 more)
+Cohesion: 0.12
+Nodes (14): financial_pdf_filename(), financial_xlsx_filename(), test_pdf_filename_includes_workspace_and_date(), test_pdf_filename_strips_unsafe_chars(), test_render_rejects_empty(), test_render_weekly_pack_pdf_is_legible_pdf(), _inline_xml(), markdown_to_flowables() (+6 more)
 
 ### Community 54 - "llm.py"
-Cohesion: 0.11
-Nodes (32): AsyncAnthropic, anthropic_configured(), _coerce_label(), combine_daily_report_digest(), complete(), _current_month(), draft_decision(), draft_delegate() (+24 more)
+Cohesion: 0.10
+Nodes (25): anthropic_configured(), _coerce_label(), combine_daily_report_digest(), complete(), _current_month(), draft_decision(), draft_delegate(), extract_financial_document() (+17 more)
 
 ### Community 55 - "FeatureShowcase.jsx"
-Cohesion: 0.13
-Nodes (13): briefingImage, frontend_src_assets_marketing_dashboard_briefing, frontend_src_assets_marketing_dashboard_briefing_800, FeatureShowcase(), TAB_PANELS, LaptopMockup(), frontend_src_components_marketing_laptopmockup_module, AskScreen() (+5 more)
+Cohesion: 0.12
+Nodes (25): briefingImage, POINTS, FeatureShowcase(), TAB_PANELS, LaptopMockup(), DISPLAY, ease, AskScreen() (+17 more)
 
 ### Community 56 - "maint_api"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (3): maint_api(), _match_query(), TicketStore
 
 ### Community 57 - "test_risk_forecast.py"
-Cohesion: 0.07
-Nodes (66): fmt_money_plain(), Full-precision amount with symbol (for signal detail strings)., collect(), complete_ledger_months(), detect_burn_acceleration(), detect_cash_runway_forecast(), detect_pipeline_coverage(), detect_revenue_decline() (+58 more)
+Cohesion: 0.09
+Nodes (36): fmt_money_plain(), collect(), complete_ledger_months(), detect_burn_acceleration(), detect_cash_runway_forecast(), detect_pipeline_coverage(), detect_revenue_decline(), _finite() (+28 more)
 
-### Community 58 - "Durable Objects"
-Cohesion: 0.06
-Nodes (24): DO Storage API, DO Storage Configuration, DO Storage Troubleshooting, DO Storage Patterns, Cloudflare Durable Objects Storage, DO Storage Testing, Durable Objects Rules & Best Practices, Testing Durable Objects (+16 more)
+### Community 58 - "do-storage/README.md"
+Cohesion: 0.13
+Nodes (8): DO Storage API, DO Storage Configuration, DO Storage Troubleshooting, DO Storage Patterns, Cloudflare Durable Objects Storage, DO Storage Testing, Durable Objects Rules & Best Practices, Testing Durable Objects
 
 ### Community 59 - "test_calendar_write_perms.py"
 Cohesion: 0.06
-Nodes (23): normalize_section_access(), Any, Canonical section IDs for Team & Access → Manage Access grants., Map pack permissions to manageable section ids the user already has via pack., Normalize workspace.section_access to {section_id: [department, ...]}., section_pack_perm(), sections_for_perms(), asyncio (+15 more)
+Nodes (14): normalize_section_access(), section_pack_perm(), sections_for_perms(), test_calendar_is_manageable_section(), test_can_section_write_calendar_via_member_grant(), test_member_without_calendar_grant_cannot_write(), test_auth_me_section_loop_fetches_ws_once_not_per_section(), test_can_section_write_casefold_grants_and_departments() (+6 more)
 
 ### Community 60 - "test_stale_data_nudge.py"
-Cohesion: 0.17
-Nodes (16): _iso(), mail(), _nudge_setup(), Quiet departments are flagged to the owner, in the Briefing and the daily email., run(), _setup(), test_a_department_is_not_nudged_again_within_the_cooldown(), go() (+8 more)
-
-### Community 61 - "money_insights.py"
 Cohesion: 0.14
-Nodes (23): build_facts(), _by_category(), _by_line(), _cat_phrase(), context_hash(), _figures_grounded(), parse_sections(), _pct_change() (+15 more)
+Nodes (17): _iso(), mail(), _nudge_setup(), run(), _setup(), test_a_department_is_not_nudged_again_within_the_cooldown(), go(), test_a_failed_send_does_not_start_the_cooldown() (+9 more)
+
+### Community 61 - "_generate_insights"
+Cohesion: 0.06
+Nodes (27): expense_totals_by_month_category(), workspace_has_team(), _automation_inputs(), _briefing_link_fields(), _briefing_what_to_delegate(), company_map(), _department_signal_inputs(), _generate_insights() (+19 more)
 
 ### Community 62 - "test_missing_synthesis.py"
 Cohesion: 0.08
-Nodes (36): count_possibly_stale(), ask_context_for_synthesis(), _ask_dept_restricted(), _ask_slice_context(), calendar_for_synthesis(), company_context_for_synthesis(), company_profile_for_synthesis(), onboarding_for_synthesis() (+28 more)
+Nodes (27): count_possibly_stale(), ask_context_for_synthesis(), _ask_dept_restricted(), _ask_slice_context(), calendar_for_synthesis(), company_context_for_synthesis(), company_profile_for_synthesis(), onboarding_for_synthesis() (+19 more)
 
 ### Community 63 - "test_modeling.py"
 Cohesion: 0.10
-Nodes (29): api(), _client(), _close(), _DB, _gate(), asyncio, parametrize, Financial Modeling: parity with the JS port, plan/permission gating, scenario… (+21 more)
+Nodes (24): api(), _client(), _close(), _DB, _gate(), _same(), test_access_endpoint_never_returns_figures(), test_baseline_from_fin_averages_complete_months() (+16 more)
 
 ### Community 64 - "test_calendar_department_dates.py"
-Cohesion: 0.16
-Nodes (10): cal_db(), DocStore, _match(), asyncio, Department date sources on GET /calendar (extensible CALENDAR_DATE_SOURCES)., Adding a CALENDAR_DATE_SOURCES row is enough — no endpoint changes., test_calendar_endpoint_merges_department_and_legacy_deadlines(), test_department_upcoming_includes_open_dated_rows() (+2 more)
+Cohesion: 0.10
+Nodes (12): _deadlines_as_events(), _department_calendar_upcoming(), cal_db(), DocStore, _match(), test_calendar_endpoint_merges_department_and_legacy_deadlines(), test_deadlines_as_events_preserves_source_refs(), test_department_upcoming_includes_open_dated_rows() (+4 more)
 
-### Community 65 - "test_ai_audit.py"
-Cohesion: 0.35
-Nodes (11): Walk a workspace's chain in order. ok=False names the first broken seq and why., verify_chain(), _add(), _db(), AI output history: append-only, hash-chained, tamper-evident., test_concurrent_writers_get_distinct_seqs(), test_deleting_a_record_is_detected(), test_editing_an_old_record_is_detected() (+3 more)
+### Community 65 - "mk.jsx"
+Cohesion: 0.29
+Nodes (29): CtaBand(), DrawLine(), Eyebrow(), fadeUp, Mark(), MkAccordion(), MkButton(), MkLink() (+21 more)
 
-### Community 66 - "test_multitenant_isolation.py"
-Cohesion: 0.11
-Nodes (7): _empty_cursor(), isolation_api(), chat_find(), mem_find(), parametrize, Workspace isolation, role gates, and auth guards (replaces legacy live Kalun…, test_unauthenticated_read_returns_401()
+### Community 66 - "google_document_ai.py"
+Cohesion: 0.10
+Nodes (5): _empty_cursor(), isolation_api(), chat_find(), mem_find(), test_unauthenticated_read_returns_401()
 
-### Community 67 - "test_dept_ops_extensions.py"
-Cohesion: 0.18
-Nodes (15): enrich_spare(), spares_below_threshold(), in_period(), _parse_iso_dt(), Any, datetime, Procurement spend rollups + optional department budget. Only priced requests…, Attribute spend to the period via created_at (updated_at only if missing). (+7 more)
+### Community 67 - "procurement_spend.py"
+Cohesion: 0.46
+Nodes (3): in_period(), _parse_iso_dt(), spend_rollup()
 
 ### Community 68 - "test_proactive_cron.py"
 Cohesion: 0.07
-Nodes (30): parametrize, test_activity_feed_respects_financials_access(), principal(), _Cursor, asyncio, Proactive daily alerts + weekly digest cron runners and internal endpoints., Overlapping cron: find_one_and_update returns None → skip, do not send., _run_weekly() (+22 more)
+Nodes (27): test_activity_feed_respects_financials_access(), principal(), _Cursor, _no_ai_rate_limit(), _run_weekly(), fake_send(), fin(), go() (+19 more)
 
-### Community 69 - "_FakeClient"
-Cohesion: 0.13
-Nodes (10): _FakeClient, _fresh_tokens(), _principal(), httpx.AsyncClient stand-in: first data call 401, token POST 200, later calls…, _Resp, test_calendar_events_route_persists_refreshed_tokens(), test_quickbooks_second_401_is_auth_error(), _data() (+2 more)
+### Community 69 - "test_data_401_retry.py"
+Cohesion: 0.12
+Nodes (11): _creds(), _FakeClient, _fresh_tokens(), _principal(), _Resp, test_calendar_events_route_persists_refreshed_tokens(), test_calendar_writes_401_refresh_and_retry(), test_quickbooks_second_401_is_auth_error() (+3 more)
 
-### Community 70 - "parse_task_due_date"
+### Community 70 - "test_transient_errors.py"
 Cohesion: 0.14
-Nodes (21): detect_missed_followups(), detect_overdue_procurement_requests(), detect_overdue_tasks(), detect_overdue_work_orders(), detect_upcoming_followups(), detect_upcoming_legal_deadlines(), is_task_overdue(), parse_task_due_date() (+13 more)
+Nodes (13): detect_missed_followups(), detect_overdue_procurement_requests(), detect_overdue_tasks(), detect_overdue_work_orders(), detect_upcoming_followups(), detect_upcoming_legal_deadlines(), is_task_overdue(), parse_task_due_date() (+5 more)
 
 ### Community 71 - "test_clerk_jwks_fallback.py"
-Cohesion: 0.15
-Nodes (27): clerk_jwt_audiences(), clerk_jwt_issuer(), decode_clerk_jwt(), Accepted `aud` values when a session/API token includes an audience claim.…, Verify JWT signature against async-cached public JWKS. Defense-in-depth…, Verify a Clerk session JWT. Fast path: check the signature locally against the…, Clerk Frontend API URL — the `iss` claim on session tokens. Derived from…, _verify_clerk_jwt_jwks() (+19 more)
+Cohesion: 0.16
+Nodes (17): clerk_jwt_audiences(), clerk_jwt_issuer(), decode_clerk_jwt(), _verify_clerk_jwt_jwks(), _rsa_pair(), _signed_token(), test_clerk_jwt_issuer_from_jwks(), test_decode_clerk_jwt_bad_signature_is_final_no_bapi_fallback() (+9 more)
 
-### Community 72 - "test_clerk_user_deleted.py"
-Cohesion: 0.08
-Nodes (25): _FakeMemberships, _FakeSessions, _FakeUsers, asyncio, Clerk user.deleted webhook + local auth rejection for deleted accounts., Shared sign-up path: tombstone still holding email must not block create., Regression: deleted Clerk JWT must not fall back to Trenston cookie., Cookie-only path must not survive a Clerk Dashboard delete (webhook lag). (+17 more)
+### Community 72 - "_FakeUsers"
+Cohesion: 0.07
+Nodes (22): clerk_webhook_configured(), verify_clerk_webhook(), _FakeMemberships, _FakeSessions, _FakeUsers, _sign(), test_clerk_webhook_user_deleted_revokes(), test_cookie_auth_fails_open_when_clerk_probe_unknown() (+14 more)
 
 ### Community 73 - "financial_export.py"
-Cohesion: 0.12
-Nodes (27): assemble_financial_export(), _fill(), format_export_amount(), period_label(), period_line_items(), Any, datetime, Income Statement + Cash Summary for accountant-facing exports. Uses the same… (+19 more)
+Cohesion: 0.13
+Nodes (19): assemble_financial_export(), _fill(), format_export_amount(), period_label(), period_line_items(), reconstruct_cash_by_month(), render_financial_pdf(), render_financial_xlsx() (+11 more)
 
 ### Community 74 - "production_daily_logs.py"
 Cohesion: 0.09
-Nodes (31): _section_production(), department_day_summary(), enrich_daily_log(), normalize_log_date(), _parse_date(), parse_nonneg_float(), period_overtime_rollup(), Any (+23 more)
+Nodes (23): _section_production(), department_day_summary(), enrich_daily_log(), normalize_log_date(), _parse_date(), parse_nonneg_float(), period_overtime_rollup(), rollup_work_order_logs() (+15 more)
 
 ### Community 75 - "test_hr_onboarding.py"
-Cohesion: 0.12
-Nodes (3): asyncio, HR per-hire onboarding API tests., test_ensure_template_idempotent()
+Cohesion: 0.06
+Nodes (3): CollStore, hr_api(), test_ensure_template_idempotent()
 
 ### Community 76 - "test_record_search.py"
 Cohesion: 0.18
-Nodes (18): clean_query(), Any, _rank(), Search across a workspace's own records for the Ctrl+K bar. Plain text…, 0 = no match. Higher is better: whole phrase at the start of the title wins., _score(), search_records(), kinds() (+10 more)
+Nodes (14): clean_query(), _rank(), _score(), search_records(), kinds(), run(), test_all_words_must_match_in_any_order(), test_empty_and_odd_input() (+6 more)
 
 ### Community 77 - "test_ask_helm_quota.py"
 Cohesion: 0.10
-Nodes (25): acquire_lifetime_extract_slot(), acquire_period_ask_slot(), acquire_period_extract_slot(), acquire_seat_slot(), get_period_ask_count(), Atomically consume one AI-extract slot for the billing period. False when at…, Return one period extract slot after a failed/aborted extract., Ask Trenston messages used in this billing period (separate from AI extracts). (+17 more)
+Nodes (15): acquire_lifetime_extract_slot(), acquire_period_ask_slot(), acquire_period_extract_slot(), acquire_seat_slot(), get_period_ask_count(), release_period_extract_slot(), test_acquire_lifetime_extract_slot_respects_limit(), test_acquire_period_ask_slot_respects_limit() (+7 more)
 
 ### Community 78 - "test_account_lifecycle_audit.py"
-Cohesion: 0.19
-Nodes (21): _company(), fake_db(), Phase 3 account lifecycle: tombstone delete, join/revoke, remove sessions,…, Hard-delete left a re-upsert hole when Clerk delete failed; tombstone closes it., _Req, run(), test_in_app_delete_tombstones_even_when_clerk_fails(), go() (+13 more)
+Cohesion: 0.17
+Nodes (20): remove_member(), _company(), fake_db(), _Req, run(), test_in_app_delete_tombstones_even_when_clerk_fails(), go(), test_invite_skips_tombstoned_user_row() (+12 more)
 
 ### Community 79 - "seed_data.py"
-Cohesion: 0.16
-Nodes (21): last_n_months(), Per-workspace data template for Trenston — sample B2B software company + empty…, 6 months of recurring revenue + categorized expenses (in USD)., sample_financial_entries(), _clear_sample_workspace(), Earliest sign of real use: first non-seed financial entry or integration…, Seed + manual ledger rows. Rows written by accounting/CRM syncs are never…, Wipe Northwind sample content and leave a clean workspace (billing/OAuth kept).… (+13 more)
+Cohesion: 0.17
+Nodes (13): last_n_months(), sample_financial_entries(), _clear_sample_workspace(), _real_data_started_at(), _replaceable_entries_filter(), _fake_db(), _qb_entry(), _sample_ws() (+5 more)
 
 ### Community 80 - "heatmap/index.js"
-Cohesion: 0.08
-Nodes (65): generateHeatmapSkeletonFromTarget(), HeatmapCells, HeatmapChartSurface(), HeatmapChartLoading(), HEATMAP_DEFAULT_LEVEL_COLORS, HeatmapContext, heatmapCssVars, HeatmapInteractionBoundary() (+57 more)
+Cohesion: 0.15
+Nodes (34): HEATMAP_SEPARATOR_MARKER, HeatmapSeparator, buildHeatmapQuarterSeparatorGroups(), buildHeatmapRowOpacity(), buildHeatmapSeparatorGradientStops(), CALENDAR_QUARTER_START_MONTHS, countHeatmapWeekDaysOnOrAfter(), filterHeatmapColumns() (+26 more)
 
 ### Community 81 - "ai-search/README.md"
 Cohesion: 0.08
-Nodes (18): AI Search API Routes, AI Search Configuration Routes, AI Search Troubleshooting Routes, AI Search Pattern Routes, Choose the right product, Cloudflare AI Search, Find the right documentation, Operation choices (+10 more)
+Nodes (19): AI Gateway Configuration, AI Gateway Dynamic Routing, AI Gateway Features, Choose a task, Cloudflare AI Gateway, Related references, AI Gateway SDK Integration, AI Gateway Troubleshooting (+11 more)
 
 ### Community 82 - "C3 (create-cloudflare)"
 Cohesion: 0.07
 Nodes (25): Advanced Flags, C3 CLI Reference, Core Flags, Deployment Flags, Environment Variables, Examples, Exit Codes, Invocation (+17 more)
 
 ### Community 83 - "accounting_map.py"
-Cohesion: 0.12
-Nodes (26): apply_exchange_rate(), entry_amount_for_totals(), entry_signed_amount(), fallback_category(), _float_or(), fx_rate_home_per_foreign(), normalize_mapped_amount(), Any (+18 more)
+Cohesion: 0.14
+Nodes (15): apply_exchange_rate(), entry_amount_for_totals(), entry_signed_amount(), fallback_category(), _float_or(), fx_rate_home_per_foreign(), normalize_mapped_amount(), _raw_amount() (+7 more)
 
 ### Community 84 - "test_retention_connected.py"
 Cohesion: 0.12
-Nodes (26): _apply_sample(), _briefing_ws(), _checklist_db(), _get_briefing(), _patch_decision(), Retention pass: setup checklist, decision edits, briefing links, work-item deep…, _run_checklist(), _task_db() (+18 more)
+Nodes (24): briefing_client(), _briefing_ws(), _checklist_db(), _get_briefing(), _patch_decision(), _run_checklist(), _task_db(), _task_ws() (+16 more)
 
-### Community 85 - "test_quick_import.py"
+### Community 85 - "test_google_calendar_tz.py"
 Cohesion: 0.13
-Nodes (18): Return [{name, grid}] with blank trailing rows and columns removed., read_workbook(), _trim_grid(), _analyze(), Quick import (drop a file, get a company): reading, mapping, records, confirm…, _setup(), test_ai_mapping_is_used_and_broken_ai_falls_back(), test_bad_ai_mapping_is_ignored() (+10 more)
+Nodes (15): summarize(), _analyze(), _setup(), test_ai_mapping_is_used_and_broken_ai_falls_back(), run(), test_bank_statement_with_debit_and_credit_columns(), test_clean_record_drops_invalid_and_future_rows(), test_deals_stage_value_and_dates() (+7 more)
 
 ### Community 86 - "workflows/README.md"
 Cohesion: 0.07
 Nodes (24): Cron Triggers API, Cron Triggers Configuration, Cron Triggers Troubleshooting, Cron Triggers Patterns, Cloudflare Cron Triggers, In This Reference, See Also, Queues API Reference (+16 more)
 
 ### Community 87 - "pipelines/patterns.md"
-Cohesion: 0.14
-Nodes (12): Get Table (repository-specific metadata introspection note), R2 Data Catalog API Selection, R2 Data Catalog Configuration, R2 Data Catalog Troubleshooting, R2 Data Catalog Patterns, R2 Data Catalog, Access, Debug Checklist (+4 more)
+Cohesion: 0.12
+Nodes (15): Behavioral Notes, Debug Checklist, Events accepted but never appear (most common), Everything is immutable, Pipelines Gotchas, REST API field names ≠ CLI flags, See Also, Worker binding undefined (`env.MY_STREAM`) (+7 more)
 
 ### Community 88 - "test_membership_cleanup.py"
-Cohesion: 0.20
-Nodes (24): _company(), fake_db(), _join(), Adding and removing people, and deleting accounts or companies, leave nothing…, _Req, run(), _seat_counter(), test_a_clerk_side_delete_frees_the_seat_and_does_not_block_reinviting() (+16 more)
+Cohesion: 0.17
+Nodes (26): delete_account(), _delete_workspace_data(), InviteInput, _company(), fake_db(), _join(), _Req, run() (+18 more)
 
-### Community 89 - "sap_b1.py"
-Cohesion: 0.14
-Nodes (23): ensure_session(), _fetch_collection_page(), fetch_sap_transactions(), _is_cancelled(), _line_category(), logout(), map_sap_document(), _num() (+15 more)
+### Community 89 - "test_section_access_tasks_decisions.py"
+Cohesion: 0.09
+Nodes (19): _assert_public_service_layer_host(), ensure_session(), _fetch_collection_page(), fetch_sap_transactions(), _is_blocked_ip(), _is_cancelled(), _line_category(), logout() (+11 more)
 
 ### Community 90 - "test_deals_pagination.py"
-Cohesion: 0.12
-Nodes (13): decode_cursor(), deals_client(), mock_principal(), FakeAggregateCursor, FakeCollection, FakeCursor, _make_deals(), _pagination_db() (+5 more)
+Cohesion: 0.11
+Nodes (11): decode_cursor(), deals_client(), mock_principal(), FakeAggregateCursor, FakeCollection, FakeCursor, _make_deals(), _pagination_db() (+3 more)
 
 ### Community 91 - "test_auth_onboarding_audit.py"
-Cohesion: 0.14
-Nodes (24): fake_db(), Sign-up to first-company flow: invite-code rotation, company-name cap, double-…, Pending invite → active membership must clear needs_workspace on next /auth/me., _Req, run(), test_activate_invites_sets_active_workspace_when_unset(), go(), test_claim_active_workspace_does_not_steal_existing() (+16 more)
+Cohesion: 0.11
+Nodes (25): _claim_workspace_create(), create_workspace(), CreateWsInput, _recent_workspace_by_owner(), fake_db(), _Req, run(), test_activate_invites_sets_active_workspace_when_unset() (+17 more)
 
 ### Community 92 - "test_xero_entities.py"
-Cohesion: 0.14
-Nodes (15): _fast(), T13: Xero entity coverage, status filters, 429 backoff, 403 handling (fixtures…, _Resp, _sync(), test_403_with_tenant_listed_is_permission_error(), test_429_forever_is_transient(), test_429_then_200_succeeds(), test_accounts_forbidden_skips_manual_journals_only() (+7 more)
+Cohesion: 0.13
+Nodes (14): _fast(), _Resp, _sync(), test_403_with_tenant_listed_is_permission_error(), test_429_forever_is_transient(), test_429_then_200_succeeds(), test_accounts_forbidden_skips_manual_journals_only(), test_full_sync_maps_every_type_with_one_client() (+6 more)
 
 ### Community 93 - "hubspot.py"
 Cohesion: 0.11
-Nodes (33): _auth_headers(), _fetch_company_names(), _fetch_deal_company_ids(), fetch_deals(), _fetch_stage_labels(), HubSpotAuthError, HubSpotTransientError, _is_revoked_refresh() (+25 more)
+Nodes (20): _auth_headers(), _fetch_company_names(), _fetch_deal_company_ids(), fetch_deals(), _fetch_stage_labels(), HubSpotAuthError, HubSpotTransientError, _is_revoked_refresh() (+12 more)
 
 ### Community 94 - "heatmap-resolve-separator.js"
-Cohesion: 0.17
-Nodes (11): CHART_CLIP_PASSTHROUGH, CLIP_EXCLUDED_COMPONENT_NAMES, isChartClipPassthrough(), resolveChartChildElement(), UNDERLAY_COMPONENT_NAMES, getChildComponentName(), isHeatmapSeparatorElement(), normalizeHeatmapSeparatorConfig() (+3 more)
+Cohesion: 0.15
+Nodes (13): CHART_CLIP_PASSTHROUGH, CLIP_EXCLUDED_COMPONENT_NAMES, isChartClipPassthrough(), resolveChartChildElement(), UNDERLAY_COMPONENT_NAMES, getChildComponentName(), isHeatmapSeparatorElement(), normalizeHeatmapSeparatorConfig() (+5 more)
 
 ### Community 95 - "Artifacts Configuration"
-Cohesion: 0.07
-Nodes (27): Artifacts API Reference, Binding Notes, Git-Compatible Access, Namespace Methods, Repo Handle Methods, Repo Routes, REST API, Token Routes (+19 more)
+Cohesion: 0.10
+Nodes (18): Artifacts API Reference, Binding Notes, Git-Compatible Access, Namespace Methods, Repo Handle Methods, Repo Routes, REST API, Token Routes (+10 more)
 
 ### Community 96 - "test_deal_won_financials.py"
 Cohesion: 0.08
-Nodes (22): _deal_revenue_month(), YYYY-MM from close_date when parseable and not in the future, else the current…, _create_deal(), DealStore, DocStore, Won deal → automatic revenue entry + production prompt., Won deals from before auto-booking (or whose row was deleted) must not silently…, test_deal_revenue_month_helper() (+14 more)
+Nodes (19): _deal_revenue_month(), _create_deal(), DealStore, DocStore, test_deal_revenue_month_helper(), test_deal_revenue_month_uses_workspace_local_now(), test_deleting_won_deal_removes_revenue(), test_editing_won_deal_value_updates_revenue_amount() (+11 more)
 
-### Community 97 - "calendar"
-Cohesion: 0.06
-Nodes (56): _annotate_helm_event_permissions(), _build_helm_event(), calendar(), _calendar_department_names(), _calendar_week_start(), CalendarEventInput, can_manage_helm_calendar_event(), can_view_helm_calendar_event() (+48 more)
+### Community 97 - "test_user_google_tokens.py"
+Cohesion: 0.27
+Nodes (4): test_google_calendar_snapshot_no_fallback_without_user_tokens(), test_store_and_load_user_google_tokens_are_sealed(), test_store_integration_tokens_rejects_google_field(), test_two_users_keep_separate_google_tokens()
 
 ### Community 98 - "maintenance_ops.py"
-Cohesion: 0.22
+Cohesion: 0.14
 Nodes (17): compute_next_due_at(), contracts_needing_attention(), enrich_contract(), enrich_schedule(), equipment_key(), overdue_schedules(), overhead_rollup(), _parse_date() (+9 more)
 
-### Community 99 - "retention.py"
+### Community 99 - "test_retention.py"
+Cohesion: 0.14
+Nodes (17): inactivity_nudge_due(), test_bullets_are_specific(), test_empty_workspace_has_no_bullets(), test_endpoint_runs_with_cron_header(), test_inactivity_can_fire_again_after_return(), test_inactivity_due_after_five_days(), test_inactivity_once_per_window(), test_inactivity_skipped_while_browsing_pre_setup_demo() (+9 more)
+
+### Community 100 - "TestReportSnapshotsHTTP"
+Cohesion: 0.06
+Nodes (38): _account_classification(), _api_base(), _base_mapped_fields(), _cdc_deleted_ids(), _once(), _is_pl_account_type(), _is_prod_like(), _line_category() (+30 more)
+
+### Community 101 - "setup_clerk_portal_www"
+Cohesion: 0.10
+Nodes (18): clerk_authorized_parties(), clerk_multi_domain_auth(), clerk_post_auth_url(), clerk_primary_origin(), _clerk_redirect_url_list(), helm_frontend_origins(), _origin_registrable_host(), primary_frontend_origin() (+10 more)
+
+### Community 102 - "leave_api"
 Cohesion: 0.09
-Nodes (39): briefing_url(), collect_change_bullets(), days_inactive(), effective_trial_end(), _email_shell(), _esc(), inactivity_email_html(), inactivity_nudge_due() (+31 more)
+Nodes (3): CollStore, leave_api(), _match()
 
-### Community 100 - "quickbooks.py"
-Cohesion: 0.04
-Nodes (65): _account_classification(), _api_base(), _base_mapped_fields(), _cdc_deleted_ids(), _once(), fetch_qb_transactions(), _is_pl_account_type(), _is_prod_like() (+57 more)
-
-### Community 101 - "clerk_post_auth_url"
-Cohesion: 0.11
-Nodes (23): clerk_authorized_parties(), clerk_multi_domain_auth(), clerk_post_auth_url(), clerk_primary_origin(), _clerk_redirect_url_list(), ensure_allowed_origins_legacy(), helm_frontend_origins(), _origin_registrable_host() (+15 more)
-
-### Community 102 - "test_hr_leave_requests.py"
-Cohesion: 0.10
-Nodes (4): CollStore, leave_api(), _match(), HR leave / time-off request API + calendar range visibility.
-
-### Community 103 - "test_google_calendar_tz.py"
-Cohesion: 0.10
-Nodes (19): fetch_week_calendar(), UTC ISO bounds of the 7 local days starting on week_start's calendar date.…, Fetch one week of events from primary calendar (paginated via nextPageToken)., week_bounds(), _CalendarClient, _fresh_tokens(), _FrozenDatetime, datetime (+11 more)
+### Community 103 - "test_google_oauth.py"
+Cohesion: 0.05
+Nodes (32): _compute_hours(), _counts_toward_hours(), fetch_today_calendar(), fetch_week_calendar(), _infer_meeting_type(), _map_google_event(), _parse_event_dt(), _today_bounds() (+24 more)
 
 ### Community 104 - "test_schedule_plan_paddle.py"
 Cohesion: 0.19
-Nodes (14): Retrieval Sources, config(), env(), Scheduling a downgrade must change the Paddle subscription, not only Trenston's…, _Req, run(), schedule(), test_downgrade_to_free_cancels_paddle_at_period_end() (+6 more)
+Nodes (12): config(), env(), _Req, run(), schedule(), test_downgrade_to_free_cancels_paddle_at_period_end(), test_downgrade_to_lower_paid_plan_swaps_price_without_billing(), test_new_customer_still_gets_checkout() (+4 more)
 
 ### Community 105 - "pages-functions/README.md"
 Cohesion: 0.11
 Nodes (13): Pages Request Handling, Pages Configuration, Pages Functions APIs, Pages Functions Configuration, Pages Functions Troubleshooting, Pages Functions Request Design, Cloudflare Pages Functions, In This Reference (+5 more)
 
-### Community 106 - "_users_by_ids"
-Cohesion: 0.13
-Nodes (23): _blocking_production_order_entry(), _blocking_production_orders_by_maintenance_ticket(), _blocking_production_orders_by_request(), _enrich_assignee_ids(), _enrich_legal_matter(), _enrich_legal_matters(), _enrich_maintenance_ticket(), _enrich_maintenance_tickets() (+15 more)
+### Community 106 - "_apply_deal_owner_assignment"
+Cohesion: 0.22
+Nodes (7): _apply_deal_owner_assignment(), _can_lead_sales(), _migrate_deal_owner_user_ids(), _owner_display_name(), _sales_department_row(), _sales_member_rows(), _validate_sales_owner()
 
 ### Community 107 - "department_report_drafts.py"
-Cohesion: 0.09
-Nodes (35): _aware(), build_draft_doc(), completion_time(), dismiss_draft(), filter_completed(), in_week(), list_open_drafts(), mark_published() (+27 more)
+Cohesion: 0.17
+Nodes (18): _aware(), build_draft_doc(), completion_time(), dismiss_draft(), filter_completed(), in_week(), list_open_drafts(), mark_published() (+10 more)
 
 ### Community 108 - "procurement_metrics.py"
 Cohesion: 0.20
-Nodes (18): attach_lead_time_metrics(), _days_between(), department_lead_time_summary(), is_currently_late(), lead_time_metrics(), _mean(), _parse_date(), _parse_iso_dt() (+10 more)
+Nodes (9): attach_lead_time_metrics(), _days_between(), department_lead_time_summary(), is_currently_late(), lead_time_metrics(), _mean(), _parse_date(), _parse_iso_dt() (+1 more)
 
 ### Community 109 - "public_api.py"
 Cohesion: 0.16
-Nodes (16): briefing(), decisions(), _figure(), financials(), me(), my_work(), _pick(), Any (+8 more)
+Nodes (12): briefing(), decisions(), _figure(), financials(), me(), my_work(), _pick(), _rows() (+4 more)
 
-### Community 110 - "test_ask_helm_calls_membership_slice_for_every_non_finance_dept"
+### Community 110 - "ask_helm"
 Cohesion: 0.17
-Nodes (21): _access_by_type(), _ask_period(), _enabled_by_type(), _mock_coll(), asyncio, Flatten ask_helm system prompt (str or Anthropic content-block list) for…, Sales member: sales data in prompt; every other dept restricted; no raw foreign…, Integration with real helper: non-member gets no rows; filter applied for… (+13 more)
+Nodes (18): _access_by_type(), _ask_period(), _company(), _enabled_by_type(), _mock_coll(), _system_text(), test_ask_context_disabled_department_is_not_tracked_not_restricted(), test_ask_helm_calls_membership_slice_for_every_non_finance_dept() (+10 more)
 
-### Community 111 - "merge_integrations"
+### Community 111 - "CalendarPage.jsx"
 Cohesion: 0.16
-Nodes (17): merge_integrations(), Any, Canonical integration definitions — user-facing connectable services only.…, Build user integration cards with live connection status. Google Workspace…, _token_scope(), Integration catalog merge and status tests., Legacy workspace-level google_tokens must not mark the user as connected., test_coming_soon_integrations() (+9 more)
+Nodes (12): merge_integrations(), _token_scope(), test_coming_soon_integrations(), test_google_full_grant_no_reconsent(), test_google_needs_reconsent_when_calendar_only(), test_hubspot_connected_when_tokens_present(), test_merge_oauth_connected(), test_merge_oauth_connected_when_sealed() (+4 more)
 
 ### Community 112 - "attach_users_in_find"
-Cohesion: 0.03
-Nodes (18): attach_users_in_find(), find(), Route users.find($in) through users.find_one so batch lookups work on mocks., dept_api(), FakeDepartments, FakeDeptMembers, Department framework foundation tests., Industry (e.g. SaaS) must not gate which catalog departments a CEO can enable. (+10 more)
+Cohesion: 0.06
+Nodes (8): attach_users_in_find(), find(), CollStore, _match(), summary_api(), legal_api(), MatterStore, test_list_members_batches_user_lookups_and_missing_user()
 
 ### Community 113 - "plans.py"
-Cohesion: 0.08
-Nodes (41): ai_extracts_lifetime_limit(), any_paddle_price_configured(), ask_helm_monthly_limit(), automation_rules_limit(), is_downgrade(), is_upgrade(), normalize_plan(), paddle_price_id_for() (+33 more)
+Cohesion: 0.05
+Nodes (48): ai_extracts_lifetime_limit(), ai_extracts_limit(), any_paddle_price_configured(), ask_helm_monthly_limit(), is_downgrade(), is_paid_plan(), is_upgrade(), normalize_plan() (+40 more)
 
 ### Community 114 - "Guardrails"
 Cohesion: 0.09
@@ -1011,57 +1023,57 @@ Nodes (21): Access and SaaS Federation, API Safety, Architecture and Current Sta
 Cohesion: 0.11
 Nodes (12): Email Routing APIs, Email Routing Setup, Email Routing Troubleshooting, Email Routing Patterns, Email Routing, Reference map, Email Workers APIs, Email Workers Configuration (+4 more)
 
-### Community 116 - "test_paddle_billing.py"
-Cohesion: 0.05
-Nodes (50): api_unsubscribe_url(), _b64decode(), _b64encode(), filter_unsuppressed(), inject_marketing_footer(), is_suppressed(), list_unsubscribe_headers(), make_unsubscribe_token() (+42 more)
+### Community 116 - "email_compliance.py"
+Cohesion: 0.09
+Nodes (18): api_unsubscribe_url(), _b64decode(), _b64encode(), filter_unsuppressed(), inject_marketing_footer(), is_suppressed(), list_unsubscribe_headers(), make_unsubscribe_token() (+10 more)
 
-### Community 117 - "test_storage.py"
-Cohesion: 0.17
-Nodes (19): maybe_compress_image(), probe_r2(), Connectivity check for setup/status. Never raises., Resize and re-encode image uploads. PDFs and other non-images are unchanged., upload_document(), _jpeg_bytes(), _png_bytes(), Image compression on the R2 upload path. (+11 more)
+### Community 117 - "dept_api"
+Cohesion: 0.06
+Nodes (9): _setup(), access(), test_deleting_a_decision_removes_its_effect(), test_no_financials_access_means_no_money(), run(), test_save_read_and_clear_effect(), dept_api(), FakeDepartments (+1 more)
 
 ### Community 118 - "plan_usage.py"
-Cohesion: 0.15
-Nodes (23): _add_months(), billing_anchor(), current_usage_period(), get_lifetime_extract_count(), get_monthly_extract_count(), get_period_extract_count(), increment_lifetime_extract(), increment_monthly_extract() (+15 more)
+Cohesion: 0.14
+Nodes (16): _add_months(), billing_anchor(), current_usage_period(), get_lifetime_extract_count(), get_monthly_extract_count(), get_period_extract_count(), increment_lifetime_extract(), increment_monthly_extract() (+8 more)
 
 ### Community 119 - "SignUp.jsx"
-Cohesion: 0.06
-Nodes (61): AppProtectedGate, GatedLayout, frontend_src_assets_trenston_mark_mono, ClerkHelmBridge(), exchangeClerkSession(), sleep(), ClerkLoadError(), ClerkModeContext (+53 more)
+Cohesion: 0.09
+Nodes (44): ClerkLoadError(), ClerkModeContext, ClerkProviderBootstrap(), clerkProxyUrl(), ConfigErrorScreen(), readCachedState(), useClerkMode(), writeCachedState() (+36 more)
 
-### Community 120 - "alert_notify.py"
-Cohesion: 0.14
-Nodes (18): build_alert_email_html(), build_slack_text(), _esc(), high_severity_suggestions(), new_high_alerts(), Any, Best-effort high-severity alert notifications (email + optional Slack)., Stable fingerprint for debounce across regenerations. (+10 more)
+### Community 120 - "test_incremental_sync_deletes.py"
+Cohesion: 0.13
+Nodes (12): build_alert_email_html(), build_slack_text(), _esc(), high_severity_suggestions(), new_high_alerts(), signal_notify_key(), _slack_escape(), test_alert_debounce_skips_already_notified() (+4 more)
 
-### Community 121 - "is_valid_month"
-Cohesion: 0.18
-Nodes (18): current_month(), is_current_or_past_month(), is_future_month(), is_valid_month(), partition_ledger_entries(), datetime, Latest month to expand recurring entries through for burn/MRR/runway. Always…, True when month is a real YYYY-MM calendar month (01–12). (+10 more)
+### Community 121 - "HelmHowToUse.jsx"
+Cohesion: 0.12
+Nodes (27): AiConnectSection(), Card(), CheckList(), CodeBlock(), ContentsNav(), FaqItem(), goTo(), JumpChips() (+19 more)
 
-### Community 122 - "QuickAdd.jsx"
-Cohesion: 0.06
-Nodes (34): GetStartedView(), checklist, Term(), findVisible(), placeCard(), shellRoot(), view, TourOverlay() (+26 more)
+### Community 122 - "Automations.jsx"
+Cohesion: 0.08
+Nodes (34): PageHeader(), NoAccess(), describeAction(), describeTrigger(), formatNumber(), ruleBodyFromForm(), SEVERITY_LABEL, SEVERITY_SUFFIX (+26 more)
 
 ### Community 123 - "cloudflare/SKILL.md"
-Cohesion: 0.06
-Nodes (20): Bindings API Reference, Binding Configuration, Binding Gotchas and Troubleshooting, Binding Patterns, Cloudflare Workers Bindings, Start here, Browser Run APIs, Browser Run Configuration (+12 more)
+Cohesion: 0.10
+Nodes (14): Browser Run APIs, Browser Run Configuration, Browser Run Troubleshooting, Browser Run Patterns, Browser Run (formerly Browser Rendering), Caching, Discover and build with Cloudflare, Find guidance for a task not listed here (+6 more)
 
 ### Community 124 - "Financials.jsx"
-Cohesion: 0.04
-Nodes (88): AskTrenston, Financials, ASSISTANT_PROMPTS, BriefingCockpitHero(), deltaTone(), HERO_TERM, METRIC_KEYS, pickMetric() (+80 more)
+Cohesion: 0.05
+Nodes (71): ASSISTANT_PROMPTS, BriefingCockpitHero(), deltaTone(), HERO_TERM, METRIC_KEYS, pickMetric(), RevenueBars, spendColors() (+63 more)
 
-### Community 125 - "Skill validation cases"
-Cohesion: 0.25
-Nodes (7): Running all cases, Skill validation cases, Test 1: Dummy Siteverify returns a structured error, Test 2: Metadata matches the sitekey and secret, Test 3: Runtime checks match the protected surface, Test 4: Same-page retries reset the correct widget, Test 5: Skill persists to a bundle location
+### Community 125 - "hashlib"
+Cohesion: 0.13
+Nodes (9): activation(), _iso(), main(), clean_event(), daily_counts(), record(), test_non_dict_props_are_ignored(), test_only_allowed_props_survive_and_are_trimmed() (+1 more)
 
 ### Community 126 - "sales_order_book.py"
-Cohesion: 0.12
-Nodes (23): get_enabled_departments_by_type(), One query for many department types → ``{type: department|None}``., assemble_ops_briefing_data(), Gather structured ops snapshot for one workspace. Returns sections keyed by…, _section_sales(), add_months(), attribute_month(), compute_total() (+15 more)
+Cohesion: 0.13
+Nodes (22): _can_lead_sales(), create_sales_order_book(), delete_sales_order_book(), list_sales_order_book(), patch_sales_order_book(), put_sales_target(), _sales_department(), sales_order_book_summary() (+14 more)
 
-### Community 127 - "QuickImport.jsx"
-Cohesion: 0.06
-Nodes (51): QuickImport, savedTheme(), systemTheme(), ThemeContext, ThemeProvider(), VALID, writeLocal(), useInvalidateCompany() (+43 more)
+### Community 127 - "index.jsx"
+Cohesion: 0.07
+Nodes (53): hasBrandLogo(), confirmAction(), useInvalidateCompany(), ACCEPTED_FILES, applyLineTypes(), buildConfirmPayload(), COLUMN_LABEL, COUNT_TO_KIND (+45 more)
 
-### Community 128 - "chunkReload.js"
-Cohesion: 0.14
-Nodes (10): App(), ErrorBoundary, isChunkLoadError(), isOffline(), lazyWithReload(), reloadForNewVersion(), CLERK_TOKEN_TIMEOUT, friendlyRequestError() (+2 more)
+### Community 128 - "App.jsx"
+Cohesion: 0.04
+Nodes (85): About, AccountSettings, App(), AppHelp, AppProtectedGate, AppRoutes(), AskTrenston, Automations (+77 more)
 
 ### Community 129 - "components.json"
 Cohesion: 0.10
@@ -1069,7 +1081,7 @@ Nodes (20): aliases, components, hooks, lib, ui, utils, iconLibrary, registries 
 
 ### Community 130 - "trenston_mcp/server.py"
 Cohesion: 0.10
-Nodes (20): collections_abc, mcp_server_mcpserver, mcp_server_mcpserver_exceptions, default_checker(), check(), _origin(), protected_resource_metadata(), AsyncBaseTransport (+12 more)
+Nodes (7): default_checker(), check(), _origin(), protected_resource_metadata(), api_base(), _error_message(), TrenstonClient
 
 ### Community 131 - "GraphQL Analytics API Reference"
 Cohesion: 0.10
@@ -1085,63 +1097,63 @@ Nodes (19): Cloudflare Workers Best Practices, CORS Handling, Development Comman
 
 ### Community 134 - "test_report_digest.py"
 Cohesion: 0.10
-Nodes (21): _validate_report_summary(), _csv_to_text(), Convert uploaded report spreadsheets into plain text for LLM summarization., Return (markdown-ish table text, truncated). Caps rows and characters so a…, spreadsheet_bytes_to_text(), _xlsx_to_text(), client(), asyncio (+13 more)
+Nodes (16): _validate_report_summary(), _csv_to_text(), spreadsheet_bytes_to_text(), _xlsx_to_text(), client(), test_bills_upload_still_rejects_xlsx(), test_combine_digest_uses_fast_model(), test_csv_to_text_includes_figures_and_caps_rows() (+8 more)
 
-### Community 135 - "quick_import_preview"
-Cohesion: 0.13
-Nodes (18): ai_prompt_for_sheet(), clean_record(), _clip(), column_labels(), merge_ai_plan(), col_of(), parse_ai_json(), field -> header text, for showing the mapping in the preview. (+10 more)
+### Community 135 - "test_paddle_billing.py"
+Cohesion: 0.16
+Nodes (13): member_client(), owner_client(), principal(), paddle_db(), paddle_env(), _run(), _sign(), test_config_returns_token_and_nonce() (+5 more)
 
 ### Community 136 - "month_breakdown"
 Cohesion: 0.20
-Nodes (14): month_breakdown(), Everything behind one month's totals, for the "click a month" view. `counted`…, _e(), The click-a-month view must add up to the same numbers the Financials charts…, test_a_price_change_with_the_same_name_replaces_the_old_rate(), test_annual_plan_is_shown_as_a_twelfth_with_its_cadence(), test_different_categories_do_not_replace_each_other(), test_empty_ledger_and_bad_month() (+6 more)
+Nodes (12): month_breakdown(), _e(), test_a_price_change_with_the_same_name_replaces_the_old_rate(), test_annual_plan_is_shown_as_a_twelfth_with_its_cadence(), test_different_categories_do_not_replace_each_other(), test_empty_ledger_and_bad_month(), test_endpoint_lists_cursor_pro_in_each_month(), fake_fin() (+4 more)
 
 ### Community 137 - "test_public_api_keys.py"
-Cohesion: 0.09
-Nodes (42): create_key(), generate_key(), hash_key(), key_hint(), mint_oauth_access_token(), normalize_name(), Create a key. Returns ``(raw_key, public_view)``; the raw key is never stored., Short-lived token issued to an OAuth client (e.g. Claude). Same shape as a… (+34 more)
+Cohesion: 0.13
+Nodes (20): token_from_headers(), api(), _as(), _auth(), test_api_keys_do_not_work_on_app_endpoints(), test_briefing_runs_as_the_key_owner_and_strips_mail(), test_cannot_revoke_someone_elses_key(), test_create_list_revoke_round_trip() (+12 more)
 
 ### Community 138 - "test_sync_pagination.py"
 Cohesion: 0.12
-Nodes (7): asyncio, Sync fetchers paginate and report incomplete when safety caps are hit., _Resp, test_qb_query_incomplete_when_max_pages_hit(), get(), test_qb_query_paginates_until_short_page(), test_xero_pages_until_short()
+Nodes (5): _Resp, test_qb_query_incomplete_when_max_pages_hit(), get(), test_qb_query_paginates_until_short_page(), test_xero_pages_until_short()
 
 ### Community 139 - "data_freshness.py"
 Cohesion: 0.13
-Nodes (26): is_possibly_stale(), item_timestamp(), _latest_collection_ts(), _latest_ts_for_query(), _max_ts(), parse_iso_ts(), pick_data_as_of(), Any (+18 more)
+Nodes (16): is_possibly_stale(), item_timestamp(), _latest_collection_ts(), _latest_ts_for_query(), _max_ts(), parse_iso_ts(), pick_data_as_of(), resolve_workspace_data_as_of() (+8 more)
 
 ### Community 140 - "prerender-marketing.mjs"
 Cohesion: 0.12
-Nodes (30): applyNoindexShell(), applySeo(), buildDir, __dirname, escapeAttr(), escapeHtml(), founderPersonJsonLd(), frontendRoot (+22 more)
+Nodes (31): applyNoindexShell(), applySeo(), buildDir, __dirname, escapeAttr(), escapeHtml(), founderPersonJsonLd(), frontendRoot (+23 more)
 
 ### Community 141 - "test_helm_config.py"
-Cohesion: 0.13
-Nodes (17): is_stale_deploy_url(), Canonical Trenston URLs — single source of truth for production domain., True when Render/Vercel env still points at old preview hosts., Cookie domain that works for both apex and www (e.g. trenston.com)., registrable_cookie_domain(), Tests for helm_config URL helpers., Reload helm_config after applying env overrides; restore prior env afterward., Default public origin + /api/oauth/google/callback — matches FastAPI route. (+9 more)
+Cohesion: 0.15
+Nodes (9): is_stale_deploy_url(), registrable_cookie_domain(), _reload_helm_config_with_env(), test_is_stale_deploy_url(), test_oauth_google_callback_uri_default(), test_public_api_origin_defaults_to_canonical(), test_registrable_cookie_domain_apex(), test_registrable_cookie_domain_strips_www() (+1 more)
 
 ### Community 142 - "departments_catalog.py"
 Cohesion: 0.04
-Nodes (10): Fixed department catalog — not stored per workspace. Future department-specific…, Reserved collection name for a department's future stages feature., stages_collection_name(), legal_api(), MatterStore, Legal compliance recurrence + counterparty tracking., Engineering & Maintenance ops panels API tests (spares, schedules, AMCs, costs,…, Engineering & Maintenance ticket queue API tests. (+2 more)
+Nodes (5): catalog_entry(), stages_collection_name(), test_disable_reenable_keeps_department_id_for_deals(), test_enable_ignores_workspace_industry(), test_is_workspace_ceo()
 
 ### Community 143 - "test_sales_finance_fold.py"
 Cohesion: 0.08
-Nodes (11): FakeColl, fold_api(), asyncio, Sales & Accounting/Finance department migration + access filtering., Unit-level: sales_department_id helper returns Sales dept id., Concurrent first-enable must not 500 on unique (workspace_id, type)., test_apply_department_filter(), test_create_deal_auto_department_id_unit() (+3 more)
+Nodes (7): FakeColl, fold_api(), test_apply_department_filter(), test_create_deal_auto_department_id_unit(), test_ensure_enabled_department_handles_insert_race(), test_migration_idempotent_creates_enrolls_backfills(), UpdateResult
 
 ### Community 144 - "agents-sdk/SKILL.md"
-Cohesion: 0.13
-Nodes (10): Client SDK, Human-in-the-Loop, MCP Integration, Queue & Retries, Server-Driven Messages, State & Scheduling, Streaming Chat with AIChatAgent, Design checks (+2 more)
+Cohesion: 0.10
+Nodes (13): Client SDK, Human-in-the-Loop, MCP Integration, Queue & Retries, Server-Driven Messages, State & Scheduling, Streaming Chat with AIChatAgent, Push Notifications (+5 more)
 
 ### Community 145 - "secrets-store/README.md"
 Cohesion: 0.13
 Nodes (14): Runtime decisions, Secrets Store APIs, Local development and deployment, Secrets Store configuration, Setup and management, Secrets Store troubleshooting, Audit and integrations, Encryption and signing (+6 more)
 
-### Community 146 - "test_section_access_tasks_decisions.py"
-Cohesion: 0.16
-Nodes (12): mongo_db(), Shared helpers for Trenston backend integration tests., set_workspace_plan(), workspace_id_for(), member(), member_dept_engineering(), owner(), Manage Access must honor section_access for Tasks and Decisions. A member pack… (+4 more)
+### Community 146 - "_complete_oauth_callback"
+Cohesion: 0.15
+Nodes (10): mongo_db(), set_workspace_plan(), workspace_id_for(), member(), member_dept_engineering(), mongo(), owner(), _sess() (+2 more)
 
 ### Community 147 - "test_my_work_items.py"
 Cohesion: 0.12
-Nodes (6): DocStore, _match(), GET /api/me/work-items — cross-department personal work feed., Member is assigned on a Legal matter but is not a Legal member — must not…, test_inaccessible_department_assignment_hidden(), work_api()
+Nodes (4): DocStore, _match(), test_inaccessible_department_assignment_hidden(), work_api()
 
-### Community 148 - "test_plans.py"
-Cohesion: 0.15
-Nodes (14): plan_allows(), When billing is off, everything is allowed (dev / soft launch)., asyncio, Plan caps, Free feature blocks, and billing-period usage — no live Mongo…, Existing paying workspaces (plan=pro) land on Starter — conscious migration., Invite-time cap reads plans.seats_limit(), not a hardcoded figure for Starter., Invite-time cap reads plans.seats_limit() for Growth (20)., test_billing_anniversary_period_resets() (+6 more)
+### Community 148 - "GlassCard"
+Cohesion: 0.11
+Nodes (13): plan_allows(), client(), _get_briefing(), test_briefing_returns_ai_summary_for_free_workspace(), test_free_plan_includes_ai_briefing_feature(), test_money_note_hidden_from_people_without_financials_access(), test_stored_nrr_and_money_headline_never_leak(), test_free_includes_trial_ai_features() (+5 more)
 
 ### Community 149 - "GraphQL Analytics API Gotchas & Troubleshooting"
 Cohesion: 0.11
@@ -1153,9 +1165,9 @@ Nodes (13): Driver and binding routes, Hyperdrive API and drivers, ORMs and quer
 
 ### Community 151 - "RealtimeKit Configuration"
 Cohesion: 0.11
-Nodes (18): Angular, Backend Setup, Basic Configuration, Create App & Credentials, Create Presets, Custom Language Strings, Installation, Internationalization (i18n) (+10 more)
+Nodes (19): Angular, Angular UI Kit, Backend Setup, Client SDK Configuration, Core SDK Configuration, Create App & Credentials, Create Presets, Custom Language Strings (+11 more)
 
-### Community 152 - "Workers VPC Connectivity"
+### Community 152 - "tunnel/README.md"
 Cohesion: 0.09
 Nodes (18): Tunnel APIs and Commands, Tunnel Configuration, Tunnel Troubleshooting, Tunnel Networking, Tunnel Deployment Decisions, Cloudflare Tunnel, In This Reference, Architecture Pattern: Workers + Tunnel (+10 more)
 
@@ -1163,7 +1175,7 @@ Nodes (18): Tunnel APIs and Commands, Tunnel Configuration, Tunnel Troubleshooti
 Cohesion: 0.11
 Nodes (18): Background Tasks, Best Practices, Common Patterns, Compiled Binary (Recommended), Dev vs Prod Configs, Docker, Durable Objects, Error Handling (+10 more)
 
-### Community 154 - "TCP Sockets API Reference"
+### Community 154 - "Properties"
 Cohesion: 0.11
 Nodes (18): `close(): Promise<void>`, `closed: Promise<void>`, Complete Example, Core Function: `connect()`, Methods, `opened: Promise<SocketInfo>`, Parameters, Properties (+10 more)
 
@@ -1177,15 +1189,11 @@ Nodes (17): Compression & Minification, Detect Framework & Bundler, FIRST: Verif
 
 ### Community 157 - "gauge.jsx"
 Cohesion: 0.23
-Nodes (16): DEFAULT_NOTCH_ENTER_TRANSITION, Gauge(), GaugeArcInner(), GaugeLinearInner(), GaugeNotchSvg(), useGaugeFillState(), collectGaugeDefsElements(), createNotchPath() (+8 more)
+Nodes (19): DEFAULT_NOTCH_ENTER_TRANSITION, Gauge(), GaugeArcInner(), GaugeInner(), GaugeLinearInner(), GaugeNotchSvg(), GaugeLabelLayout(), GaugeLabelShell() (+11 more)
 
 ### Community 158 - "test_automations.py"
 Cohesion: 0.08
-Nodes (49): Insert new findings once; resolve open ones whose condition is gone., store_anomalies(), _automations_loop(), _automations_tick(), body(), _Coll, DB, entry() (+41 more)
-
-### Community 159 - "clerk_auth.py"
-Cohesion: 0.08
-Nodes (28): _cached_health(), clerk_api_ok(), clerk_jwks_ok(), clerk_proxy_url(), clerk_webhook_configured(), _fetch_bapi_jwks_sync(), fetch_clerk_user_profile(), _fetch_jwks_sync() (+20 more)
+Nodes (44): store_anomalies(), automation_rules_limit(), _automations_tick(), run_workspace_automations(), body(), DB, entry(), _glue_db() (+36 more)
 
 ### Community 160 - "Snippets Configuration Guide"
 Cohesion: 0.12
@@ -1196,23 +1204,23 @@ Cohesion: 0.12
 Nodes (17): Basic Patterns, Common Patterns, Connection Pooling, Destination Allowlist (Prevent SSRF), Error Handling Patterns, Fallback, MQTT, Multi-Protocol Gateway (+9 more)
 
 ### Community 162 - "test_decision_insights.py"
-Cohesion: 0.10
-Nodes (28): detect_runway_risk(), detect_stalled_department_item(), Fire if runway < 6 months, or burn rose materially month over month. Missing…, Flag open department records with no `updated_at` movement past…, _validate_decision_draft(), integration, skipif, Unit tests for decision_engine detectors + LLM draft validation + rate limit. (+20 more)
+Cohesion: 0.11
+Nodes (19): detect_runway_risk(), detect_stalled_department_item(), _sess(), _stalled_item(), test_build_equipment_history_case_insensitive_exact(), test_chronic_equipment_failure_threshold_and_text(), test_collect_signals_skips_departments_not_passed_in(), test_compute_downtime_resolved_and_open() (+11 more)
 
-### Community 163 - "test_clerk_sync.py"
-Cohesion: 0.13
-Nodes (20): clerk_keys_aligned(), clerk_secret_mode(), clerk_secret_publishable_mode_match(), derive_publishable_key_from_jwks(), publishable_key_instance_host(), Derive pk_* from JWKS host when CLERK_PUBLISHABLE_KEY is unset on Render., Decode the Clerk frontend host embedded in a publishable key., True when publishable key and JWKS URL refer to the same Clerk frontend. (+12 more)
+### Community 163 - "test_money_insights.py"
+Cohesion: 0.11
+Nodes (15): clerk_keys_aligned(), clerk_secret_mode(), clerk_secret_publishable_mode_match(), derive_publishable_key_from_jwks(), _jwt_payload_unverified(), publishable_key_instance_host(), resolve_clerk_publishable_key(), test_clerk_accounts_host_risks_flags_accounts_urls() (+7 more)
 
-### Community 164 - "sys"
+### Community 164 - "os"
 Cohesion: 0.03
-Nodes (50): Render build script — installs production deps only., Regenerate shared/modeling-parity.json from the Python reference model. Run…, One-time migration: seal plaintext google_tokens / quickbooks_tokens at rest.…, main(), Move Slack webhooks into the encrypted ``slack_webhook_enc`` field. For each…, Superseded by scripts.migrate_encrypt_slack_webhooks (dry-run by default,…, POST /api/internal/run-accounting-sync for the Render cron job (stdlib only)., POST /api/internal/run-daily-alerts for the Render cron job (stdlib only).… (+42 more)
+Nodes (24): _auth_configured(), main(), _mongo_configured(), _task_is_mine(), _required_env(), test_build_fails_on_passphrase_instead_of_fernet(), test_build_fails_without_integration_encryption_key(), test_build_passes_with_fernet_key() (+16 more)
 
 ### Community 165 - "test_procurement_expense_financials.py"
 Cohesion: 0.26
-Nodes (8): _db(), FinStore, asyncio, Delivered procurement request → automatic expense financial entry., test_delivered_priced_request_creates_expense(), test_idempotent_then_updates_cost(), test_procurement_expense_month_prefers_delivery(), test_skips_when_not_delivered_or_unpriced()
+Nodes (6): _db(), FinStore, test_delivered_priced_request_creates_expense(), test_idempotent_then_updates_cost(), test_procurement_expense_month_prefers_delivery(), test_skips_when_not_delivered_or_unpriced()
 
 ### Community 166 - "DocStore"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (3): DocStore, _match_query(), sales_api()
 
 ### Community 167 - "What you must do to launch Trenston (I cannot do these for you)"
@@ -1223,13 +1231,13 @@ Nodes (17): 1. MongoDB Atlas, 2. Clerk (sign-in), 3. Anthropic API key, 3b. Clou
 Cohesion: 0.08
 Nodes (25): devDependencies, autoprefixer, @babel/core, babel-jest, @babel/parser, @babel/preset-env, @babel/preset-react, @babel/traverse (+17 more)
 
-### Community 169 - "test_decision_insights_async.py"
-Cohesion: 0.14
-Nodes (13): asyncio, In-process tests for insights generation, rate limits, and briefing wiring., If every AI draft fails, do not wipe suggestions or stamp insights_generated_at., One failed draft must not erase that signal when others succeed., Stale insights must not block /briefing (was causing multi-second freezes)., Failed draft with no prior card still surfaces as a raw-signal suggestion., _schedule_insights_refresh must return immediately while generate runs., test_briefing_schedules_insights_without_awaiting_them() (+5 more)
-
-### Community 170 - "test_ensure_session_rejects_rebinding_to_private"
+### Community 169 - "collect_signals"
 Cohesion: 0.12
-Nodes (11): _assert_public_service_layer_host(), _is_blocked_ip(), normalize_service_layer_url(), Return a clean https Service Layer base URL ending with /b1s/v1. Rejects plain…, True when the address must not be contacted from the Trenston API., Resolve hostname and reject private / loopback / link-local targets., test_ensure_session_rejects_rebinding_to_private(), test_normalize_rejects_http_and_private_targets() (+3 more)
+Nodes (9): _briefing_what_to_decide(), mongo(), test_briefing_builders_use_live_decisions_and_suggestions(), test_briefing_schedules_insights_without_awaiting_them(), test_generate_insights_keeps_prior_on_total_draft_failure(), test_generate_insights_partial_draft_failure_keeps_high_severity(), draft_decision(), test_generate_insights_partial_draft_failure_raw_fallback_without_prior() (+1 more)
+
+### Community 170 - "retention.py"
+Cohesion: 0.20
+Nodes (15): briefing_url(), collect_change_bullets(), days_inactive(), effective_trial_end(), _email_shell(), _esc(), inactivity_email_html(), last_activity_at() (+7 more)
 
 ### Community 171 - "Bot Management Patterns"
 Cohesion: 0.12
@@ -1240,36 +1248,40 @@ Cohesion: 0.12
 Nodes (16): Addon System, Architecture, Audio-Only Mode, Backend Integration, Basic Setup, Best Practices, Core SDK Patterns, In This Reference (+8 more)
 
 ### Community 173 - "TURN API Reference"
-Cohesion: 0.12
-Nodes (16): Authentication, Create TURN Key, Credential Constraints, Delete TURN Key, Generate Temporary Credentials, Get TURN Key Details, List TURN Keys, Response Schema (+8 more)
+Cohesion: 0.20
+Nodes (10): Authentication, Credential Constraints, Generate Temporary Credentials, Response Schema, Revoke Credentials, See Also, TURN API Reference, Type-Safe Credential Generation (+2 more)
+
+### Community 174 - "test_department_report_drafts.py"
+Cohesion: 0.16
+Nodes (13): _cursor(), _Result, _store(), delete_one(), find_one(), update_one(), test_apply_status_completion_stamps_and_clears(), test_dismiss_and_publish_endpoints() (+5 more)
 
 ### Community 175 - "dept_ops_wiring.py"
 Cohesion: 0.22
-Nodes (15): ContractInput, ContractPatch, MaintCostCreate, MaintSettingsPut, OrderBookCreate, OrderBookPatch, ProcSettingsPut, BaseModel (+7 more)
+Nodes (12): ContractInput, ContractPatch, MaintCostCreate, MaintSettingsPut, OrderBookCreate, OrderBookPatch, ProcSettingsPut, SalesTargetPut (+4 more)
 
-### Community 176 - "Cursor"
-Cohesion: 0.06
-Nodes (14): test_accounting_auto_sync_clears_expired_quickbooks(), test_accounting_auto_sync_runs_connected_workspaces(), fake_qb(), test_accounting_auto_sync_skips_workspaces_whose_plan_dropped_the_provider(), test_accounting_auto_sync_skips_xero_without_tenant(), member_client(), owner_client(), principal() (+6 more)
+### Community 176 - "test_privacy_security_fixes.py"
+Cohesion: 0.08
+Nodes (11): test_accounting_auto_sync_clears_expired_quickbooks(), test_accounting_auto_sync_runs_connected_workspaces(), fake_qb(), test_accounting_auto_sync_skips_workspaces_whose_plan_dropped_the_provider(), test_accounting_auto_sync_skips_xero_without_tenant(), test_accounting_auto_sync_retryable_does_not_wipe_qb(), test_accounting_auto_sync_runs_sap_when_xero_missing_tenant(), test_export_workspace_package_strips_tokens_and_includes_collections() (+3 more)
 
-### Community 177 - "test_calendar_visibility.py"
-Cohesion: 0.22
-Nodes (10): DocStore, _get_calendar(), _match(), Department-scoped calendar read visibility (helm events + derived deadlines)., test_finance_event_visible_to_finance_and_ceo_only(), test_legacy_event_without_visibility_is_personal(), test_member_two_departments_sees_both(), test_procurement_deadline_scoped_to_procurement_and_ceo() (+2 more)
+### Community 177 - "test_plans.py"
+Cohesion: 0.13
+Nodes (11): DocStore, _get_calendar(), as_principal(), _match(), test_finance_event_visible_to_finance_and_ceo_only(), test_legacy_event_without_visibility_is_personal(), test_meetings_today_uses_workspace_timezone_not_utc(), test_member_two_departments_sees_both() (+3 more)
 
 ### Community 178 - "test_procurement_queue.py"
 Cohesion: 0.06
-Nodes (6): _match_query(), proc_api(), Procurement request queue API tests., Requests linked to awaiting/blocked work orders float to the top with badges., RequestStore, test_blocking_production_orders_enrichment_and_sort()
+Nodes (4): _match_query(), proc_api(), RequestStore, test_blocking_production_orders_enrichment_and_sort()
 
 ### Community 179 - "test_settings_delete_export.py"
 Cohesion: 0.20
-Nodes (11): _cancel_paddle_subscription(), Cancel a Paddle subscription immediately so a deleted workspace is not billed.…, _client(), get(), _Resp, run(), test_cancel_already_canceled(), test_cancel_failure_blocks_delete() (+3 more)
+Nodes (10): _cancel_paddle_subscription(), _client(), get(), _Resp, run(), test_cancel_already_canceled(), test_cancel_failure_blocks_delete(), test_cancel_ok() (+2 more)
 
 ### Community 180 - "fetch"
-Cohesion: 0.11
-Nodes (30): Binding access — the most common error, Env interface, Handler and class signatures, Stale class patterns, Type Validation, mcp, Tools, payload() (+22 more)
+Cohesion: 0.17
+Nodes (12): env(), payload(), stub(), test_exposes_only_read_only_tools(), test_http_mode_never_falls_back_to_the_server_env_key(), test_http_mode_without_header_refuses(), test_key_from_headers_variants(), test_missing_key_is_a_clear_error() (+4 more)
 
 ### Community 181 - "Cloudflare Agents SDK"
-Cohesion: 0.14
-Nodes (14): Agent Class, Background Processing, Capabilities, Chat & Streaming, Cloudflare Agents SDK, Core, Core APIs, Experimental (+6 more)
+Cohesion: 0.13
+Nodes (15): Agent Class, Background Processing, Capabilities, Chat & Streaming, Cloudflare Agents SDK, Core, Core APIs, Experimental (+7 more)
 
 ### Community 182 - "Patterns & Use Cases"
 Cohesion: 0.13
@@ -1304,31 +1316,31 @@ Cohesion: 0.21
 Nodes (9): Stream Live Streaming API, Stream API Reference, Stream Configuration, Stream Gotchas, Application Decisions, Stream Patterns, Choose a Workflow, Cloudflare Stream (+1 more)
 
 ### Community 190 - "Workerd Configuration"
-Cohesion: 0.13
-Nodes (15): Basic Structure, Bindings, Compatibility, Durable Objects Config, Logging & Debugging, Other, Parameter Bindings (Inheritance), Primitive Types (+7 more)
+Cohesion: 0.20
+Nodes (10): Basic Structure, Compatibility, Durable Objects Config, Logging & Debugging, Parameter Bindings (Inheritance), Remote Bindings (Development), Services, Sockets (+2 more)
 
-### Community 191 - "Cloudflare Workers Smart Placement"
-Cohesion: 0.06
-Nodes (28): cf-placement Header (Beta), Detecting Smart Placement in Code, Interpreting Metrics, Monitoring Commands, Placement Status API, Request Duration Metrics, Smart Placement API, Status Meanings (+20 more)
-
-### Community 192 - "Any"
+### Community 191 - "Smart Placement API"
 Cohesion: 0.10
-Nodes (31): _cached_probe_value(), _clear_probe_value(), clerk_accounts_host_risks(), clerk_custom_domain_ssl_ok(), _clerk_fapi_display_config(), clerk_jwks_host(), _clerk_primary_domain_record(), clerk_signup_policy() (+23 more)
+Nodes (16): cf-placement Header (Beta), Detecting Smart Placement in Code, Interpreting Metrics, Monitoring Commands, Placement Status API, Request Duration Metrics, Smart Placement API, Status Meanings (+8 more)
 
-### Community 193 - "BrandLogo.jsx"
-Cohesion: 0.31
-Nodes (7): hasBrandLogo(), NAME_TO_ID, BRAND_COLORS, COLOR_MARKS, MONO_PATHS, SLACK_MONO, BrandBadge()
+### Community 192 - "test_weekly_pack_export.py"
+Cohesion: 0.15
+Nodes (13): _cached_probe_value(), clerk_accounts_host_risks(), _clerk_fapi_display_config(), clerk_jwks_host(), clerk_signup_policy(), clerk_sync_status(), _display_paths_summary(), _fetch_jwks_async() (+5 more)
 
-### Community 194 - "unseal_credentials"
+### Community 193 - "PublicIntegrations.jsx"
+Cohesion: 0.18
+Nodes (14): BrandLogo(), integrationIdFor(), NAME_TO_ID, IntegrationsShowcase(), MarqueeItem(), BRAND_COLORS, COLOR_MARKS, MONO_PATHS (+6 more)
+
+### Community 194 - "credential_crypto.py"
 Cohesion: 0.14
-Nodes (24): credentials_present(), is_sealed_credentials(), needs_reencryption(), Any, True when value is an encrypted credential blob produced by seal_credentials., Encrypt a secret mapping (OAuth tokens, SAP login, etc.) for Mongo storage.…, Decrypt a sealed credential blob, or pass through legacy plaintext dicts.…, True when stored value is legacy plaintext and should be sealed. (+16 more)
+Nodes (13): credentials_present(), is_sealed_credentials(), needs_reencryption(), seal_credentials(), unseal_credentials(), main(), _fresh_key(), test_already_sealed_is_idempotent() (+5 more)
 
 ### Community 195 - "apply_template"
-Cohesion: 0.22
-Nodes (22): apply_template(), clear_sample_data(), True when sample apply would wipe live data outside onboarding / empty template., Remove sample (Northwind) data and start fresh. Keeps billing, OAuth, and…, _sample_apply_needs_confirm(), _synced_entry_filter(), TemplateInput, _demo_db() (+14 more)
+Cohesion: 0.21
+Nodes (21): build_workspace(), apply_template(), clear_sample_data(), _sample_apply_needs_confirm(), _synced_entry_filter(), TemplateInput, _demo_db(), test_clean_template_marks_empty_and_finishes_onboarding() (+13 more)
 
-### Community 196 - "DealStore"
-Cohesion: 0.13
+### Community 196 - "test_stable_ids_currency_tax.py"
+Cohesion: 0.12
 Nodes (4): DealStore, owner_api(), _users_find_factory(), find()
 
 ### Community 197 - "Gotchas & Troubleshooting"
@@ -1336,8 +1348,8 @@ Cohesion: 0.14
 Nodes (14): Authentication Errors (401), Best Practices, Go: Required Field Wrapper, Gotchas & Troubleshooting, Limits Reference, Pagination Truncation, Python: Async vs Sync Clients, Rate Limits & 429 Errors (+6 more)
 
 ### Community 198 - "xero.py"
-Cohesion: 0.06
-Nodes (53): classify_refresh_http_failure(), classify_refresh_transport_error(), force_token_refresh(), IntegrationRetryableError, is_revoked_refresh_response(), BaseException, Exception, Response (+45 more)
+Cohesion: 0.04
+Nodes (41): classify_refresh_http_failure(), classify_refresh_transport_error(), IntegrationRetryableError, is_revoked_refresh_response(), refresh_http_post(), test_is_revoked_only_on_invalid_grant(), test_xero_currency_and_subtotal(), test_is_revoked_requires_json_invalid_grant() (+33 more)
 
 ### Community 199 - "C3 Troubleshooting"
 Cohesion: 0.14
@@ -1372,16 +1384,16 @@ Cohesion: 0.14
 Nodes (13): 10. Manual brand follow-ups (not in code), 1. DNS (Namecheap → Vercel / Render), 2. Clerk (required before auth works), 3. Vercel project, 4. Google Cloud OAuth (Calendar / Gmail — `GOOGLE_CLIENT_*`), 5. Google Workspace (email), 6. Integration developer apps (callback host only), 7. Paddle (required before live checkout / trials work) (+5 more)
 
 ### Community 208 - "test_company_map.py"
-Cohesion: 0.06
-Nodes (43): build_company_map(), add(), node(), _group_top(), _latest_month(), _money(), Any, date (+35 more)
+Cohesion: 0.08
+Nodes (32): build(), by_id(), client_for(), make(), entry(), test_cash_not_entered_is_a_placeholder_never_zero(), test_endpoint_is_owner_only(), test_endpoint_returns_the_built_map() (+24 more)
 
 ### Community 209 - "ref_path"
-Cohesion: 0.06
-Nodes (28): buildDir, bundle, files, missing, required, frontendRoot, frontendRoot, PUBLIC_LINKEDIN_URL (+20 more)
+Cohesion: 0.09
+Nodes (17): buildDir, bundle, files, missing, required, frontendRoot, frontendRoot, html (+9 more)
 
-### Community 210 - "encrypt_credential"
-Cohesion: 0.18
-Nodes (15): decrypt_credential(), encrypt_credential(), Decrypt a Fernet token produced by encrypt_credential., Encrypt a single secret string. Returns a Fernet token (url-safe text)., migrate(), plan_for(), Any, (action, update) for one workspace doc. action: encrypt|move|drop_legacy|skip. (+7 more)
+### Community 210 - "migrate_encrypt_slack_webhooks.py"
+Cohesion: 0.29
+Nodes (4): main(), migrate(), plan_for(), test_migration_plan()
 
 ### Community 211 - "env"
 Cohesion: 0.13
@@ -1459,25 +1471,21 @@ Nodes (13): "API Rate Limit Exceeded", "Asset Session Expired", "Bindings Lost o
 Cohesion: 0.15
 Nodes (12): Audit, Clarify (ask when needed), Code by area, Deploy cutover, Hard rules, Migrate stable → Sandbox SDK 1.0 preview (`@next`), Package and image, Red flags — stop and fix (+4 more)
 
-### Community 230 - "What You Must Do When Invoked"
-Cohesion: 0.08
-Nodes (24): For /graphify add and --watch, For /graphify query, For the commit hook and native CLAUDE.md integration, For --update and --cluster-only, /graphify, Honesty Rules, Interpreter guard for subcommands, Part A - Structural extraction for code files (+16 more)
+### Community 230 - "Status.jsx"
+Cohesion: 0.18
+Nodes (16): CHANGELOG_ENTRIES, CHANGELOG_INTRO, getChangelogEntries(), PUBLIC_INTEGRATIONS_COMING_SOON, STATUS_COMPONENTS, STATUS_CONTACT, STATUS_DISCLAIMER, STATUS_HOW_WE_CHECK (+8 more)
 
-### Community 231 - "test_data_model.py"
-Cohesion: 0.14
-Nodes (24): _amounts_match(), detect_cross_source_duplicates(), Flag rows that look like the same money counted from two sources. Match on…, _sync_label(), clear(), Wipe store + counters (tests / process recycle)., _cursor(), _exp() (+16 more)
+### Community 231 - "automations.py"
+Cohesion: 0.18
+Nodes (19): _amounts_match(), detect_cross_source_duplicates(), _sync_label(), _cursor(), _exp(), _fin(), _synced(), test_briefing_activity_item_splits_actor_and_time() (+11 more)
 
 ### Community 232 - "paddle_ips.py"
-Cohesion: 0.27
-Nodes (9): ip_allowed(), _parse_cidrs(), Paddle webhook source IPs — fetched from https://api.paddle.com/ips, never…, Return cached IPv4 networks, refreshing from Paddle when stale., refresh_paddle_ip_networks(), reset_cache_for_tests(), Paddle webhook IP allowlist — list comes from api.paddle.com/ips., test_ip_allowed_matches_cidr() (+1 more)
+Cohesion: 0.31
+Nodes (5): ip_allowed(), _parse_cidrs(), refresh_paddle_ip_networks(), reset_cache_for_tests(), test_ip_allowed_matches_cidr()
 
-### Community 233 - "test_legal_matters.py"
-Cohesion: 0.12
-Nodes (3): Legal matter queue API tests., Legal department members who are neither lead nor assignee get 403 on GET., test_non_assignee_cannot_download_document()
-
-### Community 234 - "heatmap-legend.jsx"
-Cohesion: 0.24
-Nodes (11): useHeatmapInteractionOptional(), HEATMAP_INACTIVE_TRANSITION, HeatmapLegendGradient, HEATMAP_INACTIVE_TRANSITION, HEATMAP_LEGEND_LEVELS, HeatmapLegend, buildHeatmapLegendGradient(), isHeatmapHoverEffectEnabled() (+3 more)
+### Community 234 - "heatmap-cells.jsx"
+Cohesion: 0.13
+Nodes (25): computeHeatmapLevelRange(), HEATMAP_DEFAULT_ENTER_EASE, HEATMAP_LOADING_BASE_CELL_OPACITY, resolveHeatmapEnterFadeDurationSec(), computeHeatmapCellFaded(), HEATMAP_CONCEAL_TRANSITION, HEATMAP_INACTIVE_TRANSITION, HeatmapCells (+17 more)
 
 ### Community 235 - "Email Handling"
 Cohesion: 0.17
@@ -1489,7 +1497,7 @@ Nodes (13): Assessment Template, Cloudflare One Migrations, Exports To Ask For, 
 
 ### Community 237 - "Bot Management Configuration"
 Cohesion: 0.17
-Nodes (11): Best Practices, Bot Fight Mode (Free), Bot Management Configuration, Bot Management for Enterprise, Bot Score Groupings (Pro/Business), __cf_bm Cookie, JA3/JA4 Fingerprinting (Enterprise), Product Tiers (+3 more)
+Nodes (11): Best Practices, Bot Management Configuration, __cf_bm Cookie, Enable via Dashboard, JA3/JA4 Fingerprinting (Enterprise), JavaScript Detections Setup, Limitations, Manual JS Injection (API) (+3 more)
 
 ### Community 238 - "API Configuration"
 Cohesion: 0.17
@@ -1516,8 +1524,8 @@ Cohesion: 0.17
 Nodes (12): Automation Boundary, Cloudflare Network Interconnect (CNI), Connection Types, Dataplane Versions, In This Reference, Prerequisites, Reading Order by Task, See Also (+4 more)
 
 ### Community 244 - "test_ask_department_scope.py"
-Cohesion: 0.32
-Nodes (14): _company(), _deals(), _legal(), _maintenance(), _onboarding(), _procurement(), _production(), Ask Trenston context respects department membership for every department type. (+6 more)
+Cohesion: 0.42
+Nodes (10): _deals(), _legal(), _maintenance(), _onboarding(), _procurement(), _production(), test_ask_context_includes_departments_when_visible(), test_ask_context_restricts_all_departments_when_not_visible() (+2 more)
 
 ### Community 245 - "R2 SQL API Reference"
 Cohesion: 0.17
@@ -1527,41 +1535,41 @@ Nodes (12): Complex Types (quick examples; full ref in docs), Data Types, Errors
 Cohesion: 0.17
 Nodes (12): 1. Create App & Meeting (Backend), 2. Client Integration, Cloudflare RealtimeKit, Core Concepts, In This Reference, Overview, Quick Start, Reading Order (+4 more)
 
-### Community 247 - "compute_financials"
-Cohesion: 0.03
-Nodes (97): expense_totals_by_month_category(), Build {YYYY-MM: {category: amount}} from financial_entries (expense only).…, currency_symbol(), fmt_money(), normalize_currency(), Format a number with the workspace currency symbol (compact K/M style)., _apply_report_snapshot(), _automation_inputs() (+89 more)
+### Community 247 - "test_financials_null_vs_zero.py"
+Cohesion: 0.14
+Nodes (18): _briefing_finance_metrics(), format_mrr_display(), format_runway_display(), _entries_cursor(), _run_compute(), test_briefing_burn_runway_never_fake_zero_delta(), test_briefing_missing_metrics_link_to_add_data(), test_compute_financials_cache_hit_skips_second_db_read() (+10 more)
 
-### Community 248 - "test_activity_heatmap.py"
-Cohesion: 0.19
-Nodes (12): _activity_heatmap_for_workspace(), Aggregate db.activities into a Bklit heatmap grid (Sunday-first week columns).…, asyncio, Unit tests for Telemetry activity heatmap aggregation., Window edges follow ``today``; activity buckets stay UTC date of created_at.…, test_activity_heatmap_empty_workspace(), test_activity_heatmap_groups_by_day_with_raw_counts(), _aiter() (+4 more)
+### Community 248 - "Cloudflare Workers Smart Placement"
+Cohesion: 0.11
+Nodes (10): _activity_heatmap_for_workspace(), test_activity_heatmap_empty_workspace(), test_activity_heatmap_groups_by_day_with_raw_counts(), _aiter(), test_activity_heatmap_window_uses_today_param_not_utc_now(), test_heatmap_manila_today_window_vs_utc_bucketing(), test_patch_preserves_source_signal_and_caps_at_20(), as_owner() (+2 more)
 
 ### Community 249 - "Web Platform APIs"
-Cohesion: 0.10
-Nodes (21): CLI Commands, Console, Durable Objects, Encoding, ES Modules (Recommended), Fetch, HTMLRewriter (HTML Parsing/Transformation), Node.js Compat (`nodejs_compat` flag) (+13 more)
+Cohesion: 0.17
+Nodes (12): Console, Encoding, Fetch, HTMLRewriter (HTML Parsing/Transformation), Node.js Compat (`nodejs_compat` flag), Performance, Server-Sent Events (EventSource), Streams (+4 more)
 
 ### Community 250 - "Workerd Gotchas"
-Cohesion: 0.10
-Nodes (20): Cloudflare Email Service, Common Mistakes, FIRST: Check Prerequisites, References, Retrieval Sources, Sending Workflow, What Do You Need?, Build Issues (+12 more)
+Cohesion: 0.18
+Nodes (11): Build Issues, Common Errors, Compatibility Changes, Limits, "Missing compatibility date", Module Name Mismatch, Performance Issues, Service vs Namespace (+3 more)
 
 ### Community 251 - "Multi-Tenant Patterns"
 Cohesion: 0.17
 Nodes (12): AI Code Execution, Billing by Plan, Custom Metadata Routing, Edge Functions Platform, Hostname Routing, Multi-Tenant Patterns, Orange-to-Orange (O2O) Behavior, Resource Isolation (+4 more)
 
 ### Community 252 - "ops_briefing.py"
-Cohesion: 0.17
-Nodes (14): daily_briefing_email_html(), _fmt_days(), _money(), ops_briefing_metric_cards(), Any, Shared ops briefing assembly for /briefing cards and the daily briefing email.…, Map assemble_ops_briefing_data → Briefing page metric cards., Plain scannable HTML daily briefing. Reuses weekly digest CAN-SPAM footer. (+6 more)
+Cohesion: 0.15
+Nodes (9): assemble_ops_briefing_data(), daily_briefing_email_html(), _fmt_days(), _money(), ops_briefing_metric_cards(), _row(), _section(), _section_procurement() (+1 more)
 
 ### Community 253 - "test_updates_myday_join_exec.py"
-Cohesion: 0.06
-Nodes (9): exec_ctx(), member(), owner(), Iteration 5 tests: - Daily Update loop (POST /api/updates one-per-day-edit,…, Brand new user with no membership -> needs_workspace true, /app/welcome., Create a temp exec user + membership + session, cleanup at end., _sess(), test_join_by_code_flow() (+1 more)
+Cohesion: 0.07
+Nodes (16): personal_later_card_from_signal(), test_invite_with_pack_and_patch_pack(), _cleanup_updates_and_tasks(), exec_ctx(), member(), mongo(), owner(), _sess() (+8 more)
 
-### Community 254 - "test_legal_deadlines.py"
-Cohesion: 0.15
-Nodes (6): legal_api(), _match(), MatterStore, asyncio, Legal matter due_date: API, calendar registry, and deadline signals., test_legal_due_date_on_calendar()
+### Community 254 - "test_security.py"
+Cohesion: 0.14
+Nodes (4): legal_api(), _match(), MatterStore, test_legal_due_date_on_calendar()
 
-### Community 255 - "test_money_insights.py"
-Cohesion: 0.11
-Nodes (13): anthropic, _e(), parametrize, _run(), test_ai_failure_shows_maintenance_and_hides_the_reason(), test_every_new_summary_is_added_to_the_ai_history(), test_only_current_month_is_marked_so_far(), test_success_is_saved_uses_haiku_and_unchanged_data_is_not_paid_for_twice() (+5 more)
+### Community 255 - "money_insights.py"
+Cohesion: 0.07
+Nodes (29): build_facts(), _by_category(), _by_line(), _cat_phrase(), context_hash(), _figures_grounded(), parse_sections(), _pct_change() (+21 more)
 
 ### Community 256 - "Trenston — The Operating System for Founders & CEOs"
 Cohesion: 0.17
@@ -1583,9 +1591,9 @@ Nodes (10): Analytics Engine Gotchas, Best Practices, Can't Query from Workers, 
 Cohesion: 0.18
 Nodes (11): Batch Parallel Operations, Batch with Error Handling, Common Patterns, Conditional Update Pattern, DNS Bulk Update, Error Handling with Retry, Error Recovery Pattern, Filter and Collect Results (+3 more)
 
-### Community 261 - "credential_crypto.py"
-Cohesion: 0.20
-Nodes (13): assert_encryption_ready(), CredentialCryptoError, encryption_key_is_fernet(), _fernet(), _fernet_key_bytes(), _is_production(), Encrypt integration credentials at rest (Fernet). Used for Google/QuickBooks…, Raised when encryption is misconfigured or ciphertext cannot be opened. (+5 more)
+### Community 261 - "site_events.py"
+Cohesion: 0.12
+Nodes (14): assert_encryption_ready(), CredentialCryptoError, decrypt_credential(), encrypt_credential(), encryption_key_is_fernet(), _fernet(), _fernet_key_bytes(), _is_production() (+6 more)
 
 ### Community 262 - "Bot Management API"
 Cohesion: 0.18
@@ -1651,33 +1659,33 @@ Nodes (11): Ad-Blocker Impact, Bot Filtering, CLS Fixes, Core Web Vitals Debuggi
 Cohesion: 0.18
 Nodes (11): Architecture, Cloudflare Workers for Platforms, Decision Trees, In This Reference, Isolation Mode Selection, Key Features, Quick Start, Routing Strategy Selection (+3 more)
 
-### Community 278 - "test_weekly_pack_export.py"
-Cohesion: 0.16
-Nodes (7): asyncio, Weekly CEO Pack PDF export — no LLM, no rewards., test_export_pdf_endpoint_returns_attachment(), mock_principal(), test_export_pdf_forbidden_without_pack_perm(), test_export_pdf_rejects_empty_body(), test_weekly_pack_system_prompt_has_no_board()
+### Community 278 - "alert_notify.py"
+Cohesion: 0.15
+Nodes (6): _no_ai_rate_limit(), test_export_pdf_endpoint_returns_attachment(), mock_principal(), test_export_pdf_forbidden_without_pack_perm(), test_export_pdf_rejects_empty_body(), test_weekly_pack_system_prompt_has_no_board()
 
-### Community 279 - "typing"
+### Community 279 - "test_stable_ids_currency_tax.py"
 Cohesion: 0.10
-Nodes (33): argparse, main(), migrate(), plan_rewrites(), Any, Rewrite legacy dated accounting qb_txn_id values to stable, date-free ids.…, Pure planning step: which rows get a new id and which duplicates go. Returns…, _recency_key() (+25 more)
+Nodes (21): main(), migrate(), plan_rewrites(), _recency_key(), _ts(), _created_at_sort_key(), _entity_hint_from_doc(), legacy_dated_patterns_for_stable() (+13 more)
 
-### Community 280 - "build_workspace"
-Cohesion: 0.13
-Nodes (23): build_workspace(), Build revenue_trend points; include target only when targets.enabled. Field is…, One suggestion per signal type, capped — no storage, fresh each load., Funnel + risks for Telemetry UI. Seed funnel/risks from…, _resolve_telemetry_funnel_and_risks(), _revenue_trend_with_targets(), _summarize_telemetry_signal_group(), _telemetry_risk_suggestions_from_signals() (+15 more)
+### Community 280 - "test_telemetry_lockdown.py"
+Cohesion: 0.15
+Nodes (14): _resolve_telemetry_funnel_and_risks(), _revenue_trend_with_targets(), _summarize_telemetry_signal_group(), _telemetry_risk_suggestions_from_signals(), test_empty_workspace_seed_has_no_funnel_or_risks(), test_live_deal_metrics_override_sample_funnel(), test_manual_risks_override_seed_even_on_sample(), test_non_sample_never_inherits_seed_funnel_or_risks() (+6 more)
 
 ### Community 281 - "department_access.py"
-Cohesion: 0.03
-Nodes (87): normalize_section_grants(), Normalize membership.section_grants to unique manageable section ids., _access_cache(), accessible_department_ids(), accessible_department_ids_by_type(), attach_real_departments(), can_access_department(), can_manage_department_members() (+79 more)
+Cohesion: 0.04
+Nodes (51): normalize_section_grants(), _access_cache(), accessible_department_ids(), accessible_department_ids_by_type(), attach_real_departments(), can_manage_department_members(), can_read_all_departments(), clear_access_ids_cache() (+43 more)
 
 ### Community 282 - "Pipelines Configuration"
-Cohesion: 0.20
-Nodes (10): Credentials, Naming Rules, Option A: Interactive (Simplest), Option B: Wrangler CLI (Explicit), Option C: REST API (Programmatic), Pipelines Configuration, Schema (Structured Streams), See Also (+2 more)
+Cohesion: 0.10
+Nodes (18): Credentials, Naming Rules, Option A: Interactive (Simplest), Option B: Wrangler CLI (Explicit), Option C: REST API (Programmatic), Pipelines Configuration, Schema (Structured Streams), See Also (+10 more)
 
 ### Community 283 - "Cloudflare R2 SQL"
 Cohesion: 0.22
 Nodes (9): Cloudflare R2 SQL, Connection Values, Documentation, No Workers Binding, Quick Start, Reading Order, See Also, SQL Surface (+1 more)
 
-### Community 284 - "login"
-Cohesion: 0.19
-Nodes (13): _fetch_collection(), _is_certificate_error(), login(), BaseException, Exception, Authenticate against Service Layer. Returns session fields to store., Login rejected or session expired — user must reconnect., Non-auth Service Layer failure. (+5 more)
+### Community 284 - "test_xero.py"
+Cohesion: 0.11
+Nodes (14): Running all cases, Skill validation cases, Test 1: Dummy Siteverify returns a structured error, Test 2: Metadata matches the sitekey and secret, Test 3: Runtime checks match the protected surface, Test 4: Same-page retries reset the correct widget, Test 5: Skill persists to a bundle location, _fetch_collection() (+6 more)
 
 ### Community 285 - "Workers Runtime Patterns"
 Cohesion: 0.10
@@ -1771,25 +1779,25 @@ Nodes (10): Click Trigger, Consent Management, Dashboard Setup, History Change (
 Cohesion: 0.20
 Nodes (7): Sandbox `@next` API documentation, `@next` examples index, 1. Gate — confirm the package line, 2. Contract — non-negotiables, 3. Retrieve — open the doc for the task, 4. Before you ship, Sandbox SDK — `@next` (1.0 preview)
 
-### Community 308 - "CalendarPage.jsx"
-Cohesion: 0.16
-Nodes (29): CalendarPage, addDays(), AgendaSidebar(), CalendarPage(), DAY_LABELS, DEADLINE_SOURCE_DEPT, deadlineHref(), durationBetween() (+21 more)
+### Community 308 - "AskHelm.jsx"
+Cohesion: 0.13
+Nodes (38): departmentPath(), dealHref(), decisionHref(), departmentItemHref(), DEPT_LABELS, entryHref(), MODULE_ROUTES, q() (+30 more)
 
-### Community 309 - "pie-context.jsx"
-Cohesion: 0.23
+### Community 309 - "normalize_rule"
+Cohesion: 0.26
 Nodes (11): PieCenter(), PieCenterShell(), defaultPieColors, pieCssVars, PieHoverContext, PieProvider(), PieStableContext, usePie() (+3 more)
 
-### Community 310 - "seoPages.js"
+### Community 310 - "heatmap-chart.jsx"
 Cohesion: 0.19
 Nodes (11): DocumentSeo(), persistReferralFromSearch(), canonicalForPath(), DEFAULT_OG_IMAGE, HELM_ORIGIN, MARKETING_SEO_PATHS, SEO_PAGES, seoForPath() (+3 more)
 
-### Community 311 - "ai_audit.py"
-Cohesion: 0.27
-Nodes (10): _canonical(), fingerprint(), Any, Append-only, hash-chained record of what Trenston's AI told each workspace.…, SHA-256 of a value in a stable JSON form (key order does not matter)., Append one AI output to the workspace's chain. Returns the stored record, or…, record(), record_hash() (+2 more)
+### Community 311 - "risk_forecast.py"
+Cohesion: 0.16
+Nodes (11): detect_team_output_trend(), linear_slope(), months_until_below(), _parse_due(), _parse_iso_dt(), task_overdue_on(), _done(), test_task_overdue_on_respects_done_and_created() (+3 more)
 
-### Community 312 - "test_financial_export.py"
-Cohesion: 0.27
-Nodes (8): _owner_principal(), mock_principal(), _patch_export_deps(), Income Statement + Cash Summary financial export., test_export_forbidden_without_finance_write(), test_export_rejects_bad_period(), test_pdf_endpoint_returns_attachment(), test_xlsx_endpoint_returns_attachment()
+### Community 312 - "test_quickbooks_entities.py"
+Cohesion: 0.12
+Nodes (4): _QbClient, _Resp, synced(), test_entity_polarity()
 
 ### Community 313 - "setupWelcomeFlow.test.js"
 Cohesion: 0.09
@@ -1823,9 +1831,9 @@ Nodes (9): Adaptive DDoS Profiles, Alerting, Common Categories, Dashboard Setup,
 Cohesion: 0.22
 Nodes (8): Anti-Patterns, Evaluating Flags in a Tight Loop, Flagship Gotchas & Troubleshooting, Limits, Partial PUT Updates, Propagation Behavior, Stale Flag Cleanup, Using the SDK Inside Workers When Binding Is Available
 
-### Community 321 - "test_sap_b1.py"
-Cohesion: 0.08
-Nodes (13): _public_addrinfo(), asyncio, SAP Business One Service Layer client + catalog wiring., Pretend host resolves to a public address (not RFC1918 / loopback)., test_catalog_sap_not_connected_by_default(), test_fetch_sap_transactions_maps_collections(), test_login_auth_error_does_not_echo_body(), test_login_never_requests_private_url() (+5 more)
+### Community 321 - "sap_b1.py"
+Cohesion: 0.06
+Nodes (11): _public_addrinfo(), test_catalog_sap_not_connected_by_default(), test_ensure_session_rejects_rebinding_to_private(), test_fetch_collection_revalidates_url_each_page(), test_fetch_sap_transactions_maps_collections(), test_login_auth_error_does_not_echo_body(), test_login_never_requests_private_url(), test_login_stores_session() (+3 more)
 
 ### Community 322 - "Configuration & Deployment"
 Cohesion: 0.22
@@ -1840,16 +1848,16 @@ Cohesion: 0.22
 Nodes (9): Core Methods, `meeting.ai` - AI Features, `meeting.chat` - Chat, `meeting.meta` - Metadata, Meeting Object API, `meeting.participants` - Remote Participants, `meeting.plugins` - Collaborative Apps, `meeting.polls` - Polling (+1 more)
 
 ### Community 325 - "tz_utils.py"
-Cohesion: 0.16
-Nodes (21): _section_procurement(), Manila Oct 1 00:30 is still September UTC — month bounds must be October., test_day_and_week_bounds_utc(), test_missing_or_invalid_timezone_defaults_to_manila(), test_month_bounds_utc_follows_workspace_local_month(), day_bounds_utc(), is_valid_timezone(), month_bounds_utc() (+13 more)
+Cohesion: 0.08
+Nodes (25): _google_calendar_snapshot(), _helm_event_instants(), test_all_day_events_are_left_alone(), test_manila_wall_time_becomes_true_utc(), frozen(), _FrozenDatetime, test_day_and_week_bounds_utc(), test_missing_or_invalid_timezone_defaults_to_manila() (+17 more)
 
-### Community 326 - "test_sap_b1_documents.py"
+### Community 326 - "attach_users_in_find"
 Cohesion: 0.23
-Nodes (8): T14: SAP B1 invoices + credit memos from fixture JSON., _sync(), test_all_four_document_types(), test_foreign_currency_invoice_uses_fc_and_local_home(), test_local_currency_invoice_money(), test_negative_total_is_credit_not_dropped(), test_select_includes_currency_and_update_fields(), fake_page()
+Nodes (7): _sync(), test_all_four_document_types(), test_foreign_currency_invoice_uses_fc_and_local_home(), test_local_currency_invoice_money(), test_negative_total_is_credit_not_dropped(), test_select_includes_currency_and_update_fields(), fake_page()
 
 ### Community 327 - "gauge-label-layout.jsx"
-Cohesion: 0.22
-Nodes (14): chartCenterContainerClassName, chartCenterLabelClassName, chartCenterValueClassName, ChartStatFlow(), defaultChartStatFlowFormat, formatStatValue(), useNumberFlowElementReady(), crossAxisAlign (+6 more)
+Cohesion: 0.26
+Nodes (12): chartCenterContainerClassName, chartCenterLabelClassName, chartCenterValueClassName, ChartStatFlow(), defaultChartStatFlowFormat, formatStatValue(), useNumberFlowElementReady(), crossAxisAlign (+4 more)
 
 ### Community 328 - "Common Errors"
 Cohesion: 0.25
@@ -1859,9 +1867,9 @@ Nodes (8): 1000: "Snippet execution failed", 1100: "Exceeded execution limit", 1
 Cohesion: 0.22
 Nodes (9): Cloudflare Web Analytics, Limitations, Overview, Plan Limits, Privacy & Compliance, Quick Start Decision Tree, Reading Order, See Also (+1 more)
 
-### Community 330 - "Turnstile Spin skill"
-Cohesion: 0.18
-Nodes (11): Choose the flow before responding, Conversation flow, Edge cases, Existing-widget flow: retrieve and store the secret without chat, Framework references, Hard scope boundary: DO NOT ask the user about, Migrating from another CAPTCHA, The frontend-edit contract (+3 more)
+### Community 330 - "Security.jsx"
+Cohesion: 0.12
+Nodes (15): TestimonialCard(), hasSessionHint(), TESTIMONIALS, AI_ACCESS, CONTROLS, DATA_EXIT, ENCRYPTION, InfraBadge() (+7 more)
 
 ### Community 331 - "Workers Playground API"
 Cohesion: 0.22
@@ -1879,25 +1887,25 @@ Nodes (9): Consent Issues, Data Layer, Events Not Firing, Limits, Performance, S
 Cohesion: 0.22
 Nodes (9): Cloudflare Zaraz, Decision Tree, In This Reference, Key Features, Quick Start, Reading Order by Task, Reference, What is Zaraz? (+1 more)
 
-### Community 335 - "test_sales_order_book.py"
-Cohesion: 0.07
-Nodes (18): ast, Sales order book + monthly target API tests., assert_natural_pack_style(), pack_style_flags(), asyncio, Weekly CEO Pack writing-style contract and scenario samples., Quiet / alarming / mixed notes should not share one rigid section skeleton., Heuristic flags for AI-slop pack formatting (used in tests, not runtime). (+10 more)
+### Community 335 - "test_weekly_pack_tone.py"
+Cohesion: 0.19
+Nodes (7): assert_natural_pack_style(), _no_ai_rate_limit(), pack_style_flags(), test_natural_samples_pass_style_contract(), test_scenario_samples_differ_in_shape(), test_slop_sample_fails_style_contract(), test_weekly_pack_system_prompt_requires_natural_tone()
 
-### Community 336 - "work_items.py"
-Cohesion: 0.08
-Nodes (39): _deadline_href(), _deadlines_as_events(), _me_work_due(), _me_work_row(), date, Deep link from a calendar deadline to the record it came from., Turn upcoming deadline rows into calendar events. Uses source=\"deadline\" (not…, test_deadlines_as_events_preserves_source_refs() (+31 more)
+### Community 336 - "collect_for_user"
+Cohesion: 0.10
+Nodes (23): _deadline_href(), _me_work_due(), _me_work_row(), test_work_item_urls_deep_link(), url(), _cursor(), test_collect_for_user_includes_hr_leave(), leave_find() (+15 more)
 
-### Community 337 - "money_fmt.py"
-Cohesion: 0.29
-Nodes (9): entered_cash_amount(), parse_optional_amount(), Currency symbols and compact money formatting for Trenston. Add new codes to…, Return a float when a figure was provided; None when the field was never set.…, Cash on hand if the CEO (or finance) actually entered it. Legacy empty…, Missing cash/MRR/burn must not be coerced to zero., test_confirmed_zero_cash_is_entered(), test_legacy_zero_cash_is_not_entered() (+1 more)
+### Community 337 - "test_fetch_collection_revalidates_url_each_page"
+Cohesion: 0.17
+Nodes (10): entered_cash_amount(), parse_optional_amount(), financials_for_synthesis(), test_synthesis_marks_revenue_not_entered(), test_synthesis_skips_runway_unknown_when_no_burn(), test_confirmed_zero_cash_is_entered(), test_legacy_zero_cash_is_not_entered(), test_parse_optional_amount_keeps_zero() (+2 more)
 
 ### Community 338 - "FakeCollection"
 Cohesion: 0.04
-Nodes (36): message_requests_financials(), True when an Ask Trenston message is asking for gated financial figures., FakeCollection, _FakeCursor, _field_matches(), match_filter(), Mongo mock helpers for unit tests., Supports $set / $unset (dotted keys are set literally). (+28 more)
+Nodes (22): build_ask_messages(), FakeCollection, _FakeCursor, _field_matches(), match_filter(), test_upsert_sets_contract_fields_and_source_entity(), _run_ask(), test_error_after_partial_text_is_interrupted() (+14 more)
 
 ### Community 339 - "chart-tooltip.jsx"
-Cohesion: 0.09
-Nodes (36): Background(), clampFadeLength(), fadeMaskStops(), ChartConfigContext, DEFAULT_CHART_CONFIG, resolveTooltipBoxMotion(), useChartConfig(), chartCssVars (+28 more)
+Cohesion: 0.18
+Nodes (19): ChartConfigContext, DEFAULT_CHART_CONFIG, resolveTooltipBoxMotion(), useChartConfig(), chartCssVars, hmsTimeFmt, intFmt, shortDateFmt (+11 more)
 
 ### Community 341 - "manifest.json"
 Cohesion: 0.22
@@ -1905,7 +1913,7 @@ Nodes (8): background_color, description, display, icons, name, short_name, star
 
 ### Community 342 - "test_department_signal_inputs_loads_leave_when_hr_enabled"
 Cohesion: 0.18
-Nodes (5): Coll, asyncio, test_department_signal_inputs_skips_disabled_types(), asyncio, test_department_signal_inputs_loads_leave_when_hr_enabled()
+Nodes (3): Coll, test_department_signal_inputs_skips_disabled_types(), test_department_signal_inputs_loads_leave_when_hr_enabled()
 
 ### Community 343 - "helmTokens.js"
 Cohesion: 0.38
@@ -1959,9 +1967,9 @@ Nodes (8): API Reference, Authentication, Client Libraries, Core Concepts, Publi
 Cohesion: 0.25
 Nodes (8): Choose Your Approach, Cloudflare Realtime SFU Reference, In This Reference, Quick Start, Reading Order, See Also, Setup, SFU vs RealtimeKit
 
-### Community 357 - "invalidate_financials_cache"
-Cohesion: 0.02
-Nodes (128): money_fields(), Shared money contract for every accounting / manual row. - currency: lowercase…, enroll_user_in_sales_finance(), ensure_department_member(), ensure_enabled_department(), finance_department_id(), get_enabled_department(), migrate_all_workspaces_sales_finance() (+120 more)
+### Community 357 - "log_activity"
+Cohesion: 0.03
+Nodes (81): money_fields(), apply_department_filter(), enroll_user_in_sales_finance(), ensure_department_member(), ensure_enabled_department(), finance_department_id(), get_enabled_department(), migrate_all_workspaces_sales_finance() (+73 more)
 
 ### Community 358 - "TURN Gotchas & Troubleshooting"
 Cohesion: 0.25
@@ -1975,13 +1983,13 @@ Nodes (7): Configuration Issues, Framework-Specific, Gatsby Window Undefined, Li
 Cohesion: 0.25
 Nodes (8): A/B Testing, Best Practices, E-commerce Funnel, GTM Migration, SPA Tracking, User Identification, Worker Integration, Zaraz Patterns
 
-### Community 361 - "chart-phase.js"
-Cohesion: 0.24
-Nodes (7): DEFAULT_CHART_LIFECYCLE, DEFAULT_CHART_STATUS, DEFAULT_Y_DOMAIN_TWEEN_MS, resolveRestingChartPhase(), Y_DOMAIN_TWEEN_SKIP_THRESHOLD, useHeatmapChartLifecycle(), useChartPhaseOrchestrator()
+### Community 361 - "heatmap-context.jsx"
+Cohesion: 0.18
+Nodes (14): HEATMAP_DEFAULT_LEVEL_COLORS, HeatmapContext, heatmapCssVars, HeatmapInteractionBoundary(), HeatmapInteractionContext, HeatmapInteractionProvider(), HeatmapInteractionRoot(), useHeatmapInteraction() (+6 more)
 
-### Community 362 - "Pipelines Gotchas"
-Cohesion: 0.22
-Nodes (9): Behavioral Notes, Debug Checklist, Events accepted but never appear (most common), Everything is immutable, Pipelines Gotchas, REST API field names ≠ CLI flags, See Also, Worker binding undefined (`env.MY_STREAM`) (+1 more)
+### Community 362 - "bento-grid.jsx"
+Cohesion: 0.18
+Nodes (13): AnimatedMetricValue(), BentoGrid(), cardWidthClass(), groupMetricsBySection(), MetricTile(), parseMetricValue(), resolveStatus(), SECTION_LABELS (+5 more)
 
 ### Community 363 - "Integrations — Trenston"
 Cohesion: 0.25
@@ -1991,7 +1999,7 @@ Nodes (7): After keys are set, Coming soon, Integrations — Trenston, OAuth red
 Cohesion: 0.46
 Nodes (7): collectChartDefsChildren(), getChartChildComponentName(), isChartDefsComponent(), isGradientDefComponent(), isPatternDefComponent(), partitionChartDefNodes(), VISX_PATTERN_COMPONENT_NAMES
 
-### Community 365 - "Snippets API Reference"
+### Community 365 - "money_fmt.py"
 Cohesion: 0.22
 Nodes (5): Available APIs in Snippets, ❌ Not Supported in Snippets, Snippet Structure, Snippets API Reference, ✅ Supported
 
@@ -2011,13 +2019,13 @@ Nodes (6): Configuration, Key Rules, tsconfig, Type Generation, Vite Setup, Wran
 Cohesion: 0.29
 Nodes (6): Client Side, Common Mistakes, Custom Routing with `getAgentByName`, Default URL Pattern, Options, Routing
 
-### Community 370 - "ask_helm"
+### Community 370 - "cloudflare-email-service/SKILL.md"
 Cohesion: 0.13
-Nodes (14): ask_basis_labels(), ask_helm(), AskInput, Plain labels for what an Ask answer could draw on, shown under the answer. Only…, _period(), asyncio, test_ask_helm_uses_compact_json_cached_system_and_capped_tokens(), test_basis_labels_only_list_visible_data() (+6 more)
+Nodes (12): get_enabled_departments_by_type(), ask_basis_labels(), ask_helm(), deny_gen(), _ask_history(), AskInput, _period(), test_ask_helm_uses_compact_json_cached_system_and_capped_tokens() (+4 more)
 
-### Community 371 - "test_document_ai_limits.py"
-Cohesion: 0.28
-Nodes (4): Document AI daily spend caps — skip parser, keep Claude., test_document_ai_workspace_and_global_caps(), test_document_ai_zero_limit_is_kill_switch(), _usage_db()
+### Community 371 - "QuickAdd.render.test.js"
+Cohesion: 0.19
+Nodes (8): document_ai_allowed(), record_document_ai(), test_document_ai_workspace_and_global_caps(), run(), test_document_ai_zero_limit_is_kill_switch(), run(), test_extract_skips_document_ai_when_disabled(), _usage_db()
 
 ### Community 372 - "Integration Patterns"
 Cohesion: 0.29
@@ -2063,17 +2071,17 @@ Nodes (7): Auto-Injection Fails, Critical Issues, CSP Blocking Beacon, Duplicate
 Cohesion: 0.29
 Nodes (6): 1. Gate — confirm the package line, 2. Contract — non-negotiables, 3. Retrieve — open the doc for the task, 4. Before you ship, Deprecated-API cleanup (stay on stable), Sandbox SDK — stable package
 
-### Community 383 - "main"
+### Community 383 - "loadMarketingPlans.mjs"
 Cohesion: 0.14
 Nodes (23): ALLOW_PATH_PREFIXES, __dirname, FORBIDDEN, isAllowed(), main(), repoRoot, SKIP_DIR_NAMES, walk() (+15 more)
 
-### Community 384 - "Cloudflare Snippets Skill Reference"
+### Community 384 - "acquire_join_slot"
 Cohesion: 0.22
 Nodes (9): Cloudflare Snippets Skill Reference, Description, Execution Model, In This Reference, Quick Start, Reading Order, See Also, Snippets vs Workers Decision Matrix (+1 more)
 
 ### Community 385 - "health-endpoints.js"
 Cohesion: 0.38
-Nodes (6): formatBytes(), formatDuration(), os, SERVER_START_TIME, setupHealthEndpoints(), ref_os
+Nodes (5): formatBytes(), formatDuration(), os, SERVER_START_TIME, setupHealthEndpoints()
 
 ### Community 387 - "staticPageText.mjs"
 Cohesion: 0.11
@@ -2083,9 +2091,9 @@ Nodes (34): aboutSections(), changelogPath, changelogSections(), compareSections
 Cohesion: 0.29
 Nodes (4): LOGIN, LOGOUT, REGISTER, HOME
 
-### Community 389 - "test_password_optional_sync_rejects_2xx_without_fapi_change"
-Cohesion: 0.22
-Nodes (4): BAPI can return 204 while auth_config.password stays required — must not report…, test_password_optional_sync_rejects_2xx_without_fapi_change(), test_sync_clerk_instance_patches_dev_origin(), mock_get()
+### Community 389 - "sync_clerk_password_optional_for_oauth"
+Cohesion: 0.18
+Nodes (5): _clear_probe_value(), _set_last_sync_status(), sync_clerk_password_optional_for_oauth(), test_password_optional_sync_ok_when_fapi_already_optional(), test_password_optional_sync_rejects_2xx_without_fapi_change()
 
 ### Community 390 - "Observability"
 Cohesion: 0.33
@@ -2095,9 +2103,9 @@ Nodes (5): Available Channels, Observability, Per-Agent Override, Production: Ta
 Cohesion: 0.33
 Nodes (5): Client (React), Lifecycle Hooks, Server, STT/TTS Providers, Voice (Experimental)
 
-### Community 392 - "Cloudflare Pipelines"
-Cohesion: 0.25
-Nodes (8): Cloudflare Pipelines, Critical Behaviors (read before building), Documentation, Quick Start, Reading Order, See Also, Three Components, Which Sink Type?
+### Community 392 - "Durable Objects"
+Cohesion: 0.12
+Nodes (16): Alarms, Anti-Patterns (NEVER), Basic Durable Object Pattern, Core Principles, Critical Rules, Do NOT Use For, Durable Objects, Quick Reference (+8 more)
 
 ### Community 393 - "Cloudflare API Shield Reference"
 Cohesion: 0.33
@@ -2127,25 +2135,25 @@ Nodes (5): Debugging with chrome://webrtc-internals, Gotchas & Troubleshooting, 
 Cohesion: 0.33
 Nodes (6): "409 Conflict on worker deployment", Common Errors, "DNS record already exists", "Error: couldn't find resource", "Invalid provider configuration", "State locking errors"
 
-### Community 400 - "test_check_prod_env.py"
-Cohesion: 0.24
-Nodes (11): _auth_configured(), main(), _mongo_configured(), Fail fast if critical production env vars are missing. Run on Render build or…, Production env check must fail the Render build without a Fernet key., _required_env(), test_build_fails_on_passphrase_instead_of_fernet(), test_build_fails_without_integration_encryption_key() (+3 more)
+### Community 400 - "fetch"
+Cohesion: 0.23
+Nodes (14): Binding access — the most common error, Env interface, Handler and class signatures, Stale class patterns, Type Validation, Tools, build_server(), fetch() (+6 more)
 
-### Community 401 - "Gotchas & Best Practices"
+### Community 401 - "work_items.py"
 Cohesion: 0.25
 Nodes (8): Available APIs, Best Practices, Debugging, Gotchas & Best Practices, Limits, Performance, Performance Benchmarks, Security
 
-### Community 402 - "test_briefing_ai_summary.py"
-Cohesion: 0.36
-Nodes (6): _get_briefing(), Free-tier AI briefing must persist on GET /briefing (not stripped by is_pro)., test_briefing_returns_ai_summary_for_free_workspace(), test_free_plan_includes_ai_briefing_feature(), test_money_note_hidden_from_people_without_financials_access(), test_stored_nrr_and_money_headline_never_leak()
+### Community 402 - "normalize_rule"
+Cohesion: 0.17
+Nodes (10): _clean_text(), normalize_action(), normalize_rule(), normalize_trigger(), RuleError, starter_templates(), test_bad_rules_are_rejected(), test_every_starter_template_is_a_valid_rule() (+2 more)
 
 ### Community 403 - "Wrangler CLI"
 Cohesion: 0.33
 Nodes (5): Apply the Change, Inspect the Project, Retrieve What the Task Needs, Validate, Wrangler CLI
 
-### Community 404 - "os"
-Cohesion: 0.03
-Nodes (74): Pack integrations:manage + plan allows this specific provider., require_integration_provider(), mount_static_frontend(), Serve the React production build from FastAPI (optional monolith deploy on…, Mount CRA build at repo backend/static. Returns True when active., should_serve_static(), asyncio, Regression: accounting sync insert races on qb_txn_id unique index. (+66 more)
+### Community 404 - "unittest_mock"
+Cohesion: 0.04
+Nodes (10): test_upsert_accounting_sync_handles_duplicate_key(), test_briefing_date_uses_workspace_local_weekday(), _no_ai_rate_limit(), test_generate_briefing_uses_live_what_changed_and_real_metrics(), DealStore, next_step_api(), test_refresh_raises_on_failure(), _BucketStore (+2 more)
 
 ### Community 405 - "companyMapLayout.js"
 Cohesion: 0.17
@@ -2171,9 +2179,9 @@ Nodes (9): scripts, build, check-pricing-drift, prerender, preview, start, sync-
 Cohesion: 0.40
 Nodes (4): Durable Execution, Important, Key APIs, `runFiber`
 
-### Community 412 - "rank_and_cap_signals"
+### Community 412 - "MatterStore"
 Cohesion: 0.29
-Nodes (7): compute_impact_score(), rank_and_cap_signals(), Comparable impact proxy for tie-breaks within a severity tier. Dollars (deal…, Sort by severity, then impact (desc); truncate and log when over cap (None =…, Same-severity overflow must keep high-impact late-alphabet types.…, test_compute_impact_score_normalizes_dollars_days_hours(), test_rank_and_cap_prefers_impact_over_alphabetical_type()
+Nodes (4): compute_impact_score(), rank_and_cap_signals(), test_compute_impact_score_normalizes_dollars_days_hours(), test_rank_and_cap_prefers_impact_over_alphabetical_type()
 
 ### Community 414 - "Common Errors"
 Cohesion: 0.40
@@ -2182,10 +2190,6 @@ Nodes (5): "Argo unavailable", "Cannot enable/disable", Common Errors, `editable
 ### Community 415 - "Core Concepts"
 Cohesion: 0.40
 Nodes (5): Billing Model, Core Concepts, What It Does, When NOT to Use, When to Use
-
-### Community 416 - "logging"
-Cohesion: 0.38
-Nodes (6): cleanup_orphaned_documents(), _orphan_query(), datetime, Purge abandoned document uploads that were never committed to financial entries., Delete stale uncommitted documents from R2 and Mongo., logging
 
 ### Community 417 - "Bot Management Gotchas"
 Cohesion: 0.40
@@ -2211,13 +2215,13 @@ Nodes (5): AWS: "Connection stuck in Pending", AWS Direct Connect: "VLAN not mat
 Cohesion: 0.40
 Nodes (5): "BGP Session Down", Common Errors, "Low Throughput", "Status: Pending", "Status: Unhealthy"
 
-### Community 428 - "google_document_ai.py"
+### Community 428 - "merge_integrations"
 Cohesion: 0.16
-Nodes (18): _access_token(), document_ai_configured(), _entity_amount(), _entity_month(), _entity_text(), extract_invoice(), map_invoice_document(), processor_name() (+10 more)
+Nodes (14): _access_token(), document_ai_configured(), _entity_amount(), _entity_month(), _entity_text(), extract_invoice(), map_invoice_document(), processor_name() (+6 more)
 
-### Community 429 - "turnstile-spin (skill)"
-Cohesion: 0.33
-Nodes (5): How agents load it, Keep the hosted prompt in sync, Layout, Related, turnstile-spin (skill)
+### Community 429 - "test_workspace_currency.py"
+Cohesion: 0.20
+Nodes (13): CompanySetupInput, update_company(), test_company_patch_rejects_invalid_timezone(), test_company_patch_saves_valid_timezone(), _company(), test_company_patch_rejects_unknown_currency(), test_company_patch_sets_currency(), test_company_payload_includes_currency() (+5 more)
 
 ### Community 433 - "Network Access"
 Cohesion: 0.40
@@ -2235,37 +2239,37 @@ Nodes (5): Analytics Engine, GraphQL, Logpush, Observability, Tail Workers
 Cohesion: 0.40
 Nodes (5): Architecture, Best Practices, Limits & Security, Routing, Tags
 
-### Community 438 - "build_ask_messages"
-Cohesion: 0.33
-Nodes (5): gen(), build_ask_messages(), Chronological chat_messages docs + the new question -> Anthropic messages.…, test_build_messages_merges_and_starts_with_user(), test_build_messages_truncates_oldest_to_budget()
+### Community 438 - "useHeatmap"
+Cohesion: 0.27
+Nodes (11): generateHeatmapSkeletonFromTarget(), HeatmapChartLoading(), useHeatmap(), formatHeatmapYAxisLabel(), getHeatmapColumnMonthAnchor(), getHeatmapDayLabels(), resolveHeatmapRowOpacity(), shouldShowHeatmapYAxisTick() (+3 more)
 
-### Community 440 - "metric_definitions.py"
-Cohesion: 0.12
-Nodes (23): burn_basis(), definitions(), describe_window(), _finite(), is_cash_growing(), month_label(), Any, Trenston's metric definitions: one place that says what each number means. This… (+15 more)
+### Community 440 - "Term.jsx"
+Cohesion: 0.13
+Nodes (15): burn_basis(), definitions(), describe_window(), _finite(), is_cash_growing(), month_label(), runway_basis_text(), runway_months() (+7 more)
 
-### Community 441 - "Trenston data model"
+### Community 441 - "Snippets Patterns"
 Cohesion: 0.33
 Nodes (5): AI output history (`ai_output_log`), Data quality checks, Lineage and re-mapping, Metric rules, Trenston data model
 
-### Community 442 - "chart-loading-label.jsx"
-Cohesion: 0.36
-Nodes (6): ChartLoadingLabel(), LINE_LOADING_LOOP_PAUSE_MS, LINE_LOADING_PULSE_CYCLE_S, LINE_LOADING_PULSE_EASE, LOADING_LABEL_EXIT_S, LOADING_LABEL_EXIT_Y_PX
+### Community 442 - "use-animated-y-domains.js"
+Cohesion: 0.23
+Nodes (13): LINE_LOADING_LOOP_PAUSE_MS, LINE_LOADING_PULSE_CYCLE_S, LINE_LOADING_PULSE_EASE, LOADING_LABEL_EXIT_S, LOADING_LABEL_EXIT_Y_PX, lerpDomain(), snapDomains(), tweenDomains() (+5 more)
 
-### Community 443 - "JavaScript Detections Setup"
-Cohesion: 0.40
-Nodes (5): Enable via Dashboard, JavaScript Detections Setup, Limitations, Manual JS Injection (API), WAF Rules for JSD
+### Community 443 - "static_frontend.py"
+Cohesion: 0.16
+Nodes (4): mount_static_frontend(), should_serve_static(), test_health_503_when_critical_indexes_failed_in_production(), test_health_ok_when_indexes_pending_or_healthy()
 
-### Community 444 - "Request Object"
+### Community 444 - "asyncio"
 Cohesion: 0.40
 Nodes (5): Cloudflare Properties (`request.cf`), Header Operations, HTTP Properties, Request Object, URL Operations
 
-### Community 445 - "_jwt_payload_unverified"
-Cohesion: 0.40
-Nodes (5): _jwt_payload_unverified(), Parse JWT payload without signature verification (for sid/sub only)., Verify session by checking sid with Clerk Backend API (no local JWKS/crypto)., _verify_clerk_session_via_bapi(), test_jwt_payload_unverified_extracts_sid_sub()
+### Community 445 - "company_map.py"
+Cohesion: 0.23
+Nodes (7): build_company_map(), add(), node(), _group_top(), _latest_month(), _money(), _task_due()
 
-### Community 446 - "_advance_legal_due_date"
+### Community 446 - "test_accounting_upsert_race.py"
 Cohesion: 0.40
-Nodes (5): _advance_legal_due_date(), Advance YYYY-MM-DD by the recurrence interval. Empty in → empty out., Create the next-cycle compliance matter once when a recurring matter is filed., _spawn_compliance_renewal(), test_advance_legal_due_date_helper()
+Nodes (3): _advance_legal_due_date(), _spawn_compliance_renewal(), test_advance_legal_due_date_helper()
 
 ### Community 447 - "compilerOptions"
 Cohesion: 0.40
@@ -2275,9 +2279,9 @@ Nodes (4): compilerOptions, baseUrl, paths, include
 Cohesion: 0.40
 Nodes (3): Y_AXIS_DEFAULT_TICK_COUNT, Y_AXIS_MAX_TICK_COUNT, Y_AXIS_MIN_TICK_COUNT
 
-### Community 449 - "test_decision_atomic.py"
-Cohesion: 0.36
-Nodes (12): asyncio, Unit tests for atomic decision updates + action allowlist., test_approve_suggestion_uses_atomic_pull_push(), test_create_decision_uses_push(), test_decision_action_rejects_terminal_transition(), test_decision_action_rejects_unknown_action(), test_decision_action_uses_array_filters(), test_decisions_list_sorted_by_impact() (+4 more)
+### Community 449 - "pytest"
+Cohesion: 0.04
+Nodes (48): FinEntryInput, require_integration_provider(), require_pro_perm(), run(), test_briefing_generate_rate_limited(), test_weekly_pack_rate_limited(), test_require_assignable_pack_rejects_owner(), test_require_assignable_pack_rejects_unknown() (+40 more)
 
 ### Community 450 - "SDK Configuration"
 Cohesion: 0.50
@@ -2293,7 +2297,7 @@ Nodes (4): BOLA Detection, Combined BOLA Protection, Enumeration Detection, Para
 
 ### Community 453 - "sync-sitemap.mjs"
 Cohesion: 0.14
-Nodes (13): buildSitemapXml(), DEFAULTS, __dirname, escapeXml(), frontendRoot, seoPath, syncSitemapToBuild(), writeSitemap() (+5 more)
+Nodes (12): buildSitemapXml(), DEFAULTS, __dirname, escapeXml(), frontendRoot, seoPath, syncSitemapToBuild(), writeSitemap() (+4 more)
 
 ### Community 454 - "Troubleshooting & Best Practices"
 Cohesion: 0.50
@@ -2303,9 +2307,9 @@ Nodes (4): Best Practices, Limits, Resources, Troubleshooting & Best Practices
 Cohesion: 0.50
 Nodes (4): Control Components, Grid Variants, Layout Components, UI Components
 
-### Community 457 - "ai-gateway/README.md"
+### Community 457 - "ai-search/README.md"
 Cohesion: 0.09
-Nodes (16): AI Gateway Configuration, AI Gateway Dynamic Routing, AI Gateway Features, Choose a task, Cloudflare AI Gateway, Related references, AI Gateway SDK Integration, AI Gateway Troubleshooting (+8 more)
+Nodes (15): AI Search API Routes, AI Search Configuration Routes, AI Search Troubleshooting Routes, AI Search Pattern Routes, Choose the right product, Cloudflare AI Search, Find the right documentation, Workers AI API (+7 more)
 
 ### Community 458 - "Features"
 Cohesion: 0.50
@@ -2319,165 +2323,237 @@ Nodes (4): CSP Requirements, Key Concepts, Proxied vs Non-Proxied Sites, SPA Mod
 Cohesion: 0.50
 Nodes (4): 1. Create Upload Session, 2. Upload Files, 3. Deploy with Assets, Static Assets
 
-### Community 461 - "automations.py"
-Cohesion: 0.07
-Nodes (49): build_task(), _claim(), _clean_text(), detect_anomalies(), detect_duplicates(), detect_outlier_expenses(), detect_revenue_change(), _is_duplicate_key() (+41 more)
+### Community 461 - "Product Tiers"
+Cohesion: 0.10
+Nodes (23): build_task(), _claim(), detect_anomalies(), detect_duplicates(), detect_outlier_expenses(), detect_revenue_change(), _is_duplicate_key(), _is_synced() (+15 more)
 
-### Community 462 - "browserslist"
-Cohesion: 0.67
-Nodes (3): browserslist, development, production
+### Community 462 - "chart-context.jsx"
+Cohesion: 0.24
+Nodes (10): Background(), clampFadeLength(), fadeMaskStops(), ChartHoverContext, ChartStableContext, defaultScatterColors, useChart(), useChartHover() (+2 more)
 
-### Community 463 - "TestReportSnapshotsHTTP"
-Cohesion: 0.40
-Nodes (3): integration, skipif, TestReportSnapshotsHTTP
+### Community 463 - "test_weekly_pack_trends.py"
+Cohesion: 0.13
+Nodes (8): mongo(), _no_ai_rate_limit(), owner(), _sess(), test_build_weekly_pack_context_includes_manual_reports_not_legacy(), test_snapshot_rotation_keeps_previous_baseline_for_pack_and_cards(), test_weekly_pack_llm_user_prompt_contains_manual_report(), TestReportSnapshotsHTTP
 
 ### Community 464 - "validate.sh"
 Cohesion: 1.00
 Nodes (3): need_arg(), validate.sh script, usage()
 
-### Community 465 - "startup"
-Cohesion: 0.33
-Nodes (7): _fetch_jwks_async(), prefetch_jwks(), Warm JWKS cache at startup (async — works on Render)., JWKS from public Clerk URL using async httpx (Render-safe). `force` skips the…, _keep_clerk_probes_warm(), Keep /auth/config (the first request every sign-in waits on) answering from…, startup()
+### Community 465 - "Features.jsx"
+Cohesion: 0.18
+Nodes (11): DepartmentsShowcase(), DEPT_ICONS, EnabledToggle(), DEPARTMENTS_SECTION, FEATURE_CATEGORIES, PRO_FEATURES, BriefingTicker(), CATEGORY_ICONS (+3 more)
 
-### Community 466 - "Webhooks & Push Notifications"
-Cohesion: 0.50
-Nodes (3): Push Notifications, Webhooks, Webhooks & Push Notifications
+### Community 466 - "Cloudflare Workers Smart Placement"
+Cohesion: 0.17
+Nodes (12): CLI Commands, Cloudflare Workers Smart Placement, Core Concept, Decision Tree, In This Reference, Key Architecture Pattern, Placement Status Values, Quick Start (+4 more)
 
-### Community 467 - "_paddle_provision"
-Cohesion: 0.16
-Nodes (17): Paddle Billing: next_billed_at (trial conversion) or current period end., trial_end_from_paddle_payload(), _paddle_price_id_from_event(), _paddle_provision(), _paddle_trial_fields(), Persist trial end from Paddle. Only clear the once-flag when the end date…, Best-effort price id from a Paddle Billing subscription/transaction payload., asyncio (+9 more)
-
-### Community 469 - "Response Object"
+### Community 469 - "Learn More"
 Cohesion: 0.50
 Nodes (4): Response Constructors, Response Headers, Response Object, Response Properties
 
-### Community 477 - "funnel-chart.jsx"
-Cohesion: 0.27
-Nodes (7): HSegment(), hSegmentPath(), SegmentLabel(), VSegment(), vSegmentPath(), useEnterComplete(), useMountProgress()
+### Community 473 - "Cloudflare Email Service"
+Cohesion: 0.18
+Nodes (11): Cloudflare Email Service, Common Mistakes, FIRST: Check Prerequisites, References, Retrieval Sources, Sending Workflow, What Do You Need?, Security Issues (+3 more)
 
-### Community 478 - "test_suggested_risk_overdue_task_hidden_after_resolved"
+### Community 477 - "funnel-chart.jsx"
 Cohesion: 0.29
-Nodes (5): GET /telemetry drops suggestions whose source_signal is already on a saved risk., test_patch_preserves_source_signal_and_caps_at_20(), as_owner(), fake_get_ws(), test_suggested_risk_overdue_task_hidden_after_resolved()
+Nodes (10): FunnelChart(), HRing(), HSegment(), hSegmentPath(), SegmentLabel(), VRing(), VSegment(), vSegmentPath() (+2 more)
+
+### Community 478 - "bindings/README.md"
+Cohesion: 0.18
+Nodes (6): Bindings API Reference, Binding Configuration, Binding Gotchas and Troubleshooting, Binding Patterns, Cloudflare Workers Bindings, Start here
 
 ### Community 480 - "4. Deploy API on Render"
 Cohesion: 0.67
 Nodes (3): 4. Deploy API on Render, Encrypt existing Google / QuickBooks tokens (one-time), Plan migration (read this)
 
+### Community 482 - "test_self_delegate_decision.py"
+Cohesion: 0.29
+Nodes (6): decision_action(), _decision_owner_is_self(), _heal_self_delegated_decisions(), test_decision_owner_is_self_myself_and_name(), test_heal_noop_when_nothing_stuck(), test_heal_self_delegated_rewrites_status_to_pending()
+
+### Community 485 - "ring-chart.jsx"
+Cohesion: 0.31
+Nodes (8): generateRingArcPath(), isRing(), isRingCenter(), RingChartCore, RingChartInner(), RingProvider(), @visx/group, @visx/responsive
+
+### Community 489 - "QuickAdd.jsx"
+Cohesion: 0.31
+Nodes (8): QuickAddPanel(), members, now, Row(), useQuickAdd(), KIND_LABEL, prettyDate(), requestFor()
+
 ### Community 491 - "Trenston MCP server"
 Cohesion: 0.20
 Nodes (9): Connect from Claude (OAuth sign-in), Environment, Extra environment variables, Get an API key, Render settings (new Web Service), Run hosted (streamable HTTP), Run locally (stdio), Tests (+1 more)
 
-### Community 492 - "searchRank.js"
+### Community 492 - "react"
 Cohesion: 0.38
 Nodes (8): editDistance(), rankActions(), scoreAction(), strip(), actions, ids(), tokenScore(), words()
 
-### Community 494 - "finance_csv.py"
-Cohesion: 0.11
-Nodes (20): _norm_header(), _parse_amount(), parse_financial_csv(), _parse_month(), _parse_type(), Any, Parse historical financial CSV uploads into preview rows (no DB writes).…, Return {valid: [...], skipped: [{row, reason}], parsed_row_count} without… (+12 more)
+### Community 493 - "datePatterns"
+Cohesion: 0.40
+Nodes (10): addDays(), dateFrom(), datePatterns(), daysInMonth(), monthDay(), monthIndex(), nextDayOfMonth(), nextWeekday() (+2 more)
 
-### Community 495 - "graphify reference: extra exports and benchmark"
+### Community 494 - "re"
+Cohesion: 0.10
+Nodes (14): _norm_header(), _parse_amount(), parse_financial_csv(), _parse_month(), _parse_type(), test_csv_name_column_and_category_fallback(), test_csv_preview_valid_and_skipped_rows(), test_csv_rejects_missing_headers() (+6 more)
+
+### Community 495 - "Cloudflare Artifacts"
 Cohesion: 0.22
-Nodes (8): graphify reference: extra exports and benchmark, Step 6b - Wiki (only if --wiki flag), Step 7 - Neo4j export (only if --neo4j or --neo4j-push flag), Step 7a - FalkorDB export (only if --falkordb or --falkordb-push flag), Step 7b - SVG export (only if --svg flag), Step 7c - GraphML export (only if --graphml flag), Step 7d - MCP server (only if --mcp flag), Step 8 - Token reduction benchmark (only if total_words > 5000)
+Nodes (9): Cloudflare Artifacts, In This Reference, Overview, Quick Start, Reading Order, Recommended Workflow, See Also, When to Use Artifacts (+1 more)
+
+### Community 496 - "Common Issues"
+Cohesion: 0.22
+Nodes (9): Analytics Data Retention, Client IP Showing Cloudflare IP, Common Issues, Connection Timeouts, Enterprise-Only Features, IPv6 Considerations, Proxy Protocol Compatibility, SMTP Reverse DNS (+1 more)
 
 ### Community 497 - "MockMessagePort"
 Cohesion: 0.25
-Nodes (4): MockMessageChannel, MockMessagePort, { TextEncoder, TextDecoder }, ref_util
+Nodes (3): MockMessageChannel, MockMessagePort, { TextEncoder, TextDecoder }
 
-### Community 500 - "ring-chart.jsx"
-Cohesion: 0.14
-Nodes (19): RingCenter(), generateRingArcPath(), isRing(), isRingCenter(), RingChartCore, defaultRingColors, ringCssVars, RingHoverContext (+11 more)
+### Community 498 - "Worker Code (JS/TS)"
+Cohesion: 0.22
+Nodes (9): CLI Commands, Durable Objects, ES Modules (Recommended), RPC Between Services, Service Worker Syntax (Legacy), TypeScript Types, Worker Code (JS/TS), Workerd APIs (+1 more)
+
+### Community 499 - "save_decision_ripple"
+Cohesion: 0.36
+Nodes (9): clear_decision_ripple(), DecisionRippleIn, delete_decision(), _require_ripple_access(), save_decision_ripple(), run(), run(), test_unknown_decision_and_bad_input() (+1 more)
+
+### Community 500 - "ring.jsx"
+Cohesion: 0.24
+Nodes (13): RingCenter(), defaultRingColors, ringCssVars, RingHoverContext, RingStableContext, useRing(), useRingHover(), useRingStable() (+5 more)
+
+### Community 501 - "test_financial_access_lockdown.py"
+Cohesion: 0.31
+Nodes (5): message_requests_financials(), _sample_fin(), test_ask_context_restricts_financials_when_not_visible(), test_computed_report_cards_omit_money_when_no_fin_access(), test_message_requests_financials()
+
+### Community 504 - "test_tasks.py"
+Cohesion: 0.44
+Nodes (6): _task_db(), _task_ws(), test_create_task_accepts_valid_columns(), test_get_tasks_marks_overdue_for_past_due_open_items(), test_patch_task_accepts_valid_columns(), test_patch_task_rejects_bogus_column()
+
+### Community 505 - "owner_client"
+Cohesion: 0.29
+Nodes (3): member_client(), owner_client(), principal()
 
 ### Community 506 - "compareVs.test.js"
 Cohesion: 0.33
-Nodes (5): frontend_src_lib_comparevs, allStrings(), BANNED, OFFICIAL_HOSTS, frontend_src_lib_homestory
+Nodes (3): allStrings(), BANNED, OFFICIAL_HOSTS
+
+### Community 507 - "test_task_delegation_email.py"
+Cohesion: 0.32
+Nodes (3): test_notify_sends_only_when_assignee_changes(), test_notify_skips_self_assign_and_survives_send_failure(), test_send_notification_email_wraps_resend()
 
 ### Community 508 - "test_reports_page.py"
-Cohesion: 0.21
-Nodes (9): Reports page: report input is cleaned, money wording is plain, the CEO Pack is…, test_ceo_pack_is_saved_for_the_next_visit(), run(), test_create_and_edit_report_clean_input(), run(), test_metrics_are_cleaned_and_capped(), test_negative_burn_reads_as_profit(), test_runway_without_burn_is_short_and_explained() (+1 more)
+Cohesion: 0.13
+Nodes (15): _burn_metric(), create_report(), edit_report(), format_burn_display(), ReportInput, _sanitize_report_metrics(), weekly_pack(), test_ceo_pack_is_saved_for_the_next_visit() (+7 more)
+
+### Community 509 - "test_workspace_deletion.py"
+Cohesion: 0.32
+Nodes (3): Collection, FakeDB, test_delete_workspace_purges_r2_and_workspace_collections()
+
+### Community 510 - "selfHostedFonts.test.js"
+Cohesion: 0.25
+Nodes (7): FONTS_CSS, FONTS_DIR, fs, INDEX, path, PUBLIC, ROOT
 
 ### Community 511 - "get"
 Cohesion: 0.03
-Nodes (145): annotate_possibly_stale(), Return shallow copies with possibly_stale set (does not mutate inputs)., apply_department_filter(), get_department_membership(), The user's department role — a real membership row, raised by any pack-implied…, Attach department_id constraint. ``None`` = CEO bypass (unchanged filter)., apply_status_completion(), Stamp completed_at when a record first reaches its done status. (+137 more)
+Nodes (81): annotate_possibly_stale(), _annotate_helm_event_permissions(), api_root(), api_v1_my_work(), api_v1_tasks(), ask_history(), calendar(), can_edit_financials() (+73 more)
+
+### Community 512 - "test_workspace_collections_guard.py"
+Cohesion: 0.48
+Nodes (4): test_every_written_collection_is_covered_or_explicitly_handled(), test_nine_previously_missed_collections_are_covered(), _workspace_collections(), _written_collections()
+
+### Community 513 - "tooltip-indicator.jsx"
+Cohesion: 0.57
+Nodes (5): indicatorFadeGradientStops(), resolveVerticalFadeSides(), resolveWidth(), TooltipIndicator(), TooltipIndicatorInner()
 
 ### Community 514 - "turnstile-spin/SKILL.md"
-Cohesion: 0.07
-Nodes (21): API route (canonical siteverify), Astro, Substitutions, Variant: Astro Actions, Backend (where siteverify lives), Hugo, Substitutions, Variant: shortcode for content files (+13 more)
+Cohesion: 0.05
+Nodes (37): How agents load it, Keep the hosted prompt in sync, Layout, Related, turnstile-spin (skill), API route (canonical siteverify), Astro, Substitutions (+29 more)
 
-### Community 515 - "graphify reference: query, path, explain"
+### Community 515 - "modeling.test.js"
 Cohesion: 0.33
-Nodes (5): For /graphify explain, For /graphify path, graphify reference: query, path, explain, Step 0 — Constrained query expansion (REQUIRED before traversal), Step 1 — Traversal
+Nodes (6): close(), expectSame(), fixture, fs, path, { projectCash, sanitizeInputs, addMonths, baselineInputs }
 
 ### Community 516 - "test_ops_briefing_parallel.py"
 Cohesion: 0.11
-Nodes (12): asyncio, POST /briefing/generate must load calendar + freshness in the same gather as…, Slow calendar must not add full latency on top of slow financials., test_generate_briefing_awaits_calendar_concurrently_with_fin(), _Cursor, asyncio, Ops briefing sections must run concurrently and isolate per-section failures., One section raising still returns others. (+4 more)
+Nodes (7): _no_ai_rate_limit(), test_generate_briefing_awaits_calendar_concurrently_with_fin(), _Cursor, test_assemble_ops_reuses_workspace_skips_tz_read(), test_assemble_ops_runs_enabled_sections_concurrently(), test_assemble_ops_source_uses_gather(), test_section_failure_isolates_to_none()
 
-### Community 518 - "Client SDK Configuration"
+### Community 517 - "R2 SQL Gotchas"
+Cohesion: 0.33
+Nodes (6): Access, Debug Checklist, Performance, R2 SQL Gotchas, See Also, Type Safety
+
+### Community 518 - "TURN Key Management"
+Cohesion: 0.33
+Nodes (6): Create TURN Key, Delete TURN Key, Get TURN Key Details, List TURN Keys, TURN Key Management, Update TURN Key
+
+### Community 520 - "Product Tiers"
 Cohesion: 0.40
-Nodes (5): Angular UI Kit, Client SDK Configuration, Core SDK Configuration, React UI Kit, Web Components
+Nodes (5): Bot Fight Mode (Free), Bot Management for Enterprise, Bot Score Groupings (Pro/Business), Product Tiers, Super Bot Fight Mode (Pro/Business)
+
+### Community 521 - "Bindings"
+Cohesion: 0.40
+Nodes (5): Bindings, Other, Primitive Types, Service Binding, Storage
+
+### Community 522 - "_normalize_appearance"
+Cohesion: 0.60
+Nodes (3): _normalize_appearance(), test_normalize_appearance_accepts_valid(), test_normalize_appearance_defaults_to_light()
 
 ### Community 523 - "lucide-react"
-Cohesion: 0.03
-Nodes (205): AiSummaryMeta(), formatAsOf(), PossiblyStaleBadge(), ApiKeysSettings(), detailMessage(), formatDate(), CirDeleteBtn(), CirEditBtn() (+197 more)
+Cohesion: 0.05
+Nodes (120): PossiblyStaleBadge(), CirDeleteBtn(), CirEditBtn(), DepartmentNotEnabled(), ConfirmDialog(), EmptyState(), SectionLabel(), SkeletonKPIRow() (+112 more)
 
-### Community 525 - "Snippets Patterns"
+### Community 525 - "Cloudflare Snippets Skill Reference"
 Cohesion: 0.22
 Nodes (9): A/B Testing, API Auth Header Injection, Bot Detection, CORS Headers, Geo-Based Routing, Maintenance Mode, Pattern Selection, Security Headers (+1 more)
 
-### Community 526 - "test_role_access.py"
-Cohesion: 0.08
-Nodes (31): clear_access_ids_cache(), Drop request memo (tests)., set_current_principal(), as_principal(), 18:00 UTC Sep 24 = 02:00 Sep 25 in Manila — meetings filter must use Manila…, test_meetings_today_uses_workspace_timezone_not_utc(), _clear_memo(), _Coll (+23 more)
+### Community 526 - "test_department_access_batch.py"
+Cohesion: 0.26
+Nodes (6): _Coll, _Cursor, _mock_db(), test_accessible_department_ids_memoizes_within_request(), test_batched_accessible_ids_ceo_bypass_is_none(), test_batched_accessible_ids_match_per_type_for_member()
 
 ### Community 527 - "animation.js"
-Cohesion: 0.36
+Cohesion: 0.31
 Nodes (5): clipRevealTransition(), DEFAULT_ANIMATION_DURATION_MS, DEFAULT_ANIMATION_EASING, DEFAULT_CHART_ENTER_TRANSITION, ChartRevealClip()
 
-### Community 529 - "documents_library"
-Cohesion: 0.17
-Nodes (15): _audit_document_access(), _document_response_without_storage(), documents_library(), _load_financial(), _load_reports(), loader(), get_financial_document(), get_report_document() (+7 more)
+### Community 528 - "Wrangler Configuration"
+Cohesion: 0.50
+Nodes (4): Basic Configuration, Multi-Environment, With Database & Storage, Wrangler Configuration
 
-### Community 531 - "test_security.py"
-Cohesion: 0.12
-Nodes (18): _enforce_production_config(), Refuse to boot with known-insecure settings when ENVIRONMENT=production., Read a bounded upload and verify its bytes match the claimed media type., _read_validated_document(), parametrize, UploadFile, Security helpers and production guardrails., Gmail scopes are restricted (yearly CASA assessment); Trenston must not request… (+10 more)
+### Community 529 - "_audit_document_access"
+Cohesion: 0.19
+Nodes (9): _audit_document_access(), _document_response_without_storage(), documents_library(), _load_financial(), _load_reports(), get_financial_document(), get_report_document(), _membership_for() (+1 more)
 
-### Community 532 - "get_ws"
+### Community 531 - "test_slack_webhook_storage.py"
+Cohesion: 0.11
+Nodes (11): _enforce_production_config(), test_allowed_auth_redirect(), test_document_upload_stops_at_size_limit(), test_document_upload_validates_magic_bytes(), test_google_scopes_exclude_gmail(), test_production_config_allows_development(), test_production_config_refuses_insecure(), test_production_rejects_invalid_integration_encryption_key() (+3 more)
+
+### Community 532 - "invalidate_workspace_list_cache"
 Cohesion: 0.03
-Nodes (142): ai_extracts_limit(), Monthly renewing extract quota. Free uses ai_extracts_lifetime instead., acquire_event_slot(), Check+record in one step. Returns True when the caller may proceed. Uses a…, _acquire_ai_extract_quota(), _api_auth_error(), api_keys_create(), api_keys_list() (+134 more)
+Nodes (85): feature_for_action(), acquire_event_slot(), api_keys_list(), ask_new_chat(), assign_delegate_suggestion(), _branding_data_url(), _can_use_integration_tokens(), _connected_integrations_count() (+77 more)
+
+### Community 533 - "date-ticker.jsx"
+Cohesion: 0.83
+Nodes (3): DateTicker(), DateTickerCompact, DateTickerInner
 
 ### Community 536 - "test_slack_notify_redacts_stalled_deal_money"
 Cohesion: 0.33
-Nodes (4): asyncio, test_alert_email_sends_financial_alerts_only_to_finance_recipients(), recipients(), test_slack_notify_redacts_stalled_deal_money()
-
-### Community 540 - "graphify reference: add a URL and watch a folder"
-Cohesion: 0.50
-Nodes (3): For /graphify add, For --watch, graphify reference: add a URL and watch a folder
-
-### Community 541 - "graphify reference: commit hook and native CLAUDE.md integration"
-Cohesion: 0.50
-Nodes (3): For git commit hook, For native CLAUDE.md integration, graphify reference: commit hook and native CLAUDE.md integration
-
-### Community 546 - "graphify reference: incremental update and cluster-only"
-Cohesion: 0.50
-Nodes (3): For --cluster-only, For --update (incremental re-extraction), graphify reference: incremental update and cluster-only
+Nodes (3): test_alert_email_sends_financial_alerts_only_to_finance_recipients(), recipients(), test_slack_notify_redacts_stalled_deal_money()
 
 ## Knowledge Gaps
-- **2541 isolated node(s):** `cloudflare`, `cloudflare-docs`, `cloudflare-bindings`, `cloudflare-builds`, `cloudflare-observability` (+2536 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4913 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **29 isolated node(s):** `@hookform/resolvers`, `d3-array`, `date-fns`, `dayjs`, `lodash` (+24 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 4810 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **47 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `fetch()` connect `fetch` to `Codemode (Experimental)`, `trenston_mcp/server.py`, `Gotchas and Troubleshooting`, `Gotchas & Best Practices`, `Workers VPC Connectivity`, `Cloudflare R2 SQL`, `R2 SQL Patterns`, `Network Access`, `Durable Objects`, `Smart Placement Configuration`, `Smart Placement Gotchas`, `Cloudflare Workers Smart Placement`, `Turnstile Spin skill`, `Configuration`, `pipelines/patterns.md`, `GraphQL Analytics API Configuration`, `Artifacts Configuration`, `Common Errors`, `Snippets API Reference`, `Browse the Web (Experimental)`, `Web Platform APIs`?**
-  _High betweenness centrality (0.347) - this node is a cross-community bridge._
-- **Why does `text()` connect `Workerd Gotchas` to `workers-best-practices/SKILL.md`, `seoPages.js`?**
-  _High betweenness centrality (0.195) - this node is a cross-community bridge._
-- **Why does `build_server()` connect `fetch` to `trenston_mcp/server.py`, `test_http_gate.py`?**
-  _High betweenness centrality (0.148) - this node is a cross-community bridge._
-- **What connects `cloudflare`, `cloudflare-docs`, `cloudflare-bindings` to the rest of the system?**
-  _2541 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `fetch()` connect `fetch` to `Codemode (Experimental)`, `turnstile-spin/SKILL.md`, `trenston_mcp/server.py`, `Gotchas and Troubleshooting`, `R2 SQL Gotchas`, `Durable Objects`, `work_items.py`, `tunnel/README.md`, `Cloudflare R2 SQL`, `R2 SQL Patterns`, `Network Access`, `fetch`, `Smart Placement Configuration`, `Smart Placement Gotchas`, `Smart Placement API`, `Configuration`, `Cloudflare Workers Smart Placement`, `GraphQL Analytics API Configuration`, `Artifacts Configuration`, `Common Errors`, `money_fmt.py`, `Browse the Web (Experimental)`, `Cloudflare Artifacts`, `Web Platform APIs`?**
+  _High betweenness centrality (0.385) - this node is a cross-community bridge._
+- **What connects `@hookform/resolvers`, `d3-array`, `date-fns` to the rest of the system?**
+  _29 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `cn` be split into smaller, more focused modules?**
-  _Cohesion score 0.011234125691957017 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.013409306742640075 - nodes in this community are weakly interconnected._
+- **Why does `text()` connect `Cloudflare Email Service` to `heatmap-chart.jsx`?**
+  _High betweenness centrality (0.217) - this node is a cross-community bridge._
+- **Should `api.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.0547945205479452 - nodes in this community are weakly interconnected._
+- **Why does `build_server()` connect `fetch` to `trenston_mcp/server.py`, `fetch`, `test_http_gate.py`?**
+  _High betweenness centrality (0.169) - this node is a cross-community bridge._
 - **Should `backend/server.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.018535334650926768 - nodes in this community are weakly interconnected._
-- **Should `oauth_server.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.1268939393939394 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.018979645783769494 - nodes in this community are weakly interconnected._

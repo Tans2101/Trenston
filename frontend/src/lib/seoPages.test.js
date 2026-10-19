@@ -22,7 +22,7 @@ describe("seoPages", () => {
     expect(canonicalForPath("/app/financials")).toBe("https://www.trenston.com/");
   });
 
-  test("all nineteen marketing routes are defined", () => {
+  test("all twenty marketing routes are defined", () => {
     expect(Object.keys(SEO_PAGES).sort()).toEqual(
       [
         "/",
@@ -34,6 +34,7 @@ describe("seoPages", () => {
         "/compare/power-bi",
         "/features",
         "/guides",
+        "/guides/how-to-stop-chasing-people-for-updates",
         "/guides/how-to-track-runway-as-a-founder",
         "/guides/what-a-ceo-should-check-every-morning",
         "/help",

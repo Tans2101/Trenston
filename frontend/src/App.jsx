@@ -122,8 +122,10 @@ function DocumentSeo() {
       const segment = path.split("/")[2] || "app";
       const label = segment.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       document.title = `${label} · Trenston`;
+    } else if (path === "/unsubscribe") {
+      document.title = "Unsubscribe · Trenston";
     } else {
-      document.title = "Trenston";
+      document.title = "Page not found · Trenston";
     }
 
     const canonicalHref = canonicalForPath(path);
@@ -146,17 +148,13 @@ function DocumentSeo() {
       el.setAttribute("content", value);
     };
 
-    // Auth / app shells must not compete with marketing URLs in Google.
-    const privatePath =
-      path.startsWith("/app") ||
-      path === "/login" ||
-      path === "/sign-up" ||
-      path.startsWith("/payment");
-    if (privatePath) {
-      setMeta("name", "robots", "noindex, nofollow");
-    } else {
+    // Only sitemap marketing routes are indexable. Auth/app, unsubscribe, and
+    // unknown URLs (client NotFound) must not compete as homepage duplicates.
+    if (page) {
       const robots = document.querySelector('meta[name="robots"]');
       if (robots) robots.remove();
+    } else {
+      setMeta("name", "robots", "noindex, nofollow");
     }
 
     if (page) {

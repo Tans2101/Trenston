@@ -378,19 +378,27 @@ function changelogSections() {
 function statusSections() {
   const src = readFileSync(statusConfigPath, "utf8");
   const started = extractExport(src, "STATUS_TRACKING_STARTED") || "2026-09-19";
+  const scope = { STATUS_TRACKING_STARTED: started };
+  const intro = extractExport(src, "STATUS_INTRO") || "";
   const components = extractExport(src, "STATUS_COMPONENTS") || [];
-  const disclaimer = extractExport(src, "STATUS_DISCLAIMER") || "";
+  const how = extractExport(src, "STATUS_HOW_WE_CHECK") || [];
+  const disclaimer = extractExport(src, "STATUS_DISCLAIMER", scope) || "";
+  const contact = extractExport(src, "STATUS_CONTACT") || "";
   const sections = [];
+  if (intro) {
+    sections.push({ heading: "Live status", parts: [intro, `Public status tracking started ${started}.`] });
+  } else {
+    sections.push({ heading: "Live status", parts: [`Public status tracking started ${started}.`] });
+  }
   sections.push({
     heading: "What we measure",
-    parts: [
-      `Public status tracking started ${started}.`,
-      ...(Array.isArray(components)
-        ? components.map((c) => `${c.name}: ${c.detail}`)
-        : []),
-    ],
+    parts: Array.isArray(components) ? components.map((c) => `${c.name}: ${c.detail}`) : [],
   });
+  if (Array.isArray(how) && how.length) {
+    sections.push({ heading: "How we check", parts: how });
+  }
   if (disclaimer) sections.push({ heading: "Honesty note", parts: [disclaimer] });
+  if (contact) sections.push({ heading: "Report an issue", parts: [contact] });
   return sections;
 }
 

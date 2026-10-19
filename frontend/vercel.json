@@ -131,6 +131,24 @@
       ]
     },
     {
+      "source": "/unsubscribe",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/unsubscribe/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
@@ -157,6 +175,16 @@
     }
   ],
   "redirects": [
+    {
+      "source": "/blog",
+      "destination": "/changelog",
+      "permanent": true
+    },
+    {
+      "source": "/blog/(.*)",
+      "destination": "/changelog",
+      "permanent": true
+    },
     {
       "source": "/:path*",
       "has": [
@@ -219,10 +247,6 @@
     {
       "source": "/app/:path*",
       "destination": "/app/index.html"
-    },
-    {
-      "source": "/((?!api/|__clerk|robots\\.txt|sitemap\\.xml|llms\\.txt|security\\.txt|\\.well-known(?:/.*)?|google[0-9a-z]+\\.html|about(?:/.*)?|features(?:/.*)?|pricing(?:/.*)?|compare(?:/.*)?|changelog(?:/.*)?|status(?:/.*)?|integrations(?:/.*)?|help(?:/.*)?|security(?:/.*)?|privacy(?:/.*)?|terms(?:/.*)?|refunds(?:/.*)?|login(?:/.*)?|sign-up(?:/.*)?|app(?:/.*)?|payment(?:/.*)?).*)",
-      "destination": "/index.html"
     }
   ]
 }

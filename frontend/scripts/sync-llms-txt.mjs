@@ -69,6 +69,7 @@ export function buildLlmsTxt() {
     `- [Guides for founders and CEOs](${ORIGIN}/guides)`,
     `- [How to track runway as a founder](${ORIGIN}/guides/how-to-track-runway-as-a-founder)`,
     `- [What a CEO should check every morning](${ORIGIN}/guides/what-a-ceo-should-check-every-morning)`,
+    `- [How to stop chasing people for updates](${ORIGIN}/guides/how-to-stop-chasing-people-for-updates)`,
     `- [Integrations](${ORIGIN}/integrations)`,
     `- [Security](${ORIGIN}/security)`,
     `- [About](${ORIGIN}/about)`,

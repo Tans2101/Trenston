@@ -8,8 +8,11 @@ import { useMarketingAuth } from "@/hooks/useMarketingAuth";
 import { API } from "@/lib/api";
 import {
   STATUS_COMPONENTS,
+  STATUS_CONTACT,
   STATUS_DISCLAIMER,
+  STATUS_HOW_WE_CHECK,
   STATUS_INCIDENTS,
+  STATUS_INTRO,
   STATUS_TRACKING_STARTED,
 } from "@/lib/statusConfig";
 import { CATEGORY, PUBLIC_CONTACT_MAILTO } from "@/lib/marketingCopy";
@@ -129,7 +132,7 @@ export default function Status() {
             </motion.h1>
             <motion.p variants={fade} initial="hidden" animate="show" custom={2}
               className="mt-6 max-w-2xl text-lg leading-relaxed text-mk-gray">
-              Live checks against Trenston&apos;s production stack. No invented historical uptime charts.
+              {STATUS_INTRO}
             </motion.p>
             <motion.div variants={fade} initial="hidden" animate="show" custom={3}
               className={`mt-8 inline-flex items-center gap-3 rounded-full border px-4 py-2 text-sm ${toneFor(worst)}`}>
@@ -182,7 +185,16 @@ export default function Status() {
                 Last checked {checkedAt.toLocaleString()}
               </p>
             ) : null}
+            <div className="mt-10">
+              <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-mk-gray">How we check</p>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-relaxed text-mk-gray">
+                {STATUS_HOW_WE_CHECK.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            </div>
             <p className="mt-8 text-sm leading-relaxed text-mk-gray">{STATUS_DISCLAIMER}</p>
+            <p className="mt-4 text-sm leading-relaxed text-mk-gray">{STATUS_CONTACT}</p>
           </div>
         </section>
 

@@ -75,6 +75,13 @@ export const SITE_SEARCH_ACTIONS = [
     keywords: ["guide", "morning", "routine", "briefing", "ceo"],
   },
   {
+    id: "guide-how-to-stop-chasing-people-for-updates",
+    label: "How to stop chasing people for updates",
+    to: "/guides/how-to-stop-chasing-people-for-updates",
+    description: "Site",
+    keywords: ["guide", "updates", "status", "chasing", "owners", "delegation"],
+  },
+  {
     id: "help",
     label: "Help",
     to: "/help",

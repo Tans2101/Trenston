@@ -101,21 +101,21 @@ export const PRICING_FAQ = [
  */
 export const HOME_FAQ = [
   {
-    q: "Billing & cancellation",
+    q: "How does billing and cancellation work?",
     a: "Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing. It takes effect at the end of the current period, no refunds after payment.",
     link: { to: "/pricing", label: "See full pricing" },
   },
   {
-    q: "Security",
+    q: "How does Trenston keep my company data secure?",
     a: "Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control). Trenston never stores your passwords.",
     link: { to: "/security", label: "How Trenston protects company data" },
   },
   {
-    q: "Setup time",
+    q: "How long does setup take?",
     a: "No implementation team or onboarding call required. Create a workspace, connect Google or an accounting system (or skip it and enter data by hand), and Trenston starts building your first Briefing right away.",
   },
   {
-    q: "Integrations",
+    q: "Which integrations are included?",
     a: "Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and Slack alerts. Growth and Business also add SAP Business One and HubSpot. Manual entry stays available everywhere.",
     link: { to: "/integrations", label: "See what each integration does" },
   },

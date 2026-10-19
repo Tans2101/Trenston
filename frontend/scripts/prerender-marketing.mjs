@@ -20,7 +20,8 @@
  *   build/llms.txt (+ refreshes public/llms.txt)
  *   build/sitemap.xml (+ refreshes public/sitemap.xml)
  *
- * Vercel serves these static files before the SPA rewrite catch-all.
+ * Vercel serves these static files from the filesystem. Unknown paths use
+ * build/404.html (HTTP 404) — there is no catch-all rewrite to the homepage.
  */
 import { mkdirSync, readFileSync, writeFileSync, existsSync, copyFileSync } from "fs";
 import { dirname, join } from "path";
@@ -80,46 +81,89 @@ function stripEmptyGoogleVerification(html) {
   );
 }
 
-/** Auth / app / payment shells must not look like the homepage to crawlers. */
+/** Auth / app / payment / unsubscribe shells must not look like the homepage to crawlers. */
 const NOINDEX_SHELLS = [
-  { path: "/login", title: "Sign in · Trenston" },
-  { path: "/sign-up", title: "Create account · Trenston" },
-  { path: "/app", title: "Briefing · Trenston" },
-  { path: "/payment", title: "Checkout · Trenston" },
+  { path: "/login", title: "Sign in · Trenston", kind: "private" },
+  { path: "/sign-up", title: "Create account · Trenston", kind: "private" },
+  { path: "/app", title: "Briefing · Trenston", kind: "private" },
+  { path: "/payment", title: "Checkout · Trenston", kind: "private" },
+  {
+    path: "/unsubscribe",
+    title: "Unsubscribe · Trenston",
+    kind: "utility",
+    description: "Confirm email unsubscribe for Trenston notifications. Not a marketing page.",
+    body: `<main id="helm-prerender-page">
+  <h1>Unsubscribe</h1>
+  <p>Use the link in your Trenston email to confirm you no longer want these messages.</p>
+</main>`,
+  },
 ];
 
 function stripJsonLdScripts(html) {
   return html.replace(/<script\s+type=["']application\/ld\+json["'][\s\S]*?<\/script>\s*/gi, "");
 }
 
-function applyNoindexShell(html, { path, title, origin }) {
+function applyNoindexShell(html, { path, title, origin, kind, description, body }) {
   const url = `${origin}${path}`;
+  const desc =
+    description ||
+    (kind === "utility"
+      ? `${title}. Not for search indexing.`
+      : `${title}. Private Trenston account surface — not for search indexing.`);
+  const ogDesc = kind === "utility" ? desc : "Private Trenston account surface.";
   let out = stripEmptyGoogleVerification(html);
   out = stripJsonLdScripts(out);
   out = upsertTitle(out, title);
   out = upsertMeta(out, "name", "robots", "noindex, nofollow");
-  out = upsertMeta(out, "name", "description", `${title}. Private Trenston account surface — not for search indexing.`);
+  out = upsertMeta(out, "name", "description", desc);
   out = upsertLink(out, "canonical", url);
   out = upsertMeta(out, "property", "og:url", url);
   out = upsertMeta(out, "property", "og:title", title);
-  out = upsertMeta(out, "property", "og:description", "Private Trenston account surface.");
+  out = upsertMeta(out, "property", "og:description", ogDesc);
   out = upsertMeta(out, "name", "twitter:title", title);
-  out = upsertMeta(out, "name", "twitter:description", "Private Trenston account surface.");
-  // Drop any homepage prerender body so these URLs are not soft-duplicate marketing pages.
+  out = upsertMeta(out, "name", "twitter:description", ogDesc);
+  // Drop homepage marketing body so these URLs are not soft-duplicate pages.
+  const rootInner = body || "";
   if (/<div id="root">[\s\S]*?<\/div>/i.test(out)) {
-    out = out.replace(/<div id="root">[\s\S]*?<\/div>/i, '<div id="root"></div>');
+    out = out.replace(/<div id="root">[\s\S]*?<\/div>/i, `<div id="root">${rootInner}</div>`);
   }
   return out;
 }
 
+function notFoundHtml(shell, origin) {
+  const title = "Page not found · Trenston";
+  const description =
+    "This URL is not a Trenston page. Check the link or return to the homepage.";
+  const body = `<main id="helm-prerender-page">
+  <h1>Page not found</h1>
+  <p>${escapeHtml(description)}</p>
+  <p><a href="/">Back to home</a> · <a href="/guides">Guides</a> · <a href="/help">Help</a></p>
+</main>`;
+  let out = applyNoindexShell(shell, {
+    path: "/404",
+    title,
+    origin,
+    kind: "utility",
+    description,
+    body,
+  });
+  // Canonical for the dedicated 404 document; unknown request URLs still get HTTP 404.
+  out = upsertLink(out, "canonical", `${origin}/`);
+  out = upsertMeta(out, "property", "og:url", `${origin}/`);
+  return out;
+}
+
 function writeNoindexShells(shell, origin) {
-  for (const { path, title } of NOINDEX_SHELLS) {
-    const html = applyNoindexShell(shell, { path, title, origin });
-    const outFile = join(buildDir, path.replace(/^\//, ""), "index.html");
+  for (const entry of NOINDEX_SHELLS) {
+    const html = applyNoindexShell(shell, { ...entry, origin });
+    const outFile = join(buildDir, entry.path.replace(/^\//, ""), "index.html");
     mkdirSync(dirname(outFile), { recursive: true });
     writeFileSync(outFile, html, "utf8");
     console.log(`prerender-marketing: wrote noindex shell ${outFile.slice(frontendRoot.length + 1)}`);
   }
+  const notFoundPath = join(buildDir, "404.html");
+  writeFileSync(notFoundPath, notFoundHtml(shell, origin), "utf8");
+  console.log(`prerender-marketing: wrote ${notFoundPath.slice(frontendRoot.length + 1)}`);
 }
 
 function webPageJsonLd({ path, page, origin }) {
@@ -404,8 +448,8 @@ function main() {
         console.error(`prerender-marketing: could not inject body for ${path}`);
         process.exit(1);
       }
-      const richPaths = ["/", "/about", "/features", "/compare", "/compare/excel-google-sheets", "/compare/power-bi", "/compare/notion", "/guides", "/guides/how-to-track-runway-as-a-founder", "/guides/what-a-ceo-should-check-every-morning", "/integrations", "/changelog", "/security", "/privacy", "/terms", "/refunds"];
-      const minLen = ["/", "/about", "/features", "/integrations", "/changelog", "/guides"].includes(path) ? 800 : 1500;
+      const richPaths = ["/", "/about", "/features", "/compare", "/compare/excel-google-sheets", "/compare/power-bi", "/compare/notion", "/guides", "/guides/how-to-track-runway-as-a-founder", "/guides/what-a-ceo-should-check-every-morning", "/guides/how-to-stop-chasing-people-for-updates", "/integrations", "/changelog", "/status", "/security", "/privacy", "/terms", "/refunds"];
+      const minLen = ["/", "/about", "/features", "/integrations", "/changelog", "/guides", "/status"].includes(path) ? 800 : 1500;
       if (richPaths.includes(path) && textLength(body) < minLen) {
         console.error(`prerender-marketing: ${path} prerendered text is suspiciously short (${textLength(body)} chars)`);
         process.exit(1);

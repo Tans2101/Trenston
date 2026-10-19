@@ -18,6 +18,7 @@ describe("quick nav site search pages", () => {
         "/compare/power-bi",
         "/features",
         "/guides",
+        "/guides/how-to-stop-chasing-people-for-updates",
         "/guides/how-to-track-runway-as-a-founder",
         "/guides/what-a-ceo-should-check-every-morning",
         "/help",

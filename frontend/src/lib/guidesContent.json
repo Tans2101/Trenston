@@ -3,7 +3,7 @@
   "authorRole": "Founder, Trenston",
   "hub": {
     "title": "Guides for founders and CEOs",
-    "intro": "Short, practical guides on running a company: the numbers to watch, the questions to ask, and how to stop chasing people for updates."
+    "intro": "Short, practical guides on running a company: tracking runway, a CEO morning routine, and how to stop chasing people for updates."
   },
   "guides": [
     {
@@ -133,6 +133,69 @@
         "paragraphs": [
           "The Briefing in Trenston is built around this routine. It shows what changed, what needs a decision and what you can delegate, based on your live company data.",
           "The Decision Center ranks open decisions with a recommendation and a confidence score, and nothing becomes a decision until you confirm it. If a department has gone quiet, the Briefing says so and tells you who to ask."
+        ]
+      }
+    },
+    {
+      "slug": "how-to-stop-chasing-people-for-updates",
+      "title": "How to stop chasing people for updates",
+      "seoTitle": "How to Stop Chasing People for Updates · Trenston",
+      "description": "Replace status-chasing Slack pings with clear owners, due dates, and one place the numbers live so founders and CEOs stop hunting for updates.",
+      "ogTitle": "How to stop chasing people for updates",
+      "ogDescription": "Clear owners, due dates, and one shared view beat another round of \"any update on this?\" messages.",
+      "datePublished": "2026-10-19",
+      "readMinutes": 5,
+      "intro": "Chasing updates feels like management, but it is usually a design problem. When ownership is fuzzy, data lives in five tools, and the only way to know status is to ask, you end up pinging people all day. This guide shows how to replace that habit with a system people can follow without you in the middle.",
+      "sections": [
+        {
+          "heading": "Why chasing updates fails",
+          "paragraphs": [
+            "Every \"any update?\" message costs focus for you and for the person you interrupt. The answer is often incomplete because they have to dig for it too.",
+            "If the same question comes back every week, the company does not have a reporting problem. It has an ownership and visibility problem."
+          ]
+        },
+        {
+          "heading": "Name one owner for each open item",
+          "paragraphs": [
+            "An item with three people \"on it\" has no owner. Write one name next to every open deal, purchase, hire, or decision.",
+            "When something slips, you talk to that person once. You do not broadcast a group ping and hope someone answers."
+          ]
+        },
+        {
+          "heading": "Put the next step and the date in writing",
+          "paragraphs": [
+            "Status is not a feeling. It is the next concrete step and when it is due. \"Working on it\" is not a status.",
+            "Ask for the next action in one sentence and a date. If the date moves, the owner updates the date. That is the whole ritual."
+          ]
+        },
+        {
+          "heading": "Keep the numbers in one place",
+          "paragraphs": [
+            "If cash lives in accounting, pipeline in a CRM, and tasks in chat, you will always chase. Pick one place the leadership view is assembled from.",
+            "People can keep working in their tools. What changes is that the CEO does not have to assemble the picture by hand every morning."
+          ]
+        },
+        {
+          "heading": "Review exceptions, not everything",
+          "paragraphs": [
+            "A good update system surfaces what changed, what is late, and what needs a decision. Everything else stays quiet.",
+            "Spend your time on exceptions. If nothing is late and nothing needs you, do not invent a status meeting to fill the calendar."
+          ]
+        },
+        {
+          "heading": "Stop accepting updates only in chat",
+          "bullets": [
+            "Chat is fine for a quick clarification. It is a bad system of record.",
+            "When someone answers in Slack, ask them to put the same note on the task or deal so the next person does not ask again.",
+            "If a department goes quiet for weeks, treat stale data as a signal, not as proof that everything is fine."
+          ]
+        }
+      ],
+      "trenston": {
+        "heading": "Stopping the chase in Trenston",
+        "paragraphs": [
+          "Trenston gives each open item an owner and a place in Briefing, Decisions, Tasks, and department pages so you see what changed without pinging the team.",
+          "When a department has not updated in a while, Briefing says so and points to who to ask. You still talk to people about judgment calls. You stop using chat as your only status system."
         ]
       }
     }

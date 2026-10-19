@@ -38,10 +38,10 @@ Billing is via Paddle. Cancel anytime from Billing.
 
 ## Common questions
 
-- Billing & cancellation: Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing. It takes effect at the end of the current period, no refunds after payment.
-- Security: Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control). Trenston never stores your passwords.
-- Setup time: No implementation team or onboarding call required. Create a workspace, connect Google or an accounting system (or skip it and enter data by hand), and Trenston starts building your first Briefing right away.
-- Integrations: Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and Slack alerts. Growth and Business also add SAP Business One and HubSpot. Manual entry stays available everywhere.
+- How does billing and cancellation work?: Paid plans include a 7-day free trial; cancel before it ends and you are not charged. Billing runs through Paddle, our merchant of record. Cancel anytime from Billing. It takes effect at the end of the current period, no refunds after payment.
+- How does Trenston keep my company data secure?: Your workspace's data is isolated from every other company on Trenston. Google and accounting connections use OAuth (or, for SAP Business One, credentials you control). Trenston never stores your passwords.
+- How long does setup take?: No implementation team or onboarding call required. Create a workspace, connect Google or an accounting system (or skip it and enter data by hand), and Trenston starts building your first Briefing right away.
+- Which integrations are included?: Google (Calendar & Drive) is on every plan, including Free. Starter adds QuickBooks, Xero, and Slack alerts. Growth and Business also add SAP Business One and HubSpot. Manual entry stays available everywhere.
 
 ## Pages
 
@@ -55,6 +55,7 @@ Billing is via Paddle. Cancel anytime from Billing.
 - [Guides for founders and CEOs](https://www.trenston.com/guides)
 - [How to track runway as a founder](https://www.trenston.com/guides/how-to-track-runway-as-a-founder)
 - [What a CEO should check every morning](https://www.trenston.com/guides/what-a-ceo-should-check-every-morning)
+- [How to stop chasing people for updates](https://www.trenston.com/guides/how-to-stop-chasing-people-for-updates)
 - [Integrations](https://www.trenston.com/integrations)
 - [Security](https://www.trenston.com/security)
 - [About](https://www.trenston.com/about)

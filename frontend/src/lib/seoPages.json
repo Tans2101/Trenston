@@ -58,9 +58,9 @@
     },
     "/status": {
       "title": "Status · Trenston",
-      "description": "Live health of Trenston’s web app, API, and database. Public status tracking started September 19, 2026.",
+      "description": "Live health of Trenston’s web app, API, and database, how we check each one, and incident notes since public tracking began September 19, 2026.",
       "ogTitle": "Trenston Status",
-      "ogDescription": "Operational checks for Vercel, Render API, and MongoDB Atlas."
+      "ogDescription": "Operational checks for Vercel, Render API, and MongoDB Atlas, plus how we measure them."
     },
     "/privacy": {
       "title": "Privacy Policy · Trenston",
@@ -102,7 +102,7 @@
       "title": "Guides for Founders and CEOs · Trenston",
       "description": "Practical guides on running a company: tracking runway, a CEO's morning routine, and how to stop chasing people for updates.",
       "ogTitle": "Guides for founders and CEOs",
-      "ogDescription": "Short, practical guides on the numbers to watch and the questions to ask when you run a company.",
+      "ogDescription": "Short, practical guides on the numbers to watch, the questions to ask, and how to stop chasing people for updates.",
       "priority": "0.7"
     },
     "/guides/how-to-track-runway-as-a-founder": {
@@ -117,6 +117,13 @@
       "description": "A five-minute morning routine for founders and CEOs: cash, what changed, what is blocked, which decisions are waiting, and what to hand off.",
       "ogTitle": "What a CEO should check every morning",
       "ogDescription": "A five-minute routine for founders and CEOs: look at what changed, not just the totals, and decide what only you need to handle.",
+      "priority": "0.6"
+    },
+    "/guides/how-to-stop-chasing-people-for-updates": {
+      "title": "How to Stop Chasing People for Updates · Trenston",
+      "description": "Replace status-chasing Slack pings with clear owners, due dates, and one place the numbers live so founders and CEOs stop hunting for updates.",
+      "ogTitle": "How to stop chasing people for updates",
+      "ogDescription": "Clear owners, due dates, and one shared view beat another round of \"any update on this?\" messages.",
       "priority": "0.6"
     }
   }
