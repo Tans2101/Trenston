@@ -89,6 +89,10 @@ describe("public pages show real text without JavaScript", () => {
     expect(rewrites).not.toContain("/index.html");
     const redirects = vercel.redirects || [];
     expect(redirects.some((r) => r.source === "/blog" && r.destination === "/changelog" && r.permanent)).toBe(true);
+    // After filesystem match fails, serve 404.html with HTTP 404 (overrides CRA SPA fallback).
+    const routes = vercel.routes || [];
+    expect(routes.some((r) => r.handle === "filesystem")).toBe(true);
+    expect(routes.some((r) => r.status === 404 && r.dest === "/404.html")).toBe(true);
   });
 
   test("home FAQ questions are interrogatives for FAQPage rich results", () => {
