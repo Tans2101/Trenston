@@ -2502,9 +2502,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/AccountSettings.jsx": {
-    "mtime": 1792222474.4304893,
-    "seen": 1792320956.2160132,
-    "ast_hash": "f1225ac6f471947ca45cf5ea1f0d9fa9",
+    "mtime": 1792408296.1500802,
+    "seen": 1792408397.759436,
+    "ast_hash": "26b2e80c40584c0d06ac9b30d0d7e719",
     "semantic_hash": ""
   },
   "frontend/src/pages/AppHelp.jsx": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792336621.3279412,
-    "seen": 1792336652.5935714,
+    "mtime": 1792408354.1107988,
+    "seen": 1792408397.7604666,
     "ast_hash": "f0ecf2bac31f369d41e6571838abf7cc",
     "semantic_hash": ""
   },
