@@ -166,6 +166,32 @@ def test_metric_rules_need_real_data():
     assert not au.rule_firings(cash, [], {"has_data": True, "cash_entered": False, "cash_value": 400})
 
 
+def test_metric_firings_skip_non_numeric_fin_fields():
+    """Corrupt runway/cash must not raise — that aborted the whole workspace run."""
+    runway = task_rule(trigger={"type": "metric", "metric": "runway_months_below", "value": 6})
+    cash = task_rule(trigger={"type": "metric", "metric": "cash_below", "value": 1000})
+    assert au.rule_firings(runway, [], {"has_data": True, "cash_entered": True, "runway_months": "n/a"}) == []
+    assert au.rule_firings(runway, [], {"has_data": True, "cash_entered": True, "runway_months": float("nan")}) == []
+    assert au.rule_firings(cash, [], {"has_data": True, "cash_entered": True, "cash_value": "bad"}) == []
+    assert au.rule_firings(cash, [], {"has_data": True, "cash_entered": True, "cash_value": float("inf")}) == []
+
+
+def test_bad_metric_rule_does_not_abort_sibling_rules(monkeypatch):
+    db, pushed = new_db(), []
+    bad = task_rule(id="rule_bad", trigger={"type": "metric", "metric": "runway_months_below", "value": 6})
+    good = task_rule(id="rule_good")
+    db.automation_rules.docs.extend([dict(bad), dict(good)])
+
+    def boom(rule, signals, fin):
+        if rule.get("id") == "rule_bad":
+            raise RuntimeError("corrupt fin")
+        return au.signal_firings(rule, signals)
+
+    monkeypatch.setattr(au, "rule_firings", boom)
+    out = _runner(db, [bad, good], [sig()], pushed=pushed)
+    assert out["errors"] == 1 and out["tasks"] == 1 and len(pushed) == 1
+
+
 # ------------------------------------------------------------------ running rules
 
 def _runner(db, rules, signals, fin=None, assignee=True, pushed=None, fail_first=False, calls=None):
@@ -311,6 +337,25 @@ def test_revenue_checks_stay_quiet_without_a_baseline():
     assert au.detect_revenue_change(months(1000, 1000, 1000, 900), "2026-11") == []  # normal wobble
     # The in-progress month is never judged.
     assert au.detect_revenue_change(months(1000, 1000, 1000, 100), "2026-10") == []
+
+
+def test_revenue_change_skips_non_numeric_ledger_months():
+    """Non-float revenue used to ValueError and abort detect_anomalies entirely."""
+    bad = months(1000, 1000, "oops", 0)
+    assert au.detect_revenue_change(bad, "2026-11") == []
+    # Need a non-empty ledger so detect_anomalies does not short-circuit.
+    stub = [entry(1, amount=1, name="stub")]
+    assert au.detect_anomalies(stub, {"currency_symbol": "$", "ledger_months": bad}, "2026-11") == []
+
+
+def test_build_task_tolerates_corrupt_due_in_days():
+    task = au.build_task(
+        {"id": "r1", "action": {"title": "Chase: {summary}", "priority": "High", "due_in_days": "nope"}},
+        {"summary": "WO late", "detail": ""},
+        {"user_id": "u_ann", "name": "Ann"},
+        TODAY,
+    )
+    assert task["due"] == TODAY.isoformat()
 
 
 def test_store_anomalies_inserts_once_resolves_gone_and_respects_dismissal():

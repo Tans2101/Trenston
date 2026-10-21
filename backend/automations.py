@@ -228,6 +228,17 @@ def _money(value: float, symbol: str = "") -> str:
     return f"{symbol}{value:,.0f}"
 
 
+def _safe_float(value: Any) -> Optional[float]:
+    """Coerce to a finite float, or None when missing/unusable (never raise)."""
+    try:
+        n = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(n):
+        return None
+    return n
+
+
 def signal_firings(rule: dict, signals: list[dict]) -> list[dict]:
     trig = rule.get("trigger") or {}
     if trig.get("type") != "signal":
@@ -255,28 +266,34 @@ def metric_firings(rule: dict, fin: dict) -> list[dict]:
     trig = rule.get("trigger") or {}
     if trig.get("type") != "metric" or not fin or not fin.get("has_data"):
         return []
-    limit = float(trig.get("value") or 0)
+    limit = _safe_float(trig.get("value"))
+    if limit is None:
+        return []
     if trig.get("metric") == "runway_months_below":
-        runway = fin.get("runway_months")
-        if fin.get("cash_entered") is False or runway is None:
+        if fin.get("cash_entered") is False:
             return []
-        if float(runway) < limit:
+        runway = _safe_float(fin.get("runway_months"))
+        if runway is None:
+            return []
+        if runway < limit:
             return [{
                 "dedupe_key": "metric:runway_months_below",
                 "summary": f"Cash runway is {runway} months (limit {limit:g})",
                 "detail": f"Runway fell below your limit of {limit:g} months.",
-                "severity": "high" if float(runway) < 3 else "medium",
+                "severity": "high" if runway < 3 else "medium",
                 "related_id": None,
             }]
     if trig.get("metric") == "cash_below":
-        cash = fin.get("cash_value")
-        if not fin.get("cash_entered") or cash is None:
+        if not fin.get("cash_entered"):
             return []
-        if float(cash) < limit:
+        cash = _safe_float(fin.get("cash_value"))
+        if cash is None:
+            return []
+        if cash < limit:
             symbol = fin.get("currency_symbol") or ""
             return [{
                 "dedupe_key": "metric:cash_below",
-                "summary": f"Cash is {_money(float(cash), symbol)} (limit {_money(limit, symbol)})",
+                "summary": f"Cash is {_money(cash, symbol)} (limit {_money(limit, symbol)})",
                 "detail": "Cash on hand fell below your limit.",
                 "severity": "high",
                 "related_id": None,
@@ -304,7 +321,13 @@ def render_title(template: str, firing: dict) -> str:
 
 def build_task(rule: dict, firing: dict, assignee: dict, today: date) -> dict:
     action = rule.get("action") or {}
-    due = today + timedelta(days=int(action.get("due_in_days") or 0))
+    try:
+        due_in_days = int(action.get("due_in_days") if action.get("due_in_days") is not None else 0)
+    except (TypeError, ValueError):
+        due_in_days = 0
+    if due_in_days < 0 or due_in_days > 90:
+        due_in_days = 0
+    due = today + timedelta(days=due_in_days)
     return {
         "id": f"t_{uuid.uuid4().hex[:8]}",
         "title": render_title(action.get("title") or "", firing),
@@ -372,7 +395,14 @@ async def run_rules(
             continue
         stats["rules"] += 1
         fired_here = 0
-        for firing in rule_firings(rule, signals, fin):
+        try:
+            firings = rule_firings(rule, signals, fin)
+        except Exception:
+            # One corrupt rule/fin field must not abort the rest of the workspace run.
+            stats["errors"] += 1
+            logger.exception("automation rule %s matching failed in workspace %s", rule.get("id"), workspace_id)
+            continue
+        for firing in firings:
             if fired_here >= MAX_FIRINGS_PER_RULE_RUN:
                 break  # the rest are picked up on the next run
             event = await _claim(db, workspace_id, rule, firing, now)
@@ -675,13 +705,21 @@ def detect_revenue_change(
         return []
     last = rows[-1]
     prior = rows[-7:-1]  # up to 6 completed months before last
-    prior_rev = [float(m.get("revenue") or 0) for m in prior]
+    # Bad/non-numeric revenue must not abort the whole anomaly scan.
+    prior_rev: list[float] = []
+    for m in prior:
+        rev = _safe_float(m.get("revenue") if m.get("revenue") is not None else 0)
+        if rev is None:
+            return []
+        prior_rev.append(rev)
     if sum(1 for r in prior_rev if r > 0) < 2:
         return []
     avg = statistics.fmean(prior_rev)
     if avg <= 0:
         return []
-    last_rev = float(last.get("revenue") or 0)
+    last_rev = _safe_float(last.get("revenue") if last.get("revenue") is not None else 0)
+    if last_rev is None:
+        return []
     month = last["month"]
     prior_n = len(prior_rev)
     if last_rev <= 0:
