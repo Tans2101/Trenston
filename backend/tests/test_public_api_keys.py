@@ -119,6 +119,30 @@ def test_key_limit_enforced():
         run(api_keys.create_key(db, user_id="u1", workspace_id="ws1"))
 
 
+def test_create_key_revokes_when_post_insert_over_cap():
+    """Concurrent creates can both pass the pre-check; the loser must not stay active."""
+    db = _db()
+    for _ in range(api_keys.MAX_ACTIVE_KEYS_PER_USER - 1):
+        run(api_keys.create_key(db, user_id="u1", workspace_id="ws1"))
+    # Race: pre-check still sees room (MAX-1), but another insert lands before our post-check.
+    real_count = db.api_keys.count_documents
+    calls = {"n": 0}
+
+    async def racey_count(flt, limit=0):
+        calls["n"] += 1
+        n = await real_count(flt, limit=limit)
+        if calls["n"] == 1:
+            return n  # pre-check: under cap
+        return api_keys.MAX_ACTIVE_KEYS_PER_USER + 1  # post-check: over
+
+    db.api_keys.count_documents = racey_count
+    with pytest.raises(api_keys.ApiKeyLimitError):
+        run(api_keys.create_key(db, user_id="u1", workspace_id="ws1"))
+    active = [d for d in db.api_keys.docs if d.get("revoked_at") is None and d.get("kind") != "oauth"]
+    assert len(active) == api_keys.MAX_ACTIVE_KEYS_PER_USER - 1
+    assert calls["n"] >= 2
+
+
 def test_revoked_key_no_longer_resolves_and_only_owner_can_revoke():
     db = _db()
     raw, view = run(api_keys.create_key(db, user_id="u1", workspace_id="ws1"))

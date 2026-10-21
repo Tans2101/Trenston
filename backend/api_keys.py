@@ -128,6 +128,16 @@ async def create_key(
         "kind": KIND_PERSONAL,
     }
     await db[COLLECTION].insert_one(dict(doc))
+    # Concurrent creates can both pass the pre-check — revoke the excess if we went over.
+    after = await db[COLLECTION].count_documents(_active_filter(user_id, workspace_id))
+    if after > MAX_ACTIVE_KEYS_PER_USER:
+        await db[COLLECTION].update_one(
+            {"id": doc["id"], "user_id": user_id, "workspace_id": workspace_id, "revoked_at": None},
+            {"$set": {"revoked_at": now.isoformat()}},
+        )
+        raise ApiKeyLimitError(
+            f"You can have up to {MAX_ACTIVE_KEYS_PER_USER} active API keys. Revoke one to create another."
+        )
     return raw, public_view(doc)
 
 
