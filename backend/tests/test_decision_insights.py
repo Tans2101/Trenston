@@ -704,6 +704,21 @@ def test_validate_delegate_draft_uses_signal_owner_not_invented():
     assert out["suggested_owner_name"] == "Maya Chen"
 
 
+def test_validate_delegate_draft_ignores_model_owner_when_signal_has_none():
+    """Model-suggested user ids must not stick when the signal has no assignee."""
+    out = helm_llm._validate_delegate_draft(
+        {
+            "title": "Chase",
+            "detail": "Do the thing",
+            "suggested_owner_user_id": "hallucinated-uid",
+            "suggested_owner_name": "Fake Person",
+        },
+        {"summary": "Overdue", "detail": "Task late"},
+    )
+    assert out["suggested_owner_user_id"] is None
+    assert out["suggested_owner_name"] == "Unassigned"
+
+
 # ---- Rate limit + approve/dismiss (HTTP when available) ----
 
 BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "").rstrip("/")

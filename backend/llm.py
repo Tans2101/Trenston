@@ -404,12 +404,12 @@ def _validate_delegate_draft(data: dict, signal: dict) -> dict:
     if not title:
         title = _coerce_label(signal.get("summary")) or "Follow up on blocker"
     detail = str(data.get("detail") or signal.get("detail") or "").strip()[:800]
-    # Owner must come from the signal — never invent
-    owner_id = signal.get("assignee_user_id") or data.get("suggested_owner_user_id") or None
-    owner_name = signal.get("assignee_name") or data.get("suggested_owner_name") or "Unassigned"
-    owner_name = str(owner_name).strip()[:100] or "Unassigned"
+    # Owner must come from the signal only — never from model output (hallucinated user ids).
+    owner_id = signal.get("assignee_user_id")
     if owner_id is not None:
         owner_id = str(owner_id).strip() or None
+    owner_name = signal.get("assignee_name")
+    owner_name = (str(owner_name).strip()[:100] if owner_name else "") or "Unassigned"
     return {
         "title": title[:200],
         "detail": detail or title,
