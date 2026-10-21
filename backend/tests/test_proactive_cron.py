@@ -23,6 +23,16 @@ class _Cursor:
         return list(self._rows)
 
 
+def _suppressions_find(suppressed_emails=None):
+    blocked = {e.lower() for e in (suppressed_emails or [])}
+
+    def find(query, _proj=None):
+        emails = list((query.get("email") or {}).get("$in") or [])
+        return _Cursor([{"email": e} for e in emails if e in blocked])
+
+    return find
+
+
 def test_daily_alerts_endpoint_requires_cron_secret():
     with patch.object(server, "INTERNAL_CRON_SECRET", "cron-secret-test"):
         client = TestClient(server.app)
@@ -328,7 +338,7 @@ def test_run_daily_briefing_emails_and_debounces():
         return_value={"workspace_id": "ws_send", "daily_briefing_emailed_date": day},
     )
     fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    fake_db.email_suppressions.find = MagicMock(side_effect=_suppressions_find())
 
     sent = []
 
@@ -413,8 +423,8 @@ def test_run_daily_briefing_respects_suppression():
     fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
     fake_db.workspaces.find_one_and_update = AsyncMock()
     fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(
-        return_value={"email": "ceo@x.test", "category": "commercial"},
+    fake_db.email_suppressions.find = MagicMock(
+        side_effect=_suppressions_find(["ceo@x.test"]),
     )
 
     with (
@@ -446,7 +456,7 @@ def test_run_daily_briefing_atomic_claim_skips_race_loser():
     fake_db.workspaces.find = MagicMock(return_value=_Cursor(rows))
     fake_db.workspaces.find_one_and_update = AsyncMock(return_value=None)
     fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    fake_db.email_suppressions.find = MagicMock(side_effect=_suppressions_find())
 
     with (
         patch.object(server, "db", fake_db),
@@ -476,7 +486,7 @@ def test_run_daily_briefing_reverts_claim_on_send_failure():
         return_value={"workspace_id": "ws_fail", "daily_briefing_emailed_date": day},
     )
     fake_db.workspaces.update_one = AsyncMock()
-    fake_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    fake_db.email_suppressions.find = MagicMock(side_effect=_suppressions_find())
 
     with (
         patch.object(server, "db", fake_db),

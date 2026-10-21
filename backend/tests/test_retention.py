@@ -22,6 +22,20 @@ import server  # noqa: E402
 NOW = datetime(2026, 9, 8, 13, 0, tzinfo=timezone.utc)
 
 
+def _suppressions_find(suppressed_emails=None):
+    """Mock email_suppressions.find for filter_unsuppressed (batched $in)."""
+    blocked = {e.lower() for e in (suppressed_emails or [])}
+
+    def find(query, _proj=None):
+        emails = list((query.get("email") or {}).get("$in") or [])
+        rows = [{"email": e} for e in emails if e in blocked]
+        cur = MagicMock()
+        cur.to_list = AsyncMock(return_value=rows)
+        return cur
+
+    return find
+
+
 def _ws(**kwargs):
     base = {
         "workspace_id": "ws_ret",
@@ -147,7 +161,7 @@ async def test_run_sends_each_email_once_then_skips():
     mock_db.activities.find = MagicMock(return_value=MagicMock(
         sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
     ))
-    mock_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    mock_db.email_suppressions.find = MagicMock(side_effect=_suppressions_find())
 
     stats = await retention.run_retention_checks(
         mock_db,
@@ -245,7 +259,7 @@ async def test_lost_claim_skips_send_without_email():
     mock_db.activities.find = MagicMock(return_value=MagicMock(
         sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
     ))
-    mock_db.email_suppressions.find_one = AsyncMock(return_value=None)
+    mock_db.email_suppressions.find = MagicMock(side_effect=_suppressions_find())
 
     stats = await retention.run_retention_checks(
         mock_db,
@@ -284,8 +298,8 @@ async def test_suppressed_recipient_skips_send():
     mock_db.activities.find = MagicMock(return_value=MagicMock(
         sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
     ))
-    mock_db.email_suppressions.find_one = AsyncMock(
-        return_value={"email": "ceo@northwind.test", "category": "commercial"},
+    mock_db.email_suppressions.find = MagicMock(
+        side_effect=_suppressions_find(["ceo@northwind.test"]),
     )
 
     stats = await retention.run_retention_checks(
