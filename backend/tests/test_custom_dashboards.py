@@ -281,6 +281,26 @@ def test_open_decisions_exclude_resolved():
     assert [i["title"] for i in w["data"]["items"]] == ["A", "D"]
 
 
+def test_gross_margin_zero_is_entered_not_missing():
+    """Numeric 0 used to be treated as falsy → not_entered."""
+    sources = {
+        "financials_access": True,
+        "financials": {"gross_margin": 0, "currency": "USD"},
+        "errors": set(),
+    }
+    w = cd.resolve_widget(
+        {"type": "financial_kpi", "params": {"metric": "gross_margin"}, "title": "GM"},
+        sources,
+    )
+    assert w["data"]["state"] == "ok"
+    assert w["data"]["display"] == 0
+    empty = cd.resolve_widget(
+        {"type": "financial_kpi", "params": {"metric": "gross_margin"}, "title": "GM"},
+        {"financials_access": True, "financials": {"gross_margin": None, "currency": "USD"}, "errors": set()},
+    )
+    assert empty["data"]["state"] == "not_entered"
+
+
 def test_unverified_email_cannot_take_over_existing_account(env):
     db, _, _ = env
     _run(db.users.insert_one({"user_id": "u_victim", "email": "victim@co.com", "clerk_id": "clerk_victim"}))

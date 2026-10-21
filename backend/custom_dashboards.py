@@ -390,7 +390,11 @@ def resolve_widget(widget: dict, sources: dict) -> dict:
                 }
             elif metric == "gross_margin":
                 gm = fin.get("gross_margin")
-                w["data"] = {"state": "ok" if gm else "not_entered", "display": gm}
+                # 0 / "0%" are valid entered values — only None/"" mean not entered.
+                if gm is None or gm == "":
+                    w["data"] = {"state": "not_entered", "display": None}
+                else:
+                    w["data"] = {"state": "ok", "display": gm}
             else:
                 fig = fin.get(metric) or {}
                 w["data"] = {"state": fig.get("state") or "not_entered", "display": fig.get("display")}
