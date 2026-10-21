@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Blocks, CheckCircle2, LayoutDashboard, MailCheck, MessagesSquare, Wrench } from "lucide-react";
+import { Blocks, CheckCircle2, Gauge, LayoutDashboard, ListChecks, MailCheck, MessagesSquare, ShieldCheck, Type, Wrench } from "lucide-react";
 import {
   DISPLAY,
   Eyebrow,
@@ -20,6 +20,25 @@ import { useMarketingAuth } from "@/hooks/useMarketingAuth";
  * Copy constants below are also read by scripts/staticPageText.mjs (evalConst)
  * so crawlers get the same text. Keep each one a plain array literal ending in "];".
  */
+
+const OUTCOMES = [
+  {
+    title: "One picture, not five reports",
+    body: "Cash, tasks, open decisions and your own numbers sit on one page, so leadership stops collecting them from different people and files.",
+  },
+  {
+    title: "Decisions that stay visible",
+    body: "Open decisions and who owns them stay in view between meetings, so they are not lost in chat threads.",
+  },
+  {
+    title: "Your numbers, your words",
+    body: "The views use your departments and your KPIs, not a generic template.",
+  },
+  {
+    title: "Only the right people see it",
+    body: "Access is limited to approved work emails at your company, with the same roles and permissions as the rest of Trenston.",
+  },
+];
 
 const HOW_IT_WORKS = [
   {
@@ -74,6 +93,10 @@ const INCLUDED = [
 
 const FAQ = [
   {
+    q: "What do we get out of it?",
+    a: "One view of the numbers and open work your leadership team checks, built around your company, so you spend less time asking people for updates. We do not promise specific savings or results. In scoping we agree what the dashboard shows and how each figure is kept up to date.",
+  },
+  {
     q: "Do we lose normal Trenston?",
     a: "No. Your company gets all of Trenston, and the custom dashboard is an extra section in the sidebar. Everyone signs in the same way.",
   },
@@ -117,6 +140,7 @@ const BUDGETS = [
 ];
 
 const STEP_ICONS = [MessagesSquare, Wrench, Blocks, MailCheck];
+const OUTCOME_ICONS = [Gauge, ListChecks, Type, ShieldCheck];
 
 const field = "w-full border border-mk-line bg-white px-4 py-3 text-[0.9375rem] text-mk-black placeholder:text-mk-gray focus:border-mk-black focus:outline-none";
 const fieldLabel = "mb-2 block text-sm font-medium text-mk-black";
@@ -223,8 +247,8 @@ export default function CustomDashboards() {
     <MkPage authed={authed} onEnter={enter} active="/custom">
       <PageHero
         eyebrow="Custom dashboards"
-        lines={["Trenston, built around", <>how <Mark dark>your</Mark> company runs.</>]}
-        sub="For larger companies that need their own views, departments and data sources. We build your dashboard inside Trenston, and your team signs in with approved work emails."
+        lines={["Know where your company", <>stands, <Mark dark>without asking.</Mark></>]}
+        sub="A dashboard built around your numbers, departments and systems, inside Trenston. Your leadership team sees one picture instead of chasing updates, and only approved people at your company can open it."
         size="md"
       >
         <div className="flex flex-wrap gap-3">
@@ -234,6 +258,15 @@ export default function CustomDashboards() {
       </PageHero>
 
       <section className="mx-auto max-w-7xl px-6 py-20 md:py-24">
+        <SectionHeader eyebrow="What changes" title="Less chasing. More of your company in one place." />
+        <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
+          {OUTCOMES.map((s, i) => (
+            <RuledItem key={s.title} icon={OUTCOME_ICONS[i]} index={i + 1} title={s.title} body={s.body} i={i} />
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t border-mk-line mx-auto max-w-7xl px-6 py-20 md:py-24">
         <SectionHeader eyebrow="How it works" title="From first message to your team signing in." />
         <div className="mt-14 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {HOW_IT_WORKS.map((s, i) => (

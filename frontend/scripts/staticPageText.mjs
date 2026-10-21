@@ -133,6 +133,7 @@ function customSections() {
   const pairs = (rows, a, b) => rows.map((r) => `${r[a]}: ${r[b]}`);
   const tiers = evalConst(src, "TIERS").map((t) => `${t.name} (${t.standard}): ${t.body} ${t.setup}, ${t.monthly.toLowerCase()}.`);
   return [
+    { heading: "What changes", parts: pairs(evalConst(src, "OUTCOMES"), "title", "body") },
     { heading: "How it works", parts: pairs(evalConst(src, "HOW_IT_WORKS"), "title", "body") },
     { heading: "Pricing", parts: tiers },
     { heading: "Every level includes", parts: evalConst(src, "INCLUDED") },
