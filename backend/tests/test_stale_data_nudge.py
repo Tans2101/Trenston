@@ -33,9 +33,15 @@ async def _setup():
     ])
     await db.users.insert_one({"user_id": "u_priya", "name": "Priya"})
     await db.department_members.insert_one({"department_id": "d_sales", "user_id": "u_priya", "role": "lead"})
-    await db.sales_order_book.insert_one({"department_id": "d_sales", "created_at": _iso(20)})
-    await db.production_work_orders.insert_one({"department_id": "d_prod", "updated_at": _iso(2)})
-    await db.legal_matters.insert_one({"department_id": "d_leg", "created_at": _iso(90)})
+    await db.sales_order_book.insert_one(
+        {"workspace_id": WS, "department_id": "d_sales", "created_at": _iso(20)},
+    )
+    await db.production_work_orders.insert_one(
+        {"workspace_id": WS, "department_id": "d_prod", "updated_at": _iso(2)},
+    )
+    await db.legal_matters.insert_one(
+        {"workspace_id": WS, "department_id": "d_leg", "created_at": _iso(90)},
+    )
     return db
 
 
@@ -53,7 +59,9 @@ def test_only_quiet_used_departments_are_flagged_with_their_lead():
 def test_a_recent_deal_keeps_sales_fresh():
     async def go():
         db = await _setup()
-        await db.deals.insert_one({"department_id": "d_sales", "updated_at": _iso(1)})
+        await db.deals.insert_one(
+            {"workspace_id": WS, "department_id": "d_sales", "updated_at": _iso(1)},
+        )
         assert await df.stale_department_alerts(db, WS, now=NOW) == []
 
     run(go())
