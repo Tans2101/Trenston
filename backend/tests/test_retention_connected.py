@@ -403,12 +403,15 @@ def test_sample_apply_keeps_company_setup_profile():
     assert update["template"] == "sample"
 
 
-def test_sample_apply_before_company_setup_uses_sample_profile():
+def test_sample_apply_before_company_setup_is_rejected():
+    # Non-demo sample would stamp Northwind and mark setup done, skipping
+    # CompanySetup, so the API refuses it until setup is finished.
     ws = build_workspace("ws1", "Fresh Co", "u1", empty=True)
     assert not ws.get("company_setup_done")
-    update = _apply_sample(ws)
-    assert update["industry"] == "SaaS / Software"
-    assert update["mission"] == "Workflow software for mid-market operations teams."
+    with pytest.raises(HTTPException) as exc:
+        _apply_sample(ws)
+    assert exc.value.status_code == 400
+    assert "company setup" in exc.value.detail.lower()
 
 
 # ---------------- Calendar deadline hrefs (item 13) ----------------

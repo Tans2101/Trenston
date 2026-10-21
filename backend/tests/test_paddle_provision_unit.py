@@ -110,6 +110,8 @@ async def test_missing_intent_still_provisions_from_custom_data():
     )), patch.object(server.db, "workspaces", MagicMock(
         find_one=ws_find,
         update_one=ws_update,
+    )), patch.object(server.db, "memberships", MagicMock(
+        find_one=AsyncMock(return_value={"user_id": "u_paid", "workspace_id": "ws_paid", "role": "owner", "status": "active"}),
     )), patch.object(server, "invalidate_plan_cache") as inv, \
          patch.object(server.helm_analytics, "emit_billing_funnel", new=AsyncMock()), \
          patch.object(server, "_maybe_mark_referral_converted", new=AsyncMock()), \

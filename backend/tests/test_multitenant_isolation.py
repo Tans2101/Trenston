@@ -165,6 +165,7 @@ def isolation_api():
     mock_db.memberships.update_one = AsyncMock()
     mock_db.memberships.delete_one = AsyncMock()
     mock_db.users.find_one = AsyncMock(return_value=None)
+    mock_db.users.update_one = AsyncMock()
     attach_users_in_find(mock_db.users)
     mock_db.chat_messages.find = MagicMock(side_effect=chat_find)
     mock_db.chat_messages.insert_one = AsyncMock(

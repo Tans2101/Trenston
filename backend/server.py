@@ -89,6 +89,24 @@ load_dotenv(ROOT_DIR / '.env')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("helm")
 
+# Strong references to fire-and-forget tasks. The event loop only keeps a weak
+# reference, so an un-referenced task can be garbage-collected before it finishes.
+_BACKGROUND_TASKS: set = set()
+
+
+def _spawn(coro):
+    """asyncio.create_task that keeps the task alive and logs failures."""
+    task = asyncio.create_task(coro)
+    _BACKGROUND_TASKS.add(task)
+
+    def _done(t):
+        _BACKGROUND_TASKS.discard(t)
+        if not t.cancelled() and t.exception() is not None:
+            logger.warning("background task failed", exc_info=t.exception())
+
+    task.add_done_callback(_done)
+    return task
+
 
 def _mongo_candidate_urls() -> list[str]:
     """Ordered Mongo URLs to try — Render pserv first unless USE_ATLAS_MONGO=true."""
@@ -6560,7 +6578,7 @@ async def list_deals(
     )
     cached = simple_cache.peek(cache_key)
     if cached is not None:
-        asyncio.create_task(_product_event(
+        _spawn(_product_event(
             ws, principal["user_id"], helm_analytics.EVENT_DEPARTMENT_PAGE_VIEWED,
             {"department": dept_catalog.TYPE_SALES},
         ))
@@ -6589,7 +6607,7 @@ async def list_deals(
         )
     is_lead = _can_lead_sales(principal, membership)
     sales_owners = await _sales_member_rows(ws)
-    asyncio.create_task(_product_event(
+    _spawn(_product_event(
         ws, principal["user_id"], helm_analytics.EVENT_DEPARTMENT_PAGE_VIEWED,
         {"department": dept_catalog.TYPE_SALES},
     ))
@@ -7258,7 +7276,7 @@ async def financials(principal=Depends(require_financials_view)):
 
     payload = await simple_cache.get_or_set(cache_key, _DEPT_LIST_CACHE_TTL_SECONDS, loader)
     # Analytics + Google capabilities are per-request / per-user — keep out of cache.
-    asyncio.create_task(_product_event(
+    _spawn(_product_event(
         ws_id, principal["user_id"],
         helm_analytics.EVENT_DEPARTMENT_PAGE_VIEWED,
         {"department": dept_catalog.TYPE_ACCOUNTING_FINANCE},
@@ -8910,7 +8928,9 @@ async def quick_import_confirm(payload: QuickImportConfirmIn, principal=Depends(
         raise HTTPException(status_code=500, detail="Import failed. Nothing was added, please try again")
 
     if enabled_now:
-        await db.quick_imports.update_one({"id": batch_id}, {"$set": {"enabled_departments": enabled_now}})
+        await db.quick_imports.update_one(
+            {"id": batch_id, "workspace_id": ws_id}, {"$set": {"enabled_departments": enabled_now}},
+        )
         batch["enabled_departments"] = enabled_now
     invalidate_workspace_list_cache(ws_id)
     parts = []
@@ -14914,6 +14934,21 @@ async def hr_summary(principal=Depends(get_principal)):
     return payload_out
 
 
+async def _active_workspace_user_id(workspace_id: str, raw: Optional[str], label: str) -> Optional[str]:
+    """Return a cleaned user id, or None when blank. A set id must belong to an active
+    member of this workspace, so an HR record can never point at (or reveal the name of)
+    a user from another company."""
+    uid = (raw or "").strip()
+    if not uid:
+        return None
+    member = await db.memberships.find_one(
+        {"workspace_id": workspace_id, "user_id": uid, "status": "active"}, {"_id": 0, "membership_id": 1},
+    )
+    if not member:
+        raise HTTPException(status_code=400, detail=f"{label} must be an active member of this workspace")
+    return uid
+
+
 @api_router.post("/hr/employees")
 async def create_hr_employee(payload: HrEmployeeCreate, principal=Depends(get_principal)):
     """Manual employee record (e.g. existing staff). Prefer completing onboarding for new hires."""
@@ -14939,8 +14974,10 @@ async def create_hr_employee(payload: HrEmployeeCreate, principal=Depends(get_pr
         "role": (payload.role or "").strip()[:120],
         "start_date": start,
         "status": st,
-        "manager_user_id": (payload.manager_user_id or "").strip() or None,
-        "linked_user_id": (payload.linked_user_id or "").strip() or None,
+        "manager_user_id": await _active_workspace_user_id(
+            principal["workspace_id"], payload.manager_user_id, "Manager"),
+        "linked_user_id": await _active_workspace_user_id(
+            principal["workspace_id"], payload.linked_user_id, "Linked user"),
         "department_names": (payload.department_names or "").strip()[:200],
         "source_onboarding_instance_id": None,
         "created_at": now,
@@ -14984,10 +15021,21 @@ async def patch_hr_employee(
         upd["start_date"] = (payload.start_date or "").strip()[:10]
     if payload.department_names is not None:
         upd["department_names"] = payload.department_names.strip()[:200]
+    # Re-saving an unchanged value must not fail (the person may have left since).
     if payload.manager_user_id is not None:
-        upd["manager_user_id"] = (payload.manager_user_id or "").strip() or None
+        new_mgr = (payload.manager_user_id or "").strip()
+        if new_mgr == (emp.get("manager_user_id") or ""):
+            upd["manager_user_id"] = new_mgr or None
+        else:
+            upd["manager_user_id"] = await _active_workspace_user_id(
+                principal["workspace_id"], new_mgr, "Manager")
     if payload.linked_user_id is not None:
-        upd["linked_user_id"] = (payload.linked_user_id or "").strip() or None
+        new_link = (payload.linked_user_id or "").strip()
+        if new_link == (emp.get("linked_user_id") or ""):
+            upd["linked_user_id"] = new_link or None
+        else:
+            upd["linked_user_id"] = await _active_workspace_user_id(
+                principal["workspace_id"], new_link, "Linked user")
     if payload.status is not None:
         st = payload.status.strip().lower()
         if st not in HR_EMPLOYEE_STATUSES:
@@ -16538,7 +16586,7 @@ async def integration_disconnect(
         await _store_user_google_tokens(principal["workspace_id"], principal["user_id"], None)
         if old:
             # Remove Trenston from the user's Google "third-party access" list too.
-            asyncio.create_task(integration_revoke.revoke_google(old))
+            _spawn(integration_revoke.revoke_google(old))
         return {"ok": True}
     if "integrations:manage" not in perms_for(principal["pack"]):
         raise HTTPException(status_code=403, detail="Only workspace owners can disconnect this integration")
@@ -16582,13 +16630,13 @@ async def integration_disconnect(
         # Best effort, never blocks the disconnect: revoke the grant at the provider
         # (Intuit requires this) and end any open SAP session.
         if provider == "quickbooks":
-            asyncio.create_task(integration_revoke.revoke_quickbooks(old, QB_CLIENT_ID, QB_CLIENT_SECRET))
+            _spawn(integration_revoke.revoke_quickbooks(old, QB_CLIENT_ID, QB_CLIENT_SECRET))
         elif provider == "xero":
-            asyncio.create_task(integration_revoke.revoke_xero(old, XERO_CLIENT_ID, XERO_CLIENT_SECRET))
+            _spawn(integration_revoke.revoke_xero(old, XERO_CLIENT_ID, XERO_CLIENT_SECRET))
         elif provider == "hubspot":
-            asyncio.create_task(integration_revoke.revoke_hubspot(old))
+            _spawn(integration_revoke.revoke_hubspot(old))
         elif provider == "sap_b1":
-            asyncio.create_task(sap_b1_sync.logout(old))
+            _spawn(sap_b1_sync.logout(old))
     await log_activity(
         principal, "integrations", f"{provider}.disconnect",
         f"Disconnected {provider}" + (f" · removed {purged} synced ledger row(s)" if purged else ""),
@@ -17869,6 +17917,19 @@ async def _paddle_apply_checkout_entitlements(
     await _maybe_mark_referral_converted(workspace_id, status)
 
 
+def _paddle_event_is_stale(occurred_at, last_event_at) -> bool:
+    """True when this webhook is older than the newest one already applied.
+
+    Paddle does not guarantee delivery order and retries late, so an old
+    ``subscription.updated(active)`` can arrive after a newer ``past_due`` and
+    would otherwise hand a customer in arrears their access back. Equal
+    timestamps are applied (same-moment events are idempotent).
+    """
+    new = plan_usage.parse_dt(occurred_at)
+    old = plan_usage.parse_dt(last_event_at)
+    return bool(new and old and new < old)
+
+
 async def _paddle_provision(event, status: str = "active"):
     data = event.get("data") or {}
     custom = data.get("custom_data") or {}
@@ -17886,8 +17947,12 @@ async def _paddle_provision(event, status: str = "active"):
             return
         prev = await db.workspaces.find_one(
             {"paddle_subscription_id": sub_id},
-            {"_id": 0, "workspace_id": 1, "subscription_status": 1, "plan": 1},
+            {"_id": 0, "workspace_id": 1, "subscription_status": 1, "plan": 1,
+             "paddle_last_event_at": 1},
         )
+        if prev and _paddle_event_is_stale(now_iso, prev.get("paddle_last_event_at")):
+            logger.info("Ignoring stale Paddle event for subscription %s", sub_id)
+            return
         recovery = {
             "subscription_status": status,
             "billing_status": status,
@@ -17954,6 +18019,19 @@ async def _paddle_provision(event, status: str = "active"):
             return
         # Intent expired/TTL'd away after payment — still provision from signature-valid
         # custom_data so the workspace is not left on Free. Prefer event price, else Starter.
+        # custom_data is set by the browser, so only trust it when the payer is an active
+        # member of that workspace who is allowed to manage billing. Otherwise anyone could
+        # pay for a plan and attach (and later cancel) a subscription on another company.
+        payer = await db.memberships.find_one(
+            {"workspace_id": workspace_id, "user_id": user_id, "status": "active"},
+            {"_id": 0},
+        )
+        if not payer or "billing:manage" not in perms_for(pack_of(payer)):
+            logger.warning(
+                "paddle checkout without intent rejected: user %s cannot manage billing for workspace %s",
+                user_id, workspace_id,
+            )
+            return
         logger.warning(
             "paddle intent missing for paid checkout nonce=%s workspace=%s — provisioning from custom_data",
             nonce, workspace_id,
@@ -17999,8 +18077,12 @@ async def _paddle_downgrade(event, status: str):
         return
     now = event.get("occurred_at") or datetime.now(timezone.utc).isoformat()
     prev = await db.workspaces.find_one(
-        filt, {"_id": 0, "workspace_id": 1, "subscription_status": 1, "plan": 1},
+        filt, {"_id": 0, "workspace_id": 1, "subscription_status": 1, "plan": 1,
+               "paddle_last_event_at": 1},
     )
+    if prev and _paddle_event_is_stale(now, prev.get("paddle_last_event_at")):
+        logger.info("Ignoring stale Paddle %s event for subscription %s", status, sub_id)
+        return
     if status in ("canceled", "cancelled"):
         await db.workspaces.update_one(filt, {
             "$set": {
@@ -20579,15 +20661,15 @@ async def startup():
     qb_sync.warn_if_qb_env_missing_in_prod()
     await _connect_mongo_at_startup()
     # Do not block Render health checks — indexes / migrations run after listen.
-    asyncio.create_task(_ensure_indexes())
-    asyncio.create_task(_run_sales_finance_migration())
-    asyncio.create_task(_backfill_financial_entry_names())
-    asyncio.create_task(_seal_plaintext_integration_tokens())
-    asyncio.create_task(clerk_auth.sync_clerk_instance())
+    _spawn(_ensure_indexes())
+    _spawn(_run_sales_finance_migration())
+    _spawn(_backfill_financial_entry_names())
+    _spawn(_seal_plaintext_integration_tokens())
+    _spawn(clerk_auth.sync_clerk_instance())
     if clerk_auth.clerk_configured():
-        asyncio.create_task(clerk_auth.prefetch_jwks())
-        asyncio.create_task(_keep_clerk_probes_warm())
-    asyncio.create_task(_automations_loop())
+        _spawn(clerk_auth.prefetch_jwks())
+        _spawn(_keep_clerk_probes_warm())
+    _spawn(_automations_loop())
 
 
 async def _keep_clerk_probes_warm() -> None:

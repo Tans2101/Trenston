@@ -303,7 +303,7 @@ def test_http_bad_redirect_never_redirects(http):
     assert r.status_code == 400 and "redirect" not in r.json()
 
 
-@pytest.mark.parametrize("http", ["starter"], indirect=True)
+@pytest.mark.parametrize("http", ["free"], indirect=True)
 def test_http_plan_gate_on_approve(http):
     cid = http.client.post("/api/oauth/register", json={"redirect_uris": [CLAUDE_CB]}).json()["client_id"]
     info = http.client.get("/api/oauth/authorize/info", params=auth_params(cid)).json()

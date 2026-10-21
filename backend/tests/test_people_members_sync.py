@@ -289,6 +289,8 @@ async def test_remove_member_unlinks_and_invalidates_people_cache():
     # ...and clears their department lanes and stored Google tokens.
     mock_db.departments.find = MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[])))
     mock_db.user_google_tokens.delete_many = AsyncMock()
+    # ...and drops the removed user's pointer at this company.
+    mock_db.users.update_one = AsyncMock()
 
     async def persist(_q, update):
         if "people" in (update.get("$set") or {}):
