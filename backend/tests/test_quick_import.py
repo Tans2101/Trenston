@@ -119,6 +119,34 @@ def test_values_and_dates_are_parsed_carefully():
     assert qi.classify_line("Service income") == "revenue"
 
 
+def test_financial_rows_skip_summary_phrases_not_only_exact_total():
+    """fullmatch missed 'Total Sales'; search must skip double-count lines."""
+    csv = (
+        b"Date,Description,Amount,Type\n"
+        b"2026-09-01,Product sale,1000,income\n"
+        b"2026-09-01,Total Sales,1000,income\n"
+        b"2026-09-01,Net profit for month,500,income\n"
+    )
+    (_, _, built), = _analyze(csv, "ledger.csv")
+    names = [r["name"] for r in built["records"]]
+    assert names == ["Product sale"]
+    reasons = " ".join(x["reason"] for x in built["skipped"])
+    assert "total" in reasons.lower()
+
+
+def test_financial_wide_caps_expanded_month_entries(monkeypatch):
+    monkeypatch.setattr(qi, "MAX_ROWS_PER_SHEET", 5)
+    # One label × many months → more entries than the cap.
+    headers = ["Account"] + [f"2026-{m:02d}" for m in range(1, 10)]
+    row = ["Widget sales"] + ["100"] * 9
+    sheet = {"name": "P&L", "grid": [headers, row]}
+    plan = qi.analyze_sheet(sheet, current_year=2026)
+    assert plan["kind"] == qi.KIND_FINANCIAL_WIDE
+    built = qi.build_records(sheet, plan, current_month="2026-12", current_year=2026)
+    assert len(built["records"]) == 5
+    assert any("entries were kept" in n for n in built["notes"])
+
+
 def test_rejects_old_excel_and_empty_files():
     with pytest.raises(ValueError, match="xlsx"):
         qi.read_workbook(b"\xd0\xcf\x11\xe0", "old.xls")

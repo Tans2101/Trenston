@@ -6468,9 +6468,9 @@
     "semantic_hash": ""
   },
   "backend/quick_import.py": {
-    "mtime": 1792575554.0278149,
-    "seen": 1792590723.1385252,
-    "ast_hash": "d5c9aba68bc3b65276a8b37f4447ecf5",
+    "mtime": 1792594020.1454918,
+    "seen": 1792594069.1786063,
+    "ast_hash": "a059743d98f0c0856b6f62815e407824",
     "semantic_hash": ""
   },
   "backend/tests/test_decision_ripple.py": {
@@ -6480,9 +6480,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_quick_import.py": {
-    "mtime": 1792575554.0078137,
-    "seen": 1792590723.1386716,
-    "ast_hash": "26498ab49e3957e92928cb3ee49cbd3e",
+    "mtime": 1792594038.5099792,
+    "seen": 1792594069.1787944,
+    "ast_hash": "44239baa7ad4f6f0872b41d6cc646bdb",
     "semantic_hash": ""
   },
   "frontend/src/assets/marketing/briefingImage.js": {

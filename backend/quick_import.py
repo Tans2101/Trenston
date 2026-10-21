@@ -778,6 +778,10 @@ def build_records(sheet: dict, plan: dict, *, current_month: str, current_year: 
             )
         if plan.get("assumed_year"):
             notes.append(f"Months without a year were read as {plan['assumed_year']}.")
+        # Wide P&L expands one sheet row into many month entries — cap like the row path.
+        if len(records) > MAX_ROWS_PER_SHEET:
+            notes.append(f"Only the first {MAX_ROWS_PER_SHEET} entries were kept.")
+            records = records[:MAX_ROWS_PER_SHEET]
         return {"records": records, "skipped": skipped, "notes": notes}
 
     for i, row in enumerate(rows):
@@ -815,7 +819,8 @@ def build_records(sheet: dict, plan: dict, *, current_month: str, current_year: 
                 continue
             name = _clip(_get(row, cols, "name"))
             category = _clip(_get(row, cols, "category"), 80) or ("Sales" if entry_type == "revenue" else "Other")
-            if _SUMMARY_LINE_RE.fullmatch(name or "") or norm_header(name) in ("total", "subtotal", "balance"):
+            # Use search (not fullmatch): "Total Sales" / "Net profit" must be skipped too.
+            if _SUMMARY_LINE_RE.search(name or "") or norm_header(name) in ("total", "subtotal", "balance"):
                 skip(rownum, "Looks like a total row")
                 continue
             records.append({
