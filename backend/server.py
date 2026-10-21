@@ -3067,6 +3067,18 @@ async def _upsert_clerk_user(
             status_code=403,
             detail="Verify your email address before signing in to an existing Trenston account.",
         )
+    # Verified Clerk identities must not steal another Trenston user that already
+    # has a different clerk_id (email-change / webhook-lag reclaim → ATO).
+    if existing:
+        prior_clerk = (existing.get("clerk_id") or "").strip()
+        if prior_clerk and prior_clerk != clerk_id:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "This email is already linked to another Trenston account. "
+                    "Sign in with that account, or contact support."
+                ),
+            )
     now = datetime.now(timezone.utc).isoformat()
     if existing:
         user_id = existing["user_id"]
@@ -3076,9 +3088,11 @@ async def _upsert_clerk_user(
             "email": email,
             "name": existing.get("name") if keep_name else (name or existing.get("name")),
             "picture": existing.get("picture") if existing.get("picture_customized") else (picture or existing.get("picture")),
-            "clerk_id": clerk_id,
             "email_verified": bool(email_verified),
         }
+        # Only bind clerk_id when the row has none (legacy Google → Clerk).
+        if not prior_clerk:
+            updates["clerk_id"] = clerk_id
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
     else:
         await _free_soft_deleted_email_holders(email)
@@ -3095,15 +3109,24 @@ async def _upsert_clerk_user(
             existing = await _find_user_by_identity(email, clerk_id=clerk_id)
             if existing:
                 user_id = existing["user_id"]
-                await db.users.update_one(
-                    {"user_id": user_id},
-                    {"$set": {
-                        "email": email,
-                        "clerk_id": clerk_id,
-                        "name": name or existing.get("name"),
-                        "picture": picture or existing.get("picture"),
-                    }},
-                )
+                prior_clerk = (existing.get("clerk_id") or "").strip()
+                if prior_clerk and prior_clerk != clerk_id:
+                    raise HTTPException(
+                        status_code=403,
+                        detail=(
+                            "This email is already linked to another Trenston account. "
+                            "Sign in with that account, or contact support."
+                        ),
+                    )
+                race_set = {
+                    "email": email,
+                    "name": name or existing.get("name"),
+                    "picture": picture or existing.get("picture"),
+                    "email_verified": bool(email_verified),
+                }
+                if not prior_clerk:
+                    race_set["clerk_id"] = clerk_id
+                await db.users.update_one({"user_id": user_id}, {"$set": race_set})
             else:
                 # Free again (case / timing) and retry once.
                 await _free_soft_deleted_email_holders(email)
@@ -3135,14 +3158,25 @@ async def _upsert_google_user(*, email: str, name: Optional[str], picture: Optio
     now = datetime.now(timezone.utc).isoformat()
     if existing:
         user_id = existing["user_id"]
+        prior_sub = (existing.get("google_sub") or "").strip()
+        incoming_sub = (google_sub or "").strip()
+        if prior_sub and incoming_sub and prior_sub != incoming_sub:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "This email is already linked to another Google account. "
+                    "Sign in with that account, or contact support."
+                ),
+            )
         keep_name = bool(existing.get("name_customized")) and (existing.get("name") or "").strip()
         updates = {
             "email": email,
             "name": existing.get("name") if keep_name else (name or existing.get("name")),
             "picture": existing.get("picture") if existing.get("picture_customized") else (picture or existing.get("picture")),
         }
-        if google_sub:
-            updates["google_sub"] = google_sub
+        # Only bind google_sub when the row has none (first Google link).
+        if incoming_sub and not prior_sub:
+            updates["google_sub"] = incoming_sub
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
@@ -3983,7 +4017,11 @@ async def get_section_access(principal=Depends(get_principal)):
     depts = await workspace_departments(principal["workspace_id"], ws)
     enabled_departments = await dept_access.list_enabled_departments(db, principal["workspace_id"])
     enabled_ids = {d["department_id"] for d in enabled_departments}
-    mems = await db.memberships.find({"workspace_id": principal["workspace_id"]}, {"_id": 0}).to_list(200)
+    # Same live set as GET /members — hide Clerk-delete revoked leftovers (emails).
+    mems = await db.memberships.find(
+        {"workspace_id": principal["workspace_id"], "status": {"$in": ["active", "invited"]}},
+        {"_id": 0},
+    ).to_list(200)
     users_by_id = await _users_by_ids(
         [m.get("user_id") for m in mems if pack_of(m) != "owner"],
         {"_id": 0, "user_id": 1, "name": 1, "picture": 1},
@@ -8101,8 +8139,21 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
             raise HTTPException(status_code=400, detail="Document already committed to an entry")
         source = "ai_upload"
         source_document_id = payload.source_document_id
+    async def _release_document_commit_claim():
+        if not source_document_id:
+            return
+        await db.documents.update_one(
+            {
+                "id": source_document_id,
+                "workspace_id": principal["workspace_id"],
+                "status": "committing",
+            },
+            {"$set": {"status": "extracted"}},
+        )
+
     finance_dept_id = await dept_migrate.finance_department_id(db, principal["workspace_id"])
     if not finance_dept_id:
+        await _release_document_commit_claim()
         raise HTTPException(status_code=500, detail="Finance department is not available. Try again")
     # Keep writers enrolled so the new row stays visible under department filters.
     try:
@@ -8142,15 +8193,15 @@ async def add_fin_entry(payload: FinEntryInput, principal=Depends(require_sectio
         await db.financial_entries.insert_one(entry)
     except DuplicateKeyError as exc:
         logger.exception("financial entry insert duplicate key for %s", principal["workspace_id"])
-        if source_document_id:
-            await db.documents.update_one(
-                {"id": source_document_id, "workspace_id": principal["workspace_id"], "status": "committing"},
-                {"$set": {"status": "extracted"}},
-            )
+        await _release_document_commit_claim()
         raise HTTPException(
             status_code=409,
             detail="Could not save this entry: a matching ledger row already exists. Refresh and try again.",
         ) from exc
+    except Exception:
+        # Non-dup failures must not leave the bill stuck in "committing".
+        await _release_document_commit_claim()
+        raise
     invalidate_financials_cache(principal["workspace_id"])
     entry.pop("_id", None)
     if source_document_id:
@@ -11566,7 +11617,10 @@ async def add_person(payload: PersonInput, request: Request, principal=Depends(r
     if invite:
         role = "member"
         existing_user = await db.users.find_one({"email": email}, {"_id": 0})
-        if existing_user and _user_is_deleted(existing_user):
+        # Mirror POST /members/invite: never auto-activate deleted or unverified accounts.
+        if existing_user and (
+            _user_is_deleted(existing_user) or existing_user.get("email_verified") is False
+        ):
             existing_user = None
         membership = {
             "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": principal["workspace_id"],
@@ -17381,7 +17435,10 @@ async def run_accounting_auto_sync() -> dict:
                 result = await _run_quickbooks_sync_for_workspace(
                     c, principal, source="quickbooks_auto_sync",
                 )
-                stats["quickbooks_ok"] += 1
+                if result.get("complete", True):
+                    stats["quickbooks_ok"] += 1
+                else:
+                    stats["quickbooks_incomplete"] = stats.get("quickbooks_incomplete", 0) + 1
                 stats["transactions_synced"] += int(result.get("synced_count") or 0)
             except HTTPException as exc:
                 if exc.status_code == 400:
@@ -17411,7 +17468,10 @@ async def run_accounting_auto_sync() -> dict:
                     result = await _run_xero_sync_for_workspace(
                         c, principal, source="xero_auto_sync",
                     )
-                    stats["xero_ok"] += 1
+                    if result.get("complete", True):
+                        stats["xero_ok"] += 1
+                    else:
+                        stats["xero_incomplete"] = stats.get("xero_incomplete", 0) + 1
                     stats["transactions_synced"] += int(result.get("synced_count") or 0)
                 except HTTPException as exc:
                     if exc.status_code == 400:
@@ -17442,7 +17502,10 @@ async def run_accounting_auto_sync() -> dict:
                 result = await _run_sap_b1_sync_for_workspace(
                     c, principal, source="sap_b1_auto_sync",
                 )
-                stats["sap_b1_ok"] += 1
+                if result.get("complete", True):
+                    stats["sap_b1_ok"] += 1
+                else:
+                    stats["sap_b1_incomplete"] = stats.get("sap_b1_incomplete", 0) + 1
                 stats["transactions_synced"] += int(result.get("synced_count") or 0)
             except HTTPException as exc:
                 if exc.status_code == 400:
@@ -18128,9 +18191,37 @@ async def _paddle_provision(event, status: str = "active"):
         existing_intent = await db.paddle_intents.find_one({"_id": nonce})
         if existing_intent:
             if existing_intent.get("used"):
-                # Replay / reused checkout nonce — do not re-provision entitlements.
+                # True replay after a successful provision — do not re-apply.
+                # Incomplete claim (apply failed / process died after used=True):
+                # same nonce+ws+user and still no paddle_subscription_id → finish it.
+                if (
+                    existing_intent.get("workspace_id") == workspace_id
+                    and existing_intent.get("user_id") == user_id
+                ):
+                    ws_row = await db.workspaces.find_one(
+                        {"workspace_id": workspace_id},
+                        {"_id": 0, "paddle_subscription_id": 1},
+                    )
+                    if ws_row is not None and not (ws_row.get("paddle_subscription_id") or "").strip():
+                        plan = (
+                            helm_plans.plan_for_paddle_price(event_price_id)
+                            or existing_intent.get("plan")
+                            or helm_plans.plan_for_paddle_price(existing_intent.get("price_id"))
+                            or helm_plans.PLAN_STARTER
+                        )
+                        await _paddle_apply_checkout_entitlements(
+                            workspace_id=workspace_id,
+                            user_id=user_id,
+                            sub_id=sub_id,
+                            data=data,
+                            status=status,
+                            now_iso=now_iso,
+                            plan=plan,
+                            event_price_id=event_price_id,
+                        )
                 return
             # Binding mismatch (nonce belongs to another workspace/user).
+            # ACK without entitlements — do not attach payment to the wrong company.
             logger.warning(
                 "paddle intent binding mismatch nonce=%s ws=%s user=%s",
                 nonce, workspace_id, user_id,
@@ -18176,16 +18267,22 @@ async def _paddle_provision(event, status: str = "active"):
         or helm_plans.plan_for_paddle_price(intent.get("price_id"))
         or helm_plans.PLAN_STARTER
     )
-    await _paddle_apply_checkout_entitlements(
-        workspace_id=workspace_id,
-        user_id=user_id,
-        sub_id=sub_id,
-        data=data,
-        status=status,
-        now_iso=now_iso,
-        plan=plan,
-        event_price_id=event_price_id,
-    )
+    try:
+        await _paddle_apply_checkout_entitlements(
+            workspace_id=workspace_id,
+            user_id=user_id,
+            sub_id=sub_id,
+            data=data,
+            status=status,
+            now_iso=now_iso,
+            plan=plan,
+            event_price_id=event_price_id,
+        )
+    except Exception:
+        # Unclaim so Paddle's retry (after we drop the event id) can re-provision
+        # instead of hitting used=True and ACKing forever on Free.
+        await db.paddle_intents.update_one({"_id": nonce}, {"$set": {"used": False}})
+        raise
 
 
 async def _paddle_downgrade(event, status: str):

@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792590262.0044322,
-    "seen": 1792590723.13855,
-    "ast_hash": "2b68607f53badefced6a3890b433b2af",
+    "mtime": 1792590966.7272422,
+    "seen": 1792590993.1550357,
+    "ast_hash": "e8fde08c66537551eb573c4228038dbe",
     "semantic_hash": ""
   },
   "backend/simple_cache.py": {
@@ -6606,9 +6606,9 @@
     "semantic_hash": ""
   },
   "backend/tests/test_extreme_debug_server_oct2026.py": {
-    "mtime": 1792590561.810763,
-    "seen": 1792590723.13862,
-    "ast_hash": "0cd4bb1a88ea09681a2ea09689af0e9e",
+    "mtime": 1792590956.3113902,
+    "seen": 1792590993.155131,
+    "ast_hash": "f23dc161d6f23bd425676311e0f0e31c",
     "semantic_hash": ""
   }
 }
