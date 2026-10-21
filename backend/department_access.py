@@ -221,6 +221,11 @@ async def can_manage_department_members(db, principal: dict, department_id: str)
 async def can_access_department(db, principal: dict, department: dict) -> bool:
     """CEO and Executives see every enabled department; others need a membership
     row or a pack that implies one (People / HR → HR)."""
+    # Defense in depth: never grant access to a department from another workspace,
+    # even if the caller already loaded the doc (CEO/exec/pack short-circuits used
+    # to skip this and could IDOR across tenants if a foreign doc was passed).
+    if department.get("workspace_id") != principal.get("workspace_id"):
+        return False
     if can_read_all_departments(principal):
         return True
     if pack_department_role(principal.get("pack"), department.get("type")):
@@ -364,25 +369,6 @@ DEPARTMENT_FEATURE_COLLECTIONS = (
     "hr_offboarding_template",
     "hr_leave_requests",
 )
-
-# Back-compat alias used by older call sites / tests.
-DEPARTMENT_DEPENDENT_COLLECTIONS = DEPARTMENT_FEATURE_COLLECTIONS
-
-
-async def department_has_dependent_data(db, department_id: str) -> bool:
-    """True if any department-specific feature data exists under this department."""
-    for name in DEPARTMENT_FEATURE_COLLECTIONS:
-        coll = getattr(db, name, None)
-        if coll is None:
-            continue
-        try:
-            found = await coll.find_one({"department_id": department_id}, {"_id": 1})
-        except Exception:
-            continue
-        if found:
-            return True
-    return False
-
 
 async def clear_department_feature_data(db, department_id: str) -> dict[str, int]:
     """Delete all feature rows for a department. Returns {collection: deleted_count}."""

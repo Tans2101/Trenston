@@ -137,3 +137,22 @@ async def test_accessible_department_ids_memoizes_within_request():
     db.departments.find = MagicMock(side_effect=AssertionError("memo miss"))
     second = await access.accessible_department_ids(db, principal, catalog.TYPE_SALES)
     assert first == second == ["d1"]
+
+
+@pytest.mark.asyncio
+async def test_can_access_department_rejects_foreign_workspace():
+    """CEO/exec/pack must not short-circuit past a mismatched workspace_id."""
+    db = _mock_db([], [])
+    foreign = {
+        "department_id": "d_other",
+        "workspace_id": "ws_other",
+        "type": catalog.TYPE_HR,
+        "enabled": True,
+    }
+    ceo = {"user_id": "ceo", "workspace_id": "ws1", "pack": "owner", "role": "owner"}
+    hr_pack = {"user_id": "hr", "workspace_id": "ws1", "pack": "hr", "role": "member"}
+    assert await access.can_access_department(db, ceo, foreign) is False
+    assert await access.can_access_department(db, hr_pack, foreign) is False
+    same = {**foreign, "workspace_id": "ws1"}
+    assert await access.can_access_department(db, ceo, same) is True
+    assert await access.can_access_department(db, hr_pack, same) is True
