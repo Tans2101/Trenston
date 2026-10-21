@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "backend/clerk_auth.py": {
-    "mtime": 1792575554.0158143,
-    "seen": 1792590723.1384876,
-    "ast_hash": "58ffb36d15de515f8261f6f69ae7aa9d",
+    "mtime": 1792592405.7565844,
+    "seen": 1792592627.6775446,
+    "ast_hash": "e7117b3f0f220c788a51e4dc4f97d59c",
     "semantic_hash": ""
   },
   "backend/credential_crypto.py": {
@@ -372,8 +372,8 @@
     "semantic_hash": ""
   },
   "backend/server.py": {
-    "mtime": 1792590966.7272422,
-    "seen": 1792590993.1550357,
+    "mtime": 1792591876.712664,
+    "seen": 1792592627.6776218,
     "ast_hash": "e8fde08c66537551eb573c4228038dbe",
     "semantic_hash": ""
   },
@@ -516,9 +516,9 @@
     "semantic_hash": "9b5f700bdf9cf6f175142c360ea8be7b"
   },
   "backend/tests/test_clerk_jwks_fallback.py": {
-    "mtime": 1792575554.0398157,
-    "seen": 1792590723.1385932,
-    "ast_hash": "e52f6fe978a5c0dd2db281350e839464",
+    "mtime": 1792592472.7716863,
+    "seen": 1792592627.6776667,
+    "ast_hash": "a749c93171ee1fe3c157f8f5cdf06a89",
     "semantic_hash": ""
   },
   "backend/tests/test_clerk_sync.py": {
@@ -6114,8 +6114,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_briefing_generate_parallel.py": {
-    "mtime": 1792590362.8021922,
-    "seen": 1792590723.1385815,
+    "mtime": 1792591876.712664,
+    "seen": 1792592627.6776597,
     "ast_hash": "384dc9036ade5241851a465528469d8b",
     "semantic_hash": ""
   },
@@ -6474,8 +6474,8 @@
     "semantic_hash": ""
   },
   "backend/tests/test_decision_ripple.py": {
-    "mtime": 1792590333.7376847,
-    "seen": 1792590723.13861,
+    "mtime": 1792591876.712664,
+    "seen": 1792592627.6776862,
     "ast_hash": "cb42aa65e67fda390403213c6638b020",
     "semantic_hash": ""
   },
@@ -6606,9 +6606,15 @@
     "semantic_hash": ""
   },
   "backend/tests/test_extreme_debug_server_oct2026.py": {
-    "mtime": 1792590956.3113902,
-    "seen": 1792590993.155131,
+    "mtime": 1792591876.712664,
+    "seen": 1792592627.6776986,
     "ast_hash": "f23dc161d6f23bd425676311e0f0e31c",
+    "semantic_hash": ""
+  },
+  "backend/tests/test_extreme_debug_clerk_auth_oct2026.py": {
+    "mtime": 1792592567.4464302,
+    "seen": 1792592627.6776967,
+    "ast_hash": "b05b450aebb6840cd6c151cbeb02b7a6",
     "semantic_hash": ""
   }
 }

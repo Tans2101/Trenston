@@ -124,7 +124,16 @@ def clerk_authorized_parties() -> set[str]:
     ):
         if extra:
             allowed.add(extra.rstrip("/"))
-    return {a for a in allowed if a}
+    allowed = {a for a in allowed if a}
+    # Production must not accept localhost (or plain-http) azp — a local
+    # Clerk-dev session must never satisfy the live Trenston backend.
+    env = os.environ.get("ENVIRONMENT", "development").strip().lower()
+    if env == "production":
+        allowed = {
+            a for a in allowed
+            if "localhost" not in a and a.startswith("https://")
+        }
+    return allowed
 
 
 def clerk_primary_origin() -> str | None:
@@ -590,7 +599,12 @@ async def clerk_google_oauth_status() -> dict[str, Any]:
 
 
 async def clerk_custom_domain_ssl_ok() -> bool:
-    """True when clerk.* FAPI accepts TLS or Clerk BAPI reports certs issued."""
+    """True when clerk.* FAPI accepts TLS from this host.
+
+    Fail closed when the probe fails. Inventing success from a BAPI domain row
+    (previous behavior) set ``clerk_use_proxy=false`` and could clear an active
+    proxy while custom-domain TLS was still broken.
+    """
     cached = _cached_health("ssl")
     if cached is not None:
         return cached
@@ -604,14 +618,7 @@ async def clerk_custom_domain_ssl_ok() -> bool:
                 return _store_health("ssl", True)
     except Exception:
         pass
-    # Some hosts (Render) cannot TLS-probe Clerk even when certs are issued — trust BAPI.
-    domain = await _clerk_primary_domain_record()
-    if not domain:
-        return _store_health("ssl", False)
-    if not (domain.get("proxy_url") or "").strip():
-        return _store_health("ssl", True)
-    # Proxy still registered but Clerk Dashboard may show SSL issued — prefer DNS mode.
-    return _store_health("ssl", True)
+    return _store_health("ssl", False)
 
 
 def clerk_proxy_url() -> str | None:
@@ -750,7 +757,7 @@ async def prefetch_jwks() -> bool:
 
 
 async def _fetch_jwks_async(force: bool = False) -> dict[str, Any]:
-    """JWKS from public Clerk URL using async httpx (Render-safe).
+    """JWKS via public Clerk URL, then BAPI `/jwks` (mirrors sync path).
 
     `force` skips the TTL cache (used once when a token's kid is not cached,
     e.g. right after Clerk rotates signing keys).
@@ -761,17 +768,55 @@ async def _fetch_jwks_async(force: bool = False) -> dict[str, Any]:
     now = time.time()
     if not force and _jwks_async_cache and now - _jwks_async_cache_at < _JWKS_TTL_SECONDS:
         return _jwks_async_cache
+
+    last_err: Exception | None = None
     async with httpx.AsyncClient(timeout=15) as client:
-        r = await client.get(CLERK_JWKS_URL)
-        r.raise_for_status()
+        try:
+            r = await client.get(CLERK_JWKS_URL)
+            r.raise_for_status()
+            _jwks_async_cache = r.json()
+            _jwks_async_cache_at = now
+            return _jwks_async_cache
+        except httpx.HTTPError as exc:
+            last_err = exc
+            logger.warning("Clerk public JWKS fetch failed (%s) — trying BAPI JWKS", exc)
+
+        if not CLERK_SECRET_KEY:
+            raise ValueError(
+                "Could not load Clerk signing keys. Check CLERK_JWKS_URL and CLERK_SECRET_KEY on Render"
+            ) from last_err
+        r = await client.get(f"{CLERK_BAPI}/jwks", headers=_bapi_headers())
+        if r.status_code in (401, 403):
+            raise ValueError(
+                "CLERK_SECRET_KEY rejected by Clerk API. Use the secret key from the same "
+                "Clerk instance as your publishable key (Dashboard → API keys)"
+            )
+        try:
+            r.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise ValueError(
+                "Could not load Clerk signing keys. Check CLERK_JWKS_URL and CLERK_SECRET_KEY on Render"
+            ) from exc
         _jwks_async_cache = r.json()
         _jwks_async_cache_at = now
         return _jwks_async_cache
 
 
 async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
-    """Verify session by checking sid with Clerk Backend API (no local JWKS/crypto)."""
+    """Check Clerk session *status* for an already signature-verified payload.
+
+    Historically this path accepted unsigned JWTs by trusting ``sid``+``sub``
+    alone — that is an auth bypass whenever JWKS is down. Callers must verify
+    RS256 first (``_verify_clerk_jwt_jwks`` / ``decode_clerk_jwt``). Only
+    ``active`` sessions are accepted (not ``pending`` / MFA-incomplete).
+    """
     import time
+
+    # Reject alg=none / garbage before any network call — defense if mis-wired.
+    header = jwt.get_unverified_header(token)
+    alg = (header.get("alg") or "").upper()
+    if alg in ("", "NONE"):
+        raise ValueError("Clerk session token must be RS256-signed")
 
     payload = _jwt_payload_unverified(token)
     sid = payload.get("sid") or payload.get("session_id")
@@ -779,7 +824,9 @@ async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
     if not sid or not sub:
         raise ValueError("Clerk session token is missing session or user id")
     exp = payload.get("exp")
-    if exp is not None and exp < time.time() - 60:
+    if exp is None:
+        raise ValueError("Clerk session token missing exp")
+    if exp < time.time() - 60:
         raise ValueError("Clerk session expired. Sign out and sign in again")
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.get(f"{CLERK_BAPI}/sessions/{sid}", headers=_bapi_headers())
@@ -797,17 +844,17 @@ async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
     if session.get("user_id") != sub:
         raise ValueError("Clerk session user mismatch")
     status = (session.get("status") or "").lower()
-    if status not in ("active", "pending"):
+    if status != "active":
         raise ValueError("Clerk session is not active. Sign in again")
     return payload
 
 
 async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
-    """Verify JWT signature against async-cached public JWKS.
+    """Verify JWT signature against async-cached JWKS (public or BAPI-fetched).
 
-    Defense-in-depth fallback when the BAPI session check is unreachable.
-    Validates issuer (and audience when the token carries `aud`) — Clerk
-    session tokens typically omit `aud` and use `azp` instead; we check both.
+    Validates issuer, required ``exp``/``sub``, authorized party ``azp``, and
+    audience when the token carries ``aud``. Clerk session tokens typically omit
+    ``aud`` and use ``azp`` instead.
     """
     import json
 
@@ -837,6 +884,7 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
         "issuer": issuer,
         # Small clock-skew allowance for exp/nbf/iat between Clerk and Render.
         "leeway": 10,
+        "options": {"require": ["exp", "sub"]},
     }
     # Only pass audience= when the token has an aud claim — PyJWT raises
     # MissingRequiredClaimError if we require audience on Clerk session tokens
@@ -847,49 +895,52 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
     payload = jwt.decode(token, signing_key, **decode_kwargs)
 
     azp = (payload.get("azp") or "").strip().rstrip("/")
-    if azp:
-        allowed = clerk_authorized_parties()
-        if azp not in allowed:
-            raise jwt.InvalidTokenError("Invalid authorized party")
+    if not azp:
+        raise jwt.InvalidTokenError("Missing authorized party")
+    allowed = clerk_authorized_parties()
+    if azp not in allowed:
+        raise jwt.InvalidTokenError("Invalid authorized party")
     return payload
 
 
 class JwksKeyMissing(Exception):
-    """Token's signing key is not in the (refreshed) JWKS — ask Clerk directly."""
+    """Token's signing key is not in the (refreshed) JWKS — reject, do not forge-accept."""
 
 
 async def decode_clerk_jwt(token: str) -> dict[str, Any]:
-    """Verify a Clerk session JWT.
+    """Verify a Clerk session JWT (signature required — never unsigned sid/sub).
 
-    Fast path: check the signature locally against the cached JWKS (no network,
-    a few ms). Clerk session tokens live ~60s, so a revoked session stops working
-    within a minute, which is Clerk's own documented trade-off for networkless
-    verification. A definite failure (bad signature, wrong issuer, expired) is
-    final. Only when the keys can't be used (key not found, JWKS unreachable) do
-    we fall back to asking the Clerk Backend API about the session.
+    Fast path: verify RS256 against cached JWKS (public URL, or BAPI ``/jwks``
+    when the custom-domain JWKS is unreachable). Clerk session tokens live
+    ~60s, so a revoked session stops working within a minute.
+
+    Failures are final: bad signature, wrong issuer/azp, expired, unknown kid,
+    or JWKS unreachable with no BAPI keys. We never authenticate solely via
+    ``GET /sessions/{sid}`` on unverified claims (that was an auth bypass).
     """
     try:
         return await _verify_clerk_jwt_jwks(token)
     except jwt.ExpiredSignatureError:
         raise ValueError("Clerk session expired. Sign out and sign in again")
+    except JwksKeyMissing as exc:
+        logger.warning("clerk jwt kid missing after JWKS refresh: %s", exc)
+        raise ValueError(
+            "Invalid Clerk session token. Sign out, hard-refresh, and sign in again"
+        ) from exc
     except jwt.InvalidTokenError as exc:
         logger.warning("clerk jwt invalid: %s (jwks=%s)", exc, CLERK_JWKS_URL)
         raise ValueError(
             "Invalid Clerk session token. Sign out, hard-refresh, and sign in again"
         ) from exc
-    except Exception as exc:
-        logger.warning(
-            "clerk local jwt verify unavailable (%s: %s); asking Clerk API",
-            type(exc).__name__, exc,
-        )
-    try:
-        return await _verify_clerk_session_via_bapi(token)
     except ValueError:
         raise
     except Exception as exc:
-        logger.warning("clerk bapi session verify failed: %s (%s)", type(exc).__name__, exc)
+        logger.warning(
+            "clerk jwt verify failed (%s: %s)",
+            type(exc).__name__, exc,
+        )
         raise ValueError(
-            "Could not verify Clerk session. Check CLERK_SECRET_KEY on Render matches clerk.trenston.com"
+            "Could not verify Clerk session. Check CLERK_JWKS_URL and CLERK_SECRET_KEY on Render"
         ) from exc
 
 
@@ -1716,6 +1767,8 @@ async def sync_clerk_instance() -> dict[str, Any]:
 
             missing = [o for o in wanted if o not in set(status["allowed_origins_after"])]
             status["missing_origins"] = missing
+            status["origins_synced"] = not missing
+            # Tentative — finalized after portal / password / redirect children below.
             status["synced"] = not missing
             if missing:
                 status["reason"] = "origins_still_missing"
@@ -1772,12 +1825,31 @@ async def sync_clerk_instance() -> dict[str, Any]:
                     "add it manually in Clerk Dashboard → Configure → Domains."
                 )
             if not domain_proxy.get("ok") and domain_proxy.get("reason") not in (
-                "custom_domain_ssl_ok", "already_set",
+                "custom_domain_ssl_ok", "already_set", "ssl_ok_no_proxy",
+                "proxy_cleared_ssl_ok",
             ):
                 status["warnings"].append(
                     f"Could not enable Clerk proxy at {domain_proxy.get('proxy_url')}. "
                     "set it manually in Clerk Dashboard → Domains → Proxy URL after Vercel deploy."
                 )
+
+            # Do not report synced=True when Paths / password / redirects still broken —
+            # /auth/config and setup endpoints treat synced as auth-ready.
+            origins_ok = bool(status.get("origins_synced"))
+            portal_ok = bool(portal.get("ok"))
+            password_ok = bool(password_opt.get("ok"))
+            # "partial" with an empty errors list means every wanted URL already existed
+            # or was added; only treat redirect sync as failed when posts errored.
+            redirects_ok = redirects.get("reason") == "ok" or (
+                redirects.get("reason") == "partial" and not redirects.get("errors")
+            )
+            status["synced"] = origins_ok and portal_ok and password_ok and redirects_ok
+            if not origins_ok:
+                status["reason"] = "origins_still_missing"
+            elif not status["synced"]:
+                status["reason"] = "origins_ok_auth_incomplete"
+            else:
+                status["reason"] = "ok"
 
             _set_last_sync_status(status)
             return status
@@ -1869,11 +1941,13 @@ def verify_clerk_webhook(body: bytes, headers: dict[str, str]) -> dict[str, Any]
     except Exception as exc:
         raise ValueError("Invalid CLERK_WEBHOOK_SIGNING_SECRET") from exc
 
+    # Standard Webhooks signs raw body bytes — never decode before HMAC
+    # (non-UTF-8 would raise UnicodeDecodeError → 500 instead of 400).
     if isinstance(body, bytes):
-        body_text = body.decode("utf-8")
+        body_bytes = body
     else:
-        body_text = str(body)
-    signed_content = f"{svix_id}.{svix_timestamp}.{body_text}".encode("utf-8")
+        body_bytes = str(body).encode("utf-8")
+    signed_content = f"{svix_id}.{svix_timestamp}.".encode("utf-8") + body_bytes
     expected = base64.b64encode(
         hmac.new(secret_bytes, signed_content, hashlib.sha256).digest()
     ).decode("ascii")
@@ -1892,6 +1966,6 @@ def verify_clerk_webhook(body: bytes, headers: dict[str, str]) -> dict[str, Any]
         raise ValueError("Invalid Svix signature")
 
     try:
-        return json.loads(body_text)
-    except json.JSONDecodeError as exc:
+        return json.loads(body_bytes)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise ValueError("Webhook body is not JSON") from exc

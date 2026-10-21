@@ -240,9 +240,90 @@ async def test_decode_clerk_jwt_refreshes_jwks_once_when_kid_unknown():
 
 
 @pytest.mark.asyncio
-async def test_decode_clerk_jwt_falls_back_to_bapi_when_jwks_unusable():
+async def test_decode_clerk_jwt_uses_bapi_jwks_when_public_jwks_down():
+    """When public JWKS is unreachable, still verify RS256 via BAPI /jwks — never unsigned sid."""
+    private_pem, public_jwk = _rsa_pair()
+    token = _signed_token(private_pem)
+    import httpx
+    from unittest.mock import MagicMock
+
+    clerk_auth._jwks_async_cache = None
+    clerk_auth._jwks_async_cache_at = 0.0
+
+    class _Resp:
+        def __init__(self, status, data):
+            self.status_code = status
+            self._data = data
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise httpx.HTTPStatusError("err", request=MagicMock(), response=MagicMock())
+
+        def json(self):
+            return self._data
+
+    class _Client:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, url, headers=None):
+            if "well-known/jwks" in url:
+                raise httpx.ConnectError("public jwks down")
+            if url.endswith("/jwks"):
+                return _Resp(200, {"keys": [public_jwk]})
+            raise AssertionError(f"unexpected url {url}")
+
+    with patch.object(clerk_auth.httpx, "AsyncClient", _Client), patch.object(
+        clerk_auth,
+        "_verify_clerk_session_via_bapi",
+        AsyncMock(side_effect=AssertionError("unsigned bapi auth must not run")),
+    ):
+        payload = await clerk_auth.decode_clerk_jwt(token)
+    assert payload["sub"] == "user_local"
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_rejects_unknown_kid_without_unsigned_bapi():
     private_pem, _ = _rsa_pair()
     token = _signed_token(private_pem)
+    empty = {"keys": []}
+    with patch.object(
+        clerk_auth, "_fetch_jwks_async", AsyncMock(return_value=empty),
+    ), patch.object(
+        clerk_auth,
+        "_verify_clerk_session_via_bapi",
+        AsyncMock(side_effect=AssertionError("bapi must not rescue unknown kid")),
+    ):
+        with pytest.raises(ValueError, match="Invalid Clerk session token"):
+            await clerk_auth.decode_clerk_jwt(token)
+
+
+@pytest.mark.asyncio
+async def test_decode_clerk_jwt_rejects_forged_unsigned_when_jwks_down():
+    """alg=none / fake kid must never authenticate via session-id lookup."""
+    import base64
+    import json as _json
+
+    header = base64.urlsafe_b64encode(
+        _json.dumps({"alg": "none", "kid": "attacker"}).encode()
+    ).rstrip(b"=").decode()
+    payload = base64.urlsafe_b64encode(
+        _json.dumps({
+            "sub": "user_victim",
+            "sid": "sess_victim",
+            "iss": "https://clerk.trenston.com",
+            "azp": "https://www.trenston.com",
+            "exp": int(time.time()) + 600,
+        }).encode()
+    ).rstrip(b"=").decode()
+    forged = f"{header}.{payload}."
+
     import httpx
 
     with patch.object(
@@ -250,7 +331,49 @@ async def test_decode_clerk_jwt_falls_back_to_bapi_when_jwks_unusable():
     ), patch.object(
         clerk_auth,
         "_verify_clerk_session_via_bapi",
-        AsyncMock(return_value={"sub": "user_from_bapi", "sid": "sess"}),
+        AsyncMock(return_value={"sub": "user_victim", "sid": "sess_victim"}),
     ):
-        payload = await clerk_auth.decode_clerk_jwt(token)
-    assert payload["sub"] == "user_from_bapi"
+        with pytest.raises(ValueError):
+            await clerk_auth.decode_clerk_jwt(forged)
+
+
+@pytest.mark.asyncio
+async def test_jwks_rejects_missing_azp_and_exp():
+    private_pem, public_jwk = _rsa_pair()
+    now = int(time.time())
+    no_azp = jwt.encode(
+        {
+            "sub": "user_abc",
+            "sid": "sess_abc",
+            "iss": "https://clerk.trenston.com",
+            "iat": now,
+            "exp": now + 600,
+        },
+        private_pem,
+        algorithm="RS256",
+        headers={"kid": "test_kid"},
+    )
+    no_exp = jwt.encode(
+        {
+            "sub": "user_abc",
+            "sid": "sess_abc",
+            "iss": "https://clerk.trenston.com",
+            "azp": "https://www.trenston.com",
+            "iat": now,
+        },
+        private_pem,
+        algorithm="RS256",
+        headers={"kid": "test_kid"},
+    )
+    with patch.object(clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": [public_jwk]})):
+        with pytest.raises(jwt.InvalidTokenError, match="authorized party"):
+            await clerk_auth._verify_clerk_jwt_jwks(no_azp)
+        with pytest.raises(jwt.MissingRequiredClaimError):
+            await clerk_auth._verify_clerk_jwt_jwks(no_exp)
+
+
+def test_authorized_parties_exclude_localhost_in_production(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    parties = clerk_auth.clerk_authorized_parties()
+    assert all("localhost" not in p for p in parties)
+    assert all(p.startswith("https://") for p in parties)
