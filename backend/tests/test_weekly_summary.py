@@ -75,6 +75,13 @@ def test_empty_workspace_has_no_content():
     assert s["has_content"] is False
 
 
+def test_subject_and_quiet_tolerate_bad_numeric_fields():
+    """Malformed runway / days must not crash Monday email assembly."""
+    s = _build(fin={**FIN, "runway_months": "n/a"}, stale=[{"name": "Sales", "days_since_update": "x"}])
+    assert s["quiet"][0]["days"] == 0
+    assert isinstance(ws.subject_for("Acme", s), str)
+
+
 def test_subject_names_the_company_and_what_needs_attention():
     s = _build(fin=FIN, stale=[{"name": "Sales", "days_since_update": 12, "lead_name": "Ana"}])
     subject = ws.subject_for("Wattwise PH", s)

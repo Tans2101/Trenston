@@ -124,9 +124,13 @@ def _money(fin: Optional[dict]) -> Optional[dict]:
 def _quiet(stale: list[dict]) -> list[dict]:
     out = []
     for a in (stale or [])[:MAX_QUIET]:
+        try:
+            days = int(a.get("days_since_update") or 0)
+        except (TypeError, ValueError):
+            days = 0
         out.append({
             "name": str(a.get("name") or "A department"),
-            "days": int(a.get("days_since_update") or 0),
+            "days": days,
             "lead_name": (a.get("lead_name") or "").strip(),
         })
     return out
@@ -175,8 +179,12 @@ def subject_for(workspace_name: str, summary: dict) -> str:
     parts = _attention_parts(summary)
     money = summary.get("money") or {}
     months = money.get("runway_months")
-    if months is not None and 0 < float(months) < 12 and len(parts) < 3:
-        shown = f"{float(months):.0f}" if float(months) >= 10 else f"{float(months):.1f}".rstrip("0").rstrip(".")
+    try:
+        months_f = float(months) if months is not None else None
+    except (TypeError, ValueError):
+        months_f = None
+    if months_f is not None and 0 < months_f < 12 and len(parts) < 3:
+        shown = f"{months_f:.0f}" if months_f >= 10 else f"{months_f:.1f}".rstrip("0").rstrip(".")
         parts.append(f"about {shown} months of cash")
     subject = f"{name}: " + ", ".join(parts) if parts else f"Your week at {name}"
     return subject if len(subject) <= SUBJECT_MAX else subject[: SUBJECT_MAX - 1].rstrip() + "…"
