@@ -156,10 +156,27 @@ def maybe_compress_image(file_bytes: bytes, content_type: str, filename: str = "
     return compressed
 
 
+def _safe_workspace_id(workspace_id: str) -> str:
+    """Reject path-like workspace ids so object keys cannot escape the prefix."""
+    ws = (workspace_id or "").strip()
+    if not ws or "/" in ws or "\\" in ws or ".." in ws:
+        raise ValueError("invalid workspace_id for storage")
+    return ws[:120]
+
+
+def _safe_object_key(key: str) -> str:
+    """Reject empty / traversal-shaped keys before talking to R2."""
+    k = (key or "").strip()
+    if not k or k.startswith("/") or ".." in k or "\\" in k:
+        raise ValueError("invalid storage key")
+    return k
+
+
 def upload_document(workspace_id: str, file_bytes: bytes, filename: str, content_type: str) -> str:
+    ws = _safe_workspace_id(workspace_id)
     safe_name = (filename or "document").replace("/", "_").replace("\\", "_")[:200]
     body = maybe_compress_image(file_bytes, content_type, safe_name)
-    key = f"{workspace_id}/{uuid4()}-{safe_name}"
+    key = f"{ws}/{uuid4()}-{safe_name}"
     _client().put_object(
         Bucket=R2_BUCKET_NAME,
         Key=key,
@@ -171,11 +188,13 @@ def upload_document(workspace_id: str, file_bytes: bytes, filename: str, content
 
 
 def get_document_bytes(key: str) -> bytes:
+    key = _safe_object_key(key)
     resp = _client().get_object(Bucket=R2_BUCKET_NAME, Key=key)
     return resp["Body"].read()
 
 
 def get_presigned_url(key: str, expires_in: int = 900) -> str:
+    key = _safe_object_key(key)
     return _client().generate_presigned_url(
         "get_object",
         Params={"Bucket": R2_BUCKET_NAME, "Key": key},
@@ -234,4 +253,5 @@ def compress_branding_image(
 
 
 def delete_document(key: str) -> None:
+    key = _safe_object_key(key)
     _client().delete_object(Bucket=R2_BUCKET_NAME, Key=key)

@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -187,3 +188,18 @@ def test_probe_r2_reports_error_type():
     assert result["configured"] is True
     assert result["ok"] is False
     assert result["error"] == "RuntimeError"
+
+
+def test_upload_rejects_pathlike_workspace_id():
+    with patch.object(storage, "r2_configured", return_value=True), patch.object(
+        storage, "_client", return_value=MagicMock()
+    ):
+        with pytest.raises(ValueError, match="workspace_id"):
+            storage.upload_document("../evil", b"%PDF", "a.pdf", "application/pdf")
+
+
+def test_object_key_helpers_reject_traversal():
+    with pytest.raises(ValueError, match="storage key"):
+        storage.get_presigned_url("../secret")
+    with pytest.raises(ValueError, match="storage key"):
+        storage.delete_document("/absolute/key")
