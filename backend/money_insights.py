@@ -28,7 +28,10 @@ MAX_SECTION_CHARS = 700
 
 
 def _signed(row: dict) -> float:
-    amount = float(row.get("amount") or 0.0)
+    try:
+        amount = float(row.get("amount") or 0.0)
+    except (TypeError, ValueError):
+        amount = 0.0
     return -abs(amount) if row.get("is_credit") else abs(amount)
 
 

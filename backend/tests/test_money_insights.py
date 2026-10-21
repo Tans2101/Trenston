@@ -27,6 +27,13 @@ def _facts(entries=ENTRIES):
     return mi.build_facts(entries, current_month="2026-10", horizon="2026-10", currency="usd")
 
 
+def test_bad_amount_does_not_crash_facts():
+    entries = [_e("revenue", "X", "Y", "not-a-number", "2026-09")]
+    f = mi.build_facts(entries, current_month="2026-10", horizon="2026-10", currency="usd")
+    assert f["revenue"]["has_data"] is True
+    assert f["revenue"]["total_value"] == 0.0
+
+
 def test_facts_use_last_finished_month_and_compare_to_previous():
     f = _facts()
     assert f["period"] == "2026-09" and f["period_label"] == "September 2026"
