@@ -365,11 +365,25 @@ async def test_jwks_rejects_missing_azp_and_exp():
         algorithm="RS256",
         headers={"kid": "test_kid"},
     )
+    no_sid = jwt.encode(
+        {
+            "sub": "user_abc",
+            "iss": "https://clerk.trenston.com",
+            "azp": "https://www.trenston.com",
+            "iat": now,
+            "exp": now + 600,
+        },
+        private_pem,
+        algorithm="RS256",
+        headers={"kid": "test_kid"},
+    )
     with patch.object(clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": [public_jwk]})):
         with pytest.raises(jwt.InvalidTokenError, match="authorized party"):
             await clerk_auth._verify_clerk_jwt_jwks(no_azp)
         with pytest.raises(jwt.MissingRequiredClaimError):
             await clerk_auth._verify_clerk_jwt_jwks(no_exp)
+        with pytest.raises(jwt.InvalidTokenError, match="session id"):
+            await clerk_auth._verify_clerk_jwt_jwks(no_sid)
 
 
 def test_authorized_parties_exclude_localhost_in_production(monkeypatch):
@@ -377,3 +391,43 @@ def test_authorized_parties_exclude_localhost_in_production(monkeypatch):
     parties = clerk_auth.clerk_authorized_parties()
     assert all("localhost" not in p for p in parties)
     assert all(p.startswith("https://") for p in parties)
+
+
+def test_helm_origins_exclude_localhost_in_production(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    origins = clerk_auth.helm_frontend_origins()
+    assert all("localhost" not in o for o in origins)
+    assert all(o.startswith("https://") for o in origins)
+
+
+def test_primary_origin_rejects_lookalike_hosts():
+    """Hostname match must not prefer evil-trenston.com over trenston.com."""
+    lookalikes = sorted({
+        "https://trenston.com",
+        "https://www.trenston.com",
+        "https://www.evil-trenston.com",
+        "http://localhost:3000",
+    })
+    with patch.object(clerk_auth, "helm_frontend_origins", return_value=lookalikes):
+        primary = clerk_auth.primary_frontend_origin()
+    assert primary == "https://www.trenston.com"
+    assert clerk_auth._origin_matches_app_host("https://www.evil-trenston.com", "trenston.com") is False
+    assert clerk_auth._origin_matches_app_host("https://www.trenston.com", "trenston.com") is True
+
+
+def test_safe_clerk_fapi_path_blocks_ssrf():
+    with pytest.raises(ValueError):
+        clerk_auth._safe_clerk_fapi_path("https://evil.example/steal")
+    with pytest.raises(ValueError):
+        clerk_auth._safe_clerk_fapi_path("../admin")
+    with pytest.raises(ValueError):
+        clerk_auth._safe_clerk_fapi_path("//evil.example/x")
+    assert clerk_auth._safe_clerk_fapi_path("v1/client") == "v1/client"
+
+
+def test_normalize_clerk_user_id_rejects_path_injection():
+    with pytest.raises(ValueError):
+        clerk_auth._normalize_clerk_user_id("user_ok/../../sessions")
+    with pytest.raises(ValueError):
+        clerk_auth._normalize_clerk_user_id("sess_not_a_user")
+    assert clerk_auth._normalize_clerk_user_id("user_abc123") == "user_abc123"

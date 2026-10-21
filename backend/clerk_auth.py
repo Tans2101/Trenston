@@ -60,8 +60,6 @@ TRENSTON_CLERK_ORIGINS = {
     *_extra_cors,
 }
 
-_jwks_keys_cache: dict[str, Any] | None = None
-_jwks_keys_cache_at: float = 0.0
 _JWKS_TTL_SECONDS = 3600
 _last_sync_status: dict[str, Any] | None = None
 
@@ -236,6 +234,19 @@ def resolve_clerk_publishable_key() -> str:
     return derived or ""
 
 
+def _origin_matches_app_host(origin: str, host: str) -> bool:
+    """True when origin's hostname is exactly ``host`` or ``www.host``.
+
+    Substring checks (``host in origin``) falsely match lookalikes such as
+    ``https://www.evil-trenston.com`` when ``host == "trenston.com"``.
+    """
+    if not origin or not host or not origin.startswith("https://"):
+        return False
+    hostname = (urlparse(origin).hostname or "").lower()
+    host = host.lower().strip(".")
+    return hostname == host or hostname == f"www.{host}"
+
+
 def helm_frontend_origins() -> list[str]:
     """Origins Trenston must register with Clerk for browser auth."""
     origins = {o for o in (
@@ -243,21 +254,34 @@ def helm_frontend_origins() -> list[str]:
         FRONTEND_URL,
         APP_URL_CLERK,
     ) if o}
+    # Production must not register localhost / plain-http with Clerk or CORS —
+    # a mis-synced allowlist would accept local-dev parties against live sk_live.
+    env = os.environ.get("ENVIRONMENT", "development").strip().lower()
+    if env == "production":
+        origins = {
+            o for o in origins
+            if "localhost" not in o and o.startswith("https://")
+        }
     return sorted(origins)
 
 
 def primary_frontend_origin() -> str | None:
     """Production frontend origin — trenston.com when configured."""
     for host in TRENSTON_PRIMARY_HOSTS:
+        www_hit: str | None = None
+        apex_hit: str | None = None
         for origin in helm_frontend_origins():
-            if not origin.startswith("https://") or host not in origin:
+            if not _origin_matches_app_host(origin, host):
                 continue
-            if origin.startswith("https://www."):
-                return origin
-    for host in TRENSTON_PRIMARY_HOSTS:
-        for origin in helm_frontend_origins():
-            if origin.startswith("https://") and host in origin:
-                return origin
+            hostname = (urlparse(origin).hostname or "").lower()
+            if hostname.startswith("www."):
+                www_hit = www_hit or origin
+            else:
+                apex_hit = apex_hit or origin
+        if www_hit:
+            return www_hit
+        if apex_hit:
+            return apex_hit
     if TRENSTON_CANONICAL_ORIGIN and TRENSTON_CANONICAL_ORIGIN.startswith("https://"):
         return TRENSTON_CANONICAL_ORIGIN
     preferred = (FRONTEND_URL, APP_URL_CLERK)
@@ -298,70 +322,23 @@ def clerk_secret_publishable_mode_match(publishable_key: str) -> bool:
     return publishable_key.strip().startswith(expected)
 
 
-def _fetch_public_jwks_sync() -> dict[str, Any]:
-    """JWKS from Clerk custom-domain /.well-known/jwks.json (no secret required)."""
-    if not CLERK_JWKS_URL:
-        raise ValueError("CLERK_JWKS_URL is not configured")
-    with httpx.Client(timeout=15) as client:
-        r = client.get(CLERK_JWKS_URL)
-        r.raise_for_status()
-        return r.json()
-
-
-def _fetch_bapi_jwks_sync() -> dict[str, Any]:
-    """JWKS via Clerk Backend API — works when clerk.* custom-domain TLS is not ready."""
-    import time
-
-    global _jwks_keys_cache, _jwks_keys_cache_at
-    now = time.time()
-    if _jwks_keys_cache and now - _jwks_keys_cache_at < _JWKS_TTL_SECONDS:
-        return _jwks_keys_cache
-    with httpx.Client(timeout=15) as client:
-        r = client.get(f"{CLERK_BAPI}/jwks", headers=_bapi_headers())
-        if r.status_code in (401, 403):
-            raise ValueError(
-                "CLERK_SECRET_KEY rejected by Clerk API. Use the secret key from the same "
-                "Clerk instance as your publishable key (Dashboard → API keys)"
-            )
-        r.raise_for_status()
-        _jwks_keys_cache = r.json()
-        _jwks_keys_cache_at = now
-        return _jwks_keys_cache
-
-
-def _fetch_jwks_sync() -> dict[str, Any]:
-    """Prefer public JWKS (matches browser-issued session JWTs); BAPI as fallback."""
-    try:
-        return _fetch_public_jwks_sync()
-    except httpx.HTTPError as exc:
-        logger.warning("Clerk public JWKS fetch failed (%s) — trying BAPI JWKS", exc)
-    try:
-        return _fetch_bapi_jwks_sync()
-    except ValueError:
-        raise
-    except httpx.HTTPError as exc:
-        raise ValueError(
-            "Could not load Clerk signing keys. Check CLERK_JWKS_URL and CLERK_SECRET_KEY on Render"
-        ) from exc
-
-
-def _signing_key_from_jwt(token: str):
-    import json
-    from jwt.algorithms import RSAAlgorithm
-
-    header = jwt.get_unverified_header(token)
-    kid = header.get("kid")
-    jwks = _fetch_jwks_sync()
-    for key_data in jwks.get("keys", []):
-        if key_data.get("kid") == kid:
-            return RSAAlgorithm.from_jwk(json.dumps(key_data))
-    raise jwt.InvalidTokenError(
-        "JWKS kid not found. CLERK_SECRET_KEY may be from a different Clerk instance than pk_live on Vercel"
-    )
-
-
 def _bapi_headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {CLERK_SECRET_KEY}"}
+
+
+def _normalize_clerk_user_id(clerk_user_id: str) -> str:
+    """Reject path-traversal / non-Clerk shapes before interpolating into BAPI URLs."""
+    cid = (clerk_user_id or "").strip()
+    if (
+        not cid
+        or len(cid) > 128
+        or "/" in cid
+        or "\\" in cid
+        or ".." in cid
+        or not cid.startswith("user_")
+    ):
+        raise ValueError("Invalid Clerk user id")
+    return cid
 
 
 _health_probe_cache: dict[str, tuple[float, bool]] = {}
@@ -446,23 +423,6 @@ async def clerk_jwks_ok() -> bool:
             return _store_health("jwks", r.status_code == 200 and b"keys" in r.content)
     except Exception:
         return _store_health("jwks", False)
-
-
-async def _clerk_primary_domain_record() -> dict[str, Any] | None:
-    """Fetch Clerk BAPI domain row for trenston.com (if configured)."""
-    if not clerk_configured():
-        return None
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.get(f"{CLERK_BAPI}/domains", headers=_bapi_headers())
-            if r.status_code >= 400:
-                return None
-            for d in (r.json().get("data") or []):
-                if d.get("name") in {"trenston.com", "www.trenston.com"}:
-                    return d
-    except Exception:
-        logger.debug("clerk domain list failed", exc_info=True)
-    return None
 
 
 def clerk_google_oauth_redirect_uris() -> list[str]:
@@ -633,16 +593,39 @@ def clerk_proxy_url() -> str | None:
     return f"https://{apex}/__clerk"
 
 
+def _safe_clerk_fapi_path(path: str) -> str:
+    """Allow only relative FAPI path segments — block SSRF / open-proxy abuse."""
+    raw = (path or "").strip()
+    if not raw or raw.startswith(("http://", "https://", "//")):
+        raise ValueError("Invalid Clerk FAPI path")
+    cleaned = raw.lstrip("/")
+    if not cleaned or ".." in cleaned.split("/") or "\\" in cleaned or "://" in cleaned:
+        raise ValueError("Invalid Clerk FAPI path")
+    return cleaned
+
+
 async def proxy_clerk_fapi(path: str, request: Any) -> Any:
-    """Proxy Clerk Frontend API when clerk.* custom-domain TLS is not ready."""
+    """Proxy Clerk Frontend API when clerk.* custom-domain TLS is not ready.
+
+    Currently unmounted in server.py; kept hardened for optional TLS-fallback use.
+    Never follows redirects while carrying ``Clerk-Secret-Key``.
+    """
     import asyncio
     import subprocess
     from starlette.responses import JSONResponse, Response
 
+    try:
+        safe_path = _safe_clerk_fapi_path(path)
+    except ValueError:
+        return JSONResponse({"error": "Invalid Clerk proxy path"}, status_code=400)
+
     qs = request.url.query
-    target = f"{CLERK_FAPI}/{path}".rstrip("/")
+    target = f"{CLERK_FAPI}/{safe_path}".rstrip("/")
     if qs:
         target = f"{target}?{qs}"
+    # Defense: target must stay on the configured FAPI host.
+    if urlparse(target).hostname != urlparse(CLERK_FAPI).hostname:
+        return JSONResponse({"error": "Invalid Clerk proxy target"}, status_code=400)
     proxy_base = clerk_proxy_url() or f"{TRENSTON_CANONICAL_ORIGIN}/__clerk"
 
     forward: dict[str, str] = {}
@@ -664,7 +647,8 @@ async def proxy_clerk_fapi(path: str, request: Any) -> Any:
     body = await request.body()
 
     async def _httpx_upstream() -> httpx.Response:
-        async with httpx.AsyncClient(timeout=30, http2=False) as client:
+        # follow_redirects=False — never send Clerk-Secret-Key to a redirect hop.
+        async with httpx.AsyncClient(timeout=30, http2=False, follow_redirects=False) as client:
             return await client.request(
                 request.method,
                 target,
@@ -673,7 +657,8 @@ async def proxy_clerk_fapi(path: str, request: Any) -> Any:
             )
 
     def _curl_upstream() -> tuple[int, bytes, dict[str, str]]:
-        cmd = ["curl", "-sS", "-L", "--http1.1", "-w", "\n%{http_code}", "-X", request.method, target]
+        # No -L: following redirects would forward Clerk-Secret-Key off-origin.
+        cmd = ["curl", "-sS", "--http1.1", "-w", "\n%{http_code}", "-X", request.method, target]
         for key, val in forward.items():
             cmd.extend(["-H", f"{key}: {val}"])
         if body and request.method not in ("GET", "HEAD"):
@@ -701,10 +686,10 @@ async def proxy_clerk_fapi(path: str, request: Any) -> Any:
         try:
             status, payload, hdrs = await asyncio.to_thread(_curl_upstream)
             return Response(content=payload, status_code=status, headers=hdrs)
-        except Exception as curl_err:
+        except Exception:
             logger.exception("clerk fapi proxy failed for %s", target)
             return JSONResponse(
-                {"error": "Clerk proxy failed", "httpx": str(httpx_err), "curl": str(curl_err)},
+                {"error": "Clerk proxy failed"},
                 status_code=502,
             )
 
@@ -802,32 +787,16 @@ async def _fetch_jwks_async(force: bool = False) -> dict[str, Any]:
         return _jwks_async_cache
 
 
-async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
-    """Check Clerk session *status* for an already signature-verified payload.
+async def assert_clerk_session_active(*, sid: str, sub: str) -> None:
+    """Confirm Clerk session is ``active`` for already-verified ``sid``+``sub``.
 
-    Historically this path accepted unsigned JWTs by trusting ``sid``+``sub``
-    alone — that is an auth bypass whenever JWKS is down. Callers must verify
-    RS256 first (``_verify_clerk_jwt_jwks`` / ``decode_clerk_jwt``). Only
-    ``active`` sessions are accepted (not ``pending`` / MFA-incomplete).
+    Not an authentication method — never call with unverified JWT claims.
+    ``decode_clerk_jwt`` does not use this; kept for optional post-verify checks.
     """
-    import time
-
-    # Reject alg=none / garbage before any network call — defense if mis-wired.
-    header = jwt.get_unverified_header(token)
-    alg = (header.get("alg") or "").upper()
-    if alg in ("", "NONE"):
-        raise ValueError("Clerk session token must be RS256-signed")
-
-    payload = _jwt_payload_unverified(token)
-    sid = payload.get("sid") or payload.get("session_id")
-    sub = payload.get("sub")
-    if not sid or not sub:
+    sid = (sid or "").strip()
+    sub = (sub or "").strip()
+    if not sid or not sub or "/" in sid or "/" in sub or ".." in sid or ".." in sub:
         raise ValueError("Clerk session token is missing session or user id")
-    exp = payload.get("exp")
-    if exp is None:
-        raise ValueError("Clerk session token missing exp")
-    if exp < time.time() - 60:
-        raise ValueError("Clerk session expired. Sign out and sign in again")
     async with httpx.AsyncClient(timeout=20) as client:
         r = await client.get(f"{CLERK_BAPI}/sessions/{sid}", headers=_bapi_headers())
     if r.status_code in (401, 403):
@@ -846,6 +815,27 @@ async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
     status = (session.get("status") or "").lower()
     if status != "active":
         raise ValueError("Clerk session is not active. Sign in again")
+
+
+async def _verify_clerk_session_via_bapi(token: str) -> dict[str, Any]:
+    """RS256-verify first, then confirm session is active via BAPI.
+
+    Historically this trusted unverified ``sid``+``sub`` alone (auth bypass).
+    It now refuses to authenticate without a successful JWKS signature check.
+    """
+    try:
+        payload = await _verify_clerk_jwt_jwks(token)
+    except JwksKeyMissing as exc:
+        raise ValueError(
+            "Invalid Clerk session token. Sign out, hard-refresh, and sign in again"
+        ) from exc
+    except jwt.InvalidTokenError as exc:
+        raise ValueError(
+            "Invalid Clerk session token. Sign out, hard-refresh, and sign in again"
+        ) from exc
+    sid = payload.get("sid") or payload.get("session_id")
+    sub = payload.get("sub")
+    await assert_clerk_session_active(sid=str(sid or ""), sub=str(sub or ""))
     return payload
 
 
@@ -900,6 +890,10 @@ async def _verify_clerk_jwt_jwks(token: str) -> dict[str, Any]:
     allowed = clerk_authorized_parties()
     if azp not in allowed:
         raise jwt.InvalidTokenError("Invalid authorized party")
+    # Session JWTs must carry a session id — reject templates / non-session tokens
+    # from the same issuer that omit sid (would otherwise pass azp+sig alone).
+    if not (payload.get("sid") or payload.get("session_id")):
+        raise jwt.InvalidTokenError("Missing session id")
     return payload
 
 
@@ -947,6 +941,7 @@ async def decode_clerk_jwt(token: str) -> dict[str, Any]:
 async def fetch_clerk_user_profile(clerk_user_id: str, *, retries: int = 4) -> dict[str, Any]:
     import asyncio
 
+    clerk_user_id = _normalize_clerk_user_id(clerk_user_id)
     last_status: int | None = None
     for attempt in range(retries):
         try:
@@ -1008,8 +1003,11 @@ async def clerk_user_exists(clerk_user_id: str) -> bool | None:
     Clerk ``user.deleted`` webhook is not yet configured. Network / auth failures
     return None so callers can fail open (JWT path remains authoritative).
     """
-    clerk_user_id = (clerk_user_id or "").strip()
-    if not clerk_user_id or not CLERK_SECRET_KEY:
+    if not CLERK_SECRET_KEY:
+        return None
+    try:
+        clerk_user_id = _normalize_clerk_user_id(clerk_user_id)
+    except ValueError:
         return None
     try:
         async with httpx.AsyncClient(timeout=8) as client:
@@ -1033,8 +1031,7 @@ async def delete_clerk_user(clerk_user_id: str) -> dict[str, Any]:
     Returns a small status dict. 404 is treated as already-gone (ok). Missing secret
     or API errors raise ValueError so callers can log and decide best-effort policy.
     """
-    if not clerk_user_id:
-        raise ValueError("clerk_user_id required")
+    clerk_user_id = _normalize_clerk_user_id(clerk_user_id)
     if not CLERK_SECRET_KEY:
         raise ValueError("CLERK_SECRET_KEY is not configured")
     try:
@@ -1863,34 +1860,6 @@ async def ensure_allowed_origins() -> bool:
     """Back-compat wrapper — sync full Clerk instance settings for Trenston."""
     result = await sync_clerk_instance()
     return bool(result.get("synced"))
-
-
-async def ensure_allowed_origins_legacy() -> bool:
-    """Previous allowed_origins-only sync (kept for reference in tests)."""
-    if not clerk_configured():
-        return False
-    wanted = set(helm_frontend_origins())
-    if not wanted:
-        return False
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            headers = _bapi_headers()
-            r = await client.get(f"{CLERK_BAPI}/instance", headers=headers)
-            if r.status_code >= 400:
-                return False
-            current = set(r.json().get("allowed_origins") or [])
-            merged = sorted(current | wanted)
-            if merged == sorted(current):
-                return True
-            patch = await client.patch(
-                f"{CLERK_BAPI}/instance",
-                headers=headers,
-                json={"allowed_origins": merged},
-            )
-            return patch.status_code < 400
-    except Exception:
-        logger.exception("Clerk allowed_origins sync failed")
-        return False
 
 
 def clerk_webhook_configured() -> bool:

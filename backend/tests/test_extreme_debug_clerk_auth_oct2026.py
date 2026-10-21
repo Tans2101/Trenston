@@ -75,24 +75,12 @@ async def test_ssl_ok_false_when_tls_probe_fails():
         client.get = AsyncMock(side_effect=OSError("tls fail"))
         client_cls.return_value.__aenter__ = AsyncMock(return_value=client)
         client_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        with patch.object(
-            clerk_auth,
-            "_clerk_primary_domain_record",
-            AsyncMock(return_value={"name": "trenston.com", "proxy_url": "https://trenston.com/__clerk"}),
-        ):
-            ok = await clerk_auth.clerk_custom_domain_ssl_ok()
+        ok = await clerk_auth.clerk_custom_domain_ssl_ok()
     assert ok is False
 
 
 @pytest.mark.asyncio
-async def test_bapi_session_rejects_pending_and_missing_exp():
-    now = int(time.time())
-    # Build a three-part token so unverified parse works (sig ignored by helper).
-    def _tok(claims):
-        h = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "kid": "k"}).encode()).rstrip(b"=").decode()
-        p = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b"=").decode()
-        return f"{h}.{p}.sig"
-
+async def test_assert_clerk_session_rejects_pending():
     class _Resp:
         def __init__(self, data, status=200):
             self.status_code = status
@@ -114,15 +102,26 @@ async def test_bapi_session_rejects_pending_and_missing_exp():
         async def get(self, url, headers=None):
             return _Resp({"user_id": "user_x", "status": "pending"})
 
-    token = _tok({"sub": "user_x", "sid": "sess_x", "exp": now + 60})
     with patch.object(clerk_auth.httpx, "AsyncClient", _Client):
         with pytest.raises(ValueError, match="not active"):
-            await clerk_auth._verify_clerk_session_via_bapi(token)
+            await clerk_auth.assert_clerk_session_active(sid="sess_x", sub="user_x")
 
-    no_exp = _tok({"sub": "user_x", "sid": "sess_x"})
-    with patch.object(clerk_auth.httpx, "AsyncClient", _Client):
-        with pytest.raises(ValueError, match="missing exp"):
-            await clerk_auth._verify_clerk_session_via_bapi(no_exp)
+
+@pytest.mark.asyncio
+async def test_bapi_session_helper_requires_jwks_signature():
+    """Unsigned token must not authenticate via BAPI session lookup alone."""
+    now = int(time.time())
+    h = base64.urlsafe_b64encode(json.dumps({"alg": "RS256", "kid": "k"}).encode()).rstrip(b"=").decode()
+    p = base64.urlsafe_b64encode(json.dumps({
+        "sub": "user_x", "sid": "sess_x", "exp": now + 60,
+        "iss": "https://clerk.trenston.com", "azp": "https://www.trenston.com",
+    }).encode()).rstrip(b"=").decode()
+    forged = f"{h}.{p}.fakesig"
+    with patch.object(
+        clerk_auth, "_fetch_jwks_async", AsyncMock(return_value={"keys": []}),
+    ):
+        with pytest.raises(ValueError):
+            await clerk_auth._verify_clerk_session_via_bapi(forged)
 
 
 def test_sync_reports_incomplete_when_portal_fails():
@@ -182,3 +181,11 @@ def test_sync_reports_incomplete_when_portal_fails():
     assert result.get("origins_synced") is True
     assert result["synced"] is False
     assert result["reason"] == "origins_ok_auth_incomplete"
+
+
+def test_production_origins_drop_localhost(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    origins = clerk_auth.helm_frontend_origins()
+    assert "http://localhost:3000" not in origins
+    parties = clerk_auth.clerk_authorized_parties()
+    assert all("localhost" not in p for p in parties)

@@ -41,8 +41,8 @@ clerk_auth.CLERK_WEBHOOK_SECRET = _WEBHOOK_SECRET
 
 def _sign(body: bytes, *, msg_id: str = "msg_test_1", ts: int | None = None) -> dict[str, str]:
     ts = int(time.time()) if ts is None else ts
-    body_text = body.decode("utf-8")
-    signed = f"{msg_id}.{ts}.{body_text}".encode("utf-8")
+    # Match verify_clerk_webhook: HMAC over raw body bytes, not decode→re-encode.
+    signed = f"{msg_id}.{ts}.".encode("utf-8") + body
     sig = base64.b64encode(
         hmac.new(_WEBHOOK_SECRET_BYTES, signed, hashlib.sha256).digest()
     ).decode()
@@ -54,6 +54,7 @@ def _sign(body: bytes, *, msg_id: str = "msg_test_1", ts: int | None = None) -> 
 
 
 def test_verify_clerk_webhook_accepts_valid_signature():
+    clerk_auth.CLERK_WEBHOOK_SECRET = _WEBHOOK_SECRET
     body = json.dumps({"type": "user.deleted", "data": {"id": "user_abc"}}).encode()
     headers = _sign(body)
     event = clerk_auth.verify_clerk_webhook(body, headers)
@@ -62,6 +63,7 @@ def test_verify_clerk_webhook_accepts_valid_signature():
 
 
 def test_verify_clerk_webhook_rejects_bad_signature():
+    clerk_auth.CLERK_WEBHOOK_SECRET = _WEBHOOK_SECRET
     body = json.dumps({"type": "user.deleted", "data": {"id": "user_abc"}}).encode()
     headers = _sign(body)
     headers["svix-signature"] = "v1,AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
@@ -70,6 +72,7 @@ def test_verify_clerk_webhook_rejects_bad_signature():
 
 
 def test_verify_clerk_webhook_rejects_stale_timestamp():
+    clerk_auth.CLERK_WEBHOOK_SECRET = _WEBHOOK_SECRET
     body = json.dumps({"type": "user.deleted", "data": {"id": "user_abc"}}).encode()
     headers = _sign(body, ts=int(time.time()) - 600)
     with pytest.raises(ValueError, match="tolerance"):
