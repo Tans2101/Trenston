@@ -186,17 +186,23 @@ async def is_suppressed(db, email: str, category: str = CATEGORY_COMMERCIAL) -> 
 
 
 async def filter_unsuppressed(db, emails: list, category: str = CATEGORY_COMMERCIAL) -> list[str]:
-    out: list[str] = []
+    """Return unique normalized addresses that are not suppressed (one query)."""
+    ordered: list[str] = []
     seen: set[str] = set()
     for raw in emails or []:
         addr = normalize_email(raw)
         if not addr or addr in seen:
             continue
         seen.add(addr)
-        if await is_suppressed(db, addr, category):
-            continue
-        out.append(addr)
-    return out
+        ordered.append(addr)
+    if not ordered:
+        return []
+    rows = await db.email_suppressions.find(
+        {"email": {"$in": ordered}, "category": category},
+        {"_id": 0, "email": 1},
+    ).to_list(len(ordered) + 5)
+    blocked = {normalize_email(r.get("email")) for r in rows if r.get("email")}
+    return [addr for addr in ordered if addr not in blocked]
 
 
 async def suppress_email(

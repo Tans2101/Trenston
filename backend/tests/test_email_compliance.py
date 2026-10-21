@@ -99,10 +99,26 @@ def test_invite_and_alert_templates_have_no_unsubscribe():
 async def test_suppress_then_filter():
     stored = {}
 
+    class _Cursor:
+        def __init__(self, rows):
+            self._rows = rows
+
+        async def to_list(self, _n):
+            return list(self._rows)
+
     class _Coll:
         async def find_one(self, query, _proj=None):
             key = (query.get("email"), query.get("category"))
             return stored.get(key)
+
+        def find(self, query, _proj=None):
+            emails = set((query.get("email") or {}).get("$in") or [])
+            cat = query.get("category")
+            rows = [
+                doc for (em, c), doc in stored.items()
+                if em in emails and c == cat
+            ]
+            return _Cursor(rows)
 
         async def update_one(self, query, update, upsert=False):
             key = (query["email"], query["category"])
@@ -114,7 +130,7 @@ async def test_suppress_then_filter():
     db.email_suppressions = _Coll()
     await ec.suppress_email(db, "CEO@Acme.test", source="test")
     assert await ec.is_suppressed(db, "ceo@acme.test") is True
-    assert await ec.filter_unsuppressed(db, ["ceo@acme.test", "other@acme.test"]) == ["other@acme.test"]
+    assert await ec.filter_unsuppressed(db, ["ceo@acme.test", "other@acme.test", "CEO@Acme.test"]) == ["other@acme.test"]
 
 
 def test_unsubscribe_post_endpoint_writes_suppression():
