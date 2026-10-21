@@ -166,7 +166,9 @@ async def _section_maintenance(db, workspace_id: str, maint_dept: dict, ws_tz, l
     try:
         dept_id = maint_dept["department_id"]
         month_start, month_end = tz_utils.month_bounds_utc(ws_tz, local_today)
-        month_key = month_start.strftime("%Y-%m")
+        # month_start is a UTC instant — do NOT strftime it for YYYY-MM (Manila Oct 1
+        # → UTC Sep 30 evening would wrongly key ledger costs to September).
+        month_key = sales_ob.current_month(local_today)
         # Independent collection reads — run together (same isolation as before).
         spare_rows, sched_rows, contract_rows, resolved, ledger = await asyncio.gather(
             db.maintenance_spares.find(
@@ -221,7 +223,8 @@ async def _section_maintenance(db, workspace_id: str, maint_dept: dict, ws_tz, l
             budget_entered=bool(maint_dept.get("monthly_budget_entered")),
         )
         overhead["period"] = month_key
-        overhead["period_label"] = month_start.strftime("%B %Y")
+        # Prefer calendar month of the workspace-local date (never UTC instant strftime).
+        overhead["period_label"] = f"{local_today.strftime('%B')} {local_today.year}"
         return {
             "spares_below_threshold_count": len(below),
             "spares_below_threshold": below[:20],

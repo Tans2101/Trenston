@@ -139,3 +139,49 @@ def test_assemble_ops_source_uses_gather():
     assert "asyncio.gather" in src
     assert "_section_procurement" in src
     assert "_section_maintenance" in src
+
+
+@pytest.mark.asyncio
+async def test_maintenance_section_month_key_is_local_not_utc_instant():
+    """Manila Oct 1 → UTC Sep 30; ledger month must stay 2026-10."""
+    from datetime import datetime, timezone
+
+    maint = {"department_id": "d_maint", "monthly_budget": None, "monthly_budget_entered": False}
+    local_today = date(2026, 10, 1)
+    # UTC bounds for Manila October start before UTC midnight Oct 1.
+    month_start = datetime(2026, 9, 30, 16, 0, tzinfo=timezone.utc)
+    month_end = datetime(2026, 10, 31, 16, 0, tzinfo=timezone.utc)
+
+    cost_queries: list[dict] = []
+
+    class _Find:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def find(self, query, *_a, **_k):
+            if "month" in query:
+                cost_queries.append(dict(query))
+            return _Cursor(self._rows)
+
+    fake_db = MagicMock()
+    fake_db.maintenance_spares = _Find([])
+    fake_db.maintenance_schedules = _Find([])
+    fake_db.maintenance_contracts = _Find([])
+    fake_db.maintenance_tickets = _Find([])
+    fake_db.maintenance_costs = _Find([])
+
+    with (
+        patch.object(ob.tz_utils, "month_bounds_utc", return_value=(month_start, month_end)),
+        patch.object(ob.sales_ob, "current_month", return_value="2026-10") as cm,
+    ):
+        out = await ob._section_maintenance(
+            fake_db, "ws_1", maint, {"timezone": "Asia/Manila"}, local_today,
+        )
+
+    assert out is not None
+    assert out["overhead"]["period"] == "2026-10"
+    assert out["overhead"]["period_label"] == "October 2026"
+    cm.assert_called_with(local_today)
+    assert cost_queries and cost_queries[0].get("month") == "2026-10"
+    # Regress: must not key costs off UTC strftime of month_start (2026-09).
+    assert all(q.get("month") != "2026-09" for q in cost_queries)
