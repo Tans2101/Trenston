@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -137,7 +138,12 @@ def _token_needs_refresh(tokens: dict) -> bool:
         obtained_dt = datetime.fromisoformat(obtained.replace("Z", "+00:00"))
     except ValueError:
         return True
-    expires_in = int(tokens.get("expires_in", 3600))
+    try:
+        expires_in = int(tokens.get("expires_in", 3600))
+    except (TypeError, ValueError):
+        expires_in = 3600
+    if expires_in < 0:
+        expires_in = 3600
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
@@ -235,11 +241,18 @@ def _qb_currency_fields(txn: dict, amount: float, *, tax_amount: float) -> dict:
     )
 
 
+def _txn_month(txn: dict) -> Optional[str]:
+    """YYYY-MM from TxnDate, or None when missing/unusable (never invent today)."""
+    raw = str(txn.get("TxnDate") or "").strip()
+    if len(raw) >= 7 and raw[4] == "-":
+        return raw[:7]
+    return None
+
+
 def _base_mapped_fields(
-    txn: dict, *, qb_id: str, txn_type: str, amount: float, is_credit: bool, line_suffix: str = "",
+    txn: dict, *, qb_id: str, txn_type: str, amount: float, is_credit: bool,
+    month: str, line_suffix: str = "",
 ) -> dict:
-    txn_date_full = str(txn.get("TxnDate") or "")
-    month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
     slug = _qb_entity_slug(txn_type)
     provider_id = f"{qb_id}{line_suffix}"
     return {
@@ -269,7 +282,8 @@ def map_qb_transaction(txn: dict, txn_type: str) -> Optional[dict]:
 
     amount, is_credit = amap.normalize_mapped_amount(txn.get("TotalAmt"))
     qb_id = str(txn.get("Id") or "")
-    if not qb_id or amount <= 0:
+    month = _txn_month(txn)
+    if not qb_id or amount <= 0 or not month:
         return None
 
     # Purchase Credit:true is a vendor refund / credit card credit.
@@ -283,7 +297,9 @@ def map_qb_transaction(txn: dict, txn_type: str) -> Optional[dict]:
     category = amap.fallback_category(_line_category(txn))
     memo = txn.get("PrivateNote") or ""
     doc = txn.get("DocNumber") or ""
-    base = _base_mapped_fields(txn, qb_id=qb_id, txn_type=txn_type, amount=amount, is_credit=is_credit)
+    base = _base_mapped_fields(
+        txn, qb_id=qb_id, txn_type=txn_type, amount=amount, is_credit=is_credit, month=month,
+    )
 
     if txn_type in ("purchase", "bill", "vendor_credit"):
         vendor = (
@@ -341,10 +357,9 @@ def map_qb_journal_entry(txn: dict, account_classes: Optional[dict[str, str]] = 
     import accounting_map as amap
 
     je_id = str(txn.get("Id") or "")
-    if not je_id:
+    month = _txn_month(txn)
+    if not je_id or not month:
         return []
-    txn_date_full = str(txn.get("TxnDate") or "")
-    month = txn_date_full[:7] if len(txn_date_full) >= 7 else datetime.now(timezone.utc).strftime("%Y-%m")
     out: list[dict] = []
     for line in txn.get("Line") or []:
         if not isinstance(line, dict):
@@ -433,6 +448,23 @@ QB_PAGE_SIZE = 1000
 QB_MAX_PAGES = 500
 QB_MAX_RETRIES_429 = 3
 
+# Watermark must be a plain ISO-ish stamp — it is interpolated into QBO query text.
+_QB_SINCE_SAFE_RE = re.compile(r"^[\d\-:.T+Z]+$")
+
+
+def _safe_since_iso(since: Optional[str]) -> Optional[str]:
+    """Return a query-safe ISO stamp, or None to force a full pull."""
+    if not since:
+        return None
+    raw = str(since).strip()
+    if not raw or not _QB_SINCE_SAFE_RE.fullmatch(raw):
+        logger.warning("QuickBooks sync watermark rejected as unsafe — full resync")
+        return None
+    since_iso = raw.replace("Z", "")
+    if "T" not in since_iso:
+        since_iso = f"{since_iso[:10]}T00:00:00"
+    return since_iso
+
 
 async def _query_qb_once(
     access_token: str, realm_id: str, entity: str, since: Optional[str],
@@ -444,12 +476,10 @@ async def _query_qb_once(
     """
     all_rows: list[dict] = []
     start = 1
+    since_iso = _safe_since_iso(since)
     for _ in range(QB_MAX_PAGES):
-        if since:
+        if since_iso:
             # Incremental by last-modified time (not TxnDate).
-            since_iso = since.replace("Z", "")
-            if "T" not in since_iso:
-                since_iso = f"{since_iso[:10]}T00:00:00"
             q = (
                 f"SELECT * FROM {entity} WHERE MetaData.LastUpdatedTime >= '{since_iso}' "
                 f"STARTPOSITION {start} MAXRESULTS {QB_PAGE_SIZE}"
@@ -526,8 +556,11 @@ async def _cdc_deleted_ids(
     """Use ChangeDataCapture to find Deleted/Voided entities since last sync."""
     if not since:
         return [], tokens
+    # Reuse the same character allowlist as query watermarks (CDC value is a query param).
+    if _safe_since_iso(since) is None:
+        return [], tokens
     entities = ",".join(name for name, _ in QB_SYNC_ENTITIES)
-    since_iso = since.replace("Z", "+00:00")
+    since_iso = str(since).strip().replace("Z", "+00:00")
     url = f"{_api_base()}/v3/company/{realm_id}/cdc"
     access = tokens.get("access_token") or ""
 

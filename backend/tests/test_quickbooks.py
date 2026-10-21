@@ -221,3 +221,26 @@ def test_warn_if_qb_env_missing_in_prod(monkeypatch):
     assert msg and "CRITICAL" in msg
     diag = qb.qb_env_diagnostics()
     assert diag["quickbooks_env_warning"]
+
+
+def test_undated_txn_is_skipped_not_assigned_today():
+    """Missing TxnDate used to invent UTC today → wrong ledger month."""
+    assert qb.map_qb_transaction({"Id": "1", "TotalAmt": 10}, "invoice") is None
+    assert qb.map_qb_journal_entry({"Id": "2", "Line": []}) == []
+    assert qb._txn_month({}) is None
+    assert qb._txn_month({"TxnDate": "2026-10-01"}) == "2026-10"
+
+
+def test_token_needs_refresh_tolerates_bad_expires_in():
+    fresh = {
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+        "expires_in": "nope",
+    }
+    assert qb._token_needs_refresh(fresh) is False
+
+
+def test_safe_since_iso_rejects_query_injection():
+    assert qb._safe_since_iso("2026-01-01T00:00:00Z") == "2026-01-01T00:00:00"
+    assert qb._safe_since_iso("2026-01-01") == "2026-01-01T00:00:00"
+    assert qb._safe_since_iso("2026-01-01T00:00:00' OR '1'='1") is None
+    assert qb._safe_since_iso("abc;DROP") is None
