@@ -70,13 +70,18 @@ def _token_needs_refresh(tokens: dict) -> bool:
         obtained_dt = datetime.fromisoformat(obtained.replace("Z", "+00:00"))
     except ValueError:
         return True
-    expires_in = int(tokens.get("expires_in", 21600))
+    try:
+        expires_in = int(tokens.get("expires_in", 21600))
+    except (TypeError, ValueError):
+        expires_in = 21600
+    if expires_in < 0:
+        expires_in = 21600
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
-async def refresh_hubspot_token(tokens: dict) -> dict:
+async def refresh_hubspot_token(tokens: dict, *, force: bool = False) -> dict:
     """Return valid tokens, refreshing via HubSpot when the access token is near expiry."""
-    if not _token_needs_refresh(tokens):
+    if not force and not _token_needs_refresh(tokens):
         return tokens
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:

@@ -109,3 +109,28 @@ def test_refresh_raises_on_failure():
     with patch("hubspot.httpx.AsyncClient", return_value=mock_hc):
         with pytest.raises(hs.HubSpotAuthError):
             asyncio.run(hs.refresh_hubspot_token(tokens))
+
+
+def test_token_needs_refresh_tolerates_bad_expires_in():
+    fresh = {
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+        "expires_in": "nope",
+    }
+    assert hs._token_needs_refresh(fresh) is False
+    forced = {
+        "access_token": "a",
+        "refresh_token": "r",
+        "expires_in": 21600,
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with patch("hubspot.httpx.AsyncClient") as mock_client:
+        # force=True must call HubSpot even when the access token is still fresh.
+        mock_resp = MagicMock(status_code=200)
+        mock_resp.json.return_value = {"access_token": "new", "expires_in": 21600}
+        mock_hc = AsyncMock()
+        mock_hc.post = AsyncMock(return_value=mock_resp)
+        mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+        mock_hc.__aexit__ = AsyncMock(return_value=None)
+        mock_client.return_value = mock_hc
+        out = asyncio.run(hs.refresh_hubspot_token(forced, force=True))
+    assert out["access_token"] == "new"
