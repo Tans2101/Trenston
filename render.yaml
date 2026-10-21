@@ -136,7 +136,7 @@ services:
       - key: INTERNAL_CRON_SECRET
         sync: false
       - key: ANALYTICS_ADMIN_EMAIL
-        value: tansherdhawan@gmail.com
+        value: tansher@trenston.com
 
   - type: cron
     name: helm-retention-checks
