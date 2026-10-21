@@ -51,7 +51,7 @@ Configure Clerk for production (`CLERK_SECRET_KEY`, `CLERK_JWKS_URL` on Render; 
 - Connect this repo and use `render.yaml`, or create a Python Web Service with root `backend/`
 - Start: `uvicorn server:app --host 0.0.0.0 --port $PORT`
 - Health: `/api/health`
-- Set env vars from `backend/.env.example` (especially `MONGO_URL`, `DB_NAME=trenston`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL=claude-sonnet-5-5`, Clerk, Paddle, `FRONTEND_URL` / `CORS_ORIGINS` / `APP_URL`)
+- Set env vars from `backend/.env.example` (especially `MONGO_URL`, `DB_NAME=trenston`, `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL=claude-sonnet-5`, Clerk, Paddle, `FRONTEND_URL` / `CORS_ORIGINS` / `APP_URL`)
 
 ### 4. Vercel frontend
 

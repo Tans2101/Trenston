@@ -12,9 +12,9 @@ from anthropic import AsyncAnthropic
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or ""
 # Default Sonnet model — see current IDs at https://docs.anthropic.com/en/docs/about-claude/models/overview
-ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+ANTHROPIC_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5")
 # Cheaper/faster model for high-volume grounded report read/summarize + digest combine.
-ANTHROPIC_MODEL_FAST = os.environ.get("ANTHROPIC_MODEL_FAST", "claude-haiku-5-5")
+ANTHROPIC_MODEL_FAST = os.environ.get("ANTHROPIC_MODEL_FAST", "claude-haiku-4-5")
 
 # System prompt for messages.create / messages.stream: plain string or content-block list
 # (list form enables Anthropic prompt caching via cache_control on a text block).

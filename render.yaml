@@ -53,7 +53,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: ANTHROPIC_MODEL
-        value: claude-sonnet-5-5
+        value: claude-sonnet-5
       - key: CLERK_SECRET_KEY
         sync: false
         # Must be sk_live_ from the clerk.trenston.com Clerk instance (same as CLERK_PUBLISHABLE_KEY).
