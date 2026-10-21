@@ -66,7 +66,10 @@ def attribute_month(entry: dict) -> Optional[str]:
 
 
 def compute_total(price: float, quantity: float) -> float:
-    return round(float(price) * float(quantity), 2)
+    try:
+        return round(float(price) * float(quantity), 2)
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def order_book_summary(
@@ -168,7 +171,10 @@ def target_vs_actual(
             target = None
             entered = False
 
-    actual = round(float(confirmed_actual or 0), 2)
+    try:
+        actual = round(float(confirmed_actual or 0), 2)
+    except (TypeError, ValueError):
+        actual = 0.0
     if not entered:
         return {
             "target_entered": False,

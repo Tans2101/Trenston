@@ -16,6 +16,8 @@ import sales_order_book as sob  # noqa: E402
 
 def test_order_book_total_and_summary():
     assert sob.compute_total(10, 3) == 30.0
+    assert sob.compute_total("x", 3) == 0.0
+    assert sob.target_vs_actual(target_row=None, confirmed_actual="bad")["actual"] == 0.0
     entries = [
         {
             "status": "confirmed",
