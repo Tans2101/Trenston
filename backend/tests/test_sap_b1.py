@@ -14,8 +14,8 @@ import sap_b1
 
 
 def _public_addrinfo(host, *args, **kwargs):
-    """Pretend host resolves to a public address (not RFC1918 / loopback)."""
-    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("203.0.113.10", 0))]
+    """Pretend host resolves to a public address (not RFC1918 / loopback / TEST-NET)."""
+    return [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("8.8.8.8", 0))]
 
 
 def test_normalize_service_layer_url():
@@ -50,6 +50,65 @@ def test_normalize_rejects_http_and_private_targets():
     with patch.object(sap_b1.socket, "getaddrinfo", side_effect=_private_dns):
         with pytest.raises(ValueError, match="private or internal"):
             sap_b1.normalize_service_layer_url("https://internal.corp/b1s/v1")
+
+
+def test_normalize_rejects_ipv6_loopback_and_ula():
+    with pytest.raises(ValueError, match="private or internal"):
+        sap_b1.normalize_service_layer_url("https://[::1]:50000/b1s/v1")
+    with pytest.raises(ValueError, match="private or internal"):
+        sap_b1.normalize_service_layer_url("https://[fc00::1]/b1s/v1")
+    with pytest.raises(ValueError, match="private or internal"):
+        sap_b1.normalize_service_layer_url("https://[fe80::1]/b1s/v1")
+
+
+def test_undated_sap_document_is_skipped_not_assigned_today():
+    """Missing DocDate/TaxDate used to invent UTC today → wrong ledger month."""
+    assert sap_b1._parse_doc_date({"DocEntry": 1}) == ""
+    assert sap_b1.map_sap_document(
+        {"DocEntry": 1, "DocTotal": 10, "Cancelled": "tNO"}, kind="ar",
+    ) is None
+
+
+def test_fetch_collection_page_uses_params_not_raw_filter_in_path():
+    """Filter/select must be httpx-encoded params (spaces/quotes safe)."""
+    captured = {}
+
+    class _Resp:
+        status_code = 200
+
+    async def fake_get(url, params=None, headers=None):
+        captured["url"] = url
+        captured["params"] = params
+        return _Resp()
+
+    hc = MagicMock()
+    hc.get = fake_get
+    hc.__aenter__ = AsyncMock(return_value=hc)
+    hc.__aexit__ = AsyncMock(return_value=None)
+
+    creds = {
+        "service_layer_url": "https://erp.example:50000/b1s/v1",
+        "session_id": "sid",
+        "route_id": None,
+    }
+
+    async def run():
+        with (
+            patch.object(sap_b1, "_revalidate_service_layer_url", return_value=creds["service_layer_url"]),
+            patch.object(sap_b1.httpx, "AsyncClient", return_value=hc),
+        ):
+            return await sap_b1._fetch_collection_page(
+                creds, "Invoices",
+                select="DocEntry,DocDate",
+                filt="Cancelled eq 'tNO' and UpdateDate ge '2026-01-01'",
+                skip=0,
+            )
+
+    import asyncio
+    asyncio.run(run())
+    assert "$filter" not in (captured.get("url") or "")
+    assert captured["params"]["$filter"].startswith("Cancelled eq")
+    assert captured["params"]["$skip"] == "0"
 
 
 def test_map_sap_ar_and_ap_documents():

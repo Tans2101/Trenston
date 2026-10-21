@@ -78,6 +78,16 @@ def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
     # IPv4-mapped IPv6 (::ffff:x.x.x.x) → check the embedded IPv4.
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
         ip = ip.ipv4_mapped
+    # is_private covers RFC1918 + IPv6 ULA; also block loopback/link-local/multicast.
+    # (Do not use is_reserved alone — it is broader than our SSRF policy.)
+    if (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_unspecified
+    ):
+        return True
     for net in _BLOCKED_NETWORKS:
         if ip in net:
             return True
@@ -173,10 +183,11 @@ def _session_headers(session_id: str, route_id: Optional[str] = None) -> dict:
 
 
 def _parse_doc_date(doc: dict) -> str:
+    """Return YYYY-MM-DD, or '' when missing — never invent today."""
     raw = str(doc.get("DocDate") or doc.get("TaxDate") or "")[:10]
     if len(raw) == 10 and raw[4] == "-" and raw[7] == "-":
         return raw
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return ""
 
 
 def _line_category(doc: dict) -> str:
@@ -276,6 +287,8 @@ def map_sap_document(doc: dict, *, kind: str) -> Optional[dict]:
         return None
 
     date_full = _parse_doc_date(doc)
+    if len(date_full) < 10:
+        return None
     month = date_full[:7]
     amount, negative, money = _sap_money(doc)
     if amount == 0:
@@ -457,17 +470,21 @@ async def _fetch_collection_page(
     skip: int,
 ) -> httpx.Response:
     base = _revalidate_service_layer_url(creds).rstrip("/") + "/"
-    url = (
-        f"{urljoin(base, collection)}"
-        f"?$select={select}&$filter={filt}"
-        f"&$orderby=DocDate asc&$top={PAGE_SIZE}&$skip={skip}"
-    )
+    url = urljoin(base, collection)
+    params = {
+        "$select": select,
+        "$filter": filt,
+        "$orderby": "DocDate asc",
+        "$top": str(PAGE_SIZE),
+        "$skip": str(skip),
+    }
     last_exc: Optional[Exception] = None
     for attempt in range(SAP_MAX_RETRIES_429 + 1):
         try:
             async with httpx.AsyncClient(timeout=60.0, follow_redirects=False) as hc:
                 resp = await hc.get(
                     url,
+                    params=params,
                     headers=_session_headers(creds["session_id"], creds.get("route_id")),
                 )
         except (httpx.TimeoutException, httpx.NetworkError, httpx.TransportError) as exc:
