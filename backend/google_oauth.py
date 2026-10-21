@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
@@ -82,7 +83,12 @@ def _token_needs_refresh(tokens: dict) -> bool:
         obtained_dt = datetime.fromisoformat(obtained.replace("Z", "+00:00"))
     except ValueError:
         return True
-    expires_in = int(tokens.get("expires_in", 3600))
+    try:
+        expires_in = int(tokens.get("expires_in", 3600))
+    except (TypeError, ValueError):
+        expires_in = 3600
+    if expires_in < 0:
+        expires_in = 3600
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
@@ -504,8 +510,9 @@ async def patch_calendar_event(
             "start": {"dateTime": start_iso, "timeZone": resolve_timezone(timezone_name).key},
             "end": {"dateTime": end_iso, "timeZone": resolve_timezone(timezone_name).key},
         }
+    eid = quote(str(google_event_id), safe="")
     resp, tokens = await _google_request(
-        tokens, client_id, client_secret, "PATCH", f"{CALENDAR_EVENTS_URL}/{google_event_id}",
+        tokens, client_id, client_secret, "PATCH", f"{CALENDAR_EVENTS_URL}/{eid}",
         label="Google Calendar patch", headers={"Content-Type": "application/json"}, json=body,
     )
     if resp.status_code == 401:
@@ -526,8 +533,9 @@ async def delete_calendar_event(
     if not google_event_id or not has_scope(tokens, "calendar.events"):
         return tokens
     tokens = await refresh_google_token(tokens, client_id, client_secret)
+    eid = quote(str(google_event_id), safe="")
     resp, tokens = await _google_request(
-        tokens, client_id, client_secret, "DELETE", f"{CALENDAR_EVENTS_URL}/{google_event_id}",
+        tokens, client_id, client_secret, "DELETE", f"{CALENDAR_EVENTS_URL}/{eid}",
         label="Google Calendar delete",
     )
     if resp.status_code == 401:
@@ -573,14 +581,15 @@ async def create_spreadsheet(
     if not has_scope(tokens, "spreadsheets"):
         raise GoogleAuthError("Sheets access not granted. Reconnect Google")
     tokens = await refresh_google_token(tokens, client_id, client_secret)
-    async with httpx.AsyncClient(timeout=45.0) as hc:
-        resp = await hc.post(
-            SHEETS_URL,
-            headers={"Authorization": f"Bearer {tokens.get('access_token')}", "Content-Type": "application/json"},
-            json=body,
-        )
+    resp, tokens = await _google_request(
+        tokens, client_id, client_secret, "POST", SHEETS_URL,
+        label="Google Sheets create", timeout=45.0,
+        headers={"Content-Type": "application/json"}, json=body,
+    )
     if resp.status_code in (401, 403):
         raise GoogleAuthError("Sheets access not granted. Reconnect Google")
+    if resp.status_code >= 500:
+        raise GoogleTransientError(f"Google Sheets temporarily unavailable ({resp.status_code})")
     if resp.status_code not in (200, 201):
         raise RuntimeError(f"Sheets create failed ({resp.status_code}): {resp.text[:300]}")
     data = resp.json() or {}
@@ -598,29 +607,35 @@ async def download_drive_file(
     """Download a Drive file the user picked. Returns (bytes, mime, name, tokens)."""
     if not has_scope(tokens, "drive.file"):
         raise GoogleAuthError("Drive access not granted. Reconnect Google")
-    if not file_id or "/" in file_id or ".." in file_id:
+    if not file_id or "/" in file_id or ".." in file_id or "?" in file_id:
         raise GoogleAuthError("Invalid Drive file")
     tokens = await refresh_google_token(tokens, client_id, client_secret)
-    headers = {"Authorization": f"Bearer {tokens.get('access_token')}"}
-    async with httpx.AsyncClient(timeout=60.0) as hc:
-        meta = await hc.get(
-            f"{DRIVE_FILES_URL}/{file_id}",
-            headers=headers,
-            params={"fields": "id,name,mimeType,size"},
-        )
-        if meta.status_code in (401, 403):
-            raise GoogleAuthError("Drive access not granted. Reconnect Google")
-        if meta.status_code != 200:
-            raise RuntimeError(f"Drive metadata failed ({meta.status_code}): {meta.text[:300]}")
-        info = meta.json() or {}
-        mime = info.get("mimeType") or "application/octet-stream"
-        name = info.get("name") or "document"
-        media = await hc.get(
-            f"{DRIVE_FILES_URL}/{file_id}",
-            headers=headers,
-            params={"alt": "media"},
-        )
-        if media.status_code != 200:
-            raise RuntimeError(f"Drive download failed ({media.status_code}): {media.text[:300]}")
-        return media.content, mime, name, tokens
+    fid = quote(str(file_id), safe="")
+    meta_url = f"{DRIVE_FILES_URL}/{fid}"
+    meta, tokens = await _google_request(
+        tokens, client_id, client_secret, "GET", meta_url,
+        label="Google Drive metadata", timeout=60.0,
+        params={"fields": "id,name,mimeType,size"},
+    )
+    if meta.status_code in (401, 403):
+        raise GoogleAuthError("Drive access not granted. Reconnect Google")
+    if meta.status_code >= 500:
+        raise GoogleTransientError(f"Google Drive temporarily unavailable ({meta.status_code})")
+    if meta.status_code != 200:
+        raise RuntimeError(f"Drive metadata failed ({meta.status_code}): {meta.text[:300]}")
+    info = meta.json() or {}
+    mime = info.get("mimeType") or "application/octet-stream"
+    name = info.get("name") or "document"
+    media, tokens = await _google_request(
+        tokens, client_id, client_secret, "GET", meta_url,
+        label="Google Drive download", timeout=60.0,
+        params={"alt": "media"},
+    )
+    if media.status_code in (401, 403):
+        raise GoogleAuthError("Drive access not granted. Reconnect Google")
+    if media.status_code >= 500:
+        raise GoogleTransientError(f"Google Drive temporarily unavailable ({media.status_code})")
+    if media.status_code != 200:
+        raise RuntimeError(f"Drive download failed ({media.status_code}): {media.text[:300]}")
+    return media.content, mime, name, tokens
 

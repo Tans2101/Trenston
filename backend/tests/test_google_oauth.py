@@ -134,3 +134,82 @@ def test_fetch_today_calendar_maps_events():
     assert focus >= 0
 
 
+
+
+def test_token_needs_refresh_tolerates_bad_expires_in():
+    from datetime import timedelta
+    fresh = {
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+        "expires_in": "nope",
+    }
+    assert gcal._token_needs_refresh(fresh) is False
+    stale = {
+        "obtained_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+        "expires_in": "bad",
+    }
+    assert gcal._token_needs_refresh(stale) is True
+
+
+def test_create_spreadsheet_retries_once_on_401():
+    tokens = {
+        "access_token": "old",
+        "refresh_token": "r1",
+        "scope": "https://www.googleapis.com/auth/spreadsheets",
+        "expires_in": 3600,
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+    }
+    unauthorized = MagicMock(status_code=401, text="no")
+    ok = MagicMock(status_code=200)
+    ok.json.return_value = {"spreadsheetId": "sheet1", "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/sheet1"}
+    refresh_resp = MagicMock(status_code=200)
+    refresh_resp.json.return_value = {"access_token": "new", "expires_in": 3600}
+
+    post_mock = AsyncMock(side_effect=[unauthorized, ok])
+    mock_hc = AsyncMock()
+    mock_hc.post = post_mock
+    mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+    mock_hc.__aexit__ = AsyncMock(return_value=None)
+
+    with (
+        patch("google_oauth.httpx.AsyncClient", return_value=mock_hc),
+        patch("google_oauth.refresh_http_post", new=AsyncMock(return_value=refresh_resp)),
+    ):
+        sid, url, out = asyncio.run(gcal.create_spreadsheet(tokens, "cid", "sec", {"properties": {"title": "t"}}))
+
+    assert sid == "sheet1" and "sheet1" in url
+    assert post_mock.await_count == 2
+    assert out.get("access_token") == "new"
+
+
+def test_patch_calendar_event_url_encodes_event_id():
+    tokens = {
+        "access_token": "a",
+        "refresh_token": "r",
+        "scope": "https://www.googleapis.com/auth/calendar.events",
+        "expires_in": 3600,
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+    }
+    ok = MagicMock(status_code=200, text="")
+    patch_mock = AsyncMock(return_value=ok)
+    mock_hc = AsyncMock()
+    mock_hc.patch = patch_mock
+    mock_hc.__aenter__ = AsyncMock(return_value=mock_hc)
+    mock_hc.__aexit__ = AsyncMock(return_value=None)
+
+    with patch("google_oauth.httpx.AsyncClient", return_value=mock_hc):
+        asyncio.run(gcal.patch_calendar_event(
+            tokens, "cid", "sec", "abc/def?x=1",
+            title="T", start_iso="2026-10-01T10:00:00+00:00", end_iso="2026-10-01T11:00:00+00:00",
+        ))
+
+    url = patch_mock.await_args.args[0]
+    assert "/calendars/primary/events/abc%2Fdef%3Fx%3D1" in url
+
+
+def test_download_drive_file_rejects_query_chars():
+    tokens = {"scope": "https://www.googleapis.com/auth/drive.file", "access_token": "a", "refresh_token": "r"}
+    try:
+        asyncio.run(gcal.download_drive_file(tokens, "cid", "sec", "id?alt=media"))
+        assert False, "expected GoogleAuthError"
+    except gcal.GoogleAuthError:
+        pass
