@@ -140,7 +140,7 @@ async def test_run_sends_each_email_once_then_skips():
     mock_find = MagicMock()
     mock_find.to_list = find_to_list
     mock_db.workspaces.find = MagicMock(return_value=mock_find)
-    mock_db.workspaces.update_one = AsyncMock()
+    mock_db.workspaces.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
     mock_db.deals.find = MagicMock(return_value=MagicMock(
         sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
     ))
@@ -167,6 +167,9 @@ async def test_run_sends_each_email_once_then_skips():
     assert "BGC, Taguig, Philippines" in sent[0]["body"]
     assert sent[0]["headers"] and "List-Unsubscribe" in sent[0]["headers"]
     assert mock_db.workspaces.update_one.await_count == 2
+    # Claim filters must refuse a second writer once trial_reminder_sent is set.
+    trial_claim = mock_db.workspaces.update_one.await_args_list[0].args[0]
+    assert trial_claim.get("trial_reminder_sent") == {"$ne": True}
 
     # Same window: flags set on the in-memory workspace as the runner would persist
     stored[0]["trial_reminder_sent"] = True
@@ -222,6 +225,46 @@ async def test_run_skips_empty_workspace():
 
 
 @pytest.mark.asyncio
+async def test_lost_claim_skips_send_without_email():
+    """Overlapping cron: first writer claimed the flag; second must not mail."""
+    ws = _ws()
+    sent = []
+
+    async def fake_send(*_a, **_k):
+        sent.append(1)
+        return {"sent": True}
+
+    mock_db = MagicMock()
+    mock_find = MagicMock()
+    mock_find.to_list = AsyncMock(return_value=[ws])
+    mock_db.workspaces.find = MagicMock(return_value=mock_find)
+    mock_db.workspaces.update_one = AsyncMock(return_value=MagicMock(matched_count=0))
+    mock_db.deals.find = MagicMock(return_value=MagicMock(
+        sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
+    ))
+    mock_db.activities.find = MagicMock(return_value=MagicMock(
+        sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
+    ))
+    mock_db.email_suppressions.find_one = AsyncMock(return_value=None)
+
+    stats = await retention.run_retention_checks(
+        mock_db,
+        now=NOW,
+        trial_days=7,
+        app_base_url="https://www.trenston.com",
+        send_email=fake_send,
+        recipient_emails=AsyncMock(return_value=["ceo@northwind.test"]),
+        signing_secret="retention-test-secret",
+        api_base_url="https://www.trenston.com",
+    )
+    assert sent == []
+    assert stats["trial_sent"] == 0
+    assert stats["inactivity_sent"] == 0
+    assert stats["trial_skipped"] >= 1
+    assert stats["inactivity_skipped"] >= 1
+
+
+@pytest.mark.asyncio
 async def test_suppressed_recipient_skips_send():
     ws = _ws()
     sent = []
@@ -234,7 +277,7 @@ async def test_suppressed_recipient_skips_send():
     mock_find = MagicMock()
     mock_find.to_list = AsyncMock(return_value=[ws])
     mock_db.workspaces.find = MagicMock(return_value=mock_find)
-    mock_db.workspaces.update_one = AsyncMock()
+    mock_db.workspaces.update_one = AsyncMock(return_value=MagicMock(matched_count=1))
     mock_db.deals.find = MagicMock(return_value=MagicMock(
         sort=MagicMock(return_value=MagicMock(to_list=AsyncMock(return_value=[]))),
     ))

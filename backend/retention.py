@@ -345,40 +345,51 @@ async def run_retention_checks(
                         stats["suppressed_skipped"] += 1
                         stats["trial_skipped"] += 1
                     else:
-                        any_sent = False
-                        for addr in sendable:
-                            unsub = (
-                                ec.unsubscribe_url(app_base_url, addr, secret=secret)
-                                if secret else ""
-                            )
-                            headers = {}
-                            if secret and api_base:
-                                one_click = ec.api_unsubscribe_url(api_base, addr, secret=secret)
-                                headers = ec.list_unsubscribe_headers(one_click)
-                            result = await send_email(
-                                addr,
-                                "Your Trenston trial ends in 2 days",
-                                trial_email_html(
-                                    workspace_name=name,
-                                    bullets=bullets,
-                                    briefing_url=link,
-                                    unsubscribe_url=unsub,
-                                ),
-                                headers=headers,
-                            )
-                            if result.get("sent"):
-                                any_sent = True
-                        if any_sent:
-                            await db.workspaces.update_one(
-                                {"workspace_id": wid},
-                                {"$set": {
-                                    "trial_reminder_sent": True,
-                                    "trial_reminder_sent_at": now.isoformat(),
-                                }},
-                            )
-                            stats["trial_sent"] += 1
-                        else:
+                        # Claim before send so overlapping crons cannot double-mail.
+                        claim = await db.workspaces.update_one(
+                            {"workspace_id": wid, "trial_reminder_sent": {"$ne": True}},
+                            {"$set": {
+                                "trial_reminder_sent": True,
+                                "trial_reminder_sent_at": now.isoformat(),
+                            }},
+                        )
+                        if not getattr(claim, "matched_count", 0):
                             stats["trial_skipped"] += 1
+                        else:
+                            any_sent = False
+                            for addr in sendable:
+                                unsub = (
+                                    ec.unsubscribe_url(app_base_url, addr, secret=secret)
+                                    if secret else ""
+                                )
+                                headers = {}
+                                if secret and api_base:
+                                    one_click = ec.api_unsubscribe_url(api_base, addr, secret=secret)
+                                    headers = ec.list_unsubscribe_headers(one_click)
+                                result = await send_email(
+                                    addr,
+                                    "Your Trenston trial ends in 2 days",
+                                    trial_email_html(
+                                        workspace_name=name,
+                                        bullets=bullets,
+                                        briefing_url=link,
+                                        unsubscribe_url=unsub,
+                                    ),
+                                    headers=headers,
+                                )
+                                if result.get("sent"):
+                                    any_sent = True
+                            if any_sent:
+                                stats["trial_sent"] += 1
+                            else:
+                                await db.workspaces.update_one(
+                                    {"workspace_id": wid},
+                                    {
+                                        "$set": {"trial_reminder_sent": False},
+                                        "$unset": {"trial_reminder_sent_at": ""},
+                                    },
+                                )
+                                stats["trial_skipped"] += 1
 
             if inactivity_nudge_due(ws, now=now):
                 if not bullets or not emails:
@@ -390,38 +401,56 @@ async def run_retention_checks(
                         stats["inactivity_skipped"] += 1
                     else:
                         days = days_inactive(ws, now=now)
-                        any_sent = False
-                        for addr in sendable:
-                            unsub = (
-                                ec.unsubscribe_url(app_base_url, addr, secret=secret)
-                                if secret else ""
-                            )
-                            headers = {}
-                            if secret and api_base:
-                                one_click = ec.api_unsubscribe_url(api_base, addr, secret=secret)
-                                headers = ec.list_unsubscribe_headers(one_click)
-                            result = await send_email(
-                                addr,
-                                f"Your last briefing was {days} days ago. Here's what's changed since",
-                                inactivity_email_html(
-                                    workspace_name=name,
-                                    days=days,
-                                    bullets=bullets,
-                                    briefing_url=link,
-                                    unsubscribe_url=unsub,
-                                ),
-                                headers=headers,
-                            )
-                            if result.get("sent"):
-                                any_sent = True
-                        if any_sent:
-                            await db.workspaces.update_one(
-                                {"workspace_id": wid},
-                                {"$set": {"inactivity_nudge_sent_at": now.isoformat()}},
-                            )
-                            stats["inactivity_sent"] += 1
+                        prev_nudge = ws.get("inactivity_nudge_sent_at")
+                        claim_filt: dict[str, Any] = {"workspace_id": wid}
+                        if prev_nudge:
+                            claim_filt["inactivity_nudge_sent_at"] = prev_nudge
                         else:
+                            claim_filt["$or"] = [
+                                {"inactivity_nudge_sent_at": {"$exists": False}},
+                                {"inactivity_nudge_sent_at": None},
+                            ]
+                        claim = await db.workspaces.update_one(
+                            claim_filt,
+                            {"$set": {"inactivity_nudge_sent_at": now.isoformat()}},
+                        )
+                        if not getattr(claim, "matched_count", 0):
                             stats["inactivity_skipped"] += 1
+                        else:
+                            any_sent = False
+                            for addr in sendable:
+                                unsub = (
+                                    ec.unsubscribe_url(app_base_url, addr, secret=secret)
+                                    if secret else ""
+                                )
+                                headers = {}
+                                if secret and api_base:
+                                    one_click = ec.api_unsubscribe_url(api_base, addr, secret=secret)
+                                    headers = ec.list_unsubscribe_headers(one_click)
+                                result = await send_email(
+                                    addr,
+                                    f"Your last briefing was {days} days ago. Here's what's changed since",
+                                    inactivity_email_html(
+                                        workspace_name=name,
+                                        days=days,
+                                        bullets=bullets,
+                                        briefing_url=link,
+                                        unsubscribe_url=unsub,
+                                    ),
+                                    headers=headers,
+                                )
+                                if result.get("sent"):
+                                    any_sent = True
+                            if any_sent:
+                                stats["inactivity_sent"] += 1
+                            else:
+                                rollback: dict[str, Any] = (
+                                    {"$set": {"inactivity_nudge_sent_at": prev_nudge}}
+                                    if prev_nudge
+                                    else {"$unset": {"inactivity_nudge_sent_at": ""}}
+                                )
+                                await db.workspaces.update_one({"workspace_id": wid}, rollback)
+                                stats["inactivity_skipped"] += 1
         except Exception:
             logger.exception("retention check failed for workspace %s", wid)
             continue
