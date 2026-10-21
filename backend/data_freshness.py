@@ -242,7 +242,11 @@ async def stale_department_alerts(
         if dtype == dept_catalog.TYPE_ACCOUNTING_FINANCE:
             queries = [(coll_name, {"workspace_id": workspace_id})]
         else:
-            dq = {"department_id": dept.get("department_id")}
+            # Always scope by workspace_id — department_id alone is not a tenant key.
+            dq = {
+                "workspace_id": workspace_id,
+                "department_id": dept.get("department_id"),
+            }
             queries = [(coll_name, dq)]
             if dtype == dept_catalog.TYPE_SALES:
                 queries.append(("deals", dq))

@@ -1,6 +1,9 @@
 """Unit tests for data freshness / staleness helpers."""
 import os
 from datetime import datetime, timedelta, timezone
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 os.environ.setdefault("DB_NAME", "test_data_freshness")
 os.environ.setdefault("MONGO_URL", "mongodb://localhost:27017")
@@ -143,3 +146,45 @@ def test_pipeline_and_onboarding_surface_stale_instructions():
     onb = server.onboarding_for_synthesis(instances, hr_tracked=True)
     assert onb["possibly_stale_count"] >= 1
     assert "outdated" in (onb.get("instructions_for_missing_data") or "")
+
+
+@pytest.mark.asyncio
+async def test_stale_department_alerts_scopes_queries_by_workspace():
+    now = datetime(2026, 10, 20, tzinfo=timezone.utc)
+    old = (now - timedelta(days=40)).isoformat()
+    queries = []
+
+    class _Cur:
+        def __init__(self, rows):
+            self._rows = rows
+
+        def sort(self, *_a, **_k):
+            return self
+
+        def limit(self, *_a, **_k):
+            return self
+
+        async def to_list(self, *_a, **_k):
+            return list(self._rows)
+
+    class _Coll:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def find(self, query, projection=None):
+            queries.append(dict(query))
+            return _Cur(self.rows)
+
+    db = MagicMock()
+    db.departments = _Coll([
+        {"department_id": "d1", "type": dept_catalog.TYPE_PRODUCTION, "name": "Prod", "enabled": True},
+    ])
+    db.production_work_orders = _Coll([{"updated_at": old}])
+    db.department_members = MagicMock()
+    db.department_members.find_one = AsyncMock(return_value=None)
+
+    alerts = await fresh.stale_department_alerts(db, "ws_a", now=now)
+    assert len(alerts) == 1
+    prod_q = [q for q in queries if "department_id" in q]
+    assert prod_q
+    assert all(q.get("workspace_id") == "ws_a" for q in prod_q)
