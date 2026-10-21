@@ -30,8 +30,8 @@ export default function Compare() {
     <MkPage authed={authed} onEnter={enter} active="/compare">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["How Trenston", <>is <Mark dark>different</Mark>.</>]}
-        sub="Most founders run a company across spreadsheets, dashboards, chat and finance tools. Here is an honest look at where Trenston fits, and where it does not."
+        lines={["Stop piecing the", <>picture <Mark dark>together</Mark>.</>]}
+        sub="Most founders run a company across spreadsheets, dashboards, chat and finance tools, then assemble the picture by hand. Here is an honest look at where Trenston fits, and where it does not."
         toc={[
           { id: "types", label: "Compared with the tools you use now" },
           { id: "jobs", label: "Job by job" },

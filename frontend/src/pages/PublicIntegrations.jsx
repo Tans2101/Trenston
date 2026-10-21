@@ -49,7 +49,7 @@ export default function PublicIntegrations() {
     <MkPage authed={authed} onEnter={enter} active="/integrations">
       <PageHero
         eyebrow="Integrations"
-        lines={["Connected", <>where it <Mark dark>counts</Mark>.</>]}
+        lines={["Your tools,", <>one <Mark dark>picture</Mark>.</>]}
         sub={PUBLIC_INTEGRATIONS_INTRO}
         toc={[
           { id: "available", label: "Available today" },

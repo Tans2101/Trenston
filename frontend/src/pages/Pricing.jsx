@@ -36,7 +36,7 @@ export default function Pricing() {
     <MkPage authed={authed} onEnter={enter} active="/pricing">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["Pricing that", <><Mark dark>scales</Mark> with you.</>]}
+        lines={["See your company free.", <>Pay as your team <Mark dark>grows</Mark>.</>]}
         sub="Start free. Paid plans include a 7-day free trial. Cancel anytime. Plans scale with Trenston users (your team's product logins, separate from total company headcount) and how much AI document processing and Ask Trenston usage you need each month."
         toc={[
           { id: "plans", label: "Plans" },

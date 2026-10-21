@@ -105,8 +105,8 @@ export default function Features() {
     <MkPage authed={authed} onEnter={enter} active="/features">
       <PageHero
         eyebrow={CATEGORY}
-        lines={["Everything", <>in <Mark dark>one place</Mark>.</>]}
-        sub="Briefing, decisions, departments, and the rest of Trenston, each designed to answer a specific leadership question: what changed, what to decide, what to delegate, and whether it landed."
+        lines={["Know what changed.", <>Know what <Mark dark>needs you</Mark>.</>]}
+        sub="Open Trenston and see what changed, what to decide, what to hand off, and whether it landed. Briefing, decisions, departments, and the rest each answer one of those leadership questions."
         aside={<BriefingTicker />}
       >
         <div className="flex flex-wrap gap-3">
