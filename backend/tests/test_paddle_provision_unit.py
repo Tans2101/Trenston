@@ -79,7 +79,15 @@ async def test_used_checkout_nonce_is_refused():
         find_one_and_update=claim,
         find_one=AsyncMock(return_value=intent),
         update_one=update,
-    )), patch.object(server.db, "workspaces", MagicMock(update_one=AsyncMock(), find_one=AsyncMock())):
+    )), patch.object(
+        server.db,
+        "workspaces",
+        MagicMock(
+            update_one=AsyncMock(),
+            # Already provisioned — used-nonce replay must not re-apply entitlements.
+            find_one=AsyncMock(return_value={"paddle_subscription_id": "sub_existing"}),
+        ),
+    ):
         await server._paddle_provision({
             "data": {
                 "id": "sub_x",
