@@ -62,9 +62,16 @@ def currency_symbol(code="usd") -> str:
     return CURRENCY_SYMBOLS.get(normalize_currency(code), CURRENCY_SYMBOLS[DEFAULT_CURRENCY])
 
 
+def _coerce_amount(n) -> float:
+    try:
+        return float(n or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def fmt_money(n, currency="usd") -> str:
     """Format a number with the workspace currency symbol (compact K/M style)."""
-    n = float(n or 0)
+    n = _coerce_amount(n)
     neg = n < 0
     a = abs(n)
     sym = currency_symbol(currency)
@@ -89,7 +96,7 @@ def fmt_money(n, currency="usd") -> str:
 
 def fmt_money_plain(n, currency="usd") -> str:
     """Full-precision amount with symbol (for signal detail strings)."""
-    n = float(n or 0)
+    n = _coerce_amount(n)
     neg = n < 0
     a = abs(n)
     sym = currency_symbol(currency)

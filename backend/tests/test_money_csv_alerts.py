@@ -21,6 +21,21 @@ def test_fmt_money_uses_currency_symbol():
     assert money_fmt.fmt_money(100, "zzz") == "$100"
 
 
+def test_fmt_money_tolerates_non_numeric():
+    assert money_fmt.fmt_money("nope", "usd") == "$0"
+    assert money_fmt.fmt_money_plain(None, "usd") == "$0"
+
+
+def test_alert_email_escapes_cta_href():
+    html = an.build_alert_email_html(
+        'Acme "Co"',
+        [{"title": "Cash <risk>", "description": "Runway & burn"}],
+        'https://app.example/"onclick=x',
+    )
+    assert "Cash &lt;risk&gt;" in html
+    assert 'href="https://app.example/&quot;onclick=x/app/decisions"' in html
+
+
 def test_csv_preview_valid_and_skipped_rows():
     text = """Date,Type,Category,Amount,Note
 2026-03,revenue,Subscriptions,5000,MRR

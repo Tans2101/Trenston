@@ -56,7 +56,7 @@ def build_alert_email_html(workspace_name: str, alerts: list, app_url: str) -> s
 <ul style="color:#a1a1aa;font-size:14px;line-height:1.5;margin:18px 0 0 0;padding-left:18px;">{items}</ul>
 <table cellpadding="0" cellspacing="0" style="margin:28px 0 8px 0;"><tr>
 <td style="background:#c9a962;border-radius:8px;">
-<a href="{link}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Decisions in Trenston &rarr;</a>
+<a href="{_esc(link)}" style="display:inline-block;padding:12px 26px;color:#09090b;font-size:14px;font-weight:600;text-decoration:none;">Open Decisions in Trenston &rarr;</a>
 </td></tr></table>
 </td></tr></table>
 </td></tr></table></body></html>"""
