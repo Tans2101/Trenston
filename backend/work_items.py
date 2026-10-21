@@ -61,7 +61,8 @@ def due_info(raw, today: date) -> tuple[Optional[str], bool]:
     """Normalize a due date string and flag overdue (past calendar day vs ``today``).
 
     Callers pass workspace-local today from ``/me/work-items`` (or UTC date when
-    omitted in lower-level helpers).
+    omitted in lower-level helpers). Invalid / non-ISO values are dropped (not
+    surfaced as due dates) so sort and overdue stay well-defined.
     """
     due = (str(raw).strip()[:10] if raw else "") or None
     if not due:
@@ -69,7 +70,7 @@ def due_info(raw, today: date) -> tuple[Optional[str], bool]:
     try:
         d = date.fromisoformat(due)
     except ValueError:
-        return due, False
+        return None, False
     return due, d < today
 
 

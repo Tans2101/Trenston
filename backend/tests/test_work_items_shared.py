@@ -17,6 +17,16 @@ if str(ROOT) not in sys.path:
 import work_items as wi  # noqa: E402
 
 
+def test_due_info_drops_invalid_dates():
+    today = date(2026, 10, 21)
+    assert wi.due_info(None, today) == (None, False)
+    assert wi.due_info("", today) == (None, False)
+    assert wi.due_info("not-a-date", today) == (None, False)
+    assert wi.due_info("2026-13-99", today) == (None, False)
+    assert wi.due_info("2026-10-20", today) == ("2026-10-20", True)
+    assert wi.due_info("2026-10-21T15:00:00Z", today) == ("2026-10-21", False)
+
+
 def _cursor(rows):
     c = MagicMock()
     c.to_list = AsyncMock(return_value=list(rows))
