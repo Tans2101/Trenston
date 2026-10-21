@@ -74,6 +74,7 @@ import department_migrate as dept_migrate
 import work_items as helm_work_items
 import api_keys as helm_api_keys
 import public_api as helm_public_api
+import custom_dashboards as helm_custom
 import oauth_server as helm_oauth
 import data_freshness as helm_freshness
 import procurement_metrics as proc_metrics
@@ -968,6 +969,7 @@ async def send_resend_email(
     html: str,
     attachments: Optional[list] = None,
     headers: Optional[dict] = None,
+    reply_to: Optional[str] = None,
 ) -> dict:
     """Shared Resend send helper (best-effort). `to` may include multiple recipients in one send.
 
@@ -982,6 +984,8 @@ async def send_resend_email(
         return {"sent": False, "reason": "no_key"}
     resend.api_key = RESEND_API_KEY
     params = {"from": SENDER_EMAIL, "to": recipients, "subject": subject, "html": html}
+    if reply_to and "@" in reply_to:
+        params["reply_to"] = reply_to
     if headers:
         clean = {str(k): str(v) for k, v in headers.items() if k and v is not None}
         if clean:
@@ -1466,6 +1470,7 @@ async def _user_from_clerk_jwt(token: str):
             name=identity.get("name"),
             picture=identity.get("picture"),
             clerk_id=identity["clerk_id"],
+            email_verified=identity.get("email_verified", True),
         )
     except HTTPException:
         raise
@@ -1536,22 +1541,43 @@ async def _claim_active_workspace_if_unset(user_id: str, workspace_id: str, user
         user["active_workspace_id"] = workspace_id
 
 
+def _modified_count(result) -> int:
+    value = getattr(result, "modified_count", 0)
+    return value if isinstance(value, int) else 0
+
+
 async def _activate_invites(user):
     """Attach any pending email invites to this user (join inviting workspace)."""
     email = _normalize_email(user.get("email") or "")
     if not email:
         return
-    await db.memberships.update_many(
+    if user.get("email_verified") is False:
+        # Invites (and custom-dashboard approved emails) are granted by address,
+        # so an unverified address must not claim them.
+        return
+    first = await db.memberships.update_many(
         {"email": email, "status": "invited"},
         {"$set": {"user_id": user["user_id"], "status": "active",
                   "joined_at": datetime.now(timezone.utc).isoformat()}},
     )
     # Legacy mixed-case invite emails
-    await db.memberships.update_many(
+    second = await db.memberships.update_many(
         {"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}, "status": "invited"},
         {"$set": {"user_id": user["user_id"], "email": email, "status": "active",
                   "joined_at": datetime.now(timezone.utc).isoformat()}},
     )
+    if _modified_count(first) or _modified_count(second):
+        # A custom-dashboard client workspace is created before its owner has an
+        # account. The first owner to join becomes workspaces.owner_user_id.
+        owned = await db.memberships.find(
+            {"user_id": user["user_id"], "status": "active", "pack": "owner"},
+            {"_id": 0, "workspace_id": 1},
+        ).to_list(50)
+        for m in owned:
+            await db.workspaces.update_one(
+                {"workspace_id": m["workspace_id"], "owner_user_id": None},
+                {"$set": {"owner_user_id": user["user_id"]}},
+            )
     # Enroll into Sales / Accounting & Finance when those departments exist.
     mems = await db.memberships.find(
         {"user_id": user["user_id"], "status": "active"},
@@ -2996,13 +3022,26 @@ async def _free_soft_deleted_email_holders(email: str) -> int:
     return freed
 
 
-async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Optional[str], clerk_id: str):
+async def _upsert_clerk_user(
+    *,
+    email: str,
+    name: Optional[str],
+    picture: Optional[str],
+    clerk_id: str,
+    email_verified: bool = True,
+):
     from pymongo.errors import DuplicateKeyError
 
     email = _normalize_email(email)
     if not email or not clerk_id:
         raise HTTPException(status_code=400, detail="Clerk account email is required")
     existing = await _find_user_by_identity(email, clerk_id=clerk_id)
+    if existing and not email_verified and existing.get("clerk_id") != clerk_id:
+        # An unverified address must never take over an account that matched by email.
+        raise HTTPException(
+            status_code=403,
+            detail="Verify your email address before signing in to an existing Trenston account.",
+        )
     now = datetime.now(timezone.utc).isoformat()
     if existing:
         user_id = existing["user_id"]
@@ -3013,6 +3052,7 @@ async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Option
             "name": existing.get("name") if keep_name else (name or existing.get("name")),
             "picture": existing.get("picture") if existing.get("picture_customized") else (picture or existing.get("picture")),
             "clerk_id": clerk_id,
+            "email_verified": bool(email_verified),
         }
         await db.users.update_one({"user_id": user_id}, {"$set": updates})
     else:
@@ -3021,6 +3061,7 @@ async def _upsert_clerk_user(*, email: str, name: Optional[str], picture: Option
         doc = {
             "user_id": user_id, "email": email, "name": name, "picture": picture,
             "clerk_id": clerk_id, "appearance": "light", "created_at": now,
+            "email_verified": bool(email_verified),
         }
         try:
             await db.users.insert_one(doc)
@@ -3241,6 +3282,7 @@ async def clerk_login(request: Request, response: Response):
         name=identity.get("name"),
         picture=identity.get("picture"),
         clerk_id=identity["clerk_id"],
+        email_verified=identity.get("email_verified", True),
     )
     await _issue_session(response, user["user_id"])
     return {"ok": True, "user_id": user["user_id"], "email": user["email"]}
@@ -3833,8 +3875,9 @@ async def invite_member(payload: InviteInput, request: Request, principal=Depend
         raise HTTPException(status_code=400, detail="Already a member or invited")
     await _enforce_seat_available(principal["workspace_id"])
     existing_user = await db.users.find_one({"email": email}, {"_id": 0})
-    # Soft-tombstoned rows keep a rewritten email, but never auto-join a deleted account.
-    if existing_user and _user_is_deleted(existing_user):
+    # Soft-tombstoned rows keep a rewritten email, but never auto-join a deleted account,
+    # and never auto-join an account whose address Clerk has not verified.
+    if existing_user and (_user_is_deleted(existing_user) or existing_user.get("email_verified") is False):
         existing_user = None
     membership = {
         "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": principal["workspace_id"],
@@ -17539,6 +17582,7 @@ async def get_billing_status(workspace_id: str, pack: str):
         "is_paid": limits["is_paid"],
         "pro_only": False,
         "billing_enforced": BILLING_ENFORCED,
+        "custom_billing": c.get("billing_source") == "custom",
         "requires_activation": False,
         "trial_days": TRIAL_DAYS,
         "pro_price": limits["price"] if limits["is_paid"] else helm_plans.PLANS[helm_plans.PLAN_STARTER]["price"],
@@ -17633,6 +17677,17 @@ async def _paddle_schedule_downgrade(sub_id: str, target: str, *, undo_from: Opt
     return (data.get("current_billing_period") or {}).get("ends_at")
 
 
+CUSTOM_BILLING_MESSAGE = (
+    "Your plan is part of a custom agreement with Trenston. Contact us to change it."
+)
+
+
+def _refuse_custom_billing_change(ws: Optional[dict]) -> None:
+    """Custom-dashboard clients are invoiced by hand; self-serve plan changes would undo that."""
+    if (ws or {}).get("billing_source") == "custom":
+        raise HTTPException(status_code=400, detail=CUSTOM_BILLING_MESSAGE)
+
+
 class SchedulePlanInput(BaseModel):
     plan: str
 
@@ -17641,6 +17696,7 @@ class SchedulePlanInput(BaseModel):
 async def schedule_plan_change(payload: SchedulePlanInput, principal=Depends(require("billing:manage"))):
     """Schedule a downgrade for the end of the current billing period (no mid-cycle refunds)."""
     c = await get_ws(principal["workspace_id"])
+    _refuse_custom_billing_change(c)
     current = workspace_plan_id(c)
     target = helm_plans.normalize_plan(payload.plan)
     if target == current:
@@ -17747,6 +17803,7 @@ async def paddle_config(request: Request, principal=Depends(require("billing:man
             detail=f"Checkout for {helm_plans.plan_def(target)['label']} is not configured yet. Set the Paddle price ID env var",
         )
     ws_doc = await get_ws(principal["workspace_id"])
+    _refuse_custom_billing_change(ws_doc)
     sub_id = (ws_doc.get("paddle_subscription_id") or "").strip()
     sub_status = ws_doc.get("subscription_status")
     if sub_id and sub_status in ("active", "trialing", "past_due"):
@@ -19747,6 +19804,454 @@ async def api_v1_financials(principal=Depends(get_api_principal)):
     return helm_public_api.financials(fin)
 
 
+# ------------------------- Custom dashboards -------------------------
+# A done-for-you service on top of Trenston. Public visitors send an inquiry;
+# the Trenston operator (ANALYTICS_ADMIN_EMAIL) sets up the client's workspace,
+# its widget config and the approved emails. Client members see it under
+# /app/custom next to normal Trenston. See custom_dashboards.py.
+
+CUSTOM_INQUIRY_LIMIT_PER_HOUR = 5
+CUSTOM_BILLING_FIELDS = {
+    "plan": helm_plans.PLAN_BUSINESS,
+    "subscription_status": "active",
+    "billing_status": "active",
+    "billing_source": "custom",
+}
+
+
+def _custom_error(exc: Exception) -> HTTPException:
+    return HTTPException(status_code=400, detail=str(exc))
+
+
+async def require_custom_operator(principal=Depends(require_analytics_admin)):
+    """Trenston operator with a verified email. Never a client workspace role."""
+    user = await db.users.find_one({"user_id": principal["user_id"]}, {"_id": 0, "email_verified": 1})
+    if (user or {}).get("email_verified") is False:
+        raise HTTPException(status_code=403, detail="Not available")
+    return principal
+
+
+@api_router.post("/custom-dashboards/inquiry")
+async def custom_dashboard_inquiry(request: Request):
+    try:
+        raw = await request.json()
+    except Exception:
+        raw = None
+    if helm_custom.is_spam_honeypot(raw):
+        # Look successful to bots; store nothing.
+        return {"ok": True}
+    try:
+        clean = helm_custom.validate_inquiry(raw)
+    except helm_custom.ConfigError as exc:
+        raise _custom_error(exc)
+    ip = _client_ip(request)
+    if not await doc_rate_limit.acquire_event_slot(
+        db, f"ip:{ip}", "custom_inquiry", CUSTOM_INQUIRY_LIMIT_PER_HOUR,
+    ):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many requests from this network. Try again in an hour.",
+        )
+    doc = helm_custom.inquiry_doc(clean)
+    await db.custom_inquiries.insert_one(dict(doc))
+    recipients = [e.strip() for e in ANALYTICS_ADMIN_EMAIL.split(",") if e.strip()]
+    if recipients:
+        await send_resend_email(
+            to=recipients,
+            subject=f"Custom dashboard inquiry: {clean['company']}",
+            html=helm_custom.inquiry_email_html(doc),
+            reply_to=clean["email"],
+        )
+    return {"ok": True}
+
+
+async def _custom_workspace_doc(workspace_id: str) -> Optional[dict]:
+    return await db.workspaces.find_one(
+        {"workspace_id": workspace_id},
+        {"_id": 0, "workspace_id": 1, "name": 1, "plan": 1, "billing_source": 1,
+         "custom_dashboard": 1, "paddle_subscription_id": 1, "subscription_status": 1,
+         "owner_user_id": 1, "created_at": 1},
+    )
+
+
+@api_router.get("/custom-dashboard/status")
+async def custom_dashboard_status(principal=Depends(get_principal)):
+    ws = await _custom_workspace_doc(principal["workspace_id"]) or {}
+    cfg = ws.get("custom_dashboard") or {}
+    visible = helm_custom.can_view(cfg, principal)
+    return {
+        "enabled": visible,
+        "title": (cfg.get("title") or "Custom dashboard") if visible else None,
+        "operator": _is_analytics_admin(principal),
+        "custom_billing": ws.get("billing_source") == "custom",
+    }
+
+
+async def _custom_dashboard_sources(principal: dict, widgets: list[dict]) -> dict:
+    types = {w.get("type") for w in widgets}
+    sources: dict = {"errors": set(), "financials_access": False}
+    if helm_custom.needs_financials(widgets):
+        sources["financials_access"] = await can_access_financials(principal)
+        if sources["financials_access"]:
+            try:
+                dept_ids = await dept_access.accessible_department_ids(
+                    db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+                )
+                fin = await compute_financials(principal["workspace_id"], department_ids=dept_ids)
+                sources["financials"] = helm_public_api.financials(fin)
+            except Exception:
+                logger.exception("custom dashboard financials failed for %s", principal["workspace_id"])
+                sources["errors"].add("financials")
+    loaders = {
+        "tasks_summary": ("tasks", lambda: tasks(principal), lambda p: helm_public_api.tasks(p)["tasks"]),
+        "decisions_open": ("decisions", lambda: decisions(principal), lambda p: helm_public_api.decisions(p)["decisions"]),
+        "briefing_headline": ("briefing", lambda: briefing(principal), helm_public_api.briefing),
+    }
+    for wtype, (key, load, shape) in loaders.items():
+        if wtype not in types:
+            continue
+        try:
+            sources[key] = shape(await load())
+        except HTTPException as exc:
+            # A section the person cannot open shows as unavailable, not as an error page.
+            logger.info("custom dashboard %s unavailable: %s", key, exc.detail)
+            sources["errors"].add(key)
+        except Exception:
+            logger.exception("custom dashboard %s failed for %s", key, principal["workspace_id"])
+            sources["errors"].add(key)
+    return sources
+
+
+@api_router.get("/custom-dashboard")
+async def get_custom_dashboard(principal=Depends(get_principal)):
+    ws = await _custom_workspace_doc(principal["workspace_id"]) or {}
+    cfg = ws.get("custom_dashboard") or {}
+    if not helm_custom.can_view(cfg, principal):
+        raise HTTPException(status_code=404, detail="This company has no custom dashboard")
+    widgets = cfg.get("widgets") or []
+    sources = await _custom_dashboard_sources(principal, widgets)
+    return {
+        **helm_custom.public_config(cfg),
+        "company": ws.get("name"),
+        "widgets": [helm_custom.resolve_widget(w, sources) for w in widgets],
+    }
+
+
+# ---- operator tools ----
+
+@api_router.get("/admin/custom/catalog")
+async def admin_custom_catalog(principal=Depends(require_custom_operator)):
+    return helm_custom.catalog()
+
+
+@api_router.get("/admin/custom/inquiries")
+async def admin_custom_inquiries(principal=Depends(require_custom_operator)):
+    rows = await db.custom_inquiries.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return {"inquiries": rows}
+
+
+class CustomInquiryUpdate(BaseModel):
+    status: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=4000)
+
+
+@api_router.patch("/admin/custom/inquiries/{inquiry_id}")
+async def admin_custom_inquiry_update(
+    inquiry_id: str, payload: CustomInquiryUpdate, principal=Depends(require_custom_operator),
+):
+    upd: dict = {"updated_at": helm_custom.now_iso()}
+    if payload.status is not None:
+        if payload.status not in helm_custom.INQUIRY_STATUSES:
+            raise HTTPException(status_code=400, detail="Unknown status")
+        upd["status"] = payload.status
+    if payload.notes is not None:
+        upd["notes"] = payload.notes.strip()
+    res = await db.custom_inquiries.update_one({"inquiry_id": inquiry_id}, {"$set": upd})
+    if not getattr(res, "matched_count", 1):
+        raise HTTPException(status_code=404, detail="Inquiry not found")
+    return {"ok": True}
+
+
+def _custom_summary(ws: dict) -> dict:
+    cfg = ws.get("custom_dashboard") or {}
+    return {
+        "workspace_id": ws.get("workspace_id"),
+        "name": ws.get("name"),
+        "plan": ws.get("plan"),
+        "billing_source": ws.get("billing_source") or "paddle",
+        "enabled": bool(cfg.get("enabled")),
+        "title": cfg.get("title"),
+        "tier": cfg.get("tier"),
+        "approved_count": len(cfg.get("approved_emails") or []),
+        "widget_count": len(cfg.get("widgets") or []),
+        "updated_at": cfg.get("updated_at"),
+        "owner_joined": bool(ws.get("owner_user_id")),
+    }
+
+
+@api_router.get("/admin/custom/workspaces")
+async def admin_custom_workspaces(principal=Depends(require_custom_operator)):
+    rows = await db.workspaces.find(
+        {"custom_dashboard": {"$exists": True}},
+        {"_id": 0, "workspace_id": 1, "name": 1, "plan": 1, "billing_source": 1,
+         "custom_dashboard": 1, "owner_user_id": 1},
+    ).to_list(500)
+    rows.sort(key=lambda w: ((w.get("custom_dashboard") or {}).get("updated_at") or ""), reverse=True)
+    return {"workspaces": [_custom_summary(w) for w in rows]}
+
+
+@api_router.get("/admin/custom/lookup")
+async def admin_custom_lookup(email: str, principal=Depends(require_custom_operator)):
+    """Companies an existing Trenston user owns, so one can be turned into a custom client."""
+    addr = helm_custom.normalize_email(email)
+    if not helm_custom.is_valid_email(addr):
+        raise HTTPException(status_code=400, detail="Enter a valid email")
+    mems = await db.memberships.find(
+        {"email": addr, "pack": "owner", "status": {"$in": ["active", "invited"]}},
+        {"_id": 0, "workspace_id": 1},
+    ).to_list(50)
+    out = []
+    for m in mems:
+        ws = await _custom_workspace_doc(m["workspace_id"])
+        if ws:
+            out.append({**_custom_summary(ws), "has_paddle": bool(ws.get("paddle_subscription_id"))})
+    return {"workspaces": out}
+
+
+async def _add_custom_member(
+    ws: dict, email: str, pack: str, *, request: Request, inviter: str, send_invite: bool,
+) -> dict:
+    """Invite one approved email into the client workspace (no seat limit: custom agreement)."""
+    ws_id = ws["workspace_id"]
+    existing = await _live_membership_by_email(ws_id, email)
+    if existing:
+        return {"email": email, "status": existing.get("status"), "already_member": True, "email_sent": False}
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    if user and (_user_is_deleted(user) or user.get("email_verified") is False):
+        user = None
+    membership = {
+        "membership_id": f"mem_{uuid.uuid4().hex[:12]}", "workspace_id": ws_id,
+        "user_id": user["user_id"] if user else None, "email": email,
+        "role": "owner" if pack == "owner" else "member", "pack": pack,
+        "status": "active" if user else "invited",
+        "invite_token": uuid.uuid4().hex, "created_at": helm_custom.now_iso(),
+        "added_via": "custom_dashboard",
+    }
+    await db.memberships.insert_one(dict(membership))
+    await ensure_person_for_membership(ws_id, membership, name=(user or {}).get("name"))
+    if user:
+        await dept_migrate.enroll_user_in_sales_finance(db, ws_id, user["user_id"])
+        await _claim_active_workspace_if_unset(user["user_id"], ws_id, user)
+        if pack == "owner":
+            await db.workspaces.update_one(
+                {"workspace_id": ws_id, "owner_user_id": None},
+                {"$set": {"owner_user_id": user["user_id"]}},
+            )
+    sent = False
+    if send_invite:
+        app_url = APP_URL or FRONTEND_URL or str(request.base_url).rstrip("/")
+        result = await send_invite_email(email, inviter, ws["name"], PACK_LABEL.get(pack, "Member"), app_url)
+        sent = bool(result.get("sent"))
+    invalidate_workspace_list_cache(ws_id)
+    return {"email": email, "status": membership["status"], "already_member": False, "email_sent": sent}
+
+
+class CustomClientCreate(BaseModel):
+    company_name: str = Field(min_length=1, max_length=120)
+    owner_email: EmailStr
+    tier: str = "configured"
+    send_invite: bool = True
+    inquiry_id: Optional[str] = None
+
+
+@api_router.post("/admin/custom/workspaces")
+async def admin_custom_create_client(
+    payload: CustomClientCreate, request: Request, principal=Depends(require_custom_operator),
+):
+    name = payload.company_name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Company name is required")
+    if payload.tier not in helm_custom.TIERS:
+        raise HTTPException(status_code=400, detail="Unknown tier")
+    owner_email = helm_custom.normalize_email(payload.owner_email)
+    ws_id = f"ws_{uuid.uuid4().hex[:12]}"
+    # Owner is attached when they first sign in with this (verified) address.
+    doc = build_workspace(ws_id, name, None, empty=True)
+    doc.update(CUSTOM_BILLING_FIELDS)
+    doc["custom_dashboard"] = helm_custom.default_config(
+        title=f"{name} dashboard", tier=payload.tier, approved_emails=[owner_email],
+    )
+    doc["custom_client"] = {
+        "created_by": principal["user_id"],
+        "created_at": helm_custom.now_iso(),
+        "inquiry_id": payload.inquiry_id,
+    }
+    await db.workspaces.insert_one(dict(doc))
+    await dept_migrate.migrate_workspace_sales_finance(db, ws_id)
+    added = await _add_custom_member(
+        doc, owner_email, "owner", request=request,
+        inviter="Trenston", send_invite=payload.send_invite,
+    )
+    if payload.inquiry_id:
+        await db.custom_inquiries.update_one(
+            {"inquiry_id": payload.inquiry_id},
+            {"$set": {"status": "won", "workspace_id": ws_id, "updated_at": helm_custom.now_iso()}},
+        )
+    invalidate_plan_cache(ws_id)
+    return {"ok": True, "workspace_id": ws_id, "owner": added}
+
+
+class CustomEnableInput(BaseModel):
+    tier: str = "configured"
+    custom_billing: bool = True
+
+
+@api_router.post("/admin/custom/workspaces/{workspace_id}/enable")
+async def admin_custom_enable(
+    workspace_id: str, payload: CustomEnableInput, principal=Depends(require_custom_operator),
+):
+    """Turn an existing Trenston company into a custom-dashboard client."""
+    ws = await _custom_workspace_doc(workspace_id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if payload.tier not in helm_custom.TIERS:
+        raise HTTPException(status_code=400, detail="Unknown tier")
+    status = (ws.get("subscription_status") or "").lower()
+    if payload.custom_billing and ws.get("paddle_subscription_id") and status not in ("canceled", "cancelled"):
+        raise HTTPException(
+            status_code=409,
+            detail="This company still pays through Paddle. Cancel that subscription first, or keep Paddle billing.",
+        )
+    upd: dict = {}
+    if not ws.get("custom_dashboard"):
+        owners = await db.memberships.find(
+            {"workspace_id": workspace_id, "pack": "owner", "status": "active"}, {"_id": 0, "email": 1},
+        ).to_list(10)
+        upd["custom_dashboard"] = helm_custom.default_config(
+            title=f"{ws.get('name') or 'Company'} dashboard",
+            tier=payload.tier,
+            approved_emails=[o.get("email") for o in owners],
+        )
+    else:
+        upd["custom_dashboard.enabled"] = True
+        upd["custom_dashboard.tier"] = payload.tier
+        upd["custom_dashboard.updated_at"] = helm_custom.now_iso()
+    if payload.custom_billing:
+        upd.update(CUSTOM_BILLING_FIELDS)
+    await db.workspaces.update_one({"workspace_id": workspace_id}, {"$set": upd})
+    invalidate_plan_cache(workspace_id)
+    return {"ok": True}
+
+
+@api_router.get("/admin/custom/workspaces/{workspace_id}")
+async def admin_custom_get(workspace_id: str, principal=Depends(require_custom_operator)):
+    ws = await _custom_workspace_doc(workspace_id)
+    if not ws or not ws.get("custom_dashboard"):
+        raise HTTPException(status_code=404, detail="Not a custom-dashboard client")
+    mems = await db.memberships.find(
+        {"workspace_id": workspace_id, "status": {"$in": ["active", "invited"]}},
+        {"_id": 0, "email": 1, "status": 1, "pack": 1},
+    ).to_list(500)
+    return {
+        **_custom_summary(ws),
+        "config": ws["custom_dashboard"],
+        "members": mems,
+    }
+
+
+@api_router.put("/admin/custom/workspaces/{workspace_id}/config")
+async def admin_custom_save(workspace_id: str, request: Request, principal=Depends(require_custom_operator)):
+    ws = await _custom_workspace_doc(workspace_id)
+    if not ws or not ws.get("custom_dashboard"):
+        raise HTTPException(status_code=404, detail="Not a custom-dashboard client")
+    try:
+        raw = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Send the config as JSON")
+    try:
+        cfg = helm_custom.clean_config_update(raw, ws["custom_dashboard"])
+    except helm_custom.ConfigError as exc:
+        raise _custom_error(exc)
+    cfg["updated_by"] = principal["user_id"]
+    await db.workspaces.update_one({"workspace_id": workspace_id}, {"$set": {"custom_dashboard": cfg}})
+    return {"ok": True, "config": cfg}
+
+
+@api_router.post("/admin/custom/preview")
+async def admin_custom_preview(request: Request, principal=Depends(require_custom_operator)):
+    """Render unsaved widgets with sample data. Never reads a client's records."""
+    try:
+        raw = await request.json()
+    except Exception:
+        raw = {}
+    try:
+        widgets = helm_custom.clean_widgets((raw or {}).get("widgets"))
+    except helm_custom.ConfigError as exc:
+        raise _custom_error(exc)
+    sources = helm_custom.preview_sources()
+    return {"widgets": [helm_custom.resolve_widget(w, sources) for w in widgets]}
+
+
+class CustomApprovedEmailInput(BaseModel):
+    email: EmailStr
+    pack: str = "member"
+    send_invite: bool = True
+
+
+@api_router.post("/admin/custom/workspaces/{workspace_id}/approved-emails")
+async def admin_custom_add_email(
+    workspace_id: str, payload: CustomApprovedEmailInput, request: Request,
+    principal=Depends(require_custom_operator),
+):
+    ws = await _custom_workspace_doc(workspace_id)
+    if not ws or not ws.get("custom_dashboard"):
+        raise HTTPException(status_code=404, detail="Not a custom-dashboard client")
+    pack = _require_assignable_pack(payload.pack)
+    email = helm_custom.normalize_email(payload.email)
+    approved = ws["custom_dashboard"].get("approved_emails") or []
+    if email not in approved and len(approved) >= helm_custom.MAX_APPROVED_EMAILS:
+        raise HTTPException(status_code=400, detail="This dashboard already has the maximum number of approved emails")
+    await db.workspaces.update_one(
+        {"workspace_id": workspace_id},
+        {"$addToSet": {"custom_dashboard.approved_emails": email},
+         "$set": {"custom_dashboard.updated_at": helm_custom.now_iso()}},
+    )
+    added = await _add_custom_member(
+        ws, email, pack, request=request, inviter="Trenston", send_invite=payload.send_invite,
+    )
+    return {"ok": True, **added}
+
+
+@api_router.delete("/admin/custom/workspaces/{workspace_id}/approved-emails/{email}")
+async def admin_custom_remove_email(workspace_id: str, email: str, principal=Depends(require_custom_operator)):
+    ws = await _custom_workspace_doc(workspace_id)
+    if not ws or not ws.get("custom_dashboard"):
+        raise HTTPException(status_code=404, detail="Not a custom-dashboard client")
+    addr = helm_custom.normalize_email(email)
+    mem = await db.memberships.find_one(
+        {"workspace_id": workspace_id, "email": addr, "status": {"$in": ["active", "invited"]}},
+        {"_id": 0},
+    )
+    if mem and pack_of(mem) == "owner":
+        raise HTTPException(status_code=400, detail="The company owner cannot be removed here")
+    await db.workspaces.update_one(
+        {"workspace_id": workspace_id},
+        {"$pull": {"custom_dashboard.approved_emails": addr},
+         "$set": {"custom_dashboard.updated_at": helm_custom.now_iso()}},
+    )
+    if mem:
+        if mem.get("status") == "invited":
+            await db.memberships.delete_one({"membership_id": mem["membership_id"], "workspace_id": workspace_id})
+        else:
+            await db.memberships.update_one(
+                {"membership_id": mem["membership_id"], "workspace_id": workspace_id},
+                {"$set": {"status": "revoked", "revoked_at": helm_custom.now_iso()}},
+            )
+        invalidate_departments_cache(workspace_id)
+        invalidate_workspace_list_cache(workspace_id)
+    return {"ok": True, "removed_access": bool(mem)}
+
+
 class ApiKeyCreateInput(BaseModel):
     name: Optional[str] = Field(default=None, max_length=helm_api_keys.NAME_MAX_LENGTH)
 
@@ -20476,6 +20981,8 @@ async def _ensure_indexes():
         (db.site_events, [("name", 1), ("created_at", -1)], {}),
         (db.site_event_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),
         (db.api_keys, [("key_hash", 1)], {"unique": True}),
+        (db.custom_inquiries, [("inquiry_id", 1)], {"unique": True}),
+        (db.custom_inquiries, [("created_at", -1)], {}),
         (db.api_keys, [("user_id", 1), ("workspace_id", 1), ("revoked_at", 1)], {}),
         (db.api_keys, [("id", 1)], {"unique": True}),
         (db.api_rate_buckets, [("expires_at", 1)], {"expireAfterSeconds": 0}),

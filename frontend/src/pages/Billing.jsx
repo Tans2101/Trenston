@@ -129,6 +129,26 @@ export default function Billing() {
     );
   }
 
+  if (data.custom_billing) {
+    // Custom-dashboard clients are invoiced by Trenston; self-serve plan changes are refused.
+    return (
+      <div className="max-w-3xl mx-auto" data-testid="billing-custom">
+        <h1 className="text-2xl font-semibold tracking-tight text-helm-fg">Billing</h1>
+        <GlassCard className="mt-6 p-6">
+          <SectionLabel>Custom agreement</SectionLabel>
+          <p className="mt-3 text-sm text-helm-fg">
+            Your company is on {data.plan_label || "Business"} under a custom agreement with Trenston, which includes your custom dashboard.
+            Trenston invoices you directly, so there is nothing to manage here.
+          </p>
+          <p className="mt-3 text-sm text-helm-muted">
+            To change your agreement, add people beyond it, or ask about your invoice, email{" "}
+            <a className="text-helm-gold hover:underline" href="mailto:contact@trenston.com">contact@trenston.com</a>.
+          </p>
+        </GlassCard>
+      </div>
+    );
+  }
+
   const billingEnforced = data.billing_enforced === true;
   const currentPlan = normalizePlan(data.current_plan);
   const pendingPlan = data.pending_plan ? normalizePlan(data.pending_plan) : null;

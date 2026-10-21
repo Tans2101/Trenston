@@ -39,6 +39,7 @@ HANDLED_ELSEWHERE = {
     "oauth_clients",           # OAuth client registrations (e.g. Claude), no tenant data
     "api_rate_buckets",        # rate limiter, keyed by API key id
     "oauth_register_buckets",  # rate limiter, keyed by ip
+    "custom_inquiries",        # public custom-dashboard leads for the operator, not workspace data
 }
 
 

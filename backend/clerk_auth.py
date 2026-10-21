@@ -936,9 +936,12 @@ async def fetch_clerk_user_profile(clerk_user_id: str, *, retries: int = 4) -> d
         first = (data.get("first_name") or "").strip()
         last = (data.get("last_name") or "").strip()
         name = f"{first} {last}".strip() or None
+        verification = (primary or {}).get("verification") or {}
         return {
             "clerk_id": clerk_user_id,
             "email": email,
+            # Only a Clerk-verified address may join invites or link to an existing account.
+            "email_verified": verification.get("status") == "verified",
             "name": name,
             "picture": data.get("image_url"),
         }

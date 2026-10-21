@@ -5,6 +5,7 @@ import {
   Eyebrow,
   MkAccordion,
   MkButton,
+  MkLink,
   MkPage,
   PageHero,
   Reveal,
@@ -57,6 +58,12 @@ export default function Pricing() {
       <section id="plans" className="scroll-mt-16 bg-mk-mist px-6 py-20 md:py-28" aria-label="Plans">
         <div className="mx-auto max-w-7xl">
           <PlanCards authed={authed} onEnter={enter} ctaTestIdPrefix="pricing-page-cta" />
+          <div className="mt-10 flex flex-col gap-4 border-t border-mk-line pt-8 sm:flex-row sm:items-center sm:justify-between" data-testid="pricing-custom-band">
+            <p className="max-w-2xl text-mk-gray">
+              <span className="font-semibold text-mk-black">Larger company?</span> We can build a custom dashboard inside Trenston around your departments and systems.
+            </p>
+            <MkLink to="/custom" className="text-mk-navy">Custom dashboards</MkLink>
+          </div>
         </div>
       </section>
 

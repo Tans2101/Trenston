@@ -16,6 +16,7 @@ describe("quick nav site search pages", () => {
         "/compare/excel-google-sheets",
         "/compare/notion",
         "/compare/power-bi",
+        "/custom",
         "/features",
         "/guides",
         "/guides/how-to-stop-chasing-people-for-updates",

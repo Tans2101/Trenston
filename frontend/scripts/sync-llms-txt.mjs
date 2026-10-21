@@ -71,6 +71,7 @@ export function buildLlmsTxt() {
     `- [What a CEO should check every morning](${ORIGIN}/guides/what-a-ceo-should-check-every-morning)`,
     `- [How to stop chasing people for updates](${ORIGIN}/guides/how-to-stop-chasing-people-for-updates)`,
     `- [Integrations](${ORIGIN}/integrations)`,
+    `- [Custom dashboards for larger companies](${ORIGIN}/custom)`,
     `- [Security](${ORIGIN}/security)`,
     `- [About](${ORIGIN}/about)`,
     `- [Help](${ORIGIN}/help)`,

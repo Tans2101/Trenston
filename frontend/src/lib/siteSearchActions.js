@@ -26,6 +26,13 @@ export const SITE_SEARCH_ACTIONS = [
     keywords: ["plans", "price", "cost", "starter", "growth", "business", "free", "billing"],
   },
   {
+    id: "custom-dashboards",
+    label: "Custom dashboards",
+    to: "/custom",
+    description: "Site",
+    keywords: ["custom", "custom dashboard", "bespoke", "enterprise", "larger company", "tailored", "build for us"],
+  },
+  {
     id: "compare",
     label: "How we compare",
     to: "/compare",

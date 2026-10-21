@@ -57,6 +57,7 @@ Billing is via Paddle. Cancel anytime from Billing.
 - [What a CEO should check every morning](https://www.trenston.com/guides/what-a-ceo-should-check-every-morning)
 - [How to stop chasing people for updates](https://www.trenston.com/guides/how-to-stop-chasing-people-for-updates)
 - [Integrations](https://www.trenston.com/integrations)
+- [Custom dashboards for larger companies](https://www.trenston.com/custom)
 - [Security](https://www.trenston.com/security)
 - [About](https://www.trenston.com/about)
 - [Help](https://www.trenston.com/help)

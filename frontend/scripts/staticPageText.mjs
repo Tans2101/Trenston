@@ -128,6 +128,19 @@ function securitySections() {
   return sections.filter((s) => s.parts.length);
 }
 
+function customSections() {
+  const src = readFileSync(join(pagesDir, "CustomDashboards.jsx"), "utf8");
+  const pairs = (rows, a, b) => rows.map((r) => `${r[a]}: ${r[b]}`);
+  const tiers = evalConst(src, "TIERS").map((t) => `${t.name} (${t.standard}): ${t.body} ${t.setup}, ${t.monthly.toLowerCase()}.`);
+  return [
+    { heading: "How it works", parts: pairs(evalConst(src, "HOW_IT_WORKS"), "title", "body") },
+    { heading: "Pricing", parts: tiers },
+    { heading: "Every level includes", parts: evalConst(src, "INCLUDED") },
+    { heading: "Common questions", parts: pairs(evalConst(src, "FAQ"), "q", "a") },
+    { heading: "Request a custom dashboard", parts: ["Send the form on this page or email contact@trenston.com. You get a fixed quote after a short scoping call."] },
+  ].filter((s) => s.parts.length);
+}
+
 function homeSections() {
   const tagline = marketingExport("TAGLINE") || "";
   const hero = marketingExport("HERO_OUTCOME") || "";
@@ -417,6 +430,7 @@ const NAV = [
   ["/compare/notion", "Trenston vs Notion"],
   ["/guides", "Guides"],
   ["/integrations", "Integrations"],
+  ["/custom", "Custom dashboards"],
   ["/security", "Security"],
   ["/privacy", "Privacy"],
   ["/terms", "Terms"],
@@ -464,6 +478,9 @@ export function staticBodyFor(path, page) {
     const gd = guideSections(guideSlug(path));
     h1 = gd ? gd.h1 : "Guides for founders and CEOs";
     sections = gd ? gd.sections : [];
+  } else if (path === "/custom") {
+    h1 = "Custom dashboards for larger companies";
+    sections = customSections();
   } else if (path === "/integrations") {
     h1 = "Trenston Integrations";
     sections = integrationsSections();

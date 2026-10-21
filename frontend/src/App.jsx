@@ -68,6 +68,9 @@ const QuickImport = lazyWithReload(() => import("@/pages/QuickImport"));
 const CompanyMap = lazyWithReload(() => import("@/pages/CompanyMap"));
 const Maintenance = lazyWithReload(() => import("@/pages/Maintenance"));
 const HR = lazyWithReload(() => import("@/pages/HR"));
+const CustomDashboard = lazyWithReload(() => import("@/pages/CustomDashboard"));
+const CustomClients = lazyWithReload(() => import("@/pages/CustomClients"));
+const CustomDashboards = lazyWithReload(() => import("@/pages/CustomDashboards"));
 
 
 function TrenstonToaster() {
@@ -113,6 +116,8 @@ function DocumentSeo() {
       "/app/help": "Help · Trenston",
       "/app/members": "Team & Access · Trenston",
       "/app/integrations": "Integrations · Trenston",
+      "/app/custom": "Custom dashboard · Trenston",
+      "/app/custom-clients": "Custom clients · Trenston",
     };
     if (page) {
       document.title = page.title;
@@ -233,6 +238,8 @@ function AppRoutes() {
           <Route path="telemetry" element={<Navigate to="/app/metrics" replace />} />
           <Route path="financials" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><Financials /></SectionGate></Suspense>} />
           <Route path="modeling" element={<Suspense fallback={<LoadingScreen label="Loading" />}><SectionGate section="financials"><FinancialModeling /></SectionGate></Suspense>} />
+          <Route path="custom" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CustomDashboard /></Suspense>} />
+          <Route path="custom-clients" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CustomClients /></Suspense>} />
           <Route path="tasks" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Tasks /></Suspense>} />
           <Route path="map" element={<Suspense fallback={<LoadingScreen label="Loading" />}><CompanyMap /></Suspense>} />
           <Route path="automations" element={<Suspense fallback={<LoadingScreen label="Loading" />}><Automations /></Suspense>} />
@@ -271,6 +278,7 @@ function AppRoutes() {
         <Route path="/changelog" element={<Changelog />} />
         <Route path="/status" element={<StatusPage />} />
         <Route path="/integrations" element={<PublicIntegrations />} />
+        <Route path="/custom" element={<CustomDashboards />} />
         <Route path="/help" element={<Help />} />
         <Route path="/security" element={<Security />} />
         <Route path="/privacy" element={<Privacy />} />

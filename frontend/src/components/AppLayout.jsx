@@ -8,7 +8,7 @@ import {
   HelpCircle, Shield, Scale, Settings, Plug, Download, ScrollText,
   Trash2, Building2, CreditCard, ShieldCheck, AlertTriangle, FolderOpen,
   PanelLeft, Info, LayoutGrid, Receipt, LineChart as LineChartIcon, Zap, Network,
-  Waves, FileSpreadsheet,
+  Waves, FileSpreadsheet, Gauge, Briefcase,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -38,11 +38,14 @@ import { PageHelpButton, PageHelpPanel, PageIntro } from "@/components/guide/Pag
 import SmoothTab, { SmoothTabItem } from "@/components/kokonutui/smooth-tab";
 import TrenstonMark from "@/components/HelmMark";
 import { SITE_SEARCH_ACTIONS } from "@/lib/siteSearchActions";
+import { useCustomDashboardStatus } from "@/hooks/useCustomDashboardStatus";
 
 const SKIP_WELCOME_KEY = "trenston.setup.skipWelcome";
 
 const NAV = [
   { to: "/app", label: "Home", icon: LayoutDashboard, id: "home", end: true, group: "Today" },
+  // Custom-dashboard clients only. Label becomes the dashboard's own title.
+  { to: "/app/custom", label: "Custom dashboard", icon: Gauge, id: "custom", customOnly: true, group: "Today" },
   { to: "/app/decisions", label: "Decisions", icon: GitBranch, id: "decisions", group: "Today" },
   { to: "/app/tasks", label: "Tasks", icon: KanbanSquare, id: "tasks", group: "Today" },
   { to: "/app/calendar", label: "Calendar", icon: Calendar, id: "calendar", group: "Today" },
@@ -55,9 +58,13 @@ const NAV = [
   { to: "/app/automations", label: "Automations", icon: Zap, id: "automations", ownerOnly: true, group: "Company" },
   { to: "/app/ask", label: "Ask Trenston", icon: MessageSquareText, id: "ask", group: "Company" },
   { to: "/app/members", label: "Team & Access", icon: UsersRound, id: "members", perm: "members:invite", group: "Company" },
+  // Trenston operator only (ANALYTICS_ADMIN_EMAIL on the API).
+  { to: "/app/custom-clients", label: "Custom clients", icon: Briefcase, id: "custom_clients", operatorOnly: true, group: "Company" },
 ];
 
-function navItemVisible(item, user, { modelingAllowed = false } = {}) {
+function navItemVisible(item, user, { modelingAllowed = false, customEnabled = false, operator = false } = {}) {
+  if (item.customOnly && !customEnabled) return false;
+  if (item.operatorOnly && !operator) return false;
   // Rules create tasks and read finance signals, so only the workspace owner sees Automations.
   if (item.ownerOnly && user?.role !== "owner" && user?.pack !== "owner") return false;
   // Company map: owner and Executives (read-only for Executives).
@@ -452,6 +459,7 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
   // Only ask when Financials is granted — hide Modeling until /modeling/access says allowed.
   const modelingAccess = useFetch(canSeeFinancials ? "/modeling/access" : null);
   const modelingAllowed = Boolean(modelingAccess.data?.allowed);
+  const { customEnabled, customTitle, operator } = useCustomDashboardStatus();
   // Fade the bottom of the nav while links are hidden below, so departments are discoverable.
   const navRef = useRef(null);
   const [moreBelow, setMoreBelow] = useState(false);
@@ -471,8 +479,9 @@ function SidebarContent({ onNavigate, billingEnforced, subscriptionStatus = null
   }, []);
   const isPaid = helmIsPaidPlan(company?.plan, billingEnforced, subscriptionStatus);
   const mainNav = useMemo(
-    () => NAV.filter((item) => navItemVisible(item, user, { modelingAllowed })),
-    [user, modelingAllowed],
+    () => NAV.filter((item) => navItemVisible(item, user, { modelingAllowed, customEnabled, operator }))
+      .map((item) => (item.id === "custom" ? { ...item, label: customTitle } : item)),
+    [user, modelingAllowed, customEnabled, customTitle, operator],
   );
   const deptNav = (deptData?.departments || []).filter((d) => departmentNavVisible(d));
   const canBilling = canManageBilling(user);
@@ -650,13 +659,14 @@ function useQuickNavActions() {
   const canSeeFinancials = (user?.granted_sections || []).includes("financials");
   const modelingAccess = useFetch(canSeeFinancials ? "/modeling/access" : null);
   const modelingAllowed = Boolean(modelingAccess.data?.allowed);
+  const { customEnabled, customTitle, operator } = useCustomDashboardStatus();
 
   return useMemo(() => {
-    const navActions = NAV.filter((item) => navItemVisible(item, user, { modelingAllowed })).map((item) => {
+    const navActions = NAV.filter((item) => navItemVisible(item, user, { modelingAllowed, customEnabled, operator })).map((item) => {
       const Icon = item.icon;
       return {
         id: item.id,
-        label: item.label,
+        label: item.id === "custom" ? customTitle : item.label,
         to: item.to,
         description: "App",
         icon: <Icon className="w-4 h-4" />,
@@ -831,7 +841,7 @@ function useQuickNavActions() {
       quickActions,
       departmentActions: deptActions,
     };
-  }, [user, deptData, isOwner, canBilling, canExportActivity, modelingAllowed]);
+  }, [user, deptData, isOwner, canBilling, canExportActivity, modelingAllowed, customEnabled, customTitle, operator]);
 }
 
 function QuickNavPalette({ open, onOpenChange, variant = "dialog", searchRef, enableShortcut = true }) {

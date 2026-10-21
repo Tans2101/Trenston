@@ -30,6 +30,7 @@ describe("seoPages", () => {
         "/changelog",
         "/compare",
         "/compare/excel-google-sheets",
+        "/custom",
         "/compare/notion",
         "/compare/power-bi",
         "/features",
