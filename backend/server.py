@@ -2370,6 +2370,31 @@ async def compute_financials(
     return fin
 
 
+async def compute_financials_for_principal(
+    principal: dict,
+    *,
+    return_entries: bool = False,
+    bypass_cache: bool = False,
+) -> dict:
+    """Request-path financials: always apply Accounting & Finance department scope.
+
+    CEO/Exec get ``department_ids=None`` (company-wide). Everyone else is limited
+    to departments they can access — including finance-pack and section-grant
+    users who must not see another team's books via Modeling, Briefing, etc.
+    Workspace-level jobs (insights cron, automations) keep calling
+    ``compute_financials(workspace_id)`` unscoped on purpose.
+    """
+    dept_ids = await dept_access.accessible_department_ids(
+        db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+    )
+    return await compute_financials(
+        principal["workspace_id"],
+        department_ids=dept_ids,
+        return_entries=return_entries,
+        bypass_cache=bypass_cache,
+    )
+
+
 def _finite_or_none(value) -> Optional[float]:
     if value is None or isinstance(value, bool):
         return None
@@ -4683,7 +4708,7 @@ async def briefing(principal=Depends(get_principal)):
     async def _load_fin():
         if not has_fin_access:
             return None
-        return await compute_financials(c["workspace_id"])
+        return await compute_financials_for_principal(principal)
 
     async def _load_acts():
         return await db.activities.find(
@@ -5424,7 +5449,7 @@ async def generate_briefing(principal=Depends(require_pro_perm("briefing:generat
     # is max(fin, acts, ops, calendar, freshness) instead of sum.
     async def _load_fin():
         # Never ground the note on money for someone who can't see Financials.
-        return await compute_financials(c["workspace_id"]) if has_fin_access else None
+        return await compute_financials_for_principal(principal) if has_fin_access else None
 
     fin, acts, ops_metrics, cal_snap, freshness = await asyncio.gather(
         _load_fin(),
@@ -5921,7 +5946,7 @@ async def decision_ripple_data(principal=Depends(get_principal)):
     """Baseline from real Financials plus any saved decision effects."""
     await _require_ripple_access(principal)
     ws_id = principal["workspace_id"]
-    fin = await compute_financials(ws_id)
+    fin = await compute_financials_for_principal(principal)
     rows = await db.decision_effects.find({"workspace_id": ws_id}, {"_id": 0, "workspace_id": 0}).to_list(500)
     return {
         "baseline": modeling_baseline_from_fin(fin),
@@ -6813,7 +6838,9 @@ async def update_deal(deal_id: str, payload: DealInput, principal=Depends(requir
 
 @api_router.delete("/deals/{deal_id}")
 async def delete_deal(deal_id: str, principal=Depends(require_section("sales", "sales:write"))):
-    await db.deals.delete_one({"id": deal_id, "workspace_id": principal["workspace_id"]})
+    res = await db.deals.delete_one({"id": deal_id, "workspace_id": principal["workspace_id"]})
+    if not getattr(res, "deleted_count", 0):
+        raise HTTPException(status_code=404, detail="Deal not found")
     # Deleting a won deal must not leave orphaned auto-booked revenue behind.
     await _remove_deal_revenue_entry(principal["workspace_id"], deal_id)
     invalidate_workspace_list_cache(principal["workspace_id"], "deals", "me_work")
@@ -7080,7 +7107,7 @@ async def _scrub_orphaned_seed_telemetry(workspace_id: str, c: dict) -> None:
 @api_router.get("/telemetry")
 async def telemetry(principal=Depends(require_section("telemetry", "telemetry:write"))):
     c = await get_ws(principal["workspace_id"])
-    fin = await compute_financials(c["workspace_id"], return_entries=True)
+    fin = await compute_financials_for_principal(principal, return_entries=True)
     items = c["tasks"]["items"]
     open_tasks = len([t for t in items if t.get("column") != "done"])
     headcount = c.get("employees") or len(c["people"]["people"])
@@ -7960,6 +7987,9 @@ async def import_financial_document_from_drive(
     return {"document_id": doc_id, "status": "uploaded"}
 
 
+_FINANCIAL_EXPORT_ROW_CAP = 5000
+
+
 @api_router.post("/financials/export-sheets")
 async def export_financials_to_sheets(principal=Depends(require_financials_view)):
     c = await get_ws(principal["workspace_id"])
@@ -7973,7 +8003,18 @@ async def export_financials_to_sheets(principal=Depends(require_financials_view)
     entry_filt = dept_access.apply_department_filter(
         {"workspace_id": principal["workspace_id"]}, dept_ids,
     )
-    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).sort("month", -1).to_list(5000)
+    # Ask for one past the cap so we can refuse a silently incomplete export.
+    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).sort(
+        "month", -1,
+    ).to_list(_FINANCIAL_EXPORT_ROW_CAP + 1)
+    if len(entries) > _FINANCIAL_EXPORT_ROW_CAP:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Ledger has more than {_FINANCIAL_EXPORT_ROW_CAP} rows. "
+                "Filter by month on Financials or contact support for a full export."
+            ),
+        )
     company = c.get("name") or "Trenston"
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     summary_rows = [
@@ -8168,12 +8209,13 @@ async def edit_fin_entry(entry_id: str, payload: FinEntryInput, principal=Depend
 @api_router.delete("/financials/entries/{entry_id}")
 async def delete_fin_entry(entry_id: str, principal=Depends(require_section("financials", "finance:write"))):
     doc = await db.financial_entries.find_one({"id": entry_id, "workspace_id": principal["workspace_id"]}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Entry not found")
     await db.financial_entries.delete_one({"id": entry_id, "workspace_id": principal["workspace_id"]})
     invalidate_financials_cache(principal["workspace_id"])
-    if doc:
-        label = normalize_entry_name(doc.get("name"), doc.get("category"))
-        await log_activity(principal, "financials", "entry.delete",
-                           f"Removed a {doc.get('type')} entry · {label} ({doc.get('month')})")
+    label = normalize_entry_name(doc.get("name"), doc.get("category"))
+    await log_activity(principal, "financials", "entry.delete",
+                       f"Removed a {doc.get('type')} entry · {label} ({doc.get('month')})")
     return {"ok": True}
 
 
@@ -8204,7 +8246,7 @@ async def update_fin_settings(payload: FinSettingsInput, principal=Depends(requi
         sets["financial_settings.currency"] = currency
     await db.workspaces.update_one({"workspace_id": principal["workspace_id"]}, {"$set": sets})
     invalidate_financials_cache(principal["workspace_id"])
-    fin = await compute_financials(principal["workspace_id"])
+    fin = await compute_financials_for_principal(principal)
     runway = fin["runway_months"]
     cur = fin.get("currency") or "usd"
     cash_note = (
@@ -8382,7 +8424,7 @@ async def modeling_access(principal=Depends(get_principal)):
 
 @api_router.get("/modeling/baseline")
 async def modeling_baseline(principal=Depends(require_modeling)):
-    fin = await compute_financials(principal["workspace_id"])
+    fin = await compute_financials_for_principal(principal)
     return modeling_baseline_from_fin(fin)
 
 
@@ -8615,7 +8657,19 @@ async def import_financials_csv_confirm(
             "entries": (prior or {}).get("entry_ids") or [],
             "replayed": True,
         }
-    await db.financial_entries.insert_many(docs)
+    try:
+        await db.financial_entries.insert_many(docs)
+    except Exception:
+        # Receipt claimed the fingerprint before ledger rows existed. Drop it so a
+        # retry can re-import instead of returning a phantom success.
+        logger.exception("csv import insert failed for %s; rolling back receipt", ws_id)
+        await db.csv_import_receipts.delete_one(
+            {"workspace_id": ws_id, "fingerprint": fingerprint},
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Import failed. Nothing was added, please try again",
+        )
     invalidate_financials_cache(ws_id)
     for d in docs:
         d.pop("_id", None)
@@ -9702,18 +9756,30 @@ async def reports(principal=Depends(get_principal)):
     if cached is not None:
         return cached
     c = await get_ws(principal["workspace_id"])
-    fin = await compute_financials(c["workspace_id"])
+    # Weekly baseline is always company-wide so a dept-scoped viewer cannot
+    # overwrite workspace snapshots with a partial ledger.
+    company_fin = await compute_financials(c["workspace_id"])
     items = c["tasks"]["items"]
     day = tz_utils.workspace_today_iso(c)
     ups = await db.updates.find({"workspace_id": c["workspace_id"], "day": day}, {"_id": 0}).to_list(200)
     headcount = c.get("employees") or len(c["people"]["people"])
     manual = [r for r in (c.get("manual_reports") or []) if r.get("source") != helm_dept_drafts.SOURCE]
-    current = _report_metric_snapshot(fin, items, ups, headcount)
+    current = _report_metric_snapshot(company_fin, items, ups, headcount)
     prior = await _apply_report_snapshot(c["workspace_id"], current)
     can_write = await can_section_write(principal, "reports", "reports:write")
     can_export_financials = await can_access_financials(principal)
+    fin = company_fin
+    use_prior = prior
+    if can_export_financials:
+        dept_ids = await dept_access.accessible_department_ids(
+            db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
+        )
+        if dept_ids is not None:
+            fin = await compute_financials(c["workspace_id"], department_ids=dept_ids)
+            # Saved baseline is whole-company — don't compare against a scoped card.
+            use_prior = None
     auto = _computed_report_cards(
-        c, fin, items, ups, headcount, prior=prior, include_financials=can_export_financials,
+        c, fin, items, ups, headcount, prior=use_prior, include_financials=can_export_financials,
     )
     drafts = await helm_dept_drafts.list_open_drafts(db, c["workspace_id"])
     financial_months: list = []
@@ -9721,20 +9787,6 @@ async def reports(principal=Depends(get_principal)):
     if can_export_financials:
         financial_months = list(fin.get("months") or [])
         financial_latest_month = fin.get("latest_month")
-        dept_ids = await dept_access.accessible_department_ids(
-            db, principal, dept_catalog.TYPE_ACCOUNTING_FINANCE,
-        )
-        if dept_ids is not None:
-            scoped = await compute_financials(c["workspace_id"], department_ids=dept_ids)
-            financial_months = list(scoped.get("months") or [])
-            financial_latest_month = scoped.get("latest_month")
-            # Someone limited to some finance departments must not see whole-company
-            # money in the Money check-in card. Show their scope, without a weekly
-            # comparison (the saved baseline is company-wide).
-            scoped_cards = _computed_report_cards(
-                c, scoped, items, ups, headcount, prior=None, include_financials=True,
-            )
-            auto = [scoped_cards[0]] + [card for card in auto if card["id"] != "auto_fin"]
     can_generate_pack = (
         "reports:pack" in perms_for(principal["pack"])
         and workspace_allows(c, helm_plans.FEATURE_ADVANCED_REPORTS)
@@ -10387,7 +10439,17 @@ async def _assemble_financial_export_for(principal, period: Optional[str]):
     entry_filt = dept_access.apply_department_filter(
         {"workspace_id": principal["workspace_id"]}, dept_ids,
     )
-    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(5000)
+    entries = await db.financial_entries.find(entry_filt, {"_id": 0}).to_list(
+        _FINANCIAL_EXPORT_ROW_CAP + 1,
+    )
+    if len(entries) > _FINANCIAL_EXPORT_ROW_CAP:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Ledger has more than {_FINANCIAL_EXPORT_ROW_CAP} rows. "
+                "Narrow the period or contact support for a full export."
+            ),
+        )
     ws = await get_ws(principal["workspace_id"])
     settings = dict((ws or {}).get("financial_settings") or {})
     try:
@@ -15735,7 +15797,7 @@ async def ask_helm(payload: AskInput, principal=Depends(require_pro_perm("ask:us
         c["workspace_id"], principal["user_id"], helm_analytics.EVENT_ASK_HELM, {},
     )
 
-    fin = await compute_financials(c["workspace_id"]) if has_fin_access else {}
+    fin = await compute_financials_for_principal(principal) if has_fin_access else {}
 
     ask_dept_specs = (
         (dept_catalog.TYPE_SALES, "deals"),

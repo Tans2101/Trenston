@@ -45,7 +45,7 @@ async def test_generate_briefing_awaits_calendar_concurrently_with_fin():
     }
     order: list[str] = []
 
-    async def slow_fin(_wid):
+    async def slow_fin(_wid, department_ids=None, *, return_entries=False, bypass_cache=False):
         order.append("fin_start")
         await asyncio.sleep(0.05)
         order.append("fin_done")

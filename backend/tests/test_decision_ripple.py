@@ -20,7 +20,7 @@ def _setup(monkeypatch, *, fin_access=True):
     async def access(_p):
         return fin_access
 
-    async def fin(_ws):
+    async def fin(_ws, department_ids=None, *, return_entries=False, bypass_cache=False):
         return {"current_month": "2026-10", "has_data": True, "cash_entered": True, "cash_value": 500000,
                 "ledger_months": [{"month": "2026-09", "revenue": 100000, "expenses": 120000}],
                 "currency": "php"}
