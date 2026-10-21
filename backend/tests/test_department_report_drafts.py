@@ -58,6 +58,17 @@ def test_production_draft_lists_completed_work_orders():
     assert doc["metrics"] == [{"label": "Work orders finished", "value": "2"}]
 
 
+def test_production_draft_includes_legacy_done_status():
+    spec = drafts.SPEC_BY_TYPE[catalog.TYPE_PRODUCTION]
+    items = [
+        {"id": "legacy", "reference": "WO-9", "status": "done", "completed_at": "2026-09-07T12:00:00+00:00"},
+        {"id": "open", "reference": "WO-10", "status": "in_production", "completed_at": "2026-09-07T12:00:00+00:00"},
+    ]
+    start, end, _, _ = drafts.week_window(NOW)
+    kept = drafts.filter_completed(items, spec, start, end)
+    assert [i["id"] for i in kept] == ["legacy"]
+
+
 def test_old_completions_are_not_in_this_week():
     spec = drafts.SPEC_BY_TYPE[catalog.TYPE_LEGAL]
     items = [

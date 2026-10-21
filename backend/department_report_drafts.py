@@ -32,7 +32,9 @@ DEPT_SPECS = (
         "name": "Production",
         "collection": "production_work_orders",
         "status_field": "status",
+        # Canonical queue status is "completed"; accept legacy "done" (decision_engine too).
         "done_value": "completed",
+        "done_values": ("completed", "done"),
         "label_field": "reference",
         "metric_label": "Work orders finished",
         "noun": "work order",
@@ -218,10 +220,18 @@ def serialize_draft(doc: dict) -> dict:
     }
 
 
+def _done_statuses(spec: dict) -> tuple[str, ...]:
+    vals = spec.get("done_values")
+    if vals:
+        return tuple(vals)
+    return (spec["done_value"],)
+
+
 def filter_completed(rows: list[dict], spec: dict, start: datetime, end: datetime) -> list[dict]:
+    done = set(_done_statuses(spec))
     out = []
     for row in rows:
-        if (row.get(spec["status_field"]) or "") != spec["done_value"]:
+        if (row.get(spec["status_field"]) or "") not in done:
             continue
         if in_week(row, start, end):
             out.append(row)
@@ -232,7 +242,10 @@ def filter_completed(rows: list[dict], spec: dict, start: datetime, end: datetim
 async def _rows(db, spec: dict, workspace_id: str) -> list[dict]:
     col = getattr(db, spec["collection"])
     cursor = col.find(
-        {"workspace_id": workspace_id, spec["status_field"]: spec["done_value"]},
+        {
+            "workspace_id": workspace_id,
+            spec["status_field"]: {"$in": list(_done_statuses(spec))},
+        },
         {"_id": 0},
     )
     if hasattr(cursor, "to_list"):
@@ -326,6 +339,21 @@ async def run_department_drafts(db, *, now: datetime | None = None) -> dict:
                     {"$set": {k: v for k, v in doc.items() if k != "id"}},
                 )
             else:
-                await db.department_report_drafts.insert_one(doc)
+                try:
+                    await db.department_report_drafts.insert_one(doc)
+                except Exception as exc:
+                    # Unique (workspace_id, department_type, week_start) — overlapping cron.
+                    from pymongo.errors import DuplicateKeyError
+                    if not isinstance(exc, DuplicateKeyError):
+                        raise
+                    await db.department_report_drafts.update_one(
+                        {
+                            "workspace_id": wid,
+                            "department_type": spec["type"],
+                            "week_start": week_key,
+                            "status": STATUS_DRAFT,
+                        },
+                        {"$set": {k: v for k, v in doc.items() if k not in ("id", "created_at")}},
+                    )
             stats["drafts_upserted"] += 1
     return stats
