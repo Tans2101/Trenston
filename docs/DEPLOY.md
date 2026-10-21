@@ -113,7 +113,7 @@ Full walkthrough: **[docs/R2_SETUP.md](R2_SETUP.md)**.
 | `GOOGLE_CLIENT_ID` | Google **integration** OAuth client (Calendar/Gmail/Sheets/Drive) — not login |
 | `GOOGLE_CLIENT_SECRET` | matching secret |
 | `ANTHROPIC_API_KEY` | from step 3 |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5` |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` |
 | `PADDLE_API_KEY` | Paddle API key |
 | `PADDLE_CLIENT_TOKEN` | Paddle.js client token |
 | `PADDLE_PRICE_ID_STARTER` | Paddle price ID for Starter — create with 7-day trial |

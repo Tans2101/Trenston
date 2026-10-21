@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "backend/llm.py": {
-    "mtime": 1792127303.850234,
-    "seen": 1792543824.6142423,
-    "ast_hash": "d6b8092a32e3b7f9f015f4a3f0427f35",
+    "mtime": 1792552733.1267428,
+    "seen": 1792552847.5078242,
+    "ast_hash": "aff6528838f2d2a4b83dfa072950cc95",
     "semantic_hash": ""
   },
   "backend/maintenance_ops.py": {
@@ -1146,9 +1146,9 @@
     "semantic_hash": "e989351589ce10e524e99e1bbbd726d8"
   },
   "frontend/package.json": {
-    "mtime": 1791958095.6774917,
-    "seen": 1792543824.6145346,
-    "ast_hash": "1a9f5d198f9cc394cc8ba9487dc6d1aa",
+    "mtime": 1792552787.3809104,
+    "seen": 1792552847.5081935,
+    "ast_hash": "21685ebd6289bbed7ee64c8a9e615cd2",
     "semantic_hash": ""
   },
   "frontend/plugins/health-check/health-endpoints.js": {
@@ -4986,9 +4986,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "mtime": 1791958095.6694918,
-    "seen": 1792543824.6154168,
-    "ast_hash": "c692b98b8f0e0c172b6a119271237bdb",
+    "mtime": 1792552830.4221203,
+    "seen": 1792552847.5093267,
+    "ast_hash": "3da2f25489647f5c3f2c484317f8b822",
     "semantic_hash": ""
   },
   ".github/workflows/deploy-render.yml": {
@@ -5004,21 +5004,21 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1791941776.5050912,
-    "seen": 1792543824.6154199,
-    "ast_hash": "052184736754d69597e14744416a7d35",
+    "mtime": 1792552733.127695,
+    "seen": 1792552847.5093322,
+    "ast_hash": "e76dd4ac799eed74f75461f39849a5d4",
     "semantic_hash": ""
   },
   "backend/requirements-prod.txt": {
-    "mtime": 1791958095.6694918,
-    "seen": 1792543824.6154206,
-    "ast_hash": "d1bab553174b8dfe45b081fbec0939a2",
+    "mtime": 1792552733.1234426,
+    "seen": 1792552847.509334,
+    "ast_hash": "35c9997b6943add9a7bab1ca27b8919c",
     "semantic_hash": ""
   },
   "backend/requirements.txt": {
-    "mtime": 1792234252.2519882,
-    "seen": 1792543824.615422,
-    "ast_hash": "f2dc6e74ba83f49cc4378820c5d77089",
+    "mtime": 1792552744.315543,
+    "seen": 1792552847.5093358,
+    "ast_hash": "66e7a7eade22e57311010c0d1dfb94e2",
     "semantic_hash": ""
   },
   "backend/runtime.txt": {
@@ -5028,9 +5028,9 @@
     "semantic_hash": ""
   },
   "docs/DEPLOY.md": {
-    "mtime": 1792331804.1500604,
-    "seen": 1792543824.6154256,
-    "ast_hash": "abdffe04867e93f4489cefeda9a6e48a",
+    "mtime": 1792552733.1281588,
+    "seen": 1792552847.50934,
+    "ast_hash": "b5f9ddd2b0f58563801b2e9b79e43d84",
     "semantic_hash": ""
   },
   "docs/GOOGLE_WORKSPACE_AND_CLOUD.txt": {
@@ -5052,9 +5052,9 @@
     "semantic_hash": ""
   },
   "docs/RENDER_SETUP.md": {
-    "mtime": 1790768004.3449821,
-    "seen": 1792543824.6154292,
-    "ast_hash": "13d433432c144029850ebabd16b8bd5f",
+    "mtime": 1792552733.1285052,
+    "seen": 1792552847.5093455,
+    "ast_hash": "4f61c29207a8d1e9280c4e003618facc",
     "semantic_hash": ""
   },
   "docs/TRENSTON_MIGRATION.md": {
@@ -5082,8 +5082,8 @@
     "semantic_hash": ""
   },
   "frontend/public/llms.txt": {
-    "mtime": 1792543795.4240327,
-    "seen": 1792543824.615438,
+    "mtime": 1792552811.289765,
+    "seen": 1792552847.5093575,
     "ast_hash": "6672d63f48b7a4e09ffaf68a5cc03257",
     "semantic_hash": ""
   },
@@ -5100,9 +5100,9 @@
     "semantic_hash": ""
   },
   "render.yaml": {
-    "mtime": 1792331804.1500604,
-    "seen": 1792543824.6154428,
-    "ast_hash": "9a855f129e1d22c27ba91793f5ac8370",
+    "mtime": 1792552733.1259184,
+    "seen": 1792552847.5093637,
+    "ast_hash": "727930a4cb0b4ed772af00a642299b37",
     "semantic_hash": ""
   },
   "favicon-and-profile/trenston-medallion-cream-1024.png": {
