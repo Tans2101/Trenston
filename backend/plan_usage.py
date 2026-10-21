@@ -185,12 +185,16 @@ async def get_period_ask_count(db, workspace_id: str, period_key: str) -> int:
 
 
 async def acquire_period_ask_slot(db, workspace_id: str, period_key: str, limit: int) -> bool:
-    """Atomically consume one Ask Trenston slot for the billing period. False when at cap."""
+    """Atomically consume one Ask Trenston slot for the billing period. False when at cap.
+
+    ``limit <= 0`` means Ask is disabled for the plan (same contract as extract slots),
+    not unlimited — callers that treat 0 as “skip quota” must not call this.
+    """
     from pymongo import ReturnDocument
     from pymongo.errors import DuplicateKeyError
 
     if limit <= 0:
-        return True
+        return False
     now = datetime.now(timezone.utc).isoformat()
     filt = {
         "workspace_id": workspace_id,

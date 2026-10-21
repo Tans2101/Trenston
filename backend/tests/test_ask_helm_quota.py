@@ -40,6 +40,18 @@ async def test_acquire_period_ask_slot_respects_limit():
 
 
 @pytest.mark.asyncio
+async def test_acquire_period_ask_slot_zero_limit_is_disabled_not_unlimited():
+    """ask_helm_mo 0 means disabled — must match extract slot semantics (deny)."""
+    coll = MagicMock()
+    coll.find_one_and_update = AsyncMock()
+    db = MagicMock()
+    db.document_usage_periods = coll
+    assert await plan_usage.acquire_period_ask_slot(db, "ws1", "2026-09-01", 0) is False
+    assert await plan_usage.acquire_period_ask_slot(db, "ws1", "2026-09-01", -1) is False
+    coll.find_one_and_update.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_acquire_period_extract_slot_respects_limit():
     coll = MagicMock()
     coll.find_one_and_update = AsyncMock(side_effect=[
