@@ -221,6 +221,46 @@ def test_overdue_tasks_uses_parseable_dates_only():
     assert overdue[0]["assignee_user_id"] == "u1"
 
 
+def test_parse_task_due_date_rejects_ambiguous_day_month():
+    """03/04/2026 is Mar 4 (US) or Apr 3 (EU) — must not invent overdue."""
+    assert eng.parse_task_due_date("03/04/2026") is None
+    assert eng.parse_task_due_date("3/4/26") is None
+    # Unambiguous: day > 12 forces DMY; month-first when day > 12 in second slot.
+    assert eng.parse_task_due_date("15/01/2026") == date(2026, 1, 15)
+    assert eng.parse_task_due_date("01/15/2026") == date(2026, 1, 15)
+    assert eng.parse_task_due_date("2026-03-04") == date(2026, 3, 4)
+    assert eng.parse_task_due_date("Mar 4, 2026") == date(2026, 3, 4)
+
+
+def test_overdue_tasks_skip_ambiguous_slash_dates():
+    today = date(2026, 9, 4)
+    tasks = [
+        {"id": "amb", "title": "Ambiguous", "column": "backlog", "due": "03/04/2026"},
+        {"id": "ok", "title": "ISO late", "column": "backlog", "due": "2026-08-01"},
+    ]
+    overdue = eng.detect_overdue_tasks(tasks, today=today)
+    assert [t["related_id"] for t in overdue] == ["ok"]
+
+
+def test_expense_spike_skips_non_numeric_amounts():
+    by_month = {
+        "2026-07": {"Payroll": 100000, "Cloud": "n/a"},
+        "2026-08": {"Payroll": 100000, "Cloud": "boom"},
+    }
+    assert eng.detect_expense_spike(by_month) == []
+
+
+def test_runway_risk_ignores_non_numeric_runway():
+    fin = {
+        "has_data": True,
+        "runway_months": "unknown",
+        "burn": "$10K",
+        "cash": "$100K",
+        "burn_series": [{"month": "Jul", "burn": 10000}, {"month": "Aug", "burn": 10000}],
+    }
+    assert eng.detect_runway_risk(fin) is None
+
+
 def test_recurring_blockers_needs_consecutive_days():
     updates = [
         {"user_id": "u1", "user_name": "Maya", "day": "2026-09-02", "blocker": True, "text": "Waiting on legal"},

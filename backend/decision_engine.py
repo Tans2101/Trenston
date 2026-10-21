@@ -174,17 +174,20 @@ def parse_task_due_date(due) -> Optional[date]:
     """Return a calendar date when `due` parses cleanly.
 
     Free-text due dates (e.g. "Wed", "This week") cannot be evaluated for overdue status.
+    Ambiguous numeric day/month pairs (e.g. ``03/04/2026``) return None — same rule as
+    ``quick_import.parse_date`` — so EU vs US interpretation never invents an overdue.
     """
     if due is None:
         return None
     s = str(due).strip()
     if not s:
         return None
-    for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%m/%d/%Y", "%d/%m/%Y", "%b %d %Y", "%B %d, %Y", "%b %d, %Y"):
-        try:
-            return datetime.strptime(s, fmt).date()
-        except ValueError:
-            continue
+    # Single source of truth for spreadsheet-style dates (rejects ambiguous D/M).
+    from quick_import import parse_date as _qi_parse_date
+
+    parsed = _qi_parse_date(s)
+    if parsed is not None:
+        return parsed
     try:
         return datetime.fromisoformat(s.replace("Z", "+00:00")).date()
     except ValueError:
@@ -231,8 +234,15 @@ def detect_runway_risk(fin: dict) -> Optional[dict]:
     """
     if not fin or not fin.get("has_data"):
         return None
-    runway = fin.get("runway_months")
+    runway_raw = fin.get("runway_months")
     if fin.get("cash_entered") is False:
+        runway_raw = None
+    runway: float | None
+    try:
+        runway = float(runway_raw) if runway_raw is not None else None
+    except (TypeError, ValueError):
+        runway = None
+    if runway is not None and not math.isfinite(runway):
         runway = None
     burn_series = fin.get("burn_series") or []
     reasons = []
@@ -244,8 +254,11 @@ def detect_runway_risk(fin: dict) -> Optional[dict]:
 
     burn_delta_pct = None
     if len(burn_series) >= 2:
-        prev = float(burn_series[-2].get("burn") or 0)
-        curr = float(burn_series[-1].get("burn") or 0)
+        try:
+            prev = float(burn_series[-2].get("burn") or 0)
+            curr = float(burn_series[-1].get("burn") or 0)
+        except (TypeError, ValueError):
+            prev, curr = 0.0, 0.0
         if prev > 0 and (curr - prev) / prev >= BURN_INCREASE_PCT:
             burn_delta_pct = round((curr - prev) / prev * 100, 1)
             reasons.append(
@@ -282,9 +295,13 @@ def detect_expense_spike(expense_by_month: dict, *, currency: str = "usd") -> li
     prev_cats = expense_by_month.get(prev_m) or {}
     curr_cats = expense_by_month.get(curr_m) or {}
     out = []
-    for cat, curr_amt in curr_cats.items():
-        prev_amt = float(prev_cats.get(cat) or 0)
-        if prev_amt <= 0:
+    for cat, curr_raw in curr_cats.items():
+        try:
+            prev_amt = float(prev_cats.get(cat) or 0)
+            curr_amt = float(curr_raw or 0)
+        except (TypeError, ValueError):
+            continue
+        if prev_amt <= 0 or curr_amt <= 0:
             continue
         if (curr_amt - prev_amt) / prev_amt < EXPENSE_SPIKE_PCT:
             continue
@@ -304,7 +321,7 @@ def detect_expense_spike(expense_by_month: dict, *, currency: str = "usd") -> li
             prev_month=prev_m,
             curr_month=curr_m,
             prev_amount=round(prev_amt, 2),
-            curr_amount=round(float(curr_amt), 2),
+            curr_amount=round(curr_amt, 2),
             delta_pct=delta_pct,
         ))
     return out
@@ -1083,7 +1100,7 @@ def detect_overdue_work_orders(work_orders: list, *, today: Optional[date] = Non
                 f"({days_late} day(s) late) and is still '{wo.get('status')}'."
             ),
             related_id=wo.get("id"),
-            department_type="production",
+            department_type=TYPE_PRODUCTION,
             department_name="Production",
             item_label=label,
             due=due_d.isoformat(),
@@ -1156,7 +1173,7 @@ def detect_overdue_procurement_requests(requests: list, *, today: Optional[date]
                     )
                 ),
                 related_id=req.get("id"),
-                department_type="procurement",
+                department_type=TYPE_PROCUREMENT,
                 department_name="Procurement",
                 item_label=item,
                 due=due_d.isoformat(),
@@ -1175,7 +1192,7 @@ def detect_overdue_procurement_requests(requests: list, *, today: Optional[date]
                     f"({days_late} day(s) late) and is still ordered."
                 ),
                 related_id=req.get("id"),
-                department_type="procurement",
+                department_type=TYPE_PROCUREMENT,
                 department_name="Procurement",
                 item_label=item,
                 due=due_d.isoformat(),
@@ -1228,7 +1245,7 @@ def detect_upcoming_legal_deadlines(
                     f"({days_late} day(s) ago) and is still '{m.get('status')}'."
                 ),
                 related_id=m.get("id"),
-                department_type="legal",
+                department_type=TYPE_LEGAL,
                 department_name="Legal",
                 item_label=title,
                 matter_type=mtype,
@@ -1248,7 +1265,7 @@ def detect_upcoming_legal_deadlines(
                 summary=f"{label} is due {when}",
                 detail=f"{label} is due {due_d.isoformat()} ({when}).",
                 related_id=m.get("id"),
-                department_type="legal",
+                department_type=TYPE_LEGAL,
                 department_name="Legal",
                 item_label=title,
                 matter_type=mtype,
