@@ -116,6 +116,7 @@ def test_promises_come_from_tasks_decisions_and_legal_dates():
     assert not {"task:t_far", "task:t_done", "task:t_free"} & set(n)
     assert n["decision:d1"]["sub"] == "Waiting on you · due 2026-10-20" and "decision:d2" not in n
     assert n["legal:L1"]["label"] == "Tax filing due"
+    assert n["legal:L1"]["to"] == "/app/departments/legal"
     assert n["task:t_late"]["sub"].count("Tansher") == 0  # solo: no names
 
 

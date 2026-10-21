@@ -242,7 +242,7 @@ def build_company_map(
     for i, s in enumerate(upcoming_legal[:3]):
         nid = f"legal:{s.get('related_id') or i}"
         add(id=nid, kind="deadline", group="promises", label=s.get("summary") or "Legal deadline",
-            sub="Coming up", tone="warn", to="/app/legal")
+            sub="Coming up", tone="warn", to="/app/departments/legal")
         link("promises", nid, "warn")
 
     # --------------------------------------------------------------- people
