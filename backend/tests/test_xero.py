@@ -81,6 +81,46 @@ def test_parse_xero_dotnet_date():
     assert mapped["month"] == "2024-04"
 
 
+def test_undated_invoice_is_skipped_not_assigned_today():
+    """Missing Date/DateString used to invent UTC today → wrong ledger month."""
+    inv = {
+        "Type": "ACCREC",
+        "Status": "AUTHORISED",
+        "InvoiceID": "nodate",
+        "Total": 10,
+        "Contact": {"Name": "X"},
+    }
+    assert xr._parse_xero_date(inv) == ""
+    assert xr.map_xero_invoice(inv) is None
+    assert xr.map_xero_bank_transaction({
+        "Type": "SPEND", "Status": "AUTHORISED", "BankTransactionID": "b1", "Total": 5,
+    }) is None
+
+
+def test_token_needs_refresh_tolerates_bad_expires_in():
+    fresh = {
+        "obtained_at": datetime.now(timezone.utc).isoformat(),
+        "expires_in": "not-a-number",
+    }
+    assert xr._token_needs_refresh(fresh) is False
+    stale = {
+        "obtained_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+        "expires_in": "nope",
+    }
+    assert xr._token_needs_refresh(stale) is True
+
+
+def test_xero_money_tolerates_bad_subtotal_and_tax():
+    """Corrupt SubTotal/TotalTax used to ValueError mid-sync for one document."""
+    money = xr._xero_money(
+        {"CurrencyCode": "USD", "CurrencyRate": 1, "SubTotal": "bad", "TotalTax": "x"},
+        100.0,
+    )
+    # money_fields falls back amount_net to amount when SubTotal is unusable.
+    assert money["amount_home"] == 100.0
+    assert float(money.get("tax_amount") or 0) == 0.0
+
+
 def test_refresh_skips_when_fresh():
     tokens = {
         "access_token": "abc",

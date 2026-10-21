@@ -52,6 +52,7 @@ _DATE_MS_RE = re.compile(r"/Date\((-?\d+)")
 XERO_MIN_INTERVAL_SEC = 1.05
 XERO_MAX_RETRIES_429 = 3
 _last_xero_call_at = 0.0
+_xero_throttle_lock = asyncio.Lock()
 
 
 class XeroAuthError(Exception):
@@ -87,7 +88,12 @@ def _token_needs_refresh(tokens: dict) -> bool:
         obtained_dt = datetime.fromisoformat(obtained.replace("Z", "+00:00"))
     except ValueError:
         return True
-    expires_in = int(tokens.get("expires_in", 1800))
+    try:
+        expires_in = int(tokens.get("expires_in", 1800))
+    except (TypeError, ValueError):
+        expires_in = 1800
+    if expires_in < 0:
+        expires_in = 1800
     return obtained_dt + timedelta(seconds=max(expires_in - 300, 0)) <= datetime.now(timezone.utc)
 
 
@@ -161,7 +167,11 @@ async def fetch_xero_connections(access_token: str) -> list[dict[str, str]]:
 
 
 def _parse_xero_date(inv: dict) -> str:
-    """Return YYYY-MM-DD from DateString or /Date(ms)/."""
+    """Return YYYY-MM-DD from DateString or /Date(ms)/, or '' if unknown.
+
+    Never invents ``today`` — undated docs must be skipped by mappers so they
+    do not land in the wrong ledger month.
+    """
     raw = inv.get("DateString") or ""
     if isinstance(raw, str) and len(raw) >= 10 and raw[4] == "-":
         return raw[:10]
@@ -173,7 +183,7 @@ def _parse_xero_date(inv: dict) -> str:
             return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
         except (ValueError, OSError, OverflowError):
             pass
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return ""
 
 
 def _line_category(inv: dict) -> str:
@@ -214,12 +224,23 @@ def _xero_money(doc: dict, amount: float) -> dict:
     # (never invent 1.0 for foreign docs — quarantine via money_fields).
     fx_home_per_doc = (1.0 / rate) if rate > 0 else None
     sub_total = doc.get("SubTotal")
+    amount_net = None
+    if sub_total not in (None, ""):
+        try:
+            amount_net = abs(float(sub_total))
+        except (TypeError, ValueError):
+            amount_net = None
+    tax_raw = doc.get("TotalTax")
+    try:
+        tax_amount = float(tax_raw) if tax_raw not in (None, "") else 0.0
+    except (TypeError, ValueError):
+        tax_amount = 0.0
     return amap.money_fields(
         amount,
         currency=doc.get("CurrencyCode"),
         fx_rate=fx_home_per_doc if fx_home_per_doc is not None else None,
-        tax_amount=doc.get("TotalTax") or 0,
-        amount_net=abs(float(sub_total)) if sub_total not in (None, "") else None,
+        tax_amount=tax_amount,
+        amount_net=amount_net,
     )
 
 
@@ -241,6 +262,8 @@ def map_xero_invoice(inv: dict) -> Optional[dict]:
         return None
 
     date_full = _parse_xero_date(inv)
+    if len(date_full) < 10:
+        return None
     month = date_full[:7]
     amount, is_credit = amap.normalize_mapped_amount(inv.get("Total"))
     invoice_id = str(inv.get("InvoiceID") or inv.get("InvoiceNumber") or "")
@@ -316,6 +339,8 @@ def map_xero_bank_transaction(txn: dict) -> Optional[dict]:
         return None
 
     date_full = _parse_xero_date(txn)
+    if len(date_full) < 10:
+        return None
     month = date_full[:7]
     amount, is_credit = amap.normalize_mapped_amount(txn.get("Total"))
     tid = str(txn.get("BankTransactionID") or "")
@@ -353,6 +378,8 @@ def map_xero_credit_note(cn: dict) -> Optional[dict]:
     if cn_type not in ("ACCRECCREDIT", "ACCPAYCREDIT"):
         return None
     date_full = _parse_xero_date(cn)
+    if len(date_full) < 10:
+        return None
     month = date_full[:7]
     amount, _ = amap.normalize_mapped_amount(cn.get("Total"))
     cid = str(cn.get("CreditNoteID") or cn.get("CreditNoteNumber") or "")
@@ -394,6 +421,8 @@ def map_xero_manual_journal(mj: dict, account_classes: Optional[dict[str, str]] 
     if not mid or not account_classes:
         return []
     date_full = _parse_xero_date(mj)
+    if len(date_full) < 10:
+        return []
     month = date_full[:7]
     narration = (mj.get("Narration") or "").strip()
     out: list[dict] = []
@@ -458,13 +487,14 @@ XERO_MAX_PAGES = 500
 
 
 async def _throttle_xero() -> None:
-    """Keep calls under ~60/min."""
+    """Keep calls under ~60/min (lock so concurrent workspace syncs do not stampede)."""
     global _last_xero_call_at
-    now = time.monotonic()
-    wait = XERO_MIN_INTERVAL_SEC - (now - _last_xero_call_at)
-    if wait > 0:
-        await asyncio.sleep(wait)
-    _last_xero_call_at = time.monotonic()
+    async with _xero_throttle_lock:
+        now = time.monotonic()
+        wait = XERO_MIN_INTERVAL_SEC - (now - _last_xero_call_at)
+        if wait > 0:
+            await asyncio.sleep(wait)
+        _last_xero_call_at = time.monotonic()
 
 
 async def _xero_get(
