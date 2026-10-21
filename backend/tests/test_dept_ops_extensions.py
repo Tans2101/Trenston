@@ -194,3 +194,24 @@ def test_sales_actual_ignores_won_deals_concept():
     assert tvs["actual"] == 1000.0
     # target_vs_actual has no deals parameter — signature is settled.
     assert "deals" not in sob.target_vs_actual.__code__.co_varnames
+
+
+def test_workspace_month_bounds_differ_from_utc_near_boundary():
+    """Manila evening on the 1st must not attribute spend to the previous UTC month."""
+    import tz_utils
+    import decision_engine as eng
+
+    ws = {"timezone": "Asia/Manila"}
+    # 2026-10-01 00:30 Manila = 2026-09-30 16:30 UTC
+    local_day = date(2026, 10, 1)
+    start, end = tz_utils.month_bounds_utc(ws, local_day)
+    utc_start, _ = eng.month_period_bounds(datetime(2026, 9, 30, 16, 30, tzinfo=timezone.utc))
+    assert start.strftime("%Y-%m") == "2026-09" or start.astimezone(
+        tz_utils.workspace_tz(ws)
+    ).strftime("%Y-%m") == "2026-10"
+    # Local October bounds start at Manila midnight Oct 1 → UTC Sept 30 evening.
+    assert start < datetime(2026, 10, 1, 0, 0, tzinfo=timezone.utc)
+    assert end > datetime(2026, 10, 1, 0, 0, tzinfo=timezone.utc)
+    assert sob.current_month(local_day) == "2026-10"
+    # Bare UTC bounds for that same UTC instant would still be September.
+    assert utc_start.strftime("%Y-%m") == "2026-09"

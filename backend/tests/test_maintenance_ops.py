@@ -404,6 +404,19 @@ def test_contract_requires_dates(ops_api):
     assert r.status_code == 400
 
 
+def test_contract_rejects_end_before_start(ops_api):
+    client = ops_api["client"]
+    server.app.dependency_overrides[server.get_principal] = ops_api["as_lead"]
+    r = client.post("/api/maintenance/contracts", json={
+        "equipment_name": "Compressor",
+        "vendor_name": "AMC Co",
+        "coverage_start": "2026-12-31",
+        "coverage_end": "2026-01-01",
+    })
+    assert r.status_code == 400
+    assert "coverage_end" in r.json()["detail"]
+
+
 def test_ceo_settings_budget_and_cost(ops_api):
     client = ops_api["client"]
     server.app.dependency_overrides[server.get_principal] = ops_api["as_ceo"]

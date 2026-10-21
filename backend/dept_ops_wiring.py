@@ -17,7 +17,6 @@ from pydantic import BaseModel, Field
 import department_access as dept_access
 import department_migrate as dept_migrate
 import departments_catalog as dept_catalog
-import decision_engine
 import maintenance_ops as maint_ops
 import procurement_spend as proc_spend
 import sales_order_book as sales_ob
@@ -723,6 +722,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             raise HTTPException(status_code=400, detail="equipment_name and vendor_name are required")
         start = _norm_ymd(payload.coverage_start, "coverage_start")
         end = _norm_ymd(payload.coverage_end, "coverage_end")
+        if end < start:
+            raise HTTPException(status_code=400, detail="coverage_end must be on or after coverage_start")
         renewal = (payload.renewal_date or "").strip()
         renewal = _norm_ymd(renewal, "renewal_date") if renewal else end
         cost = None
@@ -785,11 +786,20 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             upd["cost"] = c
         if payload.scope_notes is not None:
             upd["scope_notes"] = payload.scope_notes.strip()[:2000]
+        start_v = upd.get("coverage_start", row.get("coverage_start"))
+        end_v = upd.get("coverage_end", row.get("coverage_end"))
+        if start_v and end_v and end_v < start_v:
+            raise HTTPException(status_code=400, detail="coverage_end must be on or after coverage_start")
         if not upd:
             return {"ok": True, "contract": maint_ops.enrich_contract(row, today=await _ws_today(principal))}
         upd["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.maintenance_contracts.update_one(
-            {"id": contract_id, "department_id": dept["department_id"]}, {"$set": upd},
+            {
+                "id": contract_id,
+                "department_id": dept["department_id"],
+                "workspace_id": principal["workspace_id"],
+            },
+            {"$set": upd},
         )
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
         return {"ok": True, "contract": maint_ops.enrich_contract({**row, **upd}, today=await _ws_today(principal))}
@@ -806,8 +816,19 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         invalidate_workspace_list_cache(principal["workspace_id"], "maintenance")
         return {"ok": True}
 
+    async def _ws_tz_doc(workspace_id: str) -> dict:
+        return await db.workspaces.find_one(
+            {"workspace_id": workspace_id}, {"_id": 0, "timezone": 1},
+        ) or {}
+
     async def _maint_overhead(dept: dict, workspace_id: str) -> dict:
-        month_start, month_end = decision_engine.month_period_bounds()
+        # Match sales order-book: workspace-local calendar month, not bare UTC.
+        ws = await _ws_tz_doc(workspace_id)
+        local_today = tz_utils.workspace_today(ws)
+        month_start, month_end = tz_utils.month_bounds_utc(ws, local_today)
+        month_key = sales_ob.current_month(local_today)
+        # department_id is workspace-scoped (unique); omit workspace_id so legacy
+        # tickets without that field still roll into overhead.
         tickets = await db.maintenance_tickets.find(
             {
                 "department_id": dept["department_id"],
@@ -833,7 +854,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
         ledger = await db.maintenance_costs.find(
             {
                 "department_id": dept["department_id"],
-                "month": month_start.strftime("%Y-%m"),
+                "workspace_id": workspace_id,
+                "month": month_key,
             },
             {"_id": 0, "amount": 1},
         ).to_list(2000)
@@ -851,8 +873,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
             budget=budget,
             budget_entered=budget_entered,
         )
-        rollup["period"] = month_start.strftime("%Y-%m")
-        rollup["period_label"] = month_start.strftime("%B %Y")
+        rollup["period"] = month_key
+        rollup["period_label"] = local_today.strftime("%B %Y")
         return rollup
 
     @api_router.get("/maintenance/settings")
@@ -893,9 +915,13 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
     @api_router.get("/maintenance/costs")
     async def list_maintenance_costs(principal=Depends(get_principal)):
         dept = await _maint_dept(principal)
-        month = decision_engine.month_period_bounds()[0].strftime("%Y-%m")
+        month = sales_ob.current_month(await _ws_today(principal))
         rows = await db.maintenance_costs.find(
-            {"department_id": dept["department_id"], "month": month},
+            {
+                "department_id": dept["department_id"],
+                "workspace_id": principal["workspace_id"],
+                "month": month,
+            },
             {"_id": 0},
         ).sort("created_at", -1).to_list(500)
         overhead = await _maint_overhead(dept, principal["workspace_id"])
@@ -964,7 +990,8 @@ def register(api_router, *, db, get_principal, invalidate_workspace_list_cache, 
     @api_router.get("/procurement/spend")
     async def get_procurement_spend(principal=Depends(get_principal)):
         dept = await _proc_dept(principal)
-        month_start, month_end = decision_engine.month_period_bounds()
+        ws = await _ws_tz_doc(principal["workspace_id"])
+        month_start, month_end = tz_utils.month_bounds_utc(ws)
         rows = await db.procurement_requests.find(
             {"department_id": dept["department_id"]},
             {"_id": 0, "item": 1, "vendor_name": 1, "cost": 1, "created_at": 1, "updated_at": 1},
