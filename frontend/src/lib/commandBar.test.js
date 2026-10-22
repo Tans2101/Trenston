@@ -176,6 +176,15 @@ describe("decisions and notes", () => {
     expect(requestFor(r)).toMatchObject({ path: "/notes", body: { text: "call Ann friday !high #x" } });
     expect(p("note ").ready).toBe(false);
   });
+
+  it("note View deep-links to /app (My Day / Home), not a soft-404 /app/myday", () => {
+    const r = p("note ship the invoice");
+    expect(requestFor(r)).toMatchObject({
+      path: "/notes",
+      body: { text: "ship the invoice" },
+      view: "/app",
+    });
+  });
 });
 
 describe("helpers", () => {

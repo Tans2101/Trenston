@@ -878,7 +878,7 @@ function LockedPreview({ access, theme }) {
 function ModelingWorkspace({ theme }) {
   const { user } = useAuth();
   // View-only Financials users (Executive) can model, but not change the company reserve.
-  const canEditCompanyReserve = user?.can_edit_financials !== false;
+  const canEditCompanyReserve = user?.can_edit_financials === true;
   const baselineQ = useFetch("/modeling/baseline");
   const scenariosQ = useFetch("/modeling/scenarios");
   const baseline = baselineQ.data;

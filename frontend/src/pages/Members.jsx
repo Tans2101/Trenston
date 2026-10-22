@@ -8,7 +8,7 @@ import { useSoftRefreshToast } from "@/hooks/useSoftRefreshToast";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { PageHeader, GlassCard, SectionLabel, ErrorScreen, SkeletonCardList } from "@/components/kit";
-import { ASSIGNABLE_PACKS, packMeta, hasPerm } from "@/lib/access";
+import { ASSIGNABLE_PACKS, packMeta, hasPerm, packLockedSections } from "@/lib/access";
 import { formatDepartmentNames } from "@/lib/departments";
 import { cn } from "@/lib/utils";
 import { MANAGE_DEPARTMENTS_HREF } from "@/lib/departmentRoutes";
@@ -222,7 +222,7 @@ export default function Members() {
               {accessMembers.map((member) => {
                 const meta = packMeta(member.pack);
                 const grants = draftFor(member.membership_id, member);
-                const fromPack = new Set(member.from_pack || []);
+                const fromPack = packLockedSections(member);
                 const fromDept = new Set(member.from_department || []);
                 const memberDepts = new Set(deptsFor(member.membership_id, member));
                 return (
@@ -417,13 +417,18 @@ export default function Members() {
                     </span>
                     {canEditThis && (
                       <div className="flex items-center gap-1 flex-wrap">
-                        <select value={targetIsOwner ? "owner" : (m.pack || m.role)} onChange={(e) => changePack(m, e.target.value)}
-                          data-testid={`pack-select-${m.email}`}
-                          aria-label={`Access pack for ${m.email}`}
-                          className="text-[11px] text-helm-fg bg-helm-card border border-helm-line rounded px-2 py-1 focus:outline-none focus:border-helm-gold/40">
-                          {targetIsOwner && <option value="owner" disabled>Owner</option>}
-                          {ASSIGNABLE_PACKS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                        </select>
+                        {/* Owners keep Owner; demoting via this select had no re-promote path. */}
+                        {!targetIsOwner && (
+                          <select
+                            value={m.pack || m.role}
+                            onChange={(e) => changePack(m, e.target.value)}
+                            data-testid={`pack-select-${m.email}`}
+                            aria-label={`Access pack for ${m.email}`}
+                            className="text-[11px] text-helm-fg bg-helm-card border border-helm-line rounded px-2 py-1 focus:outline-none focus:border-helm-gold/40"
+                          >
+                            {ASSIGNABLE_PACKS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                          </select>
+                        )}
                         {canManageOwners && (
                           <CirDeleteBtn onClick={() => remove(m)} data-testid={`remove-${m.email}`} title="Remove member" />
                         )}

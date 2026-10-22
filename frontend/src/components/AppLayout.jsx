@@ -223,15 +223,21 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
   const { user } = useAuth();
   const { data } = useFetch("/workspaces");
   const [open, setOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const list = data?.workspaces || [];
   const active = list.find((w) => w.active) || list[0];
 
   const switchWs = async (id) => {
+    if (switching) return;
     if (id === active?.workspace_id) { setOpen(false); return; }
+    setSwitching(true);
     try {
       await api.post("/workspaces/switch", { workspace_id: id });
       window.location.href = "/app";
-    } catch (e) { toast.error("Could not switch workspace"); }
+    } catch (e) {
+      toast.error("Could not switch workspace");
+      setSwitching(false);
+    }
   };
 
   const [creating, setCreating] = useState(false);
@@ -257,9 +263,14 @@ function WorkspaceSwitcher({ onNavigate, billingEnforced }) {
       {open && (
         <div className="absolute left-1 right-1 mt-1 z-50 rounded-xl border border-helm-line bg-helm-card shadow-xl overflow-hidden">
           {list.map((w) => (
-            <button key={w.workspace_id} onClick={() => switchWs(w.workspace_id)}
+            <button
+              key={w.workspace_id}
+              type="button"
+              onClick={() => switchWs(w.workspace_id)}
+              disabled={switching}
               data-testid={`ws-option-${w.workspace_id}`}
-              className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-helm-fg/5">
+              className="w-full flex items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-helm-fg/5 disabled:opacity-60"
+            >
               <span className="flex-1 min-w-0 text-xs text-helm-fg truncate">{w.name}</span>
               {w.active && <Check className="w-3.5 h-3.5 text-helm-gold" />}
             </button>

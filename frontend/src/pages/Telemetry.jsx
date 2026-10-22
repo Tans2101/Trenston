@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { useFetch, fetchErrorMessage } from "@/hooks/useFetch";
 import { api } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 import { PageHeader, GlassCard, SectionLabel, Delta, ErrorScreen, EmptyState, SkeletonKPIRow, SkeletonChart } from "@/components/kit";
 import { FunnelChart } from "@/components/charts/funnel-chart";
 import {
@@ -114,6 +115,7 @@ const riskColor = (score) => (
 const emptyRisk = () => ({ id: "", name: "", likelihood: 3, impact: 3, category: "General" });
 
 export default function Telemetry() {
+  const { user } = useAuth();
   const { data, loading, error, reload } = useFetch("/telemetry");
   const { symbol: sym } = useWorkspaceCurrency();
   const navigate = useNavigate();
@@ -123,6 +125,9 @@ export default function Telemetry() {
   const [targetEnabled, setTargetEnabled] = useState(false);
   const [growthPct, setGrowthPct] = useState("3");
   const [busy, setBusy] = useState(false);
+  const canOpenFinancials =
+    (user?.granted_sections || []).includes("financials")
+    && data?.financials_visible !== false;
 
   if (error && !data) {
     return (
@@ -156,7 +161,39 @@ export default function Telemetry() {
       />
     );
   }
-  if ((data.kpis || []).length === 0) return <div><PageHeader title="Metrics" subtitle="Live KPIs and growth trends from your real data." /><EmptyState title="No metrics yet" body="Log financials and add your team. Your KPIs build from real data." action={<div className="flex flex-wrap justify-center gap-2"><Link to="/app/financials" data-testid="telemetry-empty-financials" className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover">Log financials</Link><Link to="/app/members" data-testid="telemetry-empty-team" className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]">Invite your team</Link></div>} /></div>;
+  if ((data.kpis || []).length === 0) {
+    return (
+      <div>
+        <PageHeader title="Metrics" subtitle="Live KPIs and growth trends from your real data." />
+        <EmptyState
+          title="No metrics yet"
+          body={canOpenFinancials
+            ? "Log financials and add your team. Your KPIs build from real data."
+            : "Invite your team. KPIs build from real data as your workspace fills in."}
+          action={(
+            <div className="flex flex-wrap justify-center gap-2">
+              {canOpenFinancials && (
+                <Link
+                  to="/app/financials"
+                  data-testid="telemetry-empty-financials"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-helm-gold text-helm-navy font-medium text-sm px-4 py-2 hover:bg-helm-gold-hover"
+                >
+                  Log financials
+                </Link>
+              )}
+              <Link
+                to="/app/members"
+                data-testid="telemetry-empty-team"
+                className="inline-flex items-center gap-1.5 rounded-md border border-helm-line text-helm-fg text-sm px-4 py-2 hover:bg-helm-fg/[0.04]"
+              >
+                Invite your team
+              </Link>
+            </div>
+          )}
+        />
+      </div>
+    );
+  }
 
   const asOf = data.data_as_of ? new Date(data.data_as_of).toLocaleString() : null;
   const canWrite = data.can_write;

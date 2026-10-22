@@ -32,3 +32,18 @@ export function canManageBilling(user) {
   if (user.role === "owner" || user.pack === "owner") return true;
   return hasPerm(user, "billing:manage");
 }
+
+/**
+ * Sections a pack can open without a write perm (mirrors backend FINANCIALS_VIEW_PACKS).
+ * Manage Access must treat these as pack-locked so toggling does not escalate to edit.
+ */
+export const VIEW_SECTIONS_BY_PACK = {
+  exec: ["financials"],
+};
+
+/** Pack + dept + grant union for Manage Access display (view-via-pack included). */
+export function packLockedSections(member) {
+  const fromPack = member?.from_pack || [];
+  const viewViaPack = VIEW_SECTIONS_BY_PACK[member?.pack] || [];
+  return new Set([...fromPack, ...viewViaPack]);
+}

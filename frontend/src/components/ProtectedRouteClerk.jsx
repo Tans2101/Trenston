@@ -7,7 +7,7 @@ import { AppLayout, WorkspaceGate } from "@/components/lazyAppShell";
 import { LoadingScreen } from "@/components/kit";
 import ClerkLoadError from "@/components/ClerkLoadError";
 import { useClerkReady } from "@/hooks/useClerkReady";
-import { clerkSessionComplete, CLERK_AUTH_OPTS } from "@/lib/clerkSession";
+import { clerkSessionComplete, CLERK_AUTH_OPTS, shouldHardLogoutStaleTrenstonSession } from "@/lib/clerkSession";
 
 /** Protected routes when Clerk is enabled — wait for Clerk→Trenston session exchange. */
 export default function ProtectedRouteClerk() {
@@ -39,11 +39,14 @@ export default function ProtectedRouteClerk() {
 
   // Clerk Dashboard (or user.deleted webhook) can end the Clerk session while
   // AuthContext still holds a Trenston user — clear local state and leave /app.
+  // Only hard-logout when Clerk is loaded and explicitly signed out. Pending
+  // verification / brief hydration gaps must not wipe a good Trenston session.
   useEffect(() => {
-    if (!clerkReady || !user) return;
-    if (clerkComplete) return;
+    if (!shouldHardLogoutStaleTrenstonSession({
+      clerkReady, user, clerkComplete, sessionStatus, isSignedIn, userId, sessionId, session,
+    })) return;
     logout();
-  }, [clerkReady, user, clerkComplete, logout]);
+  }, [clerkReady, user, clerkComplete, logout, sessionStatus, isSignedIn, userId, sessionId, session]);
 
   useEffect(() => {
     if (user || !clerkComplete || sessionError) {

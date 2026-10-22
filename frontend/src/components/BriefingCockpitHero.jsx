@@ -27,6 +27,9 @@ const ASSISTANT_PROMPTS = [
   "What's the single most important thing today?",
 ];
 
+/** Burn/runway chips need Financials; Ask denies them otherwise. */
+const FINANCE_ASSISTANT_RE = /burn rate|runway/i;
+
 const HERO_TERM = { mrr: "revenue", burn: "burn", runway: "runway", cash: "cash" };
 
 const METRIC_KEYS = [
@@ -192,7 +195,7 @@ export default function BriefingCockpitHero({
             Revenue, burn, and runway stay empty until you log financials. Invite your team when you are ready to share the cockpit.
           </p>
           <div className="mt-5 flex flex-wrap gap-2">
-            {user?.can_edit_financials !== false && (
+            {user?.can_edit_financials === true && (
               <button
                 type="button"
                 data-testid="briefing-empty-add-financials"
@@ -373,7 +376,10 @@ export default function BriefingCockpitHero({
             <h3 className="text-sm font-medium text-helm-fg">Assistant</h3>
           </div>
           <div className="flex flex-col gap-2">
-            {ASSISTANT_PROMPTS.map((q) => (
+            {(canFin
+              ? ASSISTANT_PROMPTS
+              : ASSISTANT_PROMPTS.filter((q) => !FINANCE_ASSISTANT_RE.test(q))
+            ).map((q) => (
               <button
                 key={q}
                 type="button"

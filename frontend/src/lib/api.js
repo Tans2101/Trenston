@@ -53,7 +53,10 @@ export function apiForbiddenReason(detailOrBody) {
 
 let clerkGetToken = null;
 
-const BOOTSTRAP_PATHS = ["/auth/me", "/auth/config"];
+// /auth/config is public bootstrap (no session yet). /auth/me must attach the
+// Clerk Bearer when registered — soft refreshes otherwise rely on cookie only
+// and can 401 while the JWT is still valid.
+const BOOTSTRAP_PATHS = ["/auth/config"];
 
 function isBootstrapPath(url) {
   const path = String(url || "").split("?")[0];

@@ -317,7 +317,7 @@ export default function Briefing({ asHome = false } = {}) {
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </button>
               )}
-              {user?.can_edit_financials !== false && (
+              {user?.can_edit_financials === true && (
                 <button
                   type="button"
                   data-testid="briefing-setup-financials"

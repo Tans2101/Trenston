@@ -453,5 +453,6 @@ export function requestFor(parsed, { myUserId } = {}) {
       view: "/app/decisions",
     };
   }
-  return { path: "/notes", body: { text: parsed.title }, done: "Note saved", view: "/app/myday" };
+  // Notes surface on Home / My Day at /app (there is no /app/myday route).
+  return { path: "/notes", body: { text: parsed.title }, done: "Note saved", view: "/app" };
 }

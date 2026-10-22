@@ -23,7 +23,7 @@ export default function WorkspaceGate() {
     const refresh = () => {
       if (cooling || document.visibilityState === "hidden") return;
       cooling = true;
-      checkAuth().catch(() => {}).finally(() => {
+      checkAuth({ soft: true }).catch(() => {}).finally(() => {
         window.setTimeout(() => { cooling = false; }, 1500);
       });
     };

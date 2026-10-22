@@ -230,15 +230,22 @@ export default function Pipeline() {
   };
 
   // Won deals create a revenue entry server-side — say so and link to it.
+  // Sales without Financials get `{ booked: true }` (no entry payload); still toast.
   const announceRevenue = (res) => {
     const entry = res?.financial_entry;
-    if (!entry?.id) return;
-    invalidateFetchQueries(queryClient, "/financials");
-    // Only offer the link to people who can open Financials (SectionGate).
-    const canSeeFinancials = (user?.granted_sections || []).includes("financials");
-    toast.success(`Revenue logged for ${monthLabel(entry.month)}`, canSeeFinancials ? {
-      action: { label: "View in Financials", onClick: () => navigate(entryHref(entry.id)) },
-    } : undefined);
+    if (entry?.id) {
+      invalidateFetchQueries(queryClient, "/financials");
+      // Only offer the link to people who can open Financials (SectionGate).
+      const canSeeFinancials = (user?.granted_sections || []).includes("financials");
+      toast.success(`Revenue logged for ${monthLabel(entry.month)}`, canSeeFinancials ? {
+        action: { label: "View in Financials", onClick: () => navigate(entryHref(entry.id)) },
+      } : undefined);
+      return;
+    }
+    if (res?.booked) {
+      invalidateFetchQueries(queryClient, "/financials");
+      toast.success("Revenue logged from this won deal");
+    }
   };
 
   const dealPayload = (base) => ({

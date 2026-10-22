@@ -9,14 +9,20 @@ export function AuthProvider({ children, onLogoutExtra, deferInitialAuth = false
   const [loading, setLoading] = useState(true);
   const [sessionError, setSessionError] = useState("");
 
-  const checkAuth = useCallback(async () => {
+  /**
+   * Refresh the Trenston session from `/auth/me`.
+   * Soft mode (WorkspaceGate focus refresh) must not clear a good session on
+   * transient network/401 blips — that kicked signed-in users to login.
+   */
+  const checkAuth = useCallback(async (opts = {}) => {
+    const soft = Boolean(opts?.soft);
     try {
       const { data } = await api.get("/auth/me");
       setUser(data);
       setSessionError("");
       return data;
     } catch (e) {
-      setUser(null);
+      if (!soft) setUser(null);
       throw e;
     } finally {
       setLoading(false);

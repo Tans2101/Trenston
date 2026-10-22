@@ -42,6 +42,7 @@ export default function ClerkHelmBridge() {
   const navigate = useNavigate();
   const syncRunId = useRef(0);
   const tokenGetterRef = useRef(null);
+  const lastExchangedClerkUserId = useRef(null);
 
   const clerkReady = isLoaded && sessionLoaded;
   const clerkComplete = clerkSessionComplete({
@@ -68,7 +69,21 @@ export default function ClerkHelmBridge() {
   }, [clerkComplete]);
 
   useEffect(() => {
-    if (!clerkReady || !clerkComplete || user) return;
+    if (!clerkReady || !clerkComplete) return;
+
+    // Already synced this Clerk identity into Trenston.
+    if (user && lastExchangedClerkUserId.current === userId) return;
+    // First paint after setUser before the ref is stamped — record and hold.
+    if (user && lastExchangedClerkUserId.current == null) {
+      lastExchangedClerkUserId.current = userId;
+      return;
+    }
+    // Clerk account switched while a Trenston principal is still set — drop and re-exchange.
+    if (user && lastExchangedClerkUserId.current !== userId) {
+      lastExchangedClerkUserId.current = null;
+      setUser(null);
+      return;
+    }
 
     const runId = ++syncRunId.current;
     let cancelled = false;
@@ -88,6 +103,7 @@ export default function ClerkHelmBridge() {
           // Timing breadcrumb so a slow sign-in can be diagnosed from the browser console.
           console.info(`[trenston-auth] token ${tTok}ms, exchange ${Date.now() - t0 - tTok}ms, attempt ${attempt + 1}`);
           if (cancelled || runId !== syncRunId.current) return;
+          lastExchangedClerkUserId.current = userId;
           setUser(data);
           clearSessionError();
           // Clerk may redirect to apexcoach.tech; send user to helmcontrol after session exchange.

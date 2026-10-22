@@ -42,3 +42,22 @@ export function clerkSessionComplete({
 
 /** Clerk useAuth options — pending sessions must count as signed in for Trenston exchange. */
 export const CLERK_AUTH_OPTS = { treatPendingAsSignedOut: false };
+
+/**
+ * When Trenston still has a user but Clerk is incomplete, only hard-logout if
+ * Clerk is loaded and explicitly signed out (not pending / hydrating).
+ */
+export function shouldHardLogoutStaleTrenstonSession({
+  clerkReady,
+  user,
+  clerkComplete,
+  sessionStatus,
+  isSignedIn,
+  userId,
+  sessionId,
+  session,
+}) {
+  if (!clerkReady || !user || clerkComplete) return false;
+  if (sessionStatus === "pending") return false;
+  return isSignedIn === false && !userId && !sessionId && !session;
+}
